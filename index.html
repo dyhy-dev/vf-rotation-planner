@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Velvet Frequency Rotation Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14121c; --panel:#1f1c2b; --panel2:#262234; --line:#3a3550;
+  --blue:#9fc5e8; --blue-strong:#5b9bd5; --blue-soft:#cfe2f3;
+  --gold:#f1c232; --text:#f3f1f7; --muted:#9d97b3; --row:#23202f;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:radial-gradient(1200px 600px at 70% -10%, #241f38 0%, var(--ink) 60%) fixed, var(--ink);
+  color:var(--text); font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.4;
+  padding:0 0 80px;
+}
+.wrap{max-width:1280px; margin:0 auto; padding:18px}
+h1,h2,h3{font-family:"Oswald",sans-serif; font-weight:600; letter-spacing:.04em; margin:0}
+button,select,input{font-family:inherit; color:inherit}
+button{cursor:pointer}
+
+/* toolbar */
+.toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px}
+.toolbar .spacer{flex:1}
+.btn{background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; transition:.15s}
+.btn:hover{border-color:var(--blue-strong); background:#2d283d}
+.btn.primary{background:var(--blue-strong); border-color:var(--blue-strong); color:#0b1626}
+.btn.primary:hover{background:var(--blue)}
+.brand{font-family:"Oswald"; font-weight:700; font-size:18px; letter-spacing:.12em;
+  text-transform:uppercase; color:#e0445e}
+.brand small{display:block; font-family:"Inter"; font-weight:500; font-size:10px;
+  letter-spacing:.18em; color:var(--muted)}
+
+/* panel shell */
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:16px; margin-bottom:16px; box-shadow:0 12px 30px -18px #000}
+
+/* header / setup */
+.head-top{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap}
+.rot-name{flex:1 1 320px}
+.rot-name input{width:100%; background:transparent; border:none; border-bottom:2px solid var(--line);
+  font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
+.rot-name input:focus{outline:none; border-color:var(--gold)}
+.tier{display:flex; align-items:center; gap:8px}
+.tier select{border:none; border-radius:8px; font-family:"Oswald"; font-weight:700; letter-spacing:.1em;
+  font-size:20px; padding:14px 18px; text-transform:uppercase; background:var(--gold); color:#3a2c00; transition:.15s}
+.tier.type-mld select{background:var(--gold); color:#3a2c00}
+.tier.type-dod select{background:#9b5de5; color:#1a0a2e}
+.tier.type-nod select{background:#e0445e; color:#2c0710}
+.meta{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:14px}
+.field label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:4px}
+.field input,.field select{width:100%; background:var(--panel2); border:1px solid var(--line);
+  border-radius:8px; padding:8px 10px; font-weight:600}
+.field input:focus,.field select:focus{outline:none; border-color:var(--blue-strong)}
+.meta-big{grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px}
+.meta-big .field label{font-size:11px; margin-bottom:6px}
+.meta-big .field input{font-size:20px; font-weight:700; padding:14px 16px}
+
+/* team */
+.section-title{display:flex; align-items:center; gap:10px; margin:0 0 12px}
+.section-title h2{font-size:16px; text-transform:uppercase; color:var(--blue)}
+.section-title .rule{flex:1; height:1px; background:var(--line)}
+.units{display:grid; grid-template-columns:repeat(auto-fit,minmax(188px,1fr)); gap:12px}
+.unit{background:var(--panel2); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  border-top:3px solid var(--ux,#888)}
+.unit .art{aspect-ratio:1/1; background:#0d0b14 center/cover no-repeat; position:relative; display:flex;
+  align-items:center; justify-content:center}
+.unit .art .ph{font-family:"Oswald"; font-weight:700; font-size:30px; color:#4a4560}
+.unit .body{padding:8px}
+.unit select.name{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px;
+  padding:8px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.05em; text-align:center}
+.unit .tags{display:flex; gap:6px; margin-top:6px}
+.unit .tags select{flex:1; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
+.unit .gear{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; color:var(--blue-soft)}
+.rev-row{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; align-items:end}
+.rev-row.one{grid-template-columns:1fr}
+.rev-lab{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; line-height:1.15}
+.rev-row select{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; font-weight:600; color:var(--blue-soft)}
+.rev-row select:focus{outline:none; border-color:var(--blue-strong)}
+.unit.elu{border-top-style:dashed}
+.unit .grip{position:absolute; top:6px; right:6px; z-index:2; background:#000a; border:1px solid var(--line);
+  color:#dfe6f5; border-radius:6px; padding:1px 6px 3px; cursor:grab; font-size:13px; line-height:1; user-select:none}
+.unit .grip:active{cursor:grabbing}
+.unit.dragging{opacity:.45}
+.unit.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+.elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
+  color:var(--blue); font-size:9px; letter-spacing:.12em; padding:2px 6px; border-radius:5px; font-weight:700}
+
+.subrow{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:14px}
+.minicard{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px}
+.minicard label{font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+.minicard .vals{display:flex; flex-direction:column; gap:6px; margin-top:6px}
+.minicard select,.minicard input{background:#15131d; border:1px solid var(--line); border-radius:6px; padding:6px; font-weight:600; width:100%}
+.persona-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px}
+.persona-col{position:relative}
+.pcol-head{display:flex; align-items:center; justify-content:space-between; gap:6px}
+.pgrip{cursor:grab; color:var(--muted); user-select:none; font-size:13px; line-height:1; padding:0 2px}
+.pgrip:active{cursor:grabbing}
+.persona-col.dragging{opacity:.45}
+.persona-col.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+.persona-col select{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px;
+  padding:9px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.04em}
+.persona-col .skills{display:flex; flex-direction:column; gap:6px; margin-top:8px}
+.persona-col .skills input{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
+.persona-col select:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
+@media (max-width:640px){ .persona-grid{grid-template-columns:1fr} }
+.team-notes{margin-top:14px}
+.team-notes .tn-label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.team-notes textarea{width:100%; min-height:60px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px; color:var(--text); font-family:inherit; resize:vertical}
+.team-notes textarea:focus{outline:none; border-color:var(--blue-strong)}
+
+/* rotation */
+.turns{display:flex; gap:12px; overflow-x:auto; padding-bottom:8px}
+.turn{flex:0 0 280px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column}
+.turn-head{display:flex; align-items:center; gap:6px; background:linear-gradient(180deg,#34507a,#26405f);
+  padding:8px 10px; border-radius:11px 11px 0 0}
+.turn-head .star{color:var(--gold)}
+.turn-head input{flex:1; background:transparent; border:none; color:#fff; font-family:"Oswald";
+  font-weight:600; letter-spacing:.08em; font-size:15px; text-align:center; text-transform:uppercase}
+.turn-head input:focus{outline:none}
+.turn-head .del{background:#0003; border:none; color:#cdd9ee; border-radius:6px; width:24px; height:24px; line-height:1}
+.turn-head .del:hover{background:#e06; color:#fff}
+.acts{padding:8px; display:flex; flex-direction:column; gap:6px; flex:1}
+.act{display:grid; grid-template-columns:22px 1fr 24px; gap:6px; align-items:stretch;
+  background:var(--row); border:1px solid var(--line); border-left:4px solid var(--ax,#666); border-radius:8px; padding:6px}
+.act .n{font-family:"Oswald"; font-weight:700; color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:grab; user-select:none}
+.act .n:active{cursor:grabbing}
+.act.dragging{opacity:.45}
+.act.drop-before{box-shadow:inset 0 3px 0 0 var(--blue-strong)}
+.act .mid{display:flex; flex-direction:column; gap:4px; min-width:0}
+.act .mid select{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:4px; font-weight:600; font-size:12px}
+.act .mid input{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:5px; font-size:12px}
+.act .mid input:focus,.act .mid select:focus{outline:none; border-color:var(--blue-strong)}
+.act .x{background:transparent; border:none; color:#6a647f; border-radius:6px}
+.act .x:hover{background:#e0245533; color:#ff6b8a}
+.add-act{margin:0 8px 8px; background:#15131d; border:1px dashed var(--line); color:var(--muted);
+  border-radius:8px; padding:7px; font-weight:600}
+.add-act:hover{border-color:var(--blue-strong); color:var(--blue)}
+.add-turn{flex:0 0 60px; align-self:stretch; background:transparent; border:2px dashed var(--line);
+  color:var(--muted); border-radius:12px; font-size:26px; font-family:"Oswald"}
+.add-turn:hover{border-color:var(--gold); color:var(--gold)}
+.notes-row{margin-top:12px}
+.notes-row textarea{width:100%; min-height:54px; background:var(--panel2); border:1px solid var(--line);
+  border-radius:10px; padding:10px; color:var(--text); font-family:inherit; resize:vertical}
+.foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
+.foot a{color:var(--blue)}
+@media (max-width:560px){ .rot-name input{font-size:22px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
+    <div class="spacer"></div>
+    <button class="btn" id="importBtn">Import JSON</button>
+    <button class="btn" id="exportBtn">Export JSON</button>
+    <button class="btn" id="printBtn">Print</button>
+    <button class="btn" id="resetBtn">Reset</button>
+    <input type="file" id="importFile" accept="application/json" hidden/>
+  </div>
+
+  <div class="panel" id="headPanel"></div>
+  <div class="panel" id="teamPanel"></div>
+  <div class="panel">
+    <div class="section-title"><h2>Rotation</h2><div class="rule"></div></div>
+    <div class="turns" id="turns"></div>
+    <div class="notes-row"><textarea id="notes" placeholder="Notes…"></textarea></div>
+  </div>
+  <div class="foot">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener">Discord</a><br>Autosave is on (stored locally in your browser) · Export JSON to save your work as a file.</div>
+</div>
+
+<script>
+const DATA = {"characterImages": {"TWINS": "images/TWINS.webp", "SOY·P": "images/SOY-P.webp", "LUCE·N": "images/LUCE-N.webp", "FUKA": "images/FUKA.webp", "KIRIJO": "images/KIRIJO.webp", "BUI·P": "images/BUI-P.webp", "BLITZ": "images/BLITZ.webp", "PUPPET·S": "images/PUPPET-S.webp", "MARIAN·S": "images/MARIAN-S.webp", "BERRY": "images/BERRY.webp", "AKIHIKO": "images/AKIHIKO.webp", "YUKARI": "images/YUKARI.webp", "MAKOTO": "images/MAKOTO.webp", "ANGE": "images/ANGE.webp", "LUCE": "images/LUCE.webp", "TURBO": "images/TURBO.webp", "CROW": "images/CROW.webp", "MATOI": "images/MATOI.webp", "RIN·L D": "images/RIN-L-D.webp", "TEMPEST": "images/TEMPEST.webp", "VIOLET": "images/VIOLET.webp", "HOWLER": "images/HOWLER.webp", "MONT·S": "images/MONT-S.webp", "NOIR": "images/NOIR.webp", "CHERISH": "images/CHERISH.webp", "NAVI": "images/NAVI.webp", "MESSA": "images/MESSA.webp", "MOKO·S": "images/MOKO-S.webp", "CLOSER·T": "images/CLOSER-T.webp", "CHORD": "images/CHORD.webp", "WIND": "images/WIND.webp", "PHOEBE": "images/PHOEBE.webp", "QUEEN": "images/QUEEN.webp", "VINO": "images/VINO.webp", "FOX": "images/FOX.webp", "BUI": "images/BUI.webp", "MARIAN": "images/MARIAN.webp", "JOKER": "images/JOKER.webp", "SKULL": "images/SKULL.webp", "MONA": "images/MONA.webp", "PANTHER": "images/PANTHER.webp", "RIN": "images/RIN.webp", "RIDDLE": "images/RIDDLE.webp", "CATTLE": "images/CATTLE.webp", "LEON": "images/LEON.webp", "CLOSER": "images/CLOSER.webp", "MONT": "images/MONT.webp", "SOY": "images/SOY.webp", "FLEURET": "images/FLEURET.webp", "YUKI": "images/YUKI.webp", "KEY": "images/KEY.webp", "MOKO": "images/MOKO.webp", "SEPIA": "images/SEPIA.webp", "PUPPET": "images/PUPPET.webp", "OKYANN": "images/OKYANN.webp", "WONDER": "images/WONDER.webp", "MONA·S": "images/MONA-S.webp", "JOKER·S": "images/JOKER-S.webp", "AIGIS": "images/AIGIS.webp", "CLOSER·R": "images/CLOSER-R.webp", "ANRI": "images/ANRI.webp", "KOROMARU": "images/KOROMARU.webp", "PINKY": "images/PINKY.webp", "JUNPEI": "images/JUNPEI.webp", "FUUKA": "images/FUKA.webp", "RIN·F": "images/RIN-L-D.webp", "WIND·T": "images/TEMPEST.webp", "MONT·F": "images/MONT-S.webp", "ORACLE": "images/NAVI.webp"}, "characterNames": ["AIGIS", "AKIHIKO", "ANGE", "ANRI", "BERRY", "BLITZ", "BUI", "BUI·P", "CATTLE", "CHERISH", "CHORD", "CLOSER", "CLOSER·R", "CLOSER·T", "CROW", "FLEURET", "FOX", "FUUKA", "HOWLER", "JOKER", "JOKER·S", "JUNPEI", "KEY", "KIRIJO", "KOROMARU", "LEON", "LUCE", "LUCE·N", "MAKOTO", "MARIAN", "MARIAN·S", "MATOI", "MESSA", "MOKO", "MOKO·S", "MONA", "MONA·S", "MONT", "MONT·F", "NOIR", "OKYANN", "ORACLE", "PANTHER", "PHOEBE", "PINKY", "PUPPET", "PUPPET·S", "QUEEN", "RIDDLE", "RIN", "RIN·F", "SEPIA", "SKULL", "SOY", "SOY·P", "TURBO", "TWINS", "VINO", "VIOLET", "WIND", "WIND·T", "WONDER", "YUKARI", "YUKI"], "personaNames": ["Alice", "Ame-no-Uzume", "Anubis", "Apsaras", "Arahabaki", "Baphomet", "Belphegor", "Bishamonten", "Chernobog", "Cu Chulainn", "Dionysus", "Dominion", "Girimehkala", "Isis", "Janosik", "Jatayu", "Jikokuten", "King Frost", "Kohryu", "Koumokuten", "Kushinada", "Lakshmi", "Lamia", "Lilith", "Macabre", "Melchizedek", "Mithras", "Narcissus", "Neko Shogun", "Nian", "Norn", "Okuninushi", "Orobas", "Parvati", "Pazuzu", "Sahimochi-no-kami", "Sandalphon", "Sarasvati", "Setanta", "Shiva", "Siegfried", "Sraosha", "Succubus", "Surt", "Thor", "Throne", "Titania", "Trumpeter", "Vasuki", "Vishnu", "Yamata-no-Orochi", "Yatagarasu", "Yoshitsune", "Yurlungur", "Zaou-Gongen"], "daggerNames": ["Abyss Fang", "All In", "Arc Knife", "Chaos Hex", "Curse of the Phantom", "Cyclotron", "Entropy Zero", "Ex Machina", "Eye of Obsequies", "Glacial Eternity", "Glimmer", "Pheromone Sting", "Plasma Blade", "Purgatory", "Sennight Inferno", "Starry Compass"], "revSets": ["Departure & Control", "Departure & Prosperity", "Departure & Hindrance", "Awareness & Truth", "Awareness & Control", "Awareness & Hindrance", "Growth & Opulence", "Growth & Renewal", "Growth & Power", "Wisdom & Oppression", "Wisdom & Pleasure", "Wisdom & Virtue", "Meditation & Opulence", "Meditation & Courage", "Meditation & Love", "Faith & Peace", "Faith & Love", "Trust & Renewal", "Trust & Power", "Trust & Prosperity", "Harmony & Victory", "Harmony & Power", "Harmony & Truth", "Resolve & Virtue", "Resolve & Labor", "Acceptance & Peace", "Acceptance & Strife", "Acceptance & Love", "Integrity & Pleause", "Integrity & Labor"], "bossNames": ["ATAVAKA", "BAAL", "BAAL ZEBUL", "DOMINION", "FAFNIR", "KARTIKEYA", "KOHRYU", "MARA", "NIDHOGGR", "OUMITSUNU", "SLAUGHTER DRIVE", "SURT", "VISHNU", "YATSUFUSA"], "awarenessOpts": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "DGR"], "revOpts": ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "RX"], "typeOpts": ["DOD", "MLD", "NOD"], "tierOpts": ["DOLPHIN", "F2P", "MINNOW", "WHALE"], "elucidatorOpts": ["ANGE", "FUUKA", "OKYANN", "ORACLE", "PHOEBE", "PUPPET", "WIND"], "initial": {"rotationName": "Rotation Name", "tier": "WHALE", "boss": "FAFNIR", "type": "MLD", "patch": "4.3", "score": "1.0E9", "team": ["WONDER", "CHORD", "YUKARI", "VIOLET"], "elucidator": "ORACLE", "awareness": ["A6", "DGR", "A1", "A6", "A6"], "rev": ["R6", "R5", "R0", "R6", "R6"], "persona": ["Dionysus", "Sraosha", "Kohryu"], "skills": ["TARUKAJA", "RAKUNDA"], "gear": ["Glimmer", "Trust & Prosperity", "Creation & Reconciliation", "Wisdom & Virtue", "Resolve & Labor"], "notes": "Includes DPS & Navi", "turns": [{"name": "TURN 1", "actions": [{"char": "ANGE", "action": "S3 if A1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 2", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 3", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S1 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "CHORD", "action": "HL"}, {"char": "CHORD", "action": "S3 Violet"}, {"char": "VIOLET", "action": "HL HL S3"}]}, {"name": "TURN 4", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1 if A0, S2 if A1+"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 5", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2 if A0, S1 if A1+"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 6", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S2 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "ANGE", "action": "HL Chord"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "CHORD", "action": "S3 Violet x2"}, {"char": "ANGE", "action": "S3"}, {"char": "VIOLET", "action": "HL HL S3"}]}]}, "sunSkyCards": ["Change", "Control", "Courage", "Defeat", "Depravity", "Determination", "Disappointment", "Flourishing", "Futility", "Hindrance", "Labor", "Love", "Obtain", "Oppression", "Opulence", "Peace", "Pleasure", "Power", "Prosperity", "Prudence", "Reconciliation", "Renewal", "Ruin", "Satiety", "Sorrow", "Strife", "Tenacity", "Triumph", "Truth", "Victory", "Virtue", "Worry"], "spaceCards": ["Acceptance", "Agility", "Awareness", "Creation", "Departure", "Faith", "Freedom", "Growth", "Harmony", "Hope", "Integrity", "Meditation", "Nativity", "Perseverance", "Purity", "Resolve", "Trust", "Wisdom"], "spacePartners": {"Nativity": ["Power"], "Perseverance": ["Change", "Obtain", "Sorrow"], "Hope": ["Change", "Labor", "Ruin"], "Creation": ["Reconciliation", "Tenacity", "Worry"], "Integrity": ["Labor", "Pleasure", "Ruin"], "Resolve": ["Labor", "Prudence", "Virtue"], "Awareness": ["Control", "Hindrance", "Truth"], "Departure": ["Control", "Hindrance", "Prosperity"], "Growth": ["Opulence", "Power", "Renewal"], "Wisdom": ["Oppression", "Pleasure", "Virtue"], "Meditation": ["Courage", "Love", "Opulence"], "Faith": ["Futility", "Love", "Peace"], "Trust": ["Power", "Prosperity", "Renewal"], "Harmony": ["Power", "Truth", "Victory"], "Acceptance": ["Love", "Peace", "Strife"], "Freedom": ["Defeat", "Disappointment", "Triumph"], "Purity": ["Change", "Depravity", "Flourishing"], "Agility": ["Flourishing", "Hindrance", "Satiety"]}, "charColors": {"MONA·S": "#82ec2c", "JOKER·S": "#ff0036", "AIGIS": "#fe9e01", "CLOSER·R": "#fcff37", "ANRI": "#ff0036", "KOROMARU": "#ff0036", "PINKY": "#ff66ff", "JUNPEI": "#ff391d", "TWINS": "#ffffff", "SOY·P": "#fe9e01", "LUCE·N": "#ffffa2", "FUUKA": "#3a6dfa", "KIRIJO": "#00afff", "BUI·P": "#00fcff", "BLITZ": "#fcff37", "PUPPET·S": "#00afff", "MARIAN·S": "#ffffa2", "BERRY": "#ff0036", "AKIHIKO": "#fcff37", "YUKARI": "#82ec2c", "MAKOTO": "#ff391d", "ANGE": "#3a6dfa", "LUCE": "#ffffa2", "TURBO": "#ff9d00", "CROW": "#ffffff", "MATOI": "#00afff", "RIN·F": "#ff391d", "WIND·T": "#82ec2c", "VIOLET": "#ffffa2", "HOWLER": "#ff391d", "MONT·F": "#82ec2c", "NOIR": "#ff66ff", "CHERISH": "#00afff", "ORACLE": "#3a6dfa", "MESSA": "#ff9d00", "MOKO·S": "#ff66ff", "CLOSER·T": "#ffffa2", "CHORD": "#fcff37", "WIND": "#3a6dfa", "PHOEBE": "#3a6dfa", "QUEEN": "#00fcff", "VINO": "#00fcff", "FOX": "#00afff", "BUI": "#fcff37", "MARIAN": "#ffffa2", "JOKER": "#ff0036", "SKULL": "#ff9d00", "MONA": "#82ec2c", "PANTHER": "#ff391d", "RIN": "#ff0036", "RIDDLE": "#ff66ff", "CATTLE": "#ff391d", "LEON": "#00fcff", "CLOSER": "#fcff37", "MONT": "#00afff", "SOY": "#00afff", "FLEURET": "#82ec2c", "YUKI": "#ffffa2", "KEY": "#ff391d", "MOKO": "#ff66ff", "SEPIA": "#ff0036", "PUPPET": "#3a6dfa", "OKYANN": "#3a6dfa"}, "elucidatorNames": ["ANGE", "FUUKA", "ORACLE", "WIND", "PHOEBE", "PUPPET", "OKYANN"]};
+
+/* ---------- helpers ---------- */
+const KNOWN_COLORS = {WONDER:'#c2002e'};
+const TWINS_ROLES = ['Sweeper','Assassin','Strategist','Saboteur','Medic','Guardian'];
+function charColor(name){
+  if(!name) return '#666';
+  const u=name.toUpperCase();
+  if(DATA.charColors && DATA.charColors[u]) return DATA.charColors[u];
+  if(KNOWN_COLORS[u]) return KNOWN_COLORS[u];
+  let h=0; for(const c of u) h=(h*31+c.charCodeAt(0))%360;
+  return `hsl(${h} 55% 70%)`;
+}
+function imgFor(name){
+  if(!name) return '';
+  return DATA.characterImages[name.toUpperCase()] || DATA.characterImages[name] || '';
+}
+function opt(list, val){
+  return list.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('');
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- state ---------- */
+const KEY='paradise-rotation-v1';
+function defaultState(){
+  const i=DATA.initial;
+  function mk(n,aw,rv,g){
+    const u={name:n,awareness:aw,rev:rv,gear:'',space:'',sunsky:'',role:'',companion:''};
+    if((n||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; u.rev='R6'; u.gear=g; }
+    else if(g && g.indexOf(' & ')>-1){ const p=g.split(' & '); u.space=p[0].trim(); u.sunsky=p[1].trim(); }
+    return u;
+  }
+  const units=i.team.map((n,k)=>mk(n,i.awareness[k]||'A0',i.rev[k]||'R0',i.gear[k]||''));
+  return {
+    setup:{rotationName:i.rotationName,tier:i.tier,boss:i.boss,type:i.type,patch:i.patch,score:i.score,notes:i.notes},
+    units,
+    elucidator:mk(i.elucidator,i.awareness[4]||'A6',i.rev[4]||'R6',i.gear[4]||''),
+    personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '', '' ]})),
+    teamNotes:'',
+    turns:JSON.parse(JSON.stringify(i.turns)),
+  };
+}
+function blankState(){
+  const u=()=>({name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:''});
+  return {
+    setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:''},
+    units:[{name:'WONDER',awareness:'DGR',rev:'R6',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
+    elucidator:u(),
+    personas:[{name:'',skills:['','','']},{name:'',skills:['','','']},{name:'',skills:['','','']}],
+    teamNotes:'',
+    turns:Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',action:''}]})),
+  };
+}
+let state;
+function migrate(st){
+  if(!st.personas){
+    const names=st.persona||DATA.initial.persona;
+    const old=st.skills||[];
+    st.personas=names.map((n,k)=>({name:n,skills:[old[k]||'','','']}));
+  }
+  st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<3)p.skills.push(''); p.skills=p.skills.slice(0,3); });
+  [].concat(st.units||[], st.elucidator?[st.elucidator]:[]).forEach(u=>{
+    if(!u) return;
+    if(u.space===undefined)u.space='';
+    if(u.sunsky===undefined)u.sunsky='';
+    if(u.gear===undefined)u.gear='';
+    if(u.role===undefined)u.role='';
+    if(u.companion===undefined)u.companion='';
+    const isW=(u.name||'').toUpperCase()==='WONDER';
+    if(!isW && !u.space && !u.sunsky && u.gear && u.gear.indexOf(' & ')>-1){ const p=u.gear.split(' & '); u.space=p[0].trim(); u.sunsky=p[1].trim(); u.gear=''; }
+  });
+  if(st.teamNotes===undefined) st.teamNotes='';
+  return st;
+}
+function load(){ try{const s=localStorage.getItem(KEY); if(s) return migrate(JSON.parse(s));}catch(e){} return defaultState(); }
+function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} }
+
+/* ---------- render: header ---------- */
+function renderHead(){
+  const s=state.setup;
+  document.getElementById('headPanel').innerHTML=`
+    <div class="head-top">
+      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="Rotation Name"/></div>
+      <div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div>
+    </div>
+    <div class="meta meta-big">
+      <div class="field"><label>Boss</label><input id="f_boss" list="bossList" value="${esc(s.boss)}" placeholder="Boss"/></div>
+      <div class="field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
+      <div class="field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
+    </div>
+    <datalist id="bossList">${DATA.bossNames.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist>`;
+  bind('f_name','setup.rotationName');
+  const tsel=document.getElementById('f_type');
+  tsel.onchange=()=>{ state.setup.type=tsel.value; save(); tsel.closest('.tier').className='tier type-'+tsel.value.toLowerCase(); };
+  bind('f_boss','setup.boss');
+  bind('f_patch','setup.patch'); bind('f_score','setup.score');
+}
+
+/* ---------- render: team ---------- */
+function unitCard(u, path, elu, idx){
+  const col=charColor(u.name); const img=imgFor(u.name);
+  const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
+  let nameOpts=[''].concat(names);
+  if(u.name && !nameOpts.includes(u.name)) nameOpts=[''].concat([u.name]).concat(names);
+  const isW = !elu && (u.name||'').toUpperCase()==='WONDER';
+  const awareOpts = isW ? ['DGR'] : [''].concat(DATA.awarenessOpts.filter(o=>o!=='DGR'));
+  const revFull = [''].concat(DATA.revOpts);
+  if(isW){ if(u.awareness!=='DGR') u.awareness='DGR'; }
+  else if(!awareOpts.includes(u.awareness)) u.awareness='';
+  if(!revFull.includes(u.rev)) u.rev='';
+  // Wonder -> single Dagger select; everyone else -> Space + Sun/Moon/Star/Sky
+  let revBlock;
+  if(isW){
+    if(u.gear && !DATA.daggerNames.includes(u.gear)) u.gear='';
+    let gOpts=[''].concat(DATA.daggerNames);
+    if(u.gear && !gOpts.includes(u.gear)) gOpts=[''].concat([u.gear]).concat(DATA.daggerNames);
+    revBlock=`<div class="rev-row one"><div><div class="rev-lab">Dagger</div><select class="gear" data-path="${path}.gear">${opt(gOpts,u.gear)}</select></div></div>`;
+  } else {
+    let spOpts=[''].concat(DATA.spaceCards); if(u.space && !spOpts.includes(u.space)) spOpts=[''].concat([u.space]).concat(DATA.spaceCards);
+    const ssBase = (u.space && DATA.spacePartners && DATA.spacePartners[u.space]) ? DATA.spacePartners[u.space] : DATA.sunSkyCards;
+    let ssOpts=[''].concat(ssBase); if(u.sunsky && !ssOpts.includes(u.sunsky)) ssOpts=[''].concat([u.sunsky]).concat(ssBase);
+    revBlock=`<div class="rev-row">
+      <div><div class="rev-lab">Space</div><select data-path="${path}.space">${opt(spOpts,u.space)}</select></div>
+      <div><div class="rev-lab">Sun/Moon/Star/Sky</div><select data-path="${path}.sunsky">${opt(ssOpts,u.sunsky)}</select></div>
+    </div>`;
+  }
+  const nm=(u.name||'').toUpperCase();
+  let extraBlock='';
+  if(nm==='TWINS'){
+    let rOpts=[''].concat(TWINS_ROLES);
+    if(u.role && !rOpts.includes(u.role)) rOpts=[''].concat([u.role]).concat(TWINS_ROLES);
+    extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Role</div><select data-path="${path}.role">${opt(rOpts,u.role)}</select></div></div>`;
+  }
+  if(nm==='FUUKA'){
+    const compNames=DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
+    let cOpts=[''].concat(compNames);
+    if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
+    extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
+  }
+  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
+  const art = img
+    ? `<div class="art" style="background-image:url('${esc(img)}')">${overlay}</div>`
+    : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
+  return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
+    ${art}
+    <div class="body">
+      <select class="name" data-uname="${path}">${opt(nameOpts,u.name)}</select>
+      <div class="tags">
+        <select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select>
+        <select data-path="${path}.rev">${opt(revFull,u.rev)}</select>
+      </div>
+      ${revBlock}${extraBlock}
+    </div></div>`;
+}
+function renderTeam(){
+  const unitsHtml = state.units.map((u,k)=>unitCard(u,`units.${k}`,false,k)).join('') + unitCard(state.elucidator,'elucidator',true,null);
+  const personaHtml = state.personas.map((p,k)=>`
+    <div class="persona-col minicard" data-pidx="${k}">
+      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">\u283f</span></div>
+      <select data-path="personas.${k}.name">${opt([''].concat(DATA.personaNames),p.name)}</select>
+      <div class="skills">${p.skills.map((s,si)=>`<input data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Skill ${si+1}"/>`).join('')}</div>
+    </div>`).join('');
+  document.getElementById('teamPanel').innerHTML=`
+    <div class="section-title"><h2>Team</h2><div class="rule"></div></div>
+    <div class="units">${unitsHtml}</div>
+    <div class="persona-grid">${personaHtml}</div>
+    <div class="team-notes">
+      <label class="tn-label">Notes</label>
+      <textarea id="teamNotes" placeholder="Team notes…"></textarea>
+    </div>`;
+  const tp=document.getElementById('teamPanel');
+  bindPaths(tp, ()=>{ renderTeam(); renderTurns(); });
+  const tn=document.getElementById('teamNotes'); tn.value=state.teamNotes||''; tn.oninput=()=>{ state.teamNotes=tn.value; save(); };
+  // drag & drop reorder of personas (slot labels Persona 1/2/3 stay fixed; only the content moves)
+  let dragP=null;
+  tp.querySelectorAll('.persona-col .pgrip').forEach(g=>{
+    g.addEventListener('dragstart',e=>{ const col=g.closest('[data-pidx]'); dragP=+col.dataset.pidx;
+      col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
+    g.addEventListener('dragend',()=>tp.querySelectorAll('.persona-col').forEach(c=>c.classList.remove('dragging','drag-over')));
+  });
+  tp.querySelectorAll('[data-pidx]').forEach(col=>{
+    col.addEventListener('dragover',e=>{ if(dragP!=null){ e.preventDefault(); col.classList.add('drag-over'); }});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',e=>{ e.preventDefault(); col.classList.remove('drag-over');
+      const to=+col.dataset.pidx;
+      if(dragP!=null && dragP!==to){ const[m]=state.personas.splice(dragP,1); state.personas.splice(to,0,m); save(); renderTeam(); }
+      dragP=null; });
+  });
+  tp.querySelectorAll('[data-uname]').forEach(el=>{
+    el.onchange=()=>{
+      const u=getByPath(el.dataset.uname);
+      u.name=el.value;
+      if((u.name||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; u.rev='R6'; }
+      save(); renderTeam(); renderTurns();
+    };
+  });
+  // drag & drop reorder of the 4 main units (elucidator excluded)
+  let dragIdx=null;
+  tp.querySelectorAll('.unit .grip').forEach(g=>{
+    g.addEventListener('dragstart',e=>{ const card=g.closest('[data-uidx]'); dragIdx=+card.dataset.uidx;
+      card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
+    g.addEventListener('dragend',()=>tp.querySelectorAll('.unit').forEach(c=>c.classList.remove('dragging','drag-over')));
+  });
+  tp.querySelectorAll('[data-uidx]').forEach(card=>{
+    card.addEventListener('dragover',e=>{ if(dragIdx!=null){ e.preventDefault(); card.classList.add('drag-over'); }});
+    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+    card.addEventListener('drop',e=>{ e.preventDefault(); card.classList.remove('drag-over');
+      const to=+card.dataset.uidx;
+      if(dragIdx!=null && dragIdx!==to){ const[m]=state.units.splice(dragIdx,1); state.units.splice(to,0,m); save(); renderTeam(); }
+      dragIdx=null; });
+  });
+}
+
+/* ---------- render: turns ---------- */
+function teamChars(){
+  const all=[...state.units, state.elucidator];
+  const comp=all.filter(u=>u && (u.name||'').toUpperCase()==='FUUKA').map(u=>u.companion);
+  const names=[...state.units.map(u=>u.name), state.elucidator.name, ...comp].filter(n=>n);
+  const uniq=names.filter((v,i,a)=>a.indexOf(v)===i);
+  return uniq.sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+}
+function moveAction(from,to){
+  const [m]=state.turns[from.ti].actions.splice(from.ai,1);
+  let idx=to.ai;
+  if(from.ti===to.ti && from.ai<to.ai) idx=to.ai-1;
+  state.turns[to.ti].actions.splice(idx,0,m);
+}
+function actRow(a, ti, ai){
+  const col=charColor(a.char);
+  const team=teamChars();
+  let chOpts=[''].concat(team);
+  if(a.char && !chOpts.includes(a.char)) chOpts=[''].concat([a.char]).concat(team);
+  return `<div class="act" style="--ax:${col}" data-ti="${ti}" data-ai="${ai}">
+    <div class="n" draggable="true" title="Drag to move">${ai+1}</div>
+    <div class="mid">
+      <select data-tchar="${ti}.${ai}">${opt(chOpts,a.char)}</select>
+      <input data-taction="${ti}.${ai}" value="${esc(a.action)}" placeholder="Action…"/>
+    </div>
+    <button class="x" data-delact="${ti}.${ai}" title="Remove">×</button>
+  </div>`;
+}
+function renderTurns(){
+  const wrap=document.getElementById('turns');
+  wrap.innerHTML = state.turns.map((t,ti)=>`
+    <div class="turn">
+      <div class="turn-head">
+        <span class="star">★</span>
+        <input value="${esc(t.name)}" data-tname="${ti}"/>
+        <button class="del" data-delturn="${ti}" title="Remove turn">×</button>
+      </div>
+      <div class="acts" data-ti="${ti}">${t.actions.map((a,ai)=>actRow(a,ti,ai)).join('')}</div>
+      <button class="add-act" data-addact="${ti}">+ Action</button>
+    </div>`).join('') + `<button class="add-turn" id="addTurn" title="Add turn">+</button>`;
+
+  wrap.querySelectorAll('[data-tname]').forEach(el=>el.oninput=e=>{state.turns[+el.dataset.tname].name=e.target.value; save();});
+  wrap.querySelectorAll('[data-taction]').forEach(el=>el.oninput=e=>{const[t,a]=el.dataset.taction.split('.');state.turns[t].actions[a].action=e.target.value; save();});
+  wrap.querySelectorAll('[data-tchar]').forEach(el=>el.onchange=e=>{
+    const[t,a]=el.dataset.tchar.split('.'); state.turns[t].actions[a].char=e.target.value; save();
+    el.closest('.act').style.setProperty('--ax', charColor(e.target.value));
+  });
+  wrap.querySelectorAll('[data-delact]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.delact.split('.');state.turns[t].actions.splice(a,1); save(); renderTurns();});
+  wrap.querySelectorAll('[data-addact]').forEach(el=>el.onclick=()=>{state.turns[+el.dataset.addact].actions.push({char:'',action:''}); save(); renderTurns();});
+  wrap.querySelectorAll('[data-delturn]').forEach(el=>el.onclick=()=>{if(confirm('Remove this turn?')){state.turns.splice(+el.dataset.delturn,1); save(); renderTurns();}});
+  document.getElementById('addTurn').onclick=()=>{state.turns.push({name:'TURN '+(state.turns.length+1),actions:[{char:'',action:''}]}); save(); renderTurns();};
+
+  // action drag & drop (reorder within a turn, move across turns; numbers re-index automatically)
+  let dragAct=null;
+  wrap.querySelectorAll('.act .n').forEach(n=>{
+    n.addEventListener('dragstart',e=>{ const row=n.closest('.act'); dragAct={ti:+row.dataset.ti, ai:+row.dataset.ai};
+      row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','a');}catch(_){} });
+    n.addEventListener('dragend',()=>wrap.querySelectorAll('.act').forEach(r=>r.classList.remove('dragging','drop-before')));
+  });
+  wrap.querySelectorAll('.act').forEach(row=>{
+    row.addEventListener('dragover',e=>{ if(dragAct){ e.preventDefault(); row.classList.add('drop-before'); }});
+    row.addEventListener('dragleave',()=>row.classList.remove('drop-before'));
+    row.addEventListener('drop',e=>{ if(!dragAct) return; e.preventDefault(); e.stopPropagation(); row.classList.remove('drop-before');
+      moveAction(dragAct,{ti:+row.dataset.ti, ai:+row.dataset.ai}); dragAct=null; save(); renderTurns(); });
+  });
+  wrap.querySelectorAll('.acts').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{ if(dragAct) e.preventDefault(); });
+    zone.addEventListener('drop',e=>{ if(!dragAct) return; e.preventDefault();
+      const ti=+zone.dataset.ti; const [m]=state.turns[dragAct.ti].actions.splice(dragAct.ai,1);
+      state.turns[ti].actions.push(m); dragAct=null; save(); renderTurns(); });
+  });
+}
+
+/* ---------- generic binding ---------- */
+function setPath(path,val){ const p=path.split('.'); let o=state; for(let k=0;k<p.length-1;k++) o=o[p[k]]; o[p[p.length-1]]=val; }
+function getByPath(path){ const p=path.split('.'); let o=state; for(const k of p) o=o[k]; return o; }
+function bind(id,path){ const el=document.getElementById(id); el.oninput=el.onchange=()=>{setPath(path, el.value); save();}; }
+function bindPaths(root, afterStructural){
+  root.querySelectorAll('[data-path]').forEach(el=>{
+    el.onchange=()=>{ setPath(el.dataset.path, el.value);
+      if(el.dataset.path.endsWith('.space')){ const ssPath=el.dataset.path.replace(/\.space$/,'.sunsky');
+        const partners=(el.value && DATA.spacePartners && DATA.spacePartners[el.value]) || [];
+        setPath(ssPath, partners.length===1 ? partners[0] : ''); }
+      save(); if(el.classList.contains('name') || el.dataset.path.endsWith('.space') || el.dataset.path.endsWith('.companion')) afterStructural(); };
+    el.oninput=()=>{ setPath(el.dataset.path, el.value); save(); };
+  });
+}
+
+function renderNotes(){
+  const ta=document.getElementById('notes'); ta.value=state.setup.notes||'';
+  ta.oninput=()=>{state.setup.notes=ta.value; save();};
+}
+function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); }
+
+/* ---------- toolbar ---------- */
+document.getElementById('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=(state.setup.rotationName||'rotation').replace(/\s+/g,'_')+'.json'; a.click();
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{ try{ state=JSON.parse(r.result); save(); renderAll(); }catch(err){ alert('Invalid JSON file.'); } }; r.readAsText(f);
+};
+document.getElementById('printBtn').onclick=()=>window.print();
+document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
+
+state=load(); renderAll();
+</script>
+</body>
+</html>
