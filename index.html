@@ -130,7 +130,7 @@ button{cursor:pointer}
 .turn{flex:0 0 280px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column}
 .turn-head{display:flex; align-items:center; gap:6px; background:linear-gradient(180deg,#34507a,#26405f);
   padding:8px 10px; border-radius:11px 11px 0 0}
-.turn-head .star{color:var(--gold)}
+.turn-head input.break{color:#e0445e; font-weight:700}
 .turn-head input{flex:1; background:transparent; border:none; color:#fff; font-family:"Oswald";
   font-weight:600; letter-spacing:.08em; font-size:15px; text-align:center; text-transform:uppercase}
 .turn-head input:focus{outline:none}
@@ -292,7 +292,31 @@ function renderHead(){
   bind('f_name','setup.rotationName');
   bind('f_credits','setup.credits');
   const tsel=document.getElementById('f_type');
-  tsel.onchange=()=>{ state.setup.type=tsel.value; save(); tsel.closest('.tier').className='tier type-'+tsel.value.toLowerCase(); };
+  tsel.onchange=()=>{
+    const oldType=state.setup.type, newType=tsel.value;
+    const crossDOD = (oldType==='DOD') !== (newType==='DOD');
+    if(crossDOD){
+      if(!confirm('Switching between DOD and MLD/NOD clears the entire Rotation (all turns and rotation notes).\n\nIt is strongly recommended to use "Export JSON" first to back up your data.\n\nContinue and clear the rotation?')){
+        tsel.value=oldType; return;
+      }
+      if(newType==='DOD'){
+        state.turns=[
+          {name:'TURN 1',actions:[{char:'',action:''}]},
+          {name:'TURN 2',actions:[{char:'',action:''}]},
+          {name:'Break 1',actions:[{char:'',action:''}]},
+          {name:'Break 2',actions:[{char:'',action:''}]}
+        ];
+      } else {
+        state.turns=Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',action:''}]}));
+      }
+      state.setup.notes='';
+    }
+    state.setup.type=newType;
+    save();
+    tsel.closest('.tier').className='tier type-'+newType.toLowerCase();
+    renderTurns();
+    renderNotes();
+  };
   bind('f_boss','setup.boss');
   bind('f_patch','setup.patch'); bind('f_score','setup.score');
 }
@@ -446,22 +470,38 @@ function actRow(a, ti, ai){
 }
 function renumberTurns(){
   let changed=false;
-  state.turns.forEach((t,i)=>{ const want='TURN '+(i+1); if(/^TURN\s+\d+$/i.test((t.name||'').trim()) && t.name!==want){ t.name=want; changed=true; } });
+  const dod=state.setup.type==='DOD', n=state.turns.length;
+  const auto=/^(TURN\s+\d+|Break\s+[12])$/i;
+  state.turns.forEach((t,i)=>{
+    let want, force=false;
+    if(dod && n>=2 && i===n-2){ want='Break 1'; force=true; }
+    else if(dod && n>=2 && i===n-1){ want='Break 2'; force=true; }
+    else want='TURN '+(i+1);
+    if((force || auto.test((t.name||'').trim())) && t.name!==want){ t.name=want; changed=true; }
+  });
   if(changed) save();
+}
+function turnHtml(t,ti,isBreak){
+  return `
+    <div class="turn">
+      <div class="turn-head">
+        <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
+        ${isBreak?'':`<button class="del" data-delturn="${ti}" title="Remove turn">×</button>`}
+      </div>
+      <div class="acts" data-ti="${ti}">${t.actions.map((a,ai)=>actRow(a,ti,ai)).join('')}</div>
+      <button class="add-act" data-addact="${ti}">+ Action</button>
+    </div>`;
 }
 function renderTurns(){
   renumberTurns();
   const wrap=document.getElementById('turns');
-  wrap.innerHTML = state.turns.map((t,ti)=>`
-    <div class="turn">
-      <div class="turn-head">
-        <span class="star">★</span>
-        <input value="${esc(t.name)}" data-tname="${ti}"/>
-        <button class="del" data-delturn="${ti}" title="Remove turn">×</button>
-      </div>
-      <div class="acts" data-ti="${ti}">${t.actions.map((a,ai)=>actRow(a,ti,ai)).join('')}</div>
-      <button class="add-act" data-addact="${ti}">+ Action</button>
-    </div>`).join('') + `<button class="add-turn" id="addTurn" title="Add turn">+</button>`;
+  const dod=state.setup.type==='DOD', n=state.turns.length;
+  const addBtn=`<button class="add-turn" id="addTurn" title="Add turn">+</button>`;
+  if(dod && n>=2){
+    wrap.innerHTML = state.turns.slice(0,n-2).map((t,i)=>turnHtml(t,i,false)).join('') + addBtn + state.turns.slice(n-2).map((t,i)=>turnHtml(t,n-2+i,true)).join('');
+  } else {
+    wrap.innerHTML = state.turns.map((t,ti)=>turnHtml(t,ti,false)).join('') + addBtn;
+  }
 
   wrap.querySelectorAll('[data-tname]').forEach(el=>el.oninput=e=>{state.turns[+el.dataset.tname].name=e.target.value; save();});
   wrap.querySelectorAll('[data-taction]').forEach(el=>el.oninput=e=>{const[t,a]=el.dataset.taction.split('.');state.turns[t].actions[a].action=e.target.value; save();});
@@ -474,7 +514,14 @@ function renderTurns(){
   wrap.querySelectorAll('[data-addbelow]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addbelow.split('.');state.turns[t].actions.splice(+a+1,0,{char:'',action:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-addact]').forEach(el=>el.onclick=()=>{state.turns[+el.dataset.addact].actions.push({char:'',action:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-delturn]').forEach(el=>el.onclick=()=>{if(confirm('Remove this turn?')){state.turns.splice(+el.dataset.delturn,1); save(); renderTurns();}});
-  document.getElementById('addTurn').onclick=()=>{state.turns.push({name:'TURN '+(state.turns.length+1),actions:[{char:'',action:''}]}); save(); renderTurns();};
+  document.getElementById('addTurn').onclick=()=>{
+    if(state.setup.type==='DOD' && state.turns.length>=2){
+      state.turns.splice(state.turns.length-2,0,{name:'TURN '+(state.turns.length-1),actions:[{char:'',action:''}]});
+    } else {
+      state.turns.push({name:'TURN '+(state.turns.length+1),actions:[{char:'',action:''}]});
+    }
+    save(); renderTurns();
+  };
 
   // action drag & drop (reorder within a turn, move across turns; numbers re-index automatically)
   let dragAct=null;
@@ -586,7 +633,8 @@ function exportCSV(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.csv'; a.click();
 }
 
-function buildExportView(withImages){
+function buildExportView(withImages, portraits){
+  portraits=portraits||{};
   const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
   const ord=['1st','2nd','3rd','4th'];
   const cols=Math.min(6, Math.max(1, state.turns.length));
@@ -598,7 +646,7 @@ function buildExportView(withImages){
   const typeBg={mld:'#f1c232',dod:'#9b5de5',nod:'#e0445e'}[tl]||'#3a3550';
   const typeFg={mld:'#3a2c00',dod:'#1a0a2e',nod:'#2c0710'}[tl]||'#fff';
   const card=(u,label,accent)=>{
-    const art = withImages && imgFor(u.name) ? `<div style="width:100%;height:150px;border-radius:6px;margin-bottom:6px;background-color:#15131d;background-image:url('${imgFor(u.name)}');background-size:cover;background-position:center top;background-repeat:no-repeat;"></div>` : '';
+    const art = withImages && portraits[u.name] ? `<img src="${portraits[u.name]}" style="display:block;width:100%;border-radius:6px;margin-bottom:6px;"/>` : '';
     return `<div style="width:${TEAMW}px;background:#23202f;border:1px solid #3a3550;border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
     ${art}
     <div style="font:700 10px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">${esc(label)}</div>
@@ -615,13 +663,14 @@ function buildExportView(withImages){
     <span style="color:#9d97b3;font-weight:700;letter-spacing:.08em;">PERSONAS&nbsp;&nbsp;</span>
     ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}`; }).join('<span style="color:#5a5470;">&nbsp;&nbsp;·&nbsp;&nbsp;</span>')}</div>`:'';
   const tnLine=(state.teamNotes||'').trim()?`<div style="margin-top:6px;font:500 13px Inter,sans-serif;color:#9d97b3;">Team Notes: <span style="color:#cfe2f3;">${esc(state.teamNotes)}</span></div>`:'';
-  const turnsHtml=state.turns.map(t=>`<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
-    <div style="font:700 13px Oswald,sans-serif;color:#9fc5e8;letter-spacing:.06em;border-bottom:1px solid #3a3550;padding-bottom:5px;margin-bottom:6px;">${esc(t.name)}</div>
+  const dodX=s.type==='DOD', nT=state.turns.length;
+  const turnsHtml=state.turns.map((t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
+    <div style="font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;border-bottom:1px solid #3a3550;padding-bottom:5px;margin-bottom:6px;">${esc((t.name||'').toUpperCase())}</div>
     ${t.actions.map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${tc(a.char)};margin-bottom:3px;background:#23202f;border-radius:4px;">
       <span style="font:700 11px Oswald,sans-serif;color:#9d97b3;min-width:12px;">${i+1}</span>
       <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
       <span style="font:500 11px Inter,sans-serif;color:#f3f1f7;flex:1;">${esc(a.action||'')}</span></div>`).join('')}
-  </div>`).join('');
+  </div>`; }).join('');
   const notesLine=(s.notes||'').trim()?`<div style="margin-top:12px;font:500 13px Inter,sans-serif;color:#9d97b3;">Notes: <span style="color:#cfe2f3;">${esc(s.notes)}</span></div>`:'';
   const v=document.createElement('div'); v.id='exportView';
   v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
@@ -640,15 +689,32 @@ function buildExportView(withImages){
     ${notesLine}`;
   document.body.appendChild(v); return v;
 }
-function exportImage(withImages){
-  if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
-  const v=buildExportView(withImages);
-  html2canvas(v,{backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:15000}).then(canvas=>{
+function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('image load failed: '+src)); im.src=src; }); }
+function portraitDataURL(img,size){
+  const c=document.createElement('canvas'); c.width=size; c.height=size;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const sc=Math.max(size/iw,size/ih), dw=iw*sc, dh=ih*sc;       /* cover */
+  x.drawImage(img,(size-dw)/2,(size-dh)/2,dw,dh);               /* center crop, matches the page */
+  return c.toDataURL('image/png');
+}
+function renderExport(withImages, portraits){
+  const v=buildExportView(withImages, portraits);
+  html2canvas(v,{backgroundColor:'#14121c',scale:2,logging:false,useCORS:true}).then(canvas=>{
     v.remove();
     canvas.toBlob(blob=>{ if(!blob){ alert('Image export failed.'); return; } const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.png'; a.click(); },'image/png');
-  }).catch(err=>{ if(v) v.remove();
-    if(withImages) alert('Image export with portraits failed. This usually happens when the page is opened directly from a file. Host it (e.g. GitHub Pages) so the character images can be embedded, or use "Export Image" without portraits.');
-    else alert('Image export failed: '+((err&&err.message)||err));
+  }).catch(err=>{ if(v) v.remove(); alert('Image export failed: '+((err&&err.message)||err)); });
+}
+function exportImage(withImages){
+  if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
+  if(!withImages){ renderExport(false, {}); return; }
+  const portraits={}, seen={}, tasks=[];
+  [...state.units, state.elucidator].forEach(u=>{
+    const src=imgFor(u.name); if(!src || seen[u.name]) return; seen[u.name]=1;
+    tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
+  });
+  Promise.all(tasks).then(()=>renderExport(true, portraits)).catch(()=>{
+    alert('Portrait export failed. This usually happens when the page is opened directly from a file (file://). Host it (e.g. GitHub Pages) so the character images can be embedded, or use "Export Image" without portraits.');
   });
 }
 document.getElementById('exportImgBtn').onclick=()=>exportImage(false);
