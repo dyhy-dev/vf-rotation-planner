@@ -59,9 +59,15 @@ button{cursor:pointer}
 .field input,.field select{width:100%; background:var(--panel2); border:1px solid var(--line);
   border-radius:8px; padding:8px 10px; font-weight:600}
 .field input:focus,.field select:focus{outline:none; border-color:var(--blue-strong)}
-.meta-big{grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px}
+.meta-big{display:flex; flex-wrap:wrap; gap:14px}
+.meta-big .field{flex:1 1 220px}
 .meta-big .field label{font-size:11px; margin-bottom:6px}
-.meta-big .field input{font-size:20px; font-weight:700; padding:14px 16px}
+.meta-big .field input,.meta-big .field select{height:56px; font-size:20px; font-weight:700; padding:0 16px}
+.meta-big .type-field{flex:0 0 112px}
+.meta-big .patch-field{flex:0 0 112px}
+.type-field label{display:block; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.type-field .tier{display:block}
+.type-field .tier select{width:100%; height:56px; padding:0 14px}
 
 /* team */
 .section-title{display:flex; align-items:center; gap:10px; margin:0 0 12px}
@@ -92,6 +98,9 @@ button{cursor:pointer}
 .unit.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
 .elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
   color:var(--blue); font-size:9px; letter-spacing:.12em; padding:2px 6px; border-radius:5px; font-weight:700}
+.order-badge{position:absolute; top:6px; left:6px; z-index:2; background:#0008; border:1px solid var(--gold);
+  color:var(--gold); font-family:"Oswald"; font-weight:700; font-size:12px; line-height:1;
+  min-width:20px; height:20px; padding:0 4px; display:flex; align-items:center; justify-content:center; border-radius:5px}
 
 .subrow{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:14px}
 .minicard{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px}
@@ -113,7 +122,7 @@ button{cursor:pointer}
 @media (max-width:640px){ .persona-grid{grid-template-columns:1fr} }
 .team-notes{margin-top:14px}
 .team-notes .tn-label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
-.team-notes textarea{width:100%; min-height:60px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px; color:var(--text); font-family:inherit; resize:vertical}
+.team-notes textarea{width:100%; min-height:60px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px; color:var(--text); font-family:inherit; font-size:16px; resize:vertical}
 .team-notes textarea:focus{outline:none; border-color:var(--blue-strong)}
 
 /* rotation */
@@ -128,7 +137,7 @@ button{cursor:pointer}
 .turn-head .del{background:#0003; border:none; color:#cdd9ee; border-radius:6px; width:24px; height:24px; line-height:1}
 .turn-head .del:hover{background:#e06; color:#fff}
 .acts{padding:8px; display:flex; flex-direction:column; gap:6px; flex:1}
-.act{display:grid; grid-template-columns:22px 1fr 24px; gap:6px; align-items:stretch;
+.act{display:grid; grid-template-columns:22px 1fr 26px; gap:6px; align-items:stretch;
   background:var(--row); border:1px solid var(--line); border-left:4px solid var(--ax,#666); border-radius:8px; padding:6px}
 .act .n{font-family:"Oswald"; font-weight:700; color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:grab; user-select:none}
 .act .n:active{cursor:grabbing}
@@ -138,8 +147,12 @@ button{cursor:pointer}
 .act .mid select{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:4px; font-weight:600; font-size:12px}
 .act .mid input{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:5px; font-size:12px}
 .act .mid input:focus,.act .mid select:focus{outline:none; border-color:var(--blue-strong)}
-.act .x{background:transparent; border:none; color:#6a647f; border-radius:6px}
-.act .x:hover{background:#e0245533; color:#ff6b8a}
+.act-btns{display:flex; flex-direction:column; gap:3px}
+.act-btns button{flex:1; border:none; border-radius:5px; line-height:1; font-weight:700; cursor:pointer; padding:0; min-height:14px}
+.act-btns .addrow{background:#0003; color:#8aa6c8; font-size:13px}
+.act-btns .addrow:hover{background:#2e6b4d; color:#cffbe2}
+.act-btns .x{background:transparent; color:#6a647f; font-size:14px}
+.act-btns .x:hover{background:#e0245533; color:#ff6b8a}
 .add-act{margin:0 8px 8px; background:#15131d; border:1px dashed var(--line); color:var(--muted);
   border-radius:8px; padding:7px; font-weight:600}
 .add-act:hover{border-color:var(--blue-strong); color:var(--blue)}
@@ -148,11 +161,12 @@ button{cursor:pointer}
 .add-turn:hover{border-color:var(--gold); color:var(--gold)}
 .notes-row{margin-top:12px}
 .notes-row textarea{width:100%; min-height:54px; background:var(--panel2); border:1px solid var(--line);
-  border-radius:10px; padding:10px; color:var(--text); font-family:inherit; resize:vertical}
+  border-radius:10px; padding:10px; color:var(--text); font-family:inherit; font-size:16px; resize:vertical}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -161,7 +175,9 @@ button{cursor:pointer}
     <div class="spacer"></div>
     <button class="btn" id="importBtn">Import JSON</button>
     <button class="btn" id="exportBtn">Export JSON</button>
-    <button class="btn" id="printBtn">Print</button>
+    <button class="btn" id="exportImgBtn">Export Image</button>
+    <button class="btn" id="exportImgArtBtn">Export Image+Art</button>
+    <button class="btn" id="exportCsvBtn">Export Sheet</button>
     <button class="btn" id="resetBtn">Reset</button>
     <input type="file" id="importFile" accept="application/json" hidden/>
   </div>
@@ -169,7 +185,10 @@ button{cursor:pointer}
   <div class="panel" id="headPanel"></div>
   <div class="panel" id="teamPanel"></div>
   <div class="panel">
-    <div class="section-title"><h2>Rotation</h2><div class="rule"></div></div>
+    <div class="section-title"><h2>Rotation</h2><div class="rule"></div>
+      <button class="btn" id="autoFill" title="Fill all turns with characters 1–4 in order">Auto Fill</button>
+      <button class="btn" id="clearActions" title="Remove all actions from every turn">Clear</button>
+    </div>
     <div class="turns" id="turns"></div>
     <div class="notes-row"><textarea id="notes" placeholder="Notes…"></textarea></div>
   </div>
@@ -177,7 +196,7 @@ button{cursor:pointer}
 </div>
 
 <script>
-const DATA = {"characterImages": {"TWINS": "images/TWINS.webp", "SOY·P": "images/SOY-P.webp", "LUCE·N": "images/LUCE-N.webp", "FUKA": "images/FUKA.webp", "KIRIJO": "images/KIRIJO.webp", "BUI·P": "images/BUI-P.webp", "BLITZ": "images/BLITZ.webp", "PUPPET·S": "images/PUPPET-S.webp", "MARIAN·S": "images/MARIAN-S.webp", "BERRY": "images/BERRY.webp", "AKIHIKO": "images/AKIHIKO.webp", "YUKARI": "images/YUKARI.webp", "MAKOTO": "images/MAKOTO.webp", "ANGE": "images/ANGE.webp", "LUCE": "images/LUCE.webp", "TURBO": "images/TURBO.webp", "CROW": "images/CROW.webp", "MATOI": "images/MATOI.webp", "RIN·L D": "images/RIN-L-D.webp", "TEMPEST": "images/TEMPEST.webp", "VIOLET": "images/VIOLET.webp", "HOWLER": "images/HOWLER.webp", "MONT·S": "images/MONT-S.webp", "NOIR": "images/NOIR.webp", "CHERISH": "images/CHERISH.webp", "NAVI": "images/NAVI.webp", "MESSA": "images/MESSA.webp", "MOKO·S": "images/MOKO-S.webp", "CLOSER·T": "images/CLOSER-T.webp", "CHORD": "images/CHORD.webp", "WIND": "images/WIND.webp", "PHOEBE": "images/PHOEBE.webp", "QUEEN": "images/QUEEN.webp", "VINO": "images/VINO.webp", "FOX": "images/FOX.webp", "BUI": "images/BUI.webp", "MARIAN": "images/MARIAN.webp", "JOKER": "images/JOKER.webp", "SKULL": "images/SKULL.webp", "MONA": "images/MONA.webp", "PANTHER": "images/PANTHER.webp", "RIN": "images/RIN.webp", "RIDDLE": "images/RIDDLE.webp", "CATTLE": "images/CATTLE.webp", "LEON": "images/LEON.webp", "CLOSER": "images/CLOSER.webp", "MONT": "images/MONT.webp", "SOY": "images/SOY.webp", "FLEURET": "images/FLEURET.webp", "YUKI": "images/YUKI.webp", "KEY": "images/KEY.webp", "MOKO": "images/MOKO.webp", "SEPIA": "images/SEPIA.webp", "PUPPET": "images/PUPPET.webp", "OKYANN": "images/OKYANN.webp", "WONDER": "images/WONDER.webp", "MONA·S": "images/MONA-S.webp", "JOKER·S": "images/JOKER-S.webp", "AIGIS": "images/AIGIS.webp", "CLOSER·R": "images/CLOSER-R.webp", "ANRI": "images/ANRI.webp", "KOROMARU": "images/KOROMARU.webp", "PINKY": "images/PINKY.webp", "JUNPEI": "images/JUNPEI.webp", "FUUKA": "images/FUKA.webp", "RIN·F": "images/RIN-L-D.webp", "WIND·T": "images/TEMPEST.webp", "MONT·F": "images/MONT-S.webp", "ORACLE": "images/NAVI.webp"}, "characterNames": ["AIGIS", "AKIHIKO", "ANGE", "ANRI", "BERRY", "BLITZ", "BUI", "BUI·P", "CATTLE", "CHERISH", "CHORD", "CLOSER", "CLOSER·R", "CLOSER·T", "CROW", "FLEURET", "FOX", "FUUKA", "HOWLER", "JOKER", "JOKER·S", "JUNPEI", "KEY", "KIRIJO", "KOROMARU", "LEON", "LUCE", "LUCE·N", "MAKOTO", "MARIAN", "MARIAN·S", "MATOI", "MESSA", "MOKO", "MOKO·S", "MONA", "MONA·S", "MONT", "MONT·F", "NOIR", "OKYANN", "ORACLE", "PANTHER", "PHOEBE", "PINKY", "PUPPET", "PUPPET·S", "QUEEN", "RIDDLE", "RIN", "RIN·F", "SEPIA", "SKULL", "SOY", "SOY·P", "TURBO", "TWINS", "VINO", "VIOLET", "WIND", "WIND·T", "WONDER", "YUKARI", "YUKI"], "personaNames": ["Alice", "Ame-no-Uzume", "Anubis", "Apsaras", "Arahabaki", "Baphomet", "Belphegor", "Bishamonten", "Chernobog", "Cu Chulainn", "Dionysus", "Dominion", "Girimehkala", "Isis", "Janosik", "Jatayu", "Jikokuten", "King Frost", "Kohryu", "Koumokuten", "Kushinada", "Lakshmi", "Lamia", "Lilith", "Macabre", "Melchizedek", "Mithras", "Narcissus", "Neko Shogun", "Nian", "Norn", "Okuninushi", "Orobas", "Parvati", "Pazuzu", "Sahimochi-no-kami", "Sandalphon", "Sarasvati", "Setanta", "Shiva", "Siegfried", "Sraosha", "Succubus", "Surt", "Thor", "Throne", "Titania", "Trumpeter", "Vasuki", "Vishnu", "Yamata-no-Orochi", "Yatagarasu", "Yoshitsune", "Yurlungur", "Zaou-Gongen"], "daggerNames": ["Abyss Fang", "All In", "Arc Knife", "Chaos Hex", "Curse of the Phantom", "Cyclotron", "Entropy Zero", "Ex Machina", "Eye of Obsequies", "Glacial Eternity", "Glimmer", "Pheromone Sting", "Plasma Blade", "Purgatory", "Sennight Inferno", "Starry Compass"], "revSets": ["Departure & Control", "Departure & Prosperity", "Departure & Hindrance", "Awareness & Truth", "Awareness & Control", "Awareness & Hindrance", "Growth & Opulence", "Growth & Renewal", "Growth & Power", "Wisdom & Oppression", "Wisdom & Pleasure", "Wisdom & Virtue", "Meditation & Opulence", "Meditation & Courage", "Meditation & Love", "Faith & Peace", "Faith & Love", "Trust & Renewal", "Trust & Power", "Trust & Prosperity", "Harmony & Victory", "Harmony & Power", "Harmony & Truth", "Resolve & Virtue", "Resolve & Labor", "Acceptance & Peace", "Acceptance & Strife", "Acceptance & Love", "Integrity & Pleause", "Integrity & Labor"], "bossNames": ["ATAVAKA", "BAAL", "BAAL ZEBUL", "DOMINION", "FAFNIR", "KARTIKEYA", "KOHRYU", "MARA", "NIDHOGGR", "OUMITSUNU", "SLAUGHTER DRIVE", "SURT", "VISHNU", "YATSUFUSA"], "awarenessOpts": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "DGR"], "revOpts": ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "RX"], "typeOpts": ["DOD", "MLD", "NOD"], "tierOpts": ["DOLPHIN", "F2P", "MINNOW", "WHALE"], "elucidatorOpts": ["ANGE", "FUUKA", "OKYANN", "ORACLE", "PHOEBE", "PUPPET", "WIND"], "initial": {"rotationName": "Rotation Name", "tier": "WHALE", "boss": "FAFNIR", "type": "MLD", "patch": "4.3", "score": "1.0E9", "team": ["WONDER", "CHORD", "YUKARI", "VIOLET"], "elucidator": "ORACLE", "awareness": ["A6", "DGR", "A1", "A6", "A6"], "rev": ["R6", "R5", "R0", "R6", "R6"], "persona": ["Dionysus", "Sraosha", "Kohryu"], "skills": ["TARUKAJA", "RAKUNDA"], "gear": ["Glimmer", "Trust & Prosperity", "Creation & Reconciliation", "Wisdom & Virtue", "Resolve & Labor"], "notes": "Includes DPS & Navi", "turns": [{"name": "TURN 1", "actions": [{"char": "ANGE", "action": "S3 if A1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 2", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 3", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S1 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "CHORD", "action": "HL"}, {"char": "CHORD", "action": "S3 Violet"}, {"char": "VIOLET", "action": "HL HL S3"}]}, {"name": "TURN 4", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1 if A0, S2 if A1+"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 5", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2 if A0, S1 if A1+"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 6", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S2 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "ANGE", "action": "HL Chord"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "CHORD", "action": "S3 Violet x2"}, {"char": "ANGE", "action": "S3"}, {"char": "VIOLET", "action": "HL HL S3"}]}]}, "sunSkyCards": ["Change", "Control", "Courage", "Defeat", "Depravity", "Determination", "Disappointment", "Flourishing", "Futility", "Hindrance", "Labor", "Love", "Obtain", "Oppression", "Opulence", "Peace", "Pleasure", "Power", "Prosperity", "Prudence", "Reconciliation", "Renewal", "Ruin", "Satiety", "Sorrow", "Strife", "Tenacity", "Triumph", "Truth", "Victory", "Virtue", "Worry"], "spaceCards": ["Acceptance", "Agility", "Awareness", "Creation", "Departure", "Faith", "Freedom", "Growth", "Harmony", "Hope", "Integrity", "Meditation", "Nativity", "Perseverance", "Purity", "Resolve", "Trust", "Wisdom"], "spacePartners": {"Nativity": ["Power"], "Perseverance": ["Change", "Obtain", "Sorrow"], "Hope": ["Change", "Labor", "Ruin"], "Creation": ["Reconciliation", "Tenacity", "Worry"], "Integrity": ["Labor", "Pleasure", "Ruin"], "Resolve": ["Labor", "Prudence", "Virtue"], "Awareness": ["Control", "Hindrance", "Truth"], "Departure": ["Control", "Hindrance", "Prosperity"], "Growth": ["Opulence", "Power", "Renewal"], "Wisdom": ["Oppression", "Pleasure", "Virtue"], "Meditation": ["Courage", "Love", "Opulence"], "Faith": ["Futility", "Love", "Peace"], "Trust": ["Power", "Prosperity", "Renewal"], "Harmony": ["Power", "Truth", "Victory"], "Acceptance": ["Love", "Peace", "Strife"], "Freedom": ["Defeat", "Disappointment", "Triumph"], "Purity": ["Change", "Depravity", "Flourishing"], "Agility": ["Flourishing", "Hindrance", "Satiety"]}, "charColors": {"MONA·S": "#82ec2c", "JOKER·S": "#ff0036", "AIGIS": "#fe9e01", "CLOSER·R": "#fcff37", "ANRI": "#ff0036", "KOROMARU": "#ff0036", "PINKY": "#ff66ff", "JUNPEI": "#ff391d", "TWINS": "#ffffff", "SOY·P": "#fe9e01", "LUCE·N": "#ffffa2", "FUUKA": "#3a6dfa", "KIRIJO": "#00afff", "BUI·P": "#00fcff", "BLITZ": "#fcff37", "PUPPET·S": "#00afff", "MARIAN·S": "#ffffa2", "BERRY": "#ff0036", "AKIHIKO": "#fcff37", "YUKARI": "#82ec2c", "MAKOTO": "#ff391d", "ANGE": "#3a6dfa", "LUCE": "#ffffa2", "TURBO": "#ff9d00", "CROW": "#ffffff", "MATOI": "#00afff", "RIN·F": "#ff391d", "WIND·T": "#82ec2c", "VIOLET": "#ffffa2", "HOWLER": "#ff391d", "MONT·F": "#82ec2c", "NOIR": "#ff66ff", "CHERISH": "#00afff", "ORACLE": "#3a6dfa", "MESSA": "#ff9d00", "MOKO·S": "#ff66ff", "CLOSER·T": "#ffffa2", "CHORD": "#fcff37", "WIND": "#3a6dfa", "PHOEBE": "#3a6dfa", "QUEEN": "#00fcff", "VINO": "#00fcff", "FOX": "#00afff", "BUI": "#fcff37", "MARIAN": "#ffffa2", "JOKER": "#ff0036", "SKULL": "#ff9d00", "MONA": "#82ec2c", "PANTHER": "#ff391d", "RIN": "#ff0036", "RIDDLE": "#ff66ff", "CATTLE": "#ff391d", "LEON": "#00fcff", "CLOSER": "#fcff37", "MONT": "#00afff", "SOY": "#00afff", "FLEURET": "#82ec2c", "YUKI": "#ffffa2", "KEY": "#ff391d", "MOKO": "#ff66ff", "SEPIA": "#ff0036", "PUPPET": "#3a6dfa", "OKYANN": "#3a6dfa"}, "elucidatorNames": ["ANGE", "FUUKA", "ORACLE", "WIND", "PHOEBE", "PUPPET", "OKYANN"]};
+const DATA = {"characterImages": {"TWINS": "images/TWINS.webp", "SOY·P": "images/SOY-P.webp", "LUCE·N": "images/LUCE-N.webp", "FUKA": "images/FUKA.webp", "KIRIJO": "images/KIRIJO.webp", "BUI·P": "images/BUI-P.webp", "BLITZ": "images/BLITZ.webp", "PUPPET·S": "images/PUPPET-S.webp", "MARIAN·S": "images/MARIAN-S.webp", "BERRY": "images/BERRY.webp", "AKIHIKO": "images/AKIHIKO.webp", "YUKARI": "images/YUKARI.webp", "MAKOTO": "images/MAKOTO.webp", "ANGE": "images/ANGE.webp", "LUCE": "images/LUCE.webp", "TURBO": "images/TURBO.webp", "CROW": "images/CROW.webp", "MATOI": "images/MATOI.webp", "RIN·L D": "images/RIN-L-D.webp", "TEMPEST": "images/TEMPEST.webp", "VIOLET": "images/VIOLET.webp", "HOWLER": "images/HOWLER.webp", "MONT·S": "images/MONT-S.webp", "NOIR": "images/NOIR.webp", "CHERISH": "images/CHERISH.webp", "NAVI": "images/NAVI.webp", "MESSA": "images/MESSA.webp", "MOKO·S": "images/MOKO-S.webp", "CLOSER·T": "images/CLOSER-T.webp", "CHORD": "images/CHORD.webp", "WIND": "images/WIND.webp", "PHOEBE": "images/PHOEBE.webp", "QUEEN": "images/QUEEN.webp", "VINO": "images/VINO.webp", "FOX": "images/FOX.webp", "BUI": "images/BUI.webp", "MARIAN": "images/MARIAN.webp", "JOKER": "images/JOKER.webp", "SKULL": "images/SKULL.webp", "MONA": "images/MONA.webp", "PANTHER": "images/PANTHER.webp", "RIN": "images/RIN.webp", "RIDDLE": "images/RIDDLE.webp", "CATTLE": "images/CATTLE.webp", "LEON": "images/LEON.webp", "CLOSER": "images/CLOSER.webp", "MONT": "images/MONT.webp", "SOY": "images/SOY.webp", "FLEURET": "images/FLEURET.webp", "YUKI": "images/YUKI.webp", "KEY": "images/KEY.webp", "MOKO": "images/MOKO.webp", "SEPIA": "images/SEPIA.webp", "PUPPET": "images/PUPPET.webp", "OKYANN": "images/OKYANN.webp", "WONDER": "images/WONDER.webp", "MONA·S": "images/MONA-S.webp", "JOKER·S": "images/JOKER-S.webp", "AIGIS": "images/AIGIS.webp", "CLOSER·R": "images/CLOSER-R.webp", "ANRI": "images/ANRI.webp", "KOROMARU": "images/KOROMARU.webp", "PINKY": "images/PINKY.webp", "JUNPEI": "images/JUNPEI.webp", "FUUKA": "images/FUKA.webp", "RIN·F": "images/RIN-L-D.webp", "WIND·T": "images/TEMPEST.webp", "MONT·F": "images/MONT-S.webp", "ORACLE": "images/NAVI.webp"}, "characterNames": ["AIGIS", "AKIHIKO", "ANGE", "ANRI", "BERRY", "BLITZ", "BUI", "BUI·P", "CATTLE", "CHERISH", "CHORD", "CLOSER", "CLOSER·R", "CLOSER·T", "CROW", "FLEURET", "FOX", "FUUKA", "HOWLER", "JOKER", "JOKER·S", "JUNPEI", "KEY", "KIRIJO", "KOROMARU", "LEON", "LUCE", "LUCE·N", "MAKOTO", "MARIAN", "MARIAN·S", "MATOI", "MESSA", "MOKO", "MOKO·S", "MONA", "MONA·S", "MONT", "MONT·F", "NOIR", "OKYANN", "ORACLE", "PANTHER", "PHOEBE", "PINKY", "PUPPET", "PUPPET·S", "QUEEN", "RIDDLE", "RIN", "RIN·F", "SEPIA", "SKULL", "SOY", "SOY·P", "TURBO", "TWINS", "VINO", "VIOLET", "WIND", "WIND·T", "WONDER", "YUKARI", "YUKI"], "personaNames": ["Alice", "Ame-no-Uzume", "Anubis", "Apsaras", "Arahabaki", "Baphomet", "Belphegor", "Bishamonten", "Chernobog", "Cu Chulainn", "Dionysus", "Dominion", "Girimehkala", "Isis", "Janosik", "Jatayu", "Jikokuten", "King Frost", "Kohryu", "Koumokuten", "Kushinada", "Lakshmi", "Lamia", "Lilith", "Macabre", "Melchizedek", "Mithras", "Narcissus", "Neko Shogun", "Nian", "Norn", "Okuninushi", "Orobas", "Parvati", "Pazuzu", "Sahimochi-no-kami", "Sandalphon", "Sarasvati", "Setanta", "Shiva", "Siegfried", "Sraosha", "Succubus", "Surt", "Thor", "Throne", "Titania", "Trumpeter", "Vasuki", "Vishnu", "Yamata-no-Orochi", "Yatagarasu", "Yoshitsune", "Yurlungur", "Zaou-Gongen"], "daggerNames": ["Abyss Fang", "All In", "Arc Knife", "Chaos Hex", "Curse of the Phantom", "Cyclotron", "Entropy Zero", "Ex Machina", "Eye of Obsequies", "Glacial Eternity", "Glimmer", "Pheromone Sting", "Plasma Blade", "Purgatory", "Sennight Inferno", "Starry Compass"], "revSets": ["Departure & Control", "Departure & Prosperity", "Departure & Hindrance", "Awareness & Truth", "Awareness & Control", "Awareness & Hindrance", "Growth & Opulence", "Growth & Renewal", "Growth & Power", "Wisdom & Oppression", "Wisdom & Pleasure", "Wisdom & Virtue", "Meditation & Opulence", "Meditation & Courage", "Meditation & Love", "Faith & Peace", "Faith & Love", "Trust & Renewal", "Trust & Power", "Trust & Prosperity", "Harmony & Victory", "Harmony & Power", "Harmony & Truth", "Resolve & Virtue", "Resolve & Labor", "Acceptance & Peace", "Acceptance & Strife", "Acceptance & Love", "Integrity & Pleause", "Integrity & Labor"], "bossNames": ["ATAVAKA", "BAAL", "BAAL ZEBUL", "DOMINION", "FAFNIR", "KARTIKEYA", "KOHRYU", "MARA", "NIDHOGGR", "OUMITSUNU", "SLAUGHTER DRIVE", "SURT", "VISHNU", "YATSUFUSA"], "awarenessOpts": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "DGR"], "revOpts": ["RX", "R0", "R1", "R2", "R3", "R4", "R5", "R6"], "typeOpts": ["MLD", "DOD", "NOD"], "tierOpts": ["DOLPHIN", "F2P", "MINNOW", "WHALE"], "elucidatorOpts": ["ANGE", "FUUKA", "OKYANN", "ORACLE", "PHOEBE", "PUPPET", "WIND"], "initial": {"rotationName": "Rotation Name", "tier": "WHALE", "boss": "FAFNIR", "type": "MLD", "patch": "4.3", "score": "1.0E9", "team": ["WONDER", "CHORD", "YUKARI", "VIOLET"], "elucidator": "ORACLE", "awareness": ["A6", "DGR", "A1", "A6", "A6"], "rev": ["R6", "R5", "R0", "R6", "R6"], "persona": ["Dionysus", "Sraosha", "Kohryu"], "skills": ["TARUKAJA", "RAKUNDA"], "gear": ["Glimmer", "Trust & Prosperity", "Creation & Reconciliation", "Wisdom & Virtue", "Resolve & Labor"], "notes": "Includes DPS & Navi", "turns": [{"name": "TURN 1", "actions": [{"char": "ANGE", "action": "S3 if A1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 2", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 3", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S1 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "CHORD", "action": "HL"}, {"char": "CHORD", "action": "S3 Violet"}, {"char": "VIOLET", "action": "HL HL S3"}]}, {"name": "TURN 4", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1 if A0, S2 if A1+"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 5", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2 if A0, S1 if A1+"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 6", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S2 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "ANGE", "action": "HL Chord"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "CHORD", "action": "S3 Violet x2"}, {"char": "ANGE", "action": "S3"}, {"char": "VIOLET", "action": "HL HL S3"}]}]}, "sunSkyCards": ["Change", "Control", "Courage", "Defeat", "Depravity", "Determination", "Disappointment", "Flourishing", "Futility", "Hindrance", "Labor", "Love", "Obtain", "Oppression", "Opulence", "Peace", "Pleasure", "Power", "Prosperity", "Prudence", "Reconciliation", "Renewal", "Ruin", "Satiety", "Sorrow", "Strife", "Tenacity", "Triumph", "Truth", "Victory", "Virtue", "Worry"], "spaceCards": ["Acceptance", "Agility", "Awareness", "Creation", "Departure", "Faith", "Freedom", "Growth", "Harmony", "Hope", "Integrity", "Meditation", "Nativity", "Perseverance", "Purity", "Resolve", "Trust", "Wisdom"], "spacePartners": {"Nativity": ["Power"], "Perseverance": ["Change", "Obtain", "Sorrow"], "Hope": ["Change", "Labor", "Ruin"], "Creation": ["Reconciliation", "Tenacity", "Worry"], "Integrity": ["Labor", "Pleasure", "Ruin"], "Resolve": ["Labor", "Prudence", "Virtue"], "Awareness": ["Control", "Hindrance", "Truth"], "Departure": ["Control", "Hindrance", "Prosperity"], "Growth": ["Opulence", "Power", "Renewal"], "Wisdom": ["Oppression", "Pleasure", "Virtue"], "Meditation": ["Courage", "Love", "Opulence"], "Faith": ["Futility", "Love", "Peace"], "Trust": ["Power", "Prosperity", "Renewal"], "Harmony": ["Power", "Truth", "Victory"], "Acceptance": ["Love", "Peace", "Strife"], "Freedom": ["Defeat", "Disappointment", "Triumph"], "Purity": ["Change", "Depravity", "Flourishing"], "Agility": ["Flourishing", "Hindrance", "Satiety"]}, "charColors": {"MONA·S": "#82ec2c", "JOKER·S": "#ff0036", "AIGIS": "#fe9e01", "CLOSER·R": "#fcff37", "ANRI": "#ff0036", "KOROMARU": "#ff0036", "PINKY": "#ff66ff", "JUNPEI": "#ff391d", "TWINS": "#ffffff", "SOY·P": "#fe9e01", "LUCE·N": "#ffffa2", "FUUKA": "#3a6dfa", "KIRIJO": "#00afff", "BUI·P": "#00fcff", "BLITZ": "#fcff37", "PUPPET·S": "#00afff", "MARIAN·S": "#ffffa2", "BERRY": "#ff0036", "AKIHIKO": "#fcff37", "YUKARI": "#82ec2c", "MAKOTO": "#ff391d", "ANGE": "#3a6dfa", "LUCE": "#ffffa2", "TURBO": "#ff9d00", "CROW": "#ffffff", "MATOI": "#00afff", "RIN·F": "#ff391d", "WIND·T": "#82ec2c", "VIOLET": "#ffffa2", "HOWLER": "#ff391d", "MONT·F": "#82ec2c", "NOIR": "#ff66ff", "CHERISH": "#00afff", "ORACLE": "#3a6dfa", "MESSA": "#ff9d00", "MOKO·S": "#ff66ff", "CLOSER·T": "#ffffa2", "CHORD": "#fcff37", "WIND": "#3a6dfa", "PHOEBE": "#3a6dfa", "QUEEN": "#00fcff", "VINO": "#00fcff", "FOX": "#00afff", "BUI": "#fcff37", "MARIAN": "#ffffa2", "JOKER": "#ff0036", "SKULL": "#ff9d00", "MONA": "#82ec2c", "PANTHER": "#ff391d", "RIN": "#ff0036", "RIDDLE": "#ff66ff", "CATTLE": "#ff391d", "LEON": "#00fcff", "CLOSER": "#fcff37", "MONT": "#00afff", "SOY": "#00afff", "FLEURET": "#82ec2c", "YUKI": "#ffffa2", "KEY": "#ff391d", "MOKO": "#ff66ff", "SEPIA": "#ff0036", "PUPPET": "#3a6dfa", "OKYANN": "#3a6dfa"}, "elucidatorNames": ["ANGE", "FUUKA", "ORACLE", "WIND", "PHOEBE", "PUPPET", "OKYANN"]};
 
 /* ---------- helpers ---------- */
 const KNOWN_COLORS = {WONDER:'#c2002e'};
@@ -211,7 +230,7 @@ function defaultState(){
   }
   const units=i.team.map((n,k)=>mk(n,i.awareness[k]||'A0',i.rev[k]||'R0',i.gear[k]||''));
   return {
-    setup:{rotationName:i.rotationName,tier:i.tier,boss:i.boss,type:i.type,patch:i.patch,score:i.score,notes:i.notes},
+    setup:{rotationName:i.rotationName,tier:i.tier,boss:i.boss,type:i.type,patch:i.patch,score:i.score,notes:i.notes,credits:i.credits||''},
     units,
     elucidator:mk(i.elucidator,i.awareness[4]||'A6',i.rev[4]||'R6',i.gear[4]||''),
     personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '', '' ]})),
@@ -222,7 +241,7 @@ function defaultState(){
 function blankState(){
   const u=()=>({name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:''});
   return {
-    setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:''},
+    setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''},
     units:[{name:'WONDER',awareness:'DGR',rev:'R6',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
     elucidator:u(),
     personas:[{name:'',skills:['','','']},{name:'',skills:['','','']},{name:'',skills:['','','']}],
@@ -249,6 +268,7 @@ function migrate(st){
     if(!isW && !u.space && !u.sunsky && u.gear && u.gear.indexOf(' & ')>-1){ const p=u.gear.split(' & '); u.space=p[0].trim(); u.sunsky=p[1].trim(); u.gear=''; }
   });
   if(st.teamNotes===undefined) st.teamNotes='';
+  if(st.setup && st.setup.credits===undefined) st.setup.credits='';
   return st;
 }
 function load(){ try{const s=localStorage.getItem(KEY); if(s) return migrate(JSON.parse(s));}catch(e){} return defaultState(); }
@@ -260,15 +280,17 @@ function renderHead(){
   document.getElementById('headPanel').innerHTML=`
     <div class="head-top">
       <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="Rotation Name"/></div>
-      <div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div>
     </div>
     <div class="meta meta-big">
+      <div class="type-field"><label>Type</label><div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div></div>
       <div class="field"><label>Boss</label><input id="f_boss" list="bossList" value="${esc(s.boss)}" placeholder="Boss"/></div>
-      <div class="field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
+      <div class="field patch-field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
       <div class="field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
+      <div class="field credits-field"><label>Credits</label><input id="f_credits" value="${esc(s.credits||'')}" placeholder="Credits"/></div>
     </div>
     <datalist id="bossList">${DATA.bossNames.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist>`;
   bind('f_name','setup.rotationName');
+  bind('f_credits','setup.credits');
   const tsel=document.getElementById('f_type');
   tsel.onchange=()=>{ state.setup.type=tsel.value; save(); tsel.closest('.tier').className='tier type-'+tsel.value.toLowerCase(); };
   bind('f_boss','setup.boss');
@@ -316,7 +338,7 @@ function unitCard(u, path, elu, idx){
     if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
     extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
   }
-  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
+  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
   const art = img
     ? `<div class="art" style="background-image:url('${esc(img)}')">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
@@ -415,10 +437,20 @@ function actRow(a, ti, ai){
       <select data-tchar="${ti}.${ai}">${opt(chOpts,a.char)}</select>
       <input data-taction="${ti}.${ai}" value="${esc(a.action)}" placeholder="Action…"/>
     </div>
-    <button class="x" data-delact="${ti}.${ai}" title="Remove">×</button>
+    <div class="act-btns">
+      <button class="addrow" data-addabove="${ti}.${ai}" title="Add action above">+</button>
+      <button class="x" data-delact="${ti}.${ai}" title="Remove">×</button>
+      <button class="addrow" data-addbelow="${ti}.${ai}" title="Add action below">+</button>
+    </div>
   </div>`;
 }
+function renumberTurns(){
+  let changed=false;
+  state.turns.forEach((t,i)=>{ const want='TURN '+(i+1); if(/^TURN\s+\d+$/i.test((t.name||'').trim()) && t.name!==want){ t.name=want; changed=true; } });
+  if(changed) save();
+}
 function renderTurns(){
+  renumberTurns();
   const wrap=document.getElementById('turns');
   wrap.innerHTML = state.turns.map((t,ti)=>`
     <div class="turn">
@@ -438,6 +470,8 @@ function renderTurns(){
     el.closest('.act').style.setProperty('--ax', charColor(e.target.value));
   });
   wrap.querySelectorAll('[data-delact]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.delact.split('.');state.turns[t].actions.splice(a,1); save(); renderTurns();});
+  wrap.querySelectorAll('[data-addabove]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addabove.split('.');state.turns[t].actions.splice(+a,0,{char:'',action:''}); save(); renderTurns();});
+  wrap.querySelectorAll('[data-addbelow]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addbelow.split('.');state.turns[t].actions.splice(+a+1,0,{char:'',action:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-addact]').forEach(el=>el.onclick=()=>{state.turns[+el.dataset.addact].actions.push({char:'',action:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-delturn]').forEach(el=>el.onclick=()=>{if(confirm('Remove this turn?')){state.turns.splice(+el.dataset.delturn,1); save(); renderTurns();}});
   document.getElementById('addTurn').onclick=()=>{state.turns.push({name:'TURN '+(state.turns.length+1),actions:[{char:'',action:''}]}); save(); renderTurns();};
@@ -495,8 +529,131 @@ document.getElementById('importFile').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader(); r.onload=()=>{ try{ state=JSON.parse(r.result); save(); renderAll(); }catch(err){ alert('Invalid JSON file.'); } }; r.readAsText(f);
 };
-document.getElementById('printBtn').onclick=()=>window.print();
 document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
+document.getElementById('autoFill').onclick=()=>{
+  const chars=state.units.filter(u=>(u.name||'').trim()).map(u=>u.name);
+  if(!chars.length){ alert('No characters in team slots 1–4 yet.'); return; }
+  if(!state.turns.length){ alert('No turns to fill yet.'); return; }
+  const hasContent=state.turns.some(t=>t.actions.some(a=>(a.char||'').trim() || (a.action||'').trim()));
+  if(hasContent && !confirm('The turns already contain actions. Replace them with characters 1–4 in order?')) return;
+  state.turns.forEach(t=>{ t.actions=chars.map(c=>({char:c, action:''})); });
+  save(); renderTurns();
+};
+document.getElementById('clearActions').onclick=()=>{
+  if(!state.turns.length) return;
+  if(!confirm('Remove all actions from every turn?')) return;
+  state.turns.forEach(t=>{ t.actions=[{char:'',action:''}]; });
+  save(); renderTurns();
+};
+
+/* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
+function exportBaseName(){
+  const s=state.setup;
+  let name=[s.patch, s.type, s.rotationName||'rotation'].map(x=>(x||'').trim()).filter(Boolean).join('_');
+  name=name.replace(/[\\/:*?"<>|\r\n\t]+/g,'-').replace(/\s+/g,' ').trim();
+  return name||'rotation';
+}
+function gearText(u){ return u.gear || [u.space,u.sunsky].filter(Boolean).join(' & '); }
+
+function buildCSV(){
+  const s=state.setup, rows=[];
+  const q=v=>{ v=(v==null?'':String(v)); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  rows.push(['Rotation', s.rotationName]); rows.push(['Type', s.type]); rows.push(['Patch', s.patch]);
+  rows.push(['Boss', s.boss]); rows.push(['Expected Score', s.score]); rows.push(['Credits', s.credits||'']);
+  rows.push([]); rows.push(['TEAM']);
+  rows.push(['Slot','Name','Awareness','Rev','Gear / Space & Sun-Sky','Extra']);
+  state.units.forEach((u,i)=>{
+    const extra=(u.name||'').toUpperCase()==='TWINS' && u.role ? 'Role: '+u.role : '';
+    rows.push([i+1, u.name, u.awareness, u.rev, gearText(u), extra]);
+  });
+  const e=state.elucidator;
+  const ee=(e.name||'').toUpperCase()==='FUUKA' && e.companion ? 'Backup: '+e.companion : '';
+  rows.push(['Elucidator', e.name, e.awareness, e.rev, gearText(e), ee]);
+  rows.push([]); rows.push(['PERSONAS']); rows.push(['#','Persona','Skill 1','Skill 2','Skill 3']);
+  state.personas.forEach((p,i)=>rows.push([i+1, p.name, p.skills[0]||'', p.skills[1]||'', p.skills[2]||'']));
+  if((state.teamNotes||'').trim()){ rows.push([]); rows.push(['Team Notes', state.teamNotes]); }
+  rows.push([]); rows.push(['ROTATION']);
+  const maxA=Math.max(0,...state.turns.map(t=>t.actions.length));
+  const h1=[''], h2=['#'];
+  state.turns.forEach(t=>{ h1.push(t.name,''); h2.push('Char','Action'); });
+  rows.push(h1); rows.push(h2);
+  for(let i=0;i<maxA;i++){ const r=[i+1]; state.turns.forEach(t=>{ const a=t.actions[i]; r.push(a?a.char:'', a?a.action:''); }); rows.push(r); }
+  if((s.notes||'').trim()){ rows.push([]); rows.push(['Notes', s.notes]); }
+  return '\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n');
+}
+function exportCSV(){
+  const blob=new Blob([buildCSV()],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.csv'; a.click();
+}
+
+function buildExportView(withImages){
+  const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
+  const ord=['1st','2nd','3rd','4th'];
+  const cols=Math.min(6, Math.max(1, state.turns.length));
+  const turnsW=cols*COLW+(cols-1)*GAP;
+  const teamRowW=5*TEAMW+4*GAP;
+  const inner=Math.max(turnsW, teamRowW);
+  const tc=c=>charColor(c);
+  const tl=(s.type||'').toLowerCase();
+  const typeBg={mld:'#f1c232',dod:'#9b5de5',nod:'#e0445e'}[tl]||'#3a3550';
+  const typeFg={mld:'#3a2c00',dod:'#1a0a2e',nod:'#2c0710'}[tl]||'#fff';
+  const card=(u,label,accent)=>{
+    const art = withImages && imgFor(u.name) ? `<div style="width:100%;height:150px;border-radius:6px;margin-bottom:6px;background-color:#15131d;background-image:url('${imgFor(u.name)}');background-size:cover;background-position:center top;background-repeat:no-repeat;"></div>` : '';
+    return `<div style="width:${TEAMW}px;background:#23202f;border:1px solid #3a3550;border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
+    ${art}
+    <div style="font:700 10px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">${esc(label)}</div>
+    <div style="font:700 16px Oswald,sans-serif;color:#f3f1f7;margin:2px 0 4px;">${esc(u.name||'—')}</div>
+    <div style="font:600 12px Inter,sans-serif;color:#cfe2f3;">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
+    <div style="font:500 11px Inter,sans-serif;color:#9d97b3;margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
+    ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:#f1c232;margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
+    ${(u.name||'').toUpperCase()==='FUUKA'&&u.companion?`<div style="font:600 11px Inter,sans-serif;color:#9fc5e8;margin-top:2px;">Backup: ${esc(u.companion)}</div>`:''}
+  </div>`;
+  };
+  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'th'), tc(u.name))).join('')+card(state.elucidator,'ELUCIDATOR','#5b9bd5');
+  const persona=state.personas.filter(p=>(p.name||'').trim());
+  const personaLine=persona.length?`<div style="margin-top:12px;font:500 13px Inter,sans-serif;">
+    <span style="color:#9d97b3;font-weight:700;letter-spacing:.08em;">PERSONAS&nbsp;&nbsp;</span>
+    ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}`; }).join('<span style="color:#5a5470;">&nbsp;&nbsp;·&nbsp;&nbsp;</span>')}</div>`:'';
+  const tnLine=(state.teamNotes||'').trim()?`<div style="margin-top:6px;font:500 13px Inter,sans-serif;color:#9d97b3;">Team Notes: <span style="color:#cfe2f3;">${esc(state.teamNotes)}</span></div>`:'';
+  const turnsHtml=state.turns.map(t=>`<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
+    <div style="font:700 13px Oswald,sans-serif;color:#9fc5e8;letter-spacing:.06em;border-bottom:1px solid #3a3550;padding-bottom:5px;margin-bottom:6px;">${esc(t.name)}</div>
+    ${t.actions.map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${tc(a.char)};margin-bottom:3px;background:#23202f;border-radius:4px;">
+      <span style="font:700 11px Oswald,sans-serif;color:#9d97b3;min-width:12px;">${i+1}</span>
+      <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
+      <span style="font:500 11px Inter,sans-serif;color:#f3f1f7;flex:1;">${esc(a.action||'')}</span></div>`).join('')}
+  </div>`).join('');
+  const notesLine=(s.notes||'').trim()?`<div style="margin-top:12px;font:500 13px Inter,sans-serif;color:#9d97b3;">Notes: <span style="color:#cfe2f3;">${esc(s.notes)}</span></div>`:'';
+  const v=document.createElement('div'); v.id='exportView';
+  v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
+  v.innerHTML=`
+    <div style="font:700 30px Oswald,sans-serif;color:#f3f1f7;letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:#cfe2f3;">
+      <span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type||'')}</span>
+      ${s.patch?`<span><span style="color:#9d97b3;">Patch</span> ${esc(s.patch)}</span>`:''}
+      ${s.boss?`<span><span style="color:#9d97b3;">Boss</span> ${esc(s.boss)}</span>`:''}
+      ${s.score?`<span><span style="color:#9d97b3;">Score</span> ${esc(s.score)}</span>`:''}
+      ${s.credits?`<span><span style="color:#9d97b3;">Credits</span> ${esc(s.credits)}</span>`:''}
+    </div>
+    <div style="display:flex;gap:${GAP}px;flex-wrap:wrap;margin-top:14px;">${teamCards}</div>
+    ${personaLine}${tnLine}
+    <div style="display:flex;flex-wrap:wrap;gap:${GAP}px;margin-top:16px;align-items:flex-start;width:${turnsW}px;">${turnsHtml}</div>
+    ${notesLine}`;
+  document.body.appendChild(v); return v;
+}
+function exportImage(withImages){
+  if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
+  const v=buildExportView(withImages);
+  html2canvas(v,{backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:15000}).then(canvas=>{
+    v.remove();
+    canvas.toBlob(blob=>{ if(!blob){ alert('Image export failed.'); return; } const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.png'; a.click(); },'image/png');
+  }).catch(err=>{ if(v) v.remove();
+    if(withImages) alert('Image export with portraits failed. This usually happens when the page is opened directly from a file. Host it (e.g. GitHub Pages) so the character images can be embedded, or use "Export Image" without portraits.');
+    else alert('Image export failed: '+((err&&err.message)||err));
+  });
+}
+document.getElementById('exportImgBtn').onclick=()=>exportImage(false);
+document.getElementById('exportImgArtBtn').onclick=()=>exportImage(true);
+document.getElementById('exportCsvBtn').onclick=exportCSV;
 
 state=load(); renderAll();
 </script>
