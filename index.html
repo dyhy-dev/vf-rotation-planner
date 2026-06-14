@@ -569,7 +569,7 @@ function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); 
 document.getElementById('exportBtn').onclick=()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=(state.setup.rotationName||'rotation').replace(/\s+/g,'_')+'.json'; a.click();
+  a.download=exportBaseName()+'.json'; a.click();
 };
 document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
 document.getElementById('importFile').onchange=e=>{
