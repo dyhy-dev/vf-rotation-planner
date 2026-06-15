@@ -187,6 +187,7 @@ button{cursor:pointer}
 .version-tag{position:fixed; right:8px; bottom:6px; font:500 11px Inter,sans-serif; color:#5a5470; letter-spacing:.08em; z-index:50; pointer-events:none; user-select:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -197,7 +198,6 @@ button{cursor:pointer}
       <button class="btn" id="exportBtn">Export JSON</button>
       <button class="btn" id="exportImgBtn">Export Image</button>
       <button class="btn" id="exportImgArtBtn">Export Image+Art</button>
-      <button class="btn" id="exportCsvBtn">Export Sheet</button>
       <button class="btn" id="refreshBtn" title="Reload the newest version of the page (bypasses cache)">Refresh</button>
       <button class="btn" id="resetBtn">Reset</button>
       <input type="file" id="importFile" accept="application/json" hidden/>
@@ -715,6 +715,108 @@ function exportCSV(){
   const blob=new Blob([buildCSV()],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.csv'; a.click();
 }
+function sheetTextOn(hex){ const h=(hex||'').replace('#',''); if(h.length<6) return 'FFFFFFFF'; const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16); return (0.299*r+0.587*g+0.114*b)>140?'FF14121C':'FFFFFFFF'; }
+function argbOf(hex){ return 'FF'+(hex||'#666').replace('#','').toUpperCase(); }
+async function exportSheet(){
+  if(typeof ExcelJS==='undefined'){ alert('Sheet export needs the spreadsheet library (requires an internet connection the first time it is used).'); return; }
+  const s=state.setup;
+  const INK='FF14121C', PANEL='FF1F1C2B', PANEL2='FF23202F', LINE='FF3A3550', TEXT='FFF3F1F7', MUTED='FF9D97B3', GOLD='FFF1C232', RED='FFE0445E', BLUE='FF9FC5E8', CYAN='FFCFE2F3';
+  const NCOL=8, FONT='Arial';
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet('Rotation',{views:[{showGridLines:false}]});
+  [16,18,14,14,16,16,16,18].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  const fillOf=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
+  const thin={style:'thin',color:{argb:LINE}};
+  const box={top:thin,left:thin,bottom:thin,right:thin};
+  let row=1;
+  const set=(r,c,val,o)=>{ const cell=ws.getCell(r,c); cell.value=val; o=o||{}; cell.font={name:FONT,size:o.size||10,bold:!!o.bold,color:{argb:o.color||TEXT}}; cell.fill=fillOf(o.fill||PANEL2); cell.alignment={vertical:'middle',horizontal:o.align||'left',wrapText:!!o.wrap}; if(o.border!==false) cell.border=box; return cell; };
+  const merge=(r,c1,c2)=>ws.mergeCells(r,c1,r,c2);
+
+  // Title block
+  merge(row,1,NCOL); set(row,1,'VELVET FREQUENCY',{size:20,bold:true,color:RED,fill:INK,border:false}); ws.getRow(row).height=28; row++;
+  merge(row,1,NCOL); set(row,1,'ROTATION PLANNER',{size:10,bold:true,color:MUTED,fill:INK,border:false}); row++;
+  merge(row,1,NCOL); set(row,1,s.rotationName||'Rotation',{size:18,bold:true,color:TEXT,fill:INK,border:false}); ws.getRow(row).height=26; row++;
+  // Meta row
+  const tl=(s.type||'').toLowerCase(); const typeBg={mld:'FFF1C232',dod:'FF9B5DE5',nod:'FFE0445E'}[tl]||PANEL2; const typeFg={mld:'FF3A2C00',dod:'FFFFFFFF',nod:'FFFFFFFF'}[tl]||TEXT;
+  set(row,1,s.type||'',{bold:true,align:'center',fill:typeBg,color:typeFg});
+  const meta=[['Patch',s.patch],['Boss',s.boss],['Score',s.score],['Credits',s.credits]].filter(m=>String(m[1]||'').trim());
+  let mc=2; meta.forEach(m=>{ if(mc>NCOL) return; set(row,mc,m[0]+': '+m[1],{color:CYAN,fill:PANEL}); mc++; });
+  for(;mc<=NCOL;mc++) set(row,mc,'',{fill:PANEL});
+  ws.getRow(row).height=20; row+=2;
+
+  const sectionHeader=(label)=>{ merge(row,1,NCOL); set(row,1,label,{bold:true,color:MUTED,fill:INK,border:false}); row++; };
+  const headerCell=(r,c,val)=>set(r,c,val,{bold:true,color:MUTED,fill:PANEL});
+
+  // TEAM
+  sectionHeader('TEAM');
+  headerCell(row,1,'Slot'); headerCell(row,2,'Character'); headerCell(row,3,'Awareness'); headerCell(row,4,'Rev'); merge(row,5,6); headerCell(row,5,'Gear'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box; merge(row,7,8); headerCell(row,7,'Role / Backup'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box; row++;
+  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]);
+  teamRows.forEach(({u,label})=>{
+    set(row,1,label,{bold:true,color:MUTED,fill:PANEL});
+    const nm=u.name||''; const col=nm?charColor(nm):null;
+    set(row,2,nm,{bold:true,fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT});
+    set(row,3,u.awareness||'',{align:'center'}); set(row,4,u.rev||'',{align:'center'});
+    merge(row,5,6); set(row,5,gearText(u)||'',{color:CYAN}); ws.getCell(row,6).fill=fillOf(PANEL2); ws.getCell(row,6).border=box;
+    const extra=(nm.toUpperCase()==='TWINS'&&u.role)?('Role: '+u.role):((nm.toUpperCase()==='FUUKA'&&u.companion)?('Backup: '+u.companion):'');
+    merge(row,7,8); set(row,7,extra,{color:BLUE}); ws.getCell(row,8).fill=fillOf(PANEL2); ws.getCell(row,8).border=box;
+    row++;
+  });
+  row++;
+
+  // PERSONAS (with images via Google Sheets IMAGE() formulas, using the hosted page URL)
+  const baseURL=location.href.replace(/[?#].*$/,'').replace(/[^/]*$/,'');
+  const canImg=/^https?:$/.test(location.protocol);
+  sectionHeader('PERSONAS');
+  headerCell(row,1,'Image'); headerCell(row,2,'Persona');
+  merge(row,3,4); headerCell(row,3,'Skill 1'); ws.getCell(row,4).fill=fillOf(PANEL); ws.getCell(row,4).border=box;
+  merge(row,5,6); headerCell(row,5,'Skill 2'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box;
+  merge(row,7,8); headerCell(row,7,'Skill 3'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box;
+  row++;
+  state.personas.forEach(p=>{
+    const nm=(p.name||'').trim();
+    if(nm && canImg){ const c=ws.getCell(row,1); c.value={formula:`IMAGE("${baseURL+personaImg(nm)}",1)`}; c.fill=fillOf(PANEL2); c.border=box; c.alignment={vertical:'middle',horizontal:'center'}; }
+    else { set(row,1,'',{}); }
+    set(row,2,nm,{bold:true,color:GOLD});
+    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],p.skills[k]||'',{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
+    if(nm) ws.getRow(row).height=90;
+    row++;
+  });
+  row++;
+
+  // TEAM NOTES
+  if((state.teamNotes||'').trim()){ sectionHeader('TEAM NOTES'); merge(row,1,NCOL); const c=set(row,1,state.teamNotes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(state.teamNotes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
+
+  // ROTATION NOTES
+  if((s.notes||'').trim()){ sectionHeader('ROTATION NOTES'); merge(row,1,NCOL); set(row,1,s.notes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(s.notes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
+
+  // ROTATION (turns) in bands of 4, each turn = 2 columns
+  sectionHeader('ROTATION');
+  const dodX=s.type==='DOD', nT=state.turns.length;
+  const perBand=4;
+  for(let b=0;b<nT;b+=perBand){
+    const band=state.turns.slice(b,b+perBand).map((t,j)=>({t,gi:b+j,j}));
+    // header row
+    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const isBreak=dodX&&nT>=2&&gi>=nT-2; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
+    row++;
+    const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
+    for(let ai=0;ai<maxA;ai++){
+      band.forEach(({t,j})=>{ const c1=2*j+1; const a=(t.actions||[])[ai];
+        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,a.char||'',{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char)||'',{}); }
+        else { set(row,c1,'',{}); set(row,c1+1,'',{}); }
+      });
+      row++;
+    }
+    row++;
+  }
+
+  // backfill any empty cells in the used range with the dark background
+  const maxRow=row;
+  for(let r=1;r<=maxRow;r++){ for(let c=1;c<=NCOL;c++){ const cell=ws.getCell(r,c); if(!cell.fill || !cell.fill.fgColor){ cell.fill=fillOf(INK); } } }
+
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  deliverImage(URL.createObjectURL(blob), exportBaseName()+'.xlsx');
+}
 
 function buildExportView(withImages, portraits, pImgs){
   portraits=portraits||{}; pImgs=pImgs||{};
@@ -883,10 +985,9 @@ function exportImage(withImages){
 }
 document.getElementById('exportImgBtn').onclick=()=>exportImage(false);
 document.getElementById('exportImgArtBtn').onclick=()=>exportImage(true);
-document.getElementById('exportCsvBtn').onclick=exportCSV;
 
 state=load(); renderAll();
 </script>
-<div class="version-tag">260615F</div>
+<div class="version-tag">260615I</div>
 </body>
 </html>
