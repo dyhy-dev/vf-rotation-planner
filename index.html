@@ -178,6 +178,7 @@ button{cursor:pointer}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
+.version-tag{position:fixed; right:8px; bottom:6px; font:500 11px Inter,sans-serif; color:#5a5470; letter-spacing:.08em; z-index:50; pointer-events:none; user-select:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -872,5 +873,6 @@ document.getElementById('exportCsvBtn').onclick=exportCSV;
 
 state=load(); renderAll();
 </script>
+<div class="version-tag">260615A</div>
 </body>
 </html>
