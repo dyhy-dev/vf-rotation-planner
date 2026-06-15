@@ -30,6 +30,12 @@ button{cursor:pointer}
 
 /* toolbar */
 .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px}
+.toolbar .brand{flex:0 0 100%}
+.toolbar-actions{display:flex; flex-wrap:wrap; gap:8px; width:100%; justify-content:flex-end}
+@media (min-width:1200px){
+  .toolbar .brand{flex:0 0 auto}
+  .toolbar-actions{flex:1 1 auto; width:auto; justify-content:flex-end}
+}
 .toolbar .spacer{flex:1}
 .btn{background:var(--panel2); border:1px solid var(--line); color:var(--text);
   padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; transition:.15s}
@@ -186,15 +192,16 @@ button{cursor:pointer}
 <div class="wrap">
   <div class="toolbar">
     <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
-    <div class="spacer"></div>
-    <button class="btn" id="importBtn">Import JSON</button>
-    <button class="btn" id="exportBtn">Export JSON</button>
-    <button class="btn" id="exportImgBtn">Export Image</button>
-    <button class="btn" id="exportImgArtBtn">Export Image+Art</button>
-    <button class="btn" id="exportCsvBtn">Export Sheet</button>
-    <button class="btn" id="refreshBtn" title="Reload the newest version of the page (bypasses cache)">Refresh</button>
-    <button class="btn" id="resetBtn">Reset</button>
-    <input type="file" id="importFile" accept="application/json" hidden/>
+    <div class="toolbar-actions">
+      <button class="btn" id="importBtn">Import JSON</button>
+      <button class="btn" id="exportBtn">Export JSON</button>
+      <button class="btn" id="exportImgBtn">Export Image</button>
+      <button class="btn" id="exportImgArtBtn">Export Image+Art</button>
+      <button class="btn" id="exportCsvBtn">Export Sheet</button>
+      <button class="btn" id="refreshBtn" title="Reload the newest version of the page (bypasses cache)">Refresh</button>
+      <button class="btn" id="resetBtn">Reset</button>
+      <input type="file" id="importFile" accept="application/json" hidden/>
+    </div>
   </div>
 
   <div class="panel" id="headPanel"></div>
@@ -713,10 +720,8 @@ function buildExportView(withImages, portraits, pImgs){
   portraits=portraits||{}; pImgs=pImgs||{};
   const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
   const ord=['1st','2nd','3rd','4th'];
-  const cols=Math.min(6, Math.max(1, state.turns.length));
-  const turnsW=cols*COLW+(cols-1)*GAP;
   const teamRowW=5*TEAMW+4*GAP;
-  const inner=Math.max(turnsW, teamRowW);
+  const inner=teamRowW;
   const tc=c=>charColor(c);
   const tl=(s.type||'').toLowerCase();
   const typeBg={mld:'#f1c232',dod:'#9b5de5',nod:'#e0445e'}[tl]||'#3a3550';
@@ -767,13 +772,22 @@ function buildExportView(withImages, portraits, pImgs){
     }
   }
   const dodX=s.type==='DOD', nT=state.turns.length;
-  const turnsHtml=state.turns.map((t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
+  const turnBox=(t,ti,cssW)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${cssW};box-sizing:border-box;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;">
     <div style="font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;border-bottom:1px solid #3a3550;padding-bottom:5px;margin-bottom:6px;">${esc((t.name||'').toUpperCase())}</div>
     ${(t.actions||[]).map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${tc(a.char)};margin-bottom:3px;background:#23202f;border-radius:4px;">
       <span style="font:700 11px Oswald,sans-serif;color:#9d97b3;min-width:12px;">${i+1}</span>
       <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
       <span style="font:500 11px Inter,sans-serif;color:#f3f1f7;flex:1;">${esc(actionLabel(a, a.char))}</span></div>`).join('')}
-  </div>`; }).join('');
+  </div>`; };
+  const effCols=nT;                                       /* every turn, incl. each break, is its own column */
+  const perRow = (function(n){
+    if(n<=4) return Math.max(1,n);
+    if(n%4===0) return 4;
+    if(n%3===0) return 3;
+    return n===5 ? 3 : 4;
+  })(effCols);
+  const colW = (teamRowW-(perRow-1)*GAP)/perRow;          /* fixed width; the last (shorter) row keeps the same width */
+  const turnsHtml=state.turns.map((t,ti)=>turnBox(t,ti,colW+'px')).join('');
   const notesLine=(s.notes||'').trim()?`<div style="margin-top:16px;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;">
     <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">ROTATION NOTES</div>
     <div style="font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(s.notes)}</div></div>`:'';
@@ -793,7 +807,7 @@ function buildExportView(withImages, portraits, pImgs){
     <div style="display:flex;gap:${GAP}px;flex-wrap:wrap;margin-top:14px;">${teamCards}</div>
     ${personaLine}${tnLine}
     ${notesLine}
-    <div style="display:flex;flex-wrap:wrap;gap:${GAP}px;margin-top:16px;align-items:flex-start;width:${turnsW}px;">${turnsHtml}</div>`;
+    <div style="display:flex;flex-wrap:wrap;gap:${GAP}px;margin-top:16px;align-items:flex-start;width:${teamRowW}px;">${turnsHtml}</div>`;
   document.body.appendChild(v); return v;
 }
 function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); const t=setTimeout(()=>rej(new Error('timeout: '+src)),10000); im.onload=()=>{clearTimeout(t);res(im);}; im.onerror=()=>{clearTimeout(t);rej(new Error('image load failed: '+src));}; im.src=src; }); }
@@ -873,6 +887,6 @@ document.getElementById('exportCsvBtn').onclick=exportCSV;
 
 state=load(); renderAll();
 </script>
-<div class="version-tag">260615A</div>
+<div class="version-tag">260615F</div>
 </body>
 </html>
