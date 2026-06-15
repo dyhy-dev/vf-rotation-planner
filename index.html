@@ -211,7 +211,7 @@ button{cursor:pointer}
       <button class="btn" id="autoFill" title="Fill all turns with characters 1–4 in order">Auto Fill</button>
       <button class="btn" id="clearActions" title="Remove all actions from every turn">Clear</button>
     </div>
-    <div class="notes-row"><textarea id="notes" placeholder="Notes…"></textarea></div>
+    <div class="notes-row"><textarea id="notes" placeholder="Rotation notes…"></textarea></div>
     <div class="turns" id="turns"></div>
   </div>
   <div class="foot">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener">Discord</a><br>Autosave is on (stored locally in your browser) · Export JSON to save your work as a file.</div>
@@ -292,10 +292,10 @@ function defaultState(){
   return st;
 }
 function blankState(){
-  const u=()=>({name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:''});
+  const u=()=>({name:'',awareness:'A0',rev:'RX',gear:'',space:'',sunsky:'',role:'',companion:''});
   return {
     setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''},
-    units:[{name:'WONDER',awareness:'DGR',rev:'R6',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
+    units:[{name:'WONDER',awareness:'DGR',rev:'R0',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
     elucidator:u(),
     personas:[{name:'',skills:['','','']},{name:'',skills:['','','']},{name:'',skills:['','','']}],
     teamNotes:'',
@@ -322,6 +322,7 @@ function migrate(st){
   });
   if(st.teamNotes===undefined) st.teamNotes='';
   if(st.setup && st.setup.credits===undefined) st.setup.credits='';
+  if(st.setup){ if(!String(st.setup.boss||'').trim()) st.setup.boss=''; if(!String(st.setup.credits||'').trim()) st.setup.credits=''; }
   normalizeActions(st.turns);
   return st;
 }
@@ -337,10 +338,10 @@ function renderHead(){
     </div>
     <div class="meta meta-big">
       <div class="type-field"><label>Type</label><div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div></div>
-      <div class="field"><label>Boss</label><input id="f_boss" list="bossList" value="${esc(s.boss)}" placeholder="Boss"/></div>
+      <div class="field"><label>Boss</label><input id="f_boss" list="bossList" value="${esc(s.boss)}"/></div>
       <div class="field patch-field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
       <div class="field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
-      <div class="field credits-field"><label>Credits</label><input id="f_credits" value="${esc(s.credits||'')}" placeholder="Credits"/></div>
+      <div class="field credits-field"><label>Credits</label><input id="f_credits" value="${esc(s.credits||'')}"/></div>
     </div>
     <datalist id="bossList">${DATA.bossNames.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist>`;
   bind('f_name','setup.rotationName');
@@ -382,11 +383,11 @@ function unitCard(u, path, elu, idx){
   let nameOpts=[''].concat(names);
   if(u.name && !nameOpts.includes(u.name)) nameOpts=[''].concat([u.name]).concat(names);
   const isW = !elu && (u.name||'').toUpperCase()==='WONDER';
-  const awareOpts = isW ? ['DGR'] : [''].concat(DATA.awarenessOpts.filter(o=>o!=='DGR'));
-  const revFull = [''].concat(DATA.revOpts);
+  const awareOpts = isW ? ['DGR'] : DATA.awarenessOpts.filter(o=>o!=='DGR');
+  const revFull = isW ? DATA.revOpts.filter(o=>o!=='RX') : DATA.revOpts.slice();
   if(isW){ if(u.awareness!=='DGR') u.awareness='DGR'; }
-  else if(!awareOpts.includes(u.awareness)) u.awareness='';
-  if(!revFull.includes(u.rev)) u.rev='';
+  else if(!awareOpts.includes(u.awareness)) u.awareness='A0';
+  if(!revFull.includes(u.rev)) u.rev = isW ? 'R0' : 'RX';
   // Wonder -> single Dagger select; everyone else -> Space + Sun/Moon/Star/Sky
   let revBlock;
   if(isW){
@@ -424,9 +425,9 @@ function unitCard(u, path, elu, idx){
     ${art}
     <div class="body">
       <select class="name" data-uname="${path}">${opt(nameOpts,u.name)}</select>
-      <div class="tags">
-        <select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select>
-        <select data-path="${path}.rev">${opt(revFull,u.rev)}</select>
+      <div class="rev-row">
+        <div><div class="rev-lab">Awareness</div><select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select></div>
+        <div><div class="rev-lab">Weapon</div><select data-path="${path}.rev">${opt(revFull,u.rev)}</select></div>
       </div>
       ${revBlock}${extraBlock}
     </div></div>`;
@@ -438,7 +439,7 @@ function renderTeam(){
       <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">\u283f</span></div>
       <div class="pcol-body">
         <div class="pcol-fields">
-          <select data-path="personas.${k}.name">${opt([''].concat(DATA.personaNames),p.name)}</select>
+          <select data-path="personas.${k}.name"><option value=""${p.name?'':' selected'}>Choose Persona</option>${opt(DATA.personaNames,p.name)}</select>
           <div class="skills">${p.skills.map((s,si)=>`<input data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Skill ${si+1}"/>`).join('')}</div>
         </div>
         <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="this.style.display='none'" loading="lazy"/>`:''}</div>
@@ -821,7 +822,7 @@ async function exportSheet(){
 function buildExportView(withImages, portraits, pImgs){
   portraits=portraits||{}; pImgs=pImgs||{};
   const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
-  const ord=['1st','2nd','3rd','4th'];
+  const ord=['1ST','2ND','3RD','4TH'];
   const teamRowW=5*TEAMW+4*GAP;
   const inner=teamRowW;
   const tc=c=>charColor(c);
@@ -840,7 +841,7 @@ function buildExportView(withImages, portraits, pImgs){
     ${(u.name||'').toUpperCase()==='FUUKA'&&u.companion?`<div style="font:600 11px Inter,sans-serif;color:#9fc5e8;margin-top:2px;">Backup: ${esc(u.companion)}</div>`:''}
   </div>`;
   };
-  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'th'), tc(u.name))).join('')+card(state.elucidator,'ELUCIDATOR','#5b9bd5');
+  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), tc(u.name))).join('')+card(state.elucidator,'ELUCIDATOR','#5b9bd5');
   const persona=state.personas.filter(p=>(p.name||'').trim());
   const tnText=(state.teamNotes||'').trim();
   let personaLine='', tnLine='';
@@ -861,7 +862,7 @@ function buildExportView(withImages, portraits, pImgs){
       personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBox}</div>`;
     }
   } else {
-    const personaBlock=persona.length?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+    const personaBlock=persona.length?`<div style="flex:0 1 auto;min-width:0;display:flex;flex-direction:column;">
       <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
       <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;line-height:1.6;">
         ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}</div>`; }).join('')}
@@ -988,6 +989,6 @@ document.getElementById('exportImgArtBtn').onclick=()=>exportImage(true);
 
 state=load(); renderAll();
 </script>
-<div class="version-tag">260615I</div>
+<div class="version-tag">260615M</div>
 </body>
 </html>
