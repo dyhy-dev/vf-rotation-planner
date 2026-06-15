@@ -169,7 +169,7 @@ button{cursor:pointer}
 .add-turn{flex:0 0 60px; align-self:stretch; background:transparent; border:2px dashed var(--line);
   color:var(--muted); border-radius:12px; font-size:26px; font-family:"Oswald"}
 .add-turn:hover{border-color:var(--gold); color:var(--gold)}
-.notes-row{margin-top:12px}
+.notes-row{margin:12px 0}
 .notes-row textarea{width:100%; min-height:54px; background:var(--panel2); border:1px solid var(--line);
   border-radius:10px; padding:10px; color:var(--text); font-family:inherit; font-size:16px; resize:vertical}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
@@ -199,8 +199,8 @@ button{cursor:pointer}
       <button class="btn" id="autoFill" title="Fill all turns with characters 1–4 in order">Auto Fill</button>
       <button class="btn" id="clearActions" title="Remove all actions from every turn">Clear</button>
     </div>
-    <div class="turns" id="turns"></div>
     <div class="notes-row"><textarea id="notes" placeholder="Notes…"></textarea></div>
+    <div class="turns" id="turns"></div>
   </div>
   <div class="foot">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener">Discord</a><br>Autosave is on (stored locally in your browser) · Export JSON to save your work as a file.</div>
 </div>
@@ -719,26 +719,32 @@ function buildExportView(withImages, portraits, pImgs){
   };
   const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'th'), tc(u.name))).join('')+card(state.elucidator,'ELUCIDATOR','#5b9bd5');
   const persona=state.personas.filter(p=>(p.name||'').trim());
-  let personaLine='';
-  if(persona.length){
-    if(withImages){
-      personaLine=`<div style="margin-top:14px;">
-        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm];
-          return `<div style="display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
-            ${img?`<img src="${img}" style="height:104px;width:auto;border-radius:5px;display:block;"/>`:''}
-            <div><div style="font:700 15px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
-            ${sk.length?`<div style="font:500 11px Inter,sans-serif;color:#9fc5e8;margin-top:4px;line-height:1.5;">${sk.map(esc).join('<br>')}</div>`:''}</div>
-          </div>`; }).join('')}
-        </div></div>`;
-    } else {
+  const tnText=(state.teamNotes||'').trim();
+  let personaLine='', tnLine='';
+  if(withImages){
+    const personaCards=persona.map(p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm];
+      return `<div style="width:174px;box-sizing:border-box;display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
+        ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
+        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
+        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:#9fc5e8;margin-top:3px;line-height:1.5;">${sk.map(esc).join('<br>')}</div>`:''}</div>
+      </div>`; }).join('');
+    const personaBlock=persona.length?`<div style="flex:0 0 auto;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
+    const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+      <div style="font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+    if(persona.length||tnText){
+      personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBox}</div>`;
+    }
+  } else {
+    if(persona.length){
       personaLine=`<div style="margin-top:12px;font:500 13px Inter,sans-serif;">
         <span style="color:#9d97b3;font-weight:700;letter-spacing:.08em;">PERSONAS&nbsp;&nbsp;</span>
         ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}`; }).join('<span style="color:#5a5470;">&nbsp;&nbsp;·&nbsp;&nbsp;</span>')}</div>`;
     }
+    tnLine=tnText?`<div style="margin-top:6px;font:500 13px Inter,sans-serif;color:#9d97b3;">Team Notes: <span style="color:#cfe2f3;">${esc(state.teamNotes)}</span></div>`:'';
   }
-  const tnLine=(state.teamNotes||'').trim()?`<div style="margin-top:6px;font:500 13px Inter,sans-serif;color:#9d97b3;">Team Notes: <span style="color:#cfe2f3;">${esc(state.teamNotes)}</span></div>`:'';
   const dodX=s.type==='DOD', nT=state.turns.length;
   const turnsHtml=state.turns.map((t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
     <div style="font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;border-bottom:1px solid #3a3550;padding-bottom:5px;margin-bottom:6px;">${esc((t.name||'').toUpperCase())}</div>
@@ -747,7 +753,9 @@ function buildExportView(withImages, portraits, pImgs){
       <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
       <span style="font:500 11px Inter,sans-serif;color:#f3f1f7;flex:1;">${esc(actionLabel(a, a.char))}</span></div>`).join('')}
   </div>`; }).join('');
-  const notesLine=(s.notes||'').trim()?`<div style="margin-top:12px;font:500 13px Inter,sans-serif;color:#9d97b3;">Notes: <span style="color:#cfe2f3;">${esc(s.notes)}</span></div>`:'';
+  const notesLine=(s.notes||'').trim()?`<div style="margin-top:16px;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;">
+    <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">ROTATION NOTES</div>
+    <div style="font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(s.notes)}</div></div>`:'';
   const v=document.createElement('div'); v.id='exportView';
   v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
   v.innerHTML=`
