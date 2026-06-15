@@ -811,23 +811,28 @@ function detachCrossOriginSheets(){
   return moved;
 }
 function reattachSheets(moved){ moved.forEach(m=>{ try{ m.parent.insertBefore(m.n, m.next); }catch(e){ try{ m.parent.appendChild(m.n); }catch(_){} } }); }
-function isIOSDevice(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); }
-function deliverImage(dataURL){
-  const fname=exportBaseName()+'.png';
-  if(isIOSDevice()){ showImageOverlay(dataURL, fname); return; }
-  const a=document.createElement('a'); a.href=dataURL; a.download=fname;
-  document.body.appendChild(a); a.click(); a.remove();
+function needsManualSave(){
+  const ua=navigator.userAgent||'';
+  const ios=/iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const safari=/safari/i.test(ua) && !/chrome|chromium|crios|android|edg|fxios|opr/i.test(ua);
+  return ios||safari;   /* Safari (and iOS) silently block programmatic downloads outside a user gesture */
 }
-function showImageOverlay(dataURL, fname){
+function deliverImage(url, fname){
+  if(needsManualSave()){ showImageOverlay(url, fname); return; }
+  const a=document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 5000);
+}
+function showImageOverlay(url, fname){
   const o=document.createElement('div');
   o.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(10,8,16,.93);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:auto;padding:16px;box-sizing:border-box;';
   o.innerHTML=`<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;justify-content:center;">
-      <a href="${dataURL}" download="${esc(fname)}" style="background:#e0445e;color:#fff;font:700 14px Inter,sans-serif;text-decoration:none;padding:8px 16px;border-radius:8px;">Download PNG</a>
+      <a href="${url}" download="${esc(fname)}" style="background:#e0445e;color:#fff;font:700 14px Inter,sans-serif;text-decoration:none;padding:8px 16px;border-radius:8px;">Download PNG</a>
       <button type="button" data-close style="background:#3a3550;color:#f3f1f7;font:700 14px Inter,sans-serif;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">Close</button>
-      <span style="color:#cfe2f3;font:500 12px Inter,sans-serif;">iPhone/iPad: Bild gedrückt halten zum Speichern.</span>
+      <span style="color:#cfe2f3;font:500 12px Inter,sans-serif;">Click "Download PNG", or press and hold the image (iPhone/iPad), to save.</span>
     </div>
-    <img src="${dataURL}" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);"/>`;
-  const close=()=>o.remove();
+    <img src="${url}" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);"/>`;
+  const close=()=>{ o.remove(); setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 1000); };
   o.querySelector('[data-close]').onclick=close;
   o.addEventListener('click',e=>{ if(e.target===o) close(); });
   document.body.appendChild(o);
@@ -837,10 +842,14 @@ function renderExport(withImages, portraits, pImgs){
   const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:10000};
   let done=false;
   const cleanup=()=>{ if(v&&v.parentNode) v.remove(); };
-  const finish=canvas=>{ if(done) return; done=true; clearTimeout(guard); cleanup();
-    let dataURL; try{ dataURL=canvas.toDataURL('image/png'); }catch(e){ alert('Image export failed: '+(e&&e.message||e)); return; }
-    deliverImage(dataURL); };
   const fail=err=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); alert('Image export failed: '+((err&&err.message)||err)); };
+  const finish=canvas=>{ if(done) return; done=true; clearTimeout(guard); cleanup();
+    const fname=exportBaseName()+'.png';
+    try{
+      if(canvas.toBlob){ canvas.toBlob(b=>{ if(!b){ alert('Image export failed.'); return; } deliverImage(URL.createObjectURL(b), fname); },'image/png'); }
+      else { deliverImage(canvas.toDataURL('image/png'), fname); }
+    }catch(e){ alert('Image export failed: '+((e&&e.message)||e)); }
+  };
   /* hard timeout so the button can never just silently do nothing */
   const guard=setTimeout(()=>fail(new Error('rendering timed out')), 20000);
   /* wait for web fonts (raced with a timeout so it can never hang) before capturing */
