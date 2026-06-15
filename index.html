@@ -693,8 +693,8 @@ function exportCSV(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.csv'; a.click();
 }
 
-function buildExportView(withImages, portraits){
-  portraits=portraits||{};
+function buildExportView(withImages, portraits, pImgs){
+  portraits=portraits||{}; pImgs=pImgs||{};
   const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
   const ord=['1st','2nd','3rd','4th'];
   const cols=Math.min(6, Math.max(1, state.turns.length));
@@ -719,9 +719,25 @@ function buildExportView(withImages, portraits){
   };
   const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'th'), tc(u.name))).join('')+card(state.elucidator,'ELUCIDATOR','#5b9bd5');
   const persona=state.personas.filter(p=>(p.name||'').trim());
-  const personaLine=persona.length?`<div style="margin-top:12px;font:500 13px Inter,sans-serif;">
-    <span style="color:#9d97b3;font-weight:700;letter-spacing:.08em;">PERSONAS&nbsp;&nbsp;</span>
-    ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}`; }).join('<span style="color:#5a5470;">&nbsp;&nbsp;·&nbsp;&nbsp;</span>')}</div>`:'';
+  let personaLine='';
+  if(persona.length){
+    if(withImages){
+      personaLine=`<div style="margin-top:14px;">
+        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm];
+          return `<div style="display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
+            ${img?`<img src="${img}" style="height:104px;width:auto;border-radius:5px;display:block;"/>`:''}
+            <div><div style="font:700 15px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
+            ${sk.length?`<div style="font:500 11px Inter,sans-serif;color:#9fc5e8;margin-top:4px;line-height:1.5;">${sk.map(esc).join('<br>')}</div>`:''}</div>
+          </div>`; }).join('')}
+        </div></div>`;
+    } else {
+      personaLine=`<div style="margin-top:12px;font:500 13px Inter,sans-serif;">
+        <span style="color:#9d97b3;font-weight:700;letter-spacing:.08em;">PERSONAS&nbsp;&nbsp;</span>
+        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}`; }).join('<span style="color:#5a5470;">&nbsp;&nbsp;·&nbsp;&nbsp;</span>')}</div>`;
+    }
+  }
   const tnLine=(state.teamNotes||'').trim()?`<div style="margin-top:6px;font:500 13px Inter,sans-serif;color:#9d97b3;">Team Notes: <span style="color:#cfe2f3;">${esc(state.teamNotes)}</span></div>`:'';
   const dodX=s.type==='DOD', nT=state.turns.length;
   const turnsHtml=state.turns.map((t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
@@ -758,8 +774,14 @@ function portraitDataURL(img,size){
   x.drawImage(img,(size-dw)/2,(size-dh)/2,dw,dh);               /* center crop, matches the page */
   return c.toDataURL('image/png');
 }
-function renderExport(withImages, portraits){
-  const v=buildExportView(withImages, portraits);
+function fullDataURL(img){
+  const c=document.createElement('canvas'); c.width=img.naturalWidth||img.width; c.height=img.naturalHeight||img.height;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
+  x.drawImage(img,0,0);
+  return c.toDataURL('image/png');
+}
+function renderExport(withImages, portraits, pImgs){
+  const v=buildExportView(withImages, portraits, pImgs);
   html2canvas(v,{backgroundColor:'#14121c',scale:2,logging:false,useCORS:true}).then(canvas=>{
     v.remove();
     canvas.toBlob(blob=>{ if(!blob){ alert('Image export failed.'); return; } const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.png'; a.click(); },'image/png');
@@ -767,13 +789,17 @@ function renderExport(withImages, portraits){
 }
 function exportImage(withImages){
   if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
-  if(!withImages){ renderExport(false, {}); return; }
-  const portraits={}, seen={}, tasks=[];
+  if(!withImages){ renderExport(false, {}, {}); return; }
+  const portraits={}, pImgs={}, seen={}, tasks=[];
   [...state.units, state.elucidator].forEach(u=>{
-    const src=imgFor(u.name); if(!src || seen[u.name]) return; seen[u.name]=1;
+    const src=imgFor(u.name); if(!src || seen['c:'+u.name]) return; seen['c:'+u.name]=1;
     tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
   });
-  Promise.all(tasks).then(()=>renderExport(true, portraits)).catch(()=>{
+  state.personas.forEach(p=>{
+    const nm=(p.name||'').trim(); if(!nm || seen['p:'+nm]) return; seen['p:'+nm]=1;
+    tasks.push(loadImg(personaImg(nm)).then(img=>{ pImgs[nm]=fullDataURL(img); }).catch(()=>{}));
+  });
+  Promise.all(tasks).then(()=>renderExport(true, portraits, pImgs)).catch(()=>{
     alert('Portrait export failed. This usually happens when the page is opened directly from a file (file://). Host it (e.g. GitHub Pages) so the character images can be embedded, or use "Export Image" without portraits.');
   });
 }
