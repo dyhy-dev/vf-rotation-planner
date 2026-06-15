@@ -772,6 +772,7 @@ function buildExportView(withImages, portraits, pImgs){
   const v=document.createElement('div'); v.id='exportView';
   v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
   v.innerHTML=`
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" alt=""/>
     <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
     <div style="font:700 30px Oswald,sans-serif;color:#f3f1f7;letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:#cfe2f3;">
@@ -839,19 +840,21 @@ function showImageOverlay(url, fname){
 }
 function renderExport(withImages, portraits, pImgs){
   const v=buildExportView(withImages, portraits, pImgs);
-  const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:10000};
+  const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:8000};
   let done=false;
   const cleanup=()=>{ if(v&&v.parentNode) v.remove(); };
   const fail=err=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); alert('Image export failed: '+((err&&err.message)||err)); };
-  const finish=canvas=>{ if(done) return; done=true; clearTimeout(guard); cleanup();
+  const finish=canvas=>{
+    if(done) return;
     const fname=exportBaseName()+'.png';
+    const out=url=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); deliverImage(url, fname); };
     try{
-      if(canvas.toBlob){ canvas.toBlob(b=>{ if(!b){ alert('Image export failed.'); return; } deliverImage(URL.createObjectURL(b), fname); },'image/png'); }
-      else { deliverImage(canvas.toDataURL('image/png'), fname); }
-    }catch(e){ alert('Image export failed: '+((e&&e.message)||e)); }
+      if(canvas.toBlob){ canvas.toBlob(b=>{ if(!b){ fail(new Error('empty image')); return; } out(URL.createObjectURL(b)); },'image/png'); }
+      else { out(canvas.toDataURL('image/png')); }
+    }catch(e){ fail(e); }
   };
-  /* hard timeout so the button can never just silently do nothing */
-  const guard=setTimeout(()=>fail(new Error('rendering timed out')), 20000);
+  /* hard 3s timeout so the button can never just silently do nothing */
+  const guard=setTimeout(()=>fail(new Error('rendering timed out')), 3000);
   /* wait for web fonts (raced with a timeout so it can never hang) before capturing */
   const fontsReady=(document.fonts&&document.fonts.ready)?Promise.resolve(document.fonts.ready).catch(()=>{}):Promise.resolve();
   const ready=Promise.race([fontsReady, new Promise(r=>setTimeout(r,2000))]);
