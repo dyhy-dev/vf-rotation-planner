@@ -188,6 +188,7 @@ button{cursor:pointer}
     <button class="btn" id="exportImgBtn">Export Image</button>
     <button class="btn" id="exportImgArtBtn">Export Image+Art</button>
     <button class="btn" id="exportCsvBtn">Export Sheet</button>
+    <button class="btn" id="refreshBtn" title="Reload the newest version of the page (bypasses cache)">Refresh</button>
     <button class="btn" id="resetBtn">Reset</button>
     <input type="file" id="importFile" accept="application/json" hidden/>
   </div>
@@ -213,6 +214,7 @@ const KNOWN_COLORS = {WONDER:'#c2002e'};
 const TWINS_ROLES = ['Sweeper','Assassin','Strategist','Saboteur','Medic','Guardian'];
 const ACT_SPECIAL = ['MAKOTO','YUKARI','AKIHIKO','MITSURU','JUNPEI','KOROMARU','AIGIS','FUUKA']; // the "SEES" characters (THEURGY/ASSIST); FUUKA is SEES but Elucidator rules take priority
 const ACT_CODES = ['S1','S2','S3','HL','Atk','Gn','Gd','Ast'];
+const ACT_LABEL_TO_CODE = {theurgy:'HL', highlight:'HL', attack:'Atk', gun:'Gn', guard:'Gd', assist:'Ast'};
 function actButtons(name){
   const u=(name||'').toUpperCase();
   if((DATA.elucidatorNames||[]).includes(u)) return ['S1','S2','S3'];
@@ -227,6 +229,11 @@ function actionLabel(a, name){
 }
 function normalizeActions(turns){
   (turns||[]).forEach(t=>{ (t.actions||[]).forEach(a=>{
+    const txt=(a.action||'').trim();
+    if(txt && (a.char||'').toUpperCase()!=='WONDER'){
+      const code=ACT_LABEL_TO_CODE[txt.toLowerCase()];
+      if(code && actButtons(a.char).includes(code)){ a.action=code; a.custom=false; }
+    }
     if(a.custom===undefined) a.custom = !!(a.action||'').trim() && !ACT_CODES.includes((a.action||'').trim());
   }); });
 }
@@ -501,7 +508,7 @@ function actRow(a, ti, ai){
   if(isWonder){
     midBody=`<input data-taction="${ti}.${ai}" value="${esc(a.action)}" placeholder="Action…"/>`;
   } else {
-    const btns=actButtons(a.char).map(c=>`<button type="button" class="actbtn ${(!a.custom && a.action===c)?'on':''}" data-actset="${ti}.${ai}" data-code="${esc(c)}">${esc(c)}</button>`).join('')
+    const btns=actButtons(a.char).map(c=>`<button type="button" class="actbtn ${(!a.custom && a.action===c)?'on':''}" data-actset="${ti}.${ai}" data-code="${esc(c)}">${esc(c==='Gn'?'Gun':c)}</button>`).join('')
       + `<button type="button" class="actbtn pen ${a.custom?'on':''}" data-actpen="${ti}.${ai}" title="Custom text">\u270e</button>`;
     midBody=`<div class="act-actions">${btns}</div>`+(a.custom?`<input data-taction="${ti}.${ai}" value="${esc(a.action)}" placeholder="Action…"/>`:'');
   }
@@ -637,6 +644,7 @@ document.getElementById('importFile').onchange=e=>{
   const r=new FileReader(); r.onload=()=>{ try{ state=migrate(JSON.parse(r.result)); save(); renderAll(); }catch(err){ alert('Invalid JSON file.'); } }; r.readAsText(f);
 };
 document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
+document.getElementById('refreshBtn').onclick=()=>{ location.replace(location.pathname + '?v=' + Date.now()); };
 document.getElementById('autoFill').onclick=()=>{
   const chars=state.units.filter(u=>(u.name||'').trim()).map(u=>u.name);
   if(!chars.length){ alert('No characters in team slots 1–4 yet.'); return; }
@@ -731,19 +739,24 @@ function buildExportView(withImages, portraits, pImgs){
     const personaBlock=persona.length?`<div style="flex:0 0 auto;">
       <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
-    const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;">
+    const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
       <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
-      <div style="font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
     if(persona.length||tnText){
       personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBox}</div>`;
     }
   } else {
-    if(persona.length){
-      personaLine=`<div style="margin-top:12px;font:500 13px Inter,sans-serif;">
-        <span style="color:#9d97b3;font-weight:700;letter-spacing:.08em;">PERSONAS&nbsp;&nbsp;</span>
-        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}`; }).join('<span style="color:#5a5470;">&nbsp;&nbsp;·&nbsp;&nbsp;</span>')}</div>`;
+    const personaBlock=persona.length?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;line-height:1.6;">
+        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}</div>`; }).join('')}
+      </div></div>`:'';
+    const notesBlock=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+    if(persona.length||tnText){
+      personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBlock}</div>`;
     }
-    tnLine=tnText?`<div style="margin-top:6px;font:500 13px Inter,sans-serif;color:#9d97b3;">Team Notes: <span style="color:#cfe2f3;">${esc(state.teamNotes)}</span></div>`:'';
   }
   const dodX=s.type==='DOD', nT=state.turns.length;
   const turnsHtml=state.turns.map((t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
@@ -759,6 +772,7 @@ function buildExportView(withImages, portraits, pImgs){
   const v=document.createElement('div'); v.id='exportView';
   v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
   v.innerHTML=`
+    <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
     <div style="font:700 30px Oswald,sans-serif;color:#f3f1f7;letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:#cfe2f3;">
       <span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type||'')}</span>
@@ -769,8 +783,8 @@ function buildExportView(withImages, portraits, pImgs){
     </div>
     <div style="display:flex;gap:${GAP}px;flex-wrap:wrap;margin-top:14px;">${teamCards}</div>
     ${personaLine}${tnLine}
-    <div style="display:flex;flex-wrap:wrap;gap:${GAP}px;margin-top:16px;align-items:flex-start;width:${turnsW}px;">${turnsHtml}</div>
-    ${notesLine}`;
+    ${notesLine}
+    <div style="display:flex;flex-wrap:wrap;gap:${GAP}px;margin-top:16px;align-items:flex-start;width:${turnsW}px;">${turnsHtml}</div>`;
   document.body.appendChild(v); return v;
 }
 function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('image load failed: '+src)); im.src=src; }); }
