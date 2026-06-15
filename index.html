@@ -42,6 +42,11 @@ button{cursor:pointer}
 .btn:hover{border-color:var(--blue-strong); background:#2d283d}
 .btn.primary{background:var(--blue-strong); border-color:var(--blue-strong); color:#0b1626}
 .btn.primary:hover{background:var(--blue)}
+.dropdown{position:relative; display:inline-block}
+.dropdown-menu{position:absolute; top:calc(100% + 4px); left:0; min-width:130px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:80; box-shadow:0 10px 28px rgba(0,0,0,.45)}
+.dropdown-menu[hidden]{display:none}
+.dropdown-item{display:block; width:100%; text-align:left; background:transparent; border:none; color:var(--text); padding:8px 10px; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer}
+.dropdown-item:hover{background:var(--line)}
 .brand{font-family:"Oswald"; font-weight:700; font-size:18px; letter-spacing:.12em;
   text-transform:uppercase; color:#e0445e}
 .brand small{display:block; font-family:"Inter"; font-weight:500; font-size:10px;
@@ -194,6 +199,13 @@ button{cursor:pointer}
   <div class="toolbar">
     <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
     <div class="toolbar-actions">
+      <div class="dropdown" id="loadExWrap">
+        <button class="btn" id="loadExBtn" aria-haspopup="true" aria-expanded="false">Load Examples ▾</button>
+        <div class="dropdown-menu" id="loadExMenu" hidden>
+          <button class="dropdown-item" data-example="MLD">MLD</button>
+          <button class="dropdown-item" data-example="DOD">DOD</button>
+        </div>
+      </div>
       <button class="btn" id="importBtn">Import JSON</button>
       <button class="btn" id="exportBtn">Export JSON</button>
       <button class="btn" id="exportImgBtn">Export Image</button>
@@ -427,7 +439,7 @@ function unitCard(u, path, elu, idx){
       <select class="name" data-uname="${path}">${opt(nameOpts,u.name)}</select>
       <div class="rev-row">
         <div><div class="rev-lab">Awareness</div><select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select></div>
-        <div><div class="rev-lab">Weapon</div><select data-path="${path}.rev">${opt(revFull,u.rev)}</select></div>
+        <div><div class="rev-lab">Reforge</div><select data-path="${path}.rev">${opt(revFull,u.rev)}</select></div>
       </div>
       ${revBlock}${extraBlock}
     </div></div>`;
@@ -645,6 +657,19 @@ function renderNotes(){
 function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); }
 
 /* ---------- toolbar ---------- */
+const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":"","boss":"SLAUGHTER DRIVE","type":"MLD","patch":"4.3","score":"2.4B","notes":"","credits":"Kimmy"},"units":[{"name":"YUKARI","awareness":"A6","rev":"R6","gear":"","space":"Creation","sunsky":"Reconciliation","role":"","companion":""},{"name":"TWINS","awareness":"A6","rev":"R6","gear":"","space":"Departure","sunsky":"Control","role":"Strategist","companion":""},{"name":"WONDER","awareness":"DGR","rev":"R6","gear":"Cyclotron","space":"","sunsky":"","role":"","companion":""},{"name":"AKIHIKO","awareness":"A6","rev":"R6","gear":"","space":"Perseverance","sunsky":"Change","role":"","companion":""}],"elucidator":{"name":"ANGE","awareness":"A6","rev":"R6","gear":"","space":"Hope","sunsky":"Labor","role":"","companion":""},"personas":[{"name":"Dionysus","skills":["Matarukaja","Tarukaja",""]},{"name":"Thor","skills":["Wild Thunder","",""]},{"name":"Kohryu","skills":["","",""]}],"teamNotes":"15.7 Pierce, 25.3 CR min (More can be better)","turns":[{"name":"TURN 1","actions":[{"char":"ANGE","action":"S3","custom":false},{"char":"YUKARI","action":"HL","custom":false},{"char":"YUKARI","action":"S2","custom":false},{"char":"TWINS","action":"Atk","custom":false},{"char":"WONDER","action":"Thor Wild Thunder","custom":true},{"char":"AKIHIKO","action":"S2","custom":false}]},{"name":"TURN 2","actions":[{"char":"ANGE","action":"S1","custom":false},{"char":"TWINS","action":"Psy/Nuke HL","custom":true},{"char":"YUKARI","action":"HL","custom":false},{"char":"YUKARI","action":"S3","custom":false},{"char":"TWINS","action":"S2","custom":false},{"char":"AKIHIKO","action":"Theurgy w/ Thor","custom":true},{"char":"WONDER","action":"Dion Mataru","custom":true},{"char":"AKIHIKO","action":"S1","custom":false}]},{"name":"TURN 3","actions":[{"char":"ANGE","action":"S3","custom":false},{"char":"YUKARI","action":"S2","custom":false},{"char":"TWINS","action":"S1","custom":false},{"char":"WONDER","action":"Dion HL","custom":true},{"char":"WONDER","action":"Thor Sig","custom":true},{"char":"AKIHIKO","action":"Punch x2","custom":true},{"char":"AKIHIKO","action":"S3","custom":false}]},{"name":"TURN 4","actions":[{"char":"ANGE","action":"S1","custom":false},{"char":"YUKARI","action":"HL","custom":false},{"char":"YUKARI","action":"S3","custom":false},{"char":"TWINS","action":"S2","custom":false},{"char":"AKIHIKO","action":"HL","custom":false},{"char":"WONDER","action":"Dion Taru","custom":true},{"char":"AKIHIKO","action":"S1","custom":false}]},{"name":"TURN 5","actions":[{"char":"ANGE","action":"S3","custom":false},{"char":"TWINS","action":"Fire/Ice HL","custom":true},{"char":"YUKARI","action":"Assist Twins","custom":true},{"char":"YUKARI","action":"S2","custom":false},{"char":"TWINS","action":"Button S1","custom":true},{"char":"WONDER","action":"Dion Mataru","custom":true},{"char":"AKIHIKO","action":"S1","custom":false}]},{"name":"TURN 6","actions":[{"char":"ANGE","action":"S1","custom":false},{"char":"ANGE","action":"Da Capo x2","custom":true},{"char":"YUKARI","action":"HL","custom":false},{"char":"AKIHIKO","action":"Assist Twins","custom":true},{"char":"YUKARI","action":"S3","custom":false},{"char":"TWINS","action":"S2","custom":false},{"char":"TWINS","action":"Psy/Nuke HL","custom":true},{"char":"AKIHIKO","action":"Theurgy w/ Thor","custom":true},{"char":"WONDER","action":"Thor Sig","custom":true},{"char":"AKIHIKO","action":"Punch","custom":true},{"char":"AKIHIKO","action":"S3 x2","custom":true},{"char":"AKIHIKO","action":"HL","custom":false},{"char":"AKIHIKO","action":"S3","custom":false}]}]},"DOD":{"setup":{"rotationName":"Haru Whale","tier":"","boss":"KARTIKEYA","type":"DOD","patch":"4.1","score":"600 Mil","notes":"Attack adds","credits":"Yanagi + Segejin"},"units":[{"name":"MATOI","awareness":"A6","rev":"R6","gear":"","space":"Faith","sunsky":"Futility","role":"","companion":""},{"name":"WONDER","awareness":"DGR","rev":"R5","gear":"Starry Compass","space":"","sunsky":"","role":"","companion":""},{"name":"NOIR","awareness":"A6","rev":"R6","gear":"","space":"Wisdom","sunsky":"Pleasure","role":"","companion":""},{"name":"CROW","awareness":"A6","rev":"R6","gear":"","space":"Freedom","sunsky":"Disappointment","role":"","companion":""}],"elucidator":{"name":"ORACLE","awareness":"A6","rev":"R6","gear":"","space":"Trust","sunsky":"Power","role":"","companion":""},"personas":[{"name":"Koumokuten","skills":["","",""]},{"name":"Yurlungur","skills":["Wild Thunder","Tarukaja",""]},{"name":"Kohryu","skills":["Agi","",""]}],"teamNotes":"Adjust Pierce & Crit","turns":[{"name":"TURN 1","actions":[{"char":"MATOI","action":"Gd","custom":false},{"char":"WONDER","action":"Agi","custom":true},{"char":"NOIR","action":"Atk","custom":false},{"char":"CROW","action":"Gun 1-4 times","custom":true}]},{"name":"TURN 2","actions":[{"char":"ORACLE","action":"S2 outta bird","custom":true},{"char":"MATOI","action":"S3","custom":false},{"char":"WONDER","action":"Revolution","custom":true},{"char":"NOIR","action":"Gd","custom":false},{"char":"CROW","action":"S1","custom":false}]},{"name":"Break 1","actions":[{"char":"MATOI","action":"HL","custom":false},{"char":"ORACLE","action":"S1","custom":false},{"char":"MATOI","action":"S3","custom":false},{"char":"WONDER","action":"Wild Thunder","custom":true},{"char":"NOIR","action":"S3","custom":false},{"char":"CROW","action":"S2","custom":false}]},{"name":"Break 2","actions":[{"char":"ORACLE","action":"S3","custom":false},{"char":"MATOI","action":"S3","custom":false},{"char":"WONDER","action":"Taru","custom":true},{"char":"NOIR","action":"HL","custom":false},{"char":"NOIR","action":"Gn","custom":false},{"char":"CROW","action":"S3","custom":false}]}]}};
+(function(){
+  const wrap=document.getElementById('loadExWrap'), btn=document.getElementById('loadExBtn'), menu=document.getElementById('loadExMenu');
+  if(!wrap||!btn||!menu) return;
+  const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
+  btn.onclick=(e)=>{ e.stopPropagation(); const open=menu.hidden; menu.hidden=!open; btn.setAttribute('aria-expanded',String(open)); };
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) close(); });
+  menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const key=it.dataset.example, ex=EXAMPLES[key]; close(); if(!ex) return;
+    if(confirm('Load the '+key+' example? This replaces your current rotation.\n\nUse "Export JSON" first if you want to keep your work.')){
+      try{ state=migrate(JSON.parse(JSON.stringify(ex))); save(); renderAll(); }catch(err){ alert('Could not load example.'); }
+    }
+  }; });
+})();
 document.getElementById('exportBtn').onclick=()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
@@ -989,6 +1014,6 @@ document.getElementById('exportImgArtBtn').onclick=()=>exportImage(true);
 
 state=load(); renderAll();
 </script>
-<div class="version-tag">260615M</div>
+<div class="version-tag">260615O</div>
 </body>
 </html>
