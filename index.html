@@ -761,7 +761,7 @@ function buildExportView(withImages, portraits, pImgs){
   const dodX=s.type==='DOD', nT=state.turns.length;
   const turnsHtml=state.turns.map((t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${COLW}px;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;box-sizing:border-box;">
     <div style="font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;border-bottom:1px solid #3a3550;padding-bottom:5px;margin-bottom:6px;">${esc((t.name||'').toUpperCase())}</div>
-    ${t.actions.map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${tc(a.char)};margin-bottom:3px;background:#23202f;border-radius:4px;">
+    ${(t.actions||[]).map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${tc(a.char)};margin-bottom:3px;background:#23202f;border-radius:4px;">
       <span style="font:700 11px Oswald,sans-serif;color:#9d97b3;min-width:12px;">${i+1}</span>
       <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
       <span style="font:500 11px Inter,sans-serif;color:#f3f1f7;flex:1;">${esc(actionLabel(a, a.char))}</span></div>`).join('')}
@@ -802,12 +802,27 @@ function fullDataURL(img){
   x.drawImage(img,0,0);
   return c.toDataURL('image/png');
 }
+function detachCrossOriginSheets(){
+  const moved=[];
+  Array.from(document.styleSheets).forEach(s=>{
+    try{ void s.cssRules; }                                   /* same-origin: ok */
+    catch(e){ const n=s.ownerNode; if(n&&n.parentNode){ moved.push({n,parent:n.parentNode,next:n.nextSibling}); n.parentNode.removeChild(n); } }
+  });
+  return moved;
+}
+function reattachSheets(moved){ moved.forEach(m=>{ try{ m.parent.insertBefore(m.n, m.next); }catch(e){ try{ m.parent.appendChild(m.n); }catch(_){} } }); }
 function renderExport(withImages, portraits, pImgs){
   const v=buildExportView(withImages, portraits, pImgs);
-  html2canvas(v,{backgroundColor:'#14121c',scale:2,logging:false,useCORS:true}).then(canvas=>{
-    v.remove();
-    canvas.toBlob(blob=>{ if(!blob){ alert('Image export failed.'); return; } const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.png'; a.click(); },'image/png');
-  }).catch(err=>{ if(v) v.remove(); alert('Image export failed: '+((err&&err.message)||err)); });
+  const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true};
+  const finish=canvas=>{ if(v&&v.parentNode) v.remove(); canvas.toBlob(blob=>{ if(!blob){ alert('Image export failed.'); return; } const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.png'; a.click(); },'image/png'); };
+  const fail=err=>{ if(v&&v.parentNode) v.remove(); alert('Image export failed: '+((err&&err.message)||err)); };
+  /* wait for web fonts so the capture isn't taken before Oswald/Inter are ready (matters on first load when hosted) */
+  const ready=(document.fonts&&document.fonts.ready)?Promise.resolve(document.fonts.ready).catch(()=>{}):Promise.resolve();
+  ready.then(()=>html2canvas(v,opts)).then(finish).catch(()=>{
+    /* retry once with cross-origin stylesheets detached (html2canvas can choke on their cssRules when hosted) */
+    const moved=detachCrossOriginSheets();
+    html2canvas(v,opts).then(c=>{ reattachSheets(moved); finish(c); }).catch(err=>{ reattachSheets(moved); fail(err); });
+  });
 }
 function exportImage(withImages){
   if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
