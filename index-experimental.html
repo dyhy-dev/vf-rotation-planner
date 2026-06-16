@@ -105,10 +105,21 @@ button{cursor:pointer}
 .twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:#15131d; border:1px solid var(--line); border-radius:5px; padding:2px 6px}
 .twins-dual .td-lab{font:700 11px "Oswald",sans-serif; color:var(--blue-soft)}
 .twins-dual img{height:18px; width:auto; display:block; margin-left:auto}
-body.view-mode > *:not(#viewRoot){ display:none !important; }
-#viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:16px; overflow-x:auto; }
-#viewRoot > #exportView{ position:static !important; left:auto !important; top:auto !important; margin:0 auto !important; }
+body.view-mode > *:not(#viewRoot):not(#exportView){ display:none !important; }
+#viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:56px 12px 12px; overflow-x:auto; }
+#viewStage{ margin:0 auto; position:relative; }
+#viewStage > #exportView{ position:static !important; left:auto !important; top:auto !important; transform-origin:top left; }
+#viewBar{ position:fixed; top:10px; right:10px; z-index:50; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; max-width:calc(100% - 20px); }
+#viewBar button, #viewBar a{ background:#2a2740; color:#e8e6f0; border:1px solid #3a3550; border-radius:8px; padding:8px 12px; font:700 12px "Oswald",sans-serif; letter-spacing:.05em; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 10px #0006; white-space:nowrap; }
+#viewBar button:hover, #viewBar a:hover{ filter:brightness(1.15); }
+#viewBar button:active, #viewBar a:active{ transform:translateY(1px); }
+#viewDiscord{ background:#5865F2; border-color:#5865F2; color:#fff; }
+#viewDownload{ background:#e0445e; border-color:#e0445e; color:#fff; }
+#viewFooter{ text-align:center; color:#9d97b3; font:500 13px Inter,sans-serif; padding:20px 12px 8px; line-height:1.5; }
+#viewFooter a{ color:#e0445e; text-decoration:none; font-weight:700; }
+#viewFooter a:hover{ text-decoration:underline; }
 .view-loading{ color:#9d97b3; font:600 14px Inter,sans-serif; padding:40px; text-align:center; }
+@media (max-width:560px){ #viewRoot{ padding:52px 6px 8px; } #viewBar{ top:8px; right:8px; gap:6px; } #viewBar button, #viewBar a{ padding:7px 10px; font-size:11px; } #viewFooter{ font-size:12px; } }
 .unit .gear{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; color:var(--blue-soft)}
 .unit .unit-note{width:100%; margin-top:6px; box-sizing:border-box; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:11px; color:var(--text); font-family:inherit; resize:vertical; min-height:34px; line-height:1.35}
 .unit .unit-note:focus{outline:none; border-color:var(--blue-strong)}
@@ -344,7 +355,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             <li><b>PNG (no Images)</b> — the same layout as text only.</li>
             <li><b>PNG (Rotation only)</b> — just the turns, without the team section.</li>
             <li><b>Share Link</b> — a link that loads the whole rotation into the editor when opened.</li>
-            <li><b>Share View Link</b> — a link that opens a read-only view which looks like the image export (no editing controls), ideal for sharing a finished rotation.</li>
+            <li><b>Share View Link</b> — a link that opens a read-only view which looks like the image export (no editing controls, mobile-friendly, with a PNG download button), ideal for sharing a finished rotation.</li>
             <li><b>Copy Code</b> — a short text code that holds the whole rotation.</li>
           </ul>
         </li>
@@ -401,6 +412,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="io-hint" id="ioHint"></div>
       <div class="io-actions">
         <button class="btn primary" id="ioPrimary">Copy</button>
+        <button class="btn" id="ioOpen" hidden>Open</button>
         <button class="btn" id="ioCloseBtn">Close</button>
       </div>
     </div>
@@ -1129,6 +1141,8 @@ function openShareModal(opts){
   const t=document.getElementById('ioText'); t.value=opts.text||''; t.readOnly=!!opts.readonly; t.placeholder=opts.placeholder||'';
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioHint').textContent=opts.hint||'';
+  const openBtn=document.getElementById('ioOpen');
+  if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
   _ioPrimary=opts.onPrimary||null;
   modal.hidden=false;
   setTimeout(()=>{ try{ t.focus(); if(opts.readonly) t.select(); }catch(_){} },30);
@@ -1556,18 +1570,44 @@ function exportImage(withImages, rotationOnly){
 /* ---------- read-only shareable Webview (#v=<code>) ---------- */
 function shareViewURL(){ return location.origin+location.pathname+'#v='+encodeShare(); }
 function openShareViewLink(){ let url; try{ url=shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
-  openShareModal({title:'Share View Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, hint:'Opens a read-only view that looks like the image export.'}); }
+  openShareModal({title:'Share View Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:'Opens a read-only view that looks like the image export.'}); }
+function fitView(){
+  const v=document.getElementById('exportView'), stage=document.getElementById('viewStage');
+  if(!v||!stage) return;
+  const w=v.offsetWidth, h=v.offsetHeight;                /* untransformed layout size */
+  const avail=Math.max(280,(window.innerWidth||w)-24);
+  const f=Math.min(1, avail/w);
+  v.style.transform = f<1 ? 'scale('+f+')' : 'none';
+  stage.style.width=(w*f)+'px';
+  stage.style.height=(h*f)+'px';
+}
 function enterViewMode(){
-  try{ save=function(){}; }catch(e){}                 /* read-only: never write to the viewer's storage */
+  try{ save=function(){}; }catch(e){}                     /* read-only: never write to the viewer's storage */
+  document.title=(((state.setup&&state.setup.rotationName)||'').trim()||'Rotation')+' \u2013 VF Rotation';
   document.body.classList.add('view-mode');
   let root=document.getElementById('viewRoot');
   if(!root){ root=document.createElement('div'); root.id='viewRoot'; document.body.appendChild(root); }
-  root.innerHTML='<div class="view-loading">Loading view…</div>';
-  const place=(v)=>{ v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0 auto'; root.innerHTML=''; root.appendChild(v); };
+  root.innerHTML=`
+    <div id="viewBar">
+      <button id="viewEdit" title="Open this rotation in the editor">Open in editor</button>
+      <a id="viewDiscord" href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a>
+      <button id="viewDownload" title="Download PNG">\u2b07 PNG</button>
+    </div>
+    <div id="viewStage"><div class="view-loading">Loading view\u2026</div></div>
+    <div id="viewFooter">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div>`;
+  const stage=document.getElementById('viewStage');
+  document.getElementById('viewDownload').onclick=()=>{ try{ exportImage(true); }catch(e){} };
+  document.getElementById('viewEdit').onclick=()=>{ try{ location.hash='r='+encodeShare(); location.reload(); }catch(e){} };
+  const place=(v)=>{ v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0';
+    stage.innerHTML=''; stage.appendChild(v);
+    fitView(); requestAnimationFrame(fitView); setTimeout(fitView,200);
+    if(window.ResizeObserver){ try{ new ResizeObserver(fitView).observe(v); }catch(e){} }
+  };
   collectExportImages()
     .then(m=>place(buildExportView(true, m.portraits, m.pImgs, false, m.dImgs, m.deImgs)))
     .catch(()=>place(buildExportView(false, {}, {}, false, {}, {})));
 }
+window.addEventListener('resize', ()=>{ if(document.body.classList.contains('view-mode')) fitView(); });
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
@@ -1598,6 +1638,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616a</div>
+<div class="version-tag">260616c</div>
 </body>
 </html>
