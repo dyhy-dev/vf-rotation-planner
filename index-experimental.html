@@ -105,21 +105,22 @@ button{cursor:pointer}
 .twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:#15131d; border:1px solid var(--line); border-radius:5px; padding:2px 6px}
 .twins-dual .td-lab{font:700 11px "Oswald",sans-serif; color:var(--blue-soft)}
 .twins-dual img{height:18px; width:auto; display:block; margin-left:auto}
-body.view-mode > *:not(#viewRoot):not(#exportView){ display:none !important; }
-#viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:56px 12px 12px; overflow-x:auto; }
+body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal){ display:none !important; }
+#viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:16px 16px 12px; overflow-x:auto; }
+#viewHeader{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; max-width:1024px; margin:0 auto 16px; }
+#viewBrandWrap{ display:flex; align-items:center; gap:16px; }
+#viewActions{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+#viewActions .btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none; }
+#viewActions a.btn{ color:var(--text); }
+#viewActions a.btn:hover{ border-color:var(--blue-strong); background:#2d283d; }
+#viewDiscord svg{ width:16px; height:16px; display:block; }
 #viewStage{ margin:0 auto; position:relative; }
 #viewStage > #exportView{ position:static !important; left:auto !important; top:auto !important; transform-origin:top left; }
-#viewBar{ position:fixed; top:10px; right:10px; z-index:50; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; max-width:calc(100% - 20px); }
-#viewBar button, #viewBar a{ background:#2a2740; color:#e8e6f0; border:1px solid #3a3550; border-radius:8px; padding:8px 12px; font:700 12px "Oswald",sans-serif; letter-spacing:.05em; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 10px #0006; white-space:nowrap; }
-#viewBar button:hover, #viewBar a:hover{ filter:brightness(1.15); }
-#viewBar button:active, #viewBar a:active{ transform:translateY(1px); }
-#viewDiscord{ background:#5865F2; border-color:#5865F2; color:#fff; }
-#viewDownload{ background:#e0445e; border-color:#e0445e; color:#fff; }
 #viewFooter{ text-align:center; color:#9d97b3; font:500 13px Inter,sans-serif; padding:20px 12px 8px; line-height:1.5; }
 #viewFooter a{ color:#e0445e; text-decoration:none; font-weight:700; }
 #viewFooter a:hover{ text-decoration:underline; }
 .view-loading{ color:#9d97b3; font:600 14px Inter,sans-serif; padding:40px; text-align:center; }
-@media (max-width:560px){ #viewRoot{ padding:52px 6px 8px; } #viewBar{ top:8px; right:8px; gap:6px; } #viewBar button, #viewBar a{ padding:7px 10px; font-size:11px; } #viewFooter{ font-size:12px; } }
+@media (max-width:560px){ #viewRoot{ padding:12px 8px 8px; } #viewHeader{ margin-bottom:12px; gap:8px; } #viewBrandWrap{ gap:10px; } #viewFooter{ font-size:12px; } }
 .unit .gear{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; color:var(--blue-soft)}
 .unit .unit-note{width:100%; margin-top:6px; box-sizing:border-box; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:11px; color:var(--text); font-family:inherit; resize:vertical; min-height:34px; line-height:1.35}
 .unit .unit-note:focus{outline:none; border-color:var(--blue-strong)}
@@ -520,13 +521,23 @@ function charColor(name){
   let h=0; for(const c of u) h=(h*31+c.charCodeAt(0))%360;
   return `hsl(${h} 55% 70%)`;
 }
+/* Images load from the hosted site (absolute URL) so they also show + export when the file is opened locally (file://).
+   Relative paths are kept as an automatic fallback (see imgFallback/bgURL/loadImg), so images still work if this domain
+   ever changes or someone else self-hosts the page. Set IMG_BASE='' to force relative-only. */
+const IMG_BASE='https://dyhy-dev.github.io/vf-rotation-planner/';
+function imgURL(p){ return p ? IMG_BASE+p : p; }
+function imgRel(u){ return (IMG_BASE && u && u.indexOf(IMG_BASE)===0) ? u.slice(IMG_BASE.length) : ''; }
+/* <img> fallback: if the absolute (hosted) URL fails, retry once with the relative path (works when self-hosted), else hide */
+function imgFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.display='none'; }
+/* CSS background fallback: absolute on top, relative underneath (relative shows if the absolute layer fails to load) */
+function bgURL(u){ const r=imgRel(u); return r ? `url('${u}'), url('${r}')` : (u?`url('${u}')`:'none'); }
 function imgFor(name){
   if(!name) return '';
-  return DATA.characterImages[name.toUpperCase()] || DATA.characterImages[name] || '';
+  return imgURL(DATA.characterImages[name.toUpperCase()] || DATA.characterImages[name] || '');
 }
 function personaImg(name){
   if(!name) return '';
-  return 'personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png';
+  return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
 }
 const DAGGER_IMG={
   "Arc Knife":"daggers/01_Arc_Knife.webp","Cyclotron":"daggers/02_Cyclotron.webp",
@@ -538,7 +549,8 @@ const DAGGER_IMG={
   "Eye of Obsequies":"daggers/13_Eye_of_Obsequies.webp","Ex Machina":"daggers/14_Ex_Machina.webp",
   "All In":"daggers/15_All_In.webp","Sennight Inferno":"daggers/16_Sennight_Inferno.webp"
 };
-function daggerImg(name){ return name && DAGGER_IMG[name] ? DAGGER_IMG[name] : ''; }
+function daggerImg(name){ return name && DAGGER_IMG[name] ? imgURL(DAGGER_IMG[name]) : ''; }
+function dualElemImg(name){ return name && DUAL_ELEM_IMG[name] ? imgURL(DUAL_ELEM_IMG[name]) : ''; }
 function opt(list, val){
   return list.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('');
 }
@@ -690,8 +702,8 @@ function unitCard(u, path, elu, idx){
     const _td=TWINS_ROLE_DUALS[u.role];
     if(_td){
       extraBlock+=`<div class="twins-duals">
-        <div class="twins-dual"><span class="td-lab">S1</span><img src="${esc(DUAL_ELEM_IMG[_td[0]])}" alt="${esc(_td[0])}" title="${esc(_td[0])}" onerror="this.style.display='none'" loading="lazy"/></div>
-        <div class="twins-dual"><span class="td-lab">S2</span><img src="${esc(DUAL_ELEM_IMG[_td[1]])}" alt="${esc(_td[1])}" title="${esc(_td[1])}" onerror="this.style.display='none'" loading="lazy"/></div>
+        <div class="twins-dual"><span class="td-lab">S1</span><img src="${esc(dualElemImg(_td[0]))}" alt="${esc(_td[0])}" title="${esc(_td[0])}" onerror="imgFallback(this)" loading="lazy"/></div>
+        <div class="twins-dual"><span class="td-lab">S2</span><img src="${esc(dualElemImg(_td[1]))}" alt="${esc(_td[1])}" title="${esc(_td[1])}" onerror="imgFallback(this)" loading="lazy"/></div>
       </div>`;
     }
   }
@@ -703,7 +715,7 @@ function unitCard(u, path, elu, idx){
   }
   const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
   const art = img
-    ? `<div class="art" style="background-image:url('${esc(img)}')">${overlay}</div>`
+    ? `<div class="art" style="background-image:${bgURL(img)}">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
   return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
     ${art}
@@ -727,7 +739,7 @@ function renderTeam(){
           <input class="persona-name" list="personaList" data-path="personas.${k}.name" value="${esc(p.name)}" placeholder="Choose Persona" autocomplete="off"/>
           <div class="skills">${p.skills.slice(0,2).map((s,si)=>`<input data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Teachable Skill ${si+1}"/>`).join('')}</div>
         </div>
-        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="this.style.display='none'" loading="lazy"/>`:''}</div>
+        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
       </div>
     </div>`).join('');
   const _w=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
@@ -736,7 +748,7 @@ function renderTeam(){
   const daggerBox=`<div class="dagger-box minicard">
       <label>Dagger</label>
       <div class="dagger-box-body">${_dg&&_dsrc
-        ? `<img src="${esc(_dsrc)}" alt="${esc(_dg)}" title="${esc(_dg)}" onerror="this.style.display='none'" loading="lazy"/><div class="dagger-name">${esc(_dg)}</div>`
+        ? `<img src="${esc(_dsrc)}" alt="${esc(_dg)}" title="${esc(_dg)}" onerror="imgFallback(this)" loading="lazy"/><div class="dagger-name">${esc(_dg)}</div>`
         : `<div class="dagger-empty">${_w?'No dagger selected':'Add Wonder to pick a dagger'}</div>`}</div>
     </div>`;
   document.getElementById('teamPanel').innerHTML=`
@@ -1393,7 +1405,7 @@ function turnsBlockHorizontal(){
   const turnsHtml=state.turns.map((t,ti)=>turnRow(t,ti)).join('');
   return `<div style="display:flex;flex-direction:column;gap:${GAP}px;width:${teamRowW}px;">${turnsHtml}</div>`;
 }
-function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs){
+function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs, noBrand){
   portraits=portraits||{}; pImgs=pImgs||{}; dImgs=dImgs||{}; deImgs=deImgs||{};
   const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
   const ord=['1ST','2ND','3RD','4TH'];
@@ -1469,7 +1481,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
   v.innerHTML=`
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" alt=""/>
-    <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
+    <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;${noBrand?'display:none;':''}">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
     <div style="font:700 30px Oswald,sans-serif;color:#f3f1f7;letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:#cfe2f3;">
       <span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type||'')}</span>
@@ -1484,7 +1496,19 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     <div style="margin-top:16px;">${exportTurnsBlock()}</div>`;
   document.body.appendChild(v); return v;
 }
-function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); const t=setTimeout(()=>rej(new Error('timeout: '+src)),10000); im.onload=()=>{clearTimeout(t);res(im);}; im.onerror=()=>{clearTimeout(t);rej(new Error('image load failed: '+src));}; im.src=src; }); }
+function loadImg(src){ return new Promise((res,rej)=>{
+  const attempt=(url, canFallback)=>{
+    const im=new Image(); if(IMG_BASE) im.crossOrigin='anonymous'; let done=false;
+    const t=setTimeout(()=>onFail('timeout: '+url),10000);
+    function onFail(msg){ if(done) return; done=true; clearTimeout(t);
+      const r=imgRel(url);
+      if(canFallback && r) attempt(r, false); else rej(new Error(msg)); }
+    im.onload=()=>{ if(done) return; done=true; clearTimeout(t); res(im); };
+    im.onerror=()=>onFail('image load failed: '+url);
+    im.src=url;
+  };
+  attempt(src, true);
+}); }
 function portraitDataURL(img,size){
   const c=document.createElement('canvas'); c.width=size; c.height=size;
   const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
@@ -1551,7 +1575,7 @@ function collectExportImages(){
   });
   [...state.units, state.elucidator].forEach(u=>{
     if((u.name||'').toUpperCase()!=='TWINS') return; const td=TWINS_ROLE_DUALS[u.role]; if(!td) return;
-    td.forEach(dn=>{ const src=DUAL_ELEM_IMG[dn]; if(!src||seen['de:'+dn])return; seen['de:'+dn]=1;
+    td.forEach(dn=>{ const src=dualElemImg(dn); if(!src||seen['de:'+dn])return; seen['de:'+dn]=1;
       tasks.push(loadImg(src).then(img=>{ deImgs[dn]=fullDataURL(img); }).catch(()=>{})); });
   });
   state.personas.forEach(p=>{
@@ -1583,15 +1607,20 @@ function fitView(){
 }
 function enterViewMode(){
   try{ save=function(){}; }catch(e){}                     /* read-only: never write to the viewer's storage */
-  document.title=(((state.setup&&state.setup.rotationName)||'').trim()||'Rotation')+' \u2013 VF Rotation';
+  document.title=(function(){ const sp=state.setup||{}; const parts=[(sp.patch||'').trim(),(sp.type||'').trim(),((sp.rotationName||'').trim()||'Rotation')].filter(Boolean); return parts.join(' ')+' \u2013 VF Rotation'; })();
   document.body.classList.add('view-mode');
   let root=document.getElementById('viewRoot');
   if(!root){ root=document.createElement('div'); root.id='viewRoot'; document.body.appendChild(root); }
   root.innerHTML=`
-    <div id="viewBar">
-      <button id="viewEdit" title="Open this rotation in the editor">Open in editor</button>
-      <a id="viewDiscord" href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a>
-      <button id="viewDownload" title="Download PNG">\u2b07 PNG</button>
+    <div id="viewHeader">
+      <div id="viewBrandWrap">
+        <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
+      </div>
+      <div id="viewActions">
+        <a class="btn" id="viewDiscord" href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer" title="Join our Discord"><svg viewBox="0 0 24 24" aria-hidden="true" style="fill:#5865F2"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.291.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>Discord</a>
+        <button class="btn" id="viewEdit" title="Open this rotation in the Editor">Open in Editor</button>
+        <button class="btn" id="viewDownload" title="Download the PNG of this view">Download</button>
+      </div>
     </div>
     <div id="viewStage"><div class="view-loading">Loading view\u2026</div></div>
     <div id="viewFooter">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div>`;
@@ -1604,8 +1633,8 @@ function enterViewMode(){
     if(window.ResizeObserver){ try{ new ResizeObserver(fitView).observe(v); }catch(e){} }
   };
   collectExportImages()
-    .then(m=>place(buildExportView(true, m.portraits, m.pImgs, false, m.dImgs, m.deImgs)))
-    .catch(()=>place(buildExportView(false, {}, {}, false, {}, {})));
+    .then(m=>place(buildExportView(true, m.portraits, m.pImgs, false, m.dImgs, m.deImgs, true)))
+    .catch(()=>place(buildExportView(false, {}, {}, false, {}, {}, true)));
 }
 window.addEventListener('resize', ()=>{ if(document.body.classList.contains('view-mode')) fitView(); });
 (function(){
@@ -1638,6 +1667,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616c</div>
+<div class="version-tag">260616h</div>
 </body>
 </html>
