@@ -1366,8 +1366,8 @@ async function exportSheet(){
   deliverImage(URL.createObjectURL(blob), exportBaseName()+'.xlsx');
 }
 
-function exportTurnsBlock(){ return rotationView==='horizontal' ? turnsBlockHorizontal() : turnsBlockVertical(); }
-function turnsBlockVertical(){
+function exportTurnsBlock(mobile){ return rotationView==='horizontal' ? turnsBlockHorizontal(mobile) : turnsBlockVertical(mobile); }
+function turnsBlockVertical(mobile){
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
   const tc=c=>charColor(c);
   const dodX=s.type==='DOD', nT=state.turns.length;
@@ -1380,12 +1380,13 @@ function turnsBlockVertical(){
       <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
       <span style="font:500 11px Inter,sans-serif;color:#f3f1f7;flex:1;">${esc(actionLabel(a, a.char))}</span></div>`).join('')}
   </div>`; };
-  const perRow=(function(n){ if(n<=4) return Math.max(1,n); if(n%4===0) return 4; if(n%3===0) return 3; return n===5?3:4; })(nT);
+  const perRow=mobile?1:(function(n){ if(n<=4) return Math.max(1,n); if(n%4===0) return 4; if(n%3===0) return 3; return n===5?3:4; })(nT);
   const colW=(teamRowW-(perRow-1)*GAP)/perRow;
-  const turnsHtml=state.turns.map((t,ti)=>turnBox(t,ti,colW+'px')).join('');
-  return `<div style="display:flex;flex-wrap:wrap;gap:${GAP}px;align-items:flex-start;width:${teamRowW}px;">${turnsHtml}</div>`;
+  const cw=mobile?'100%':colW+'px';
+  const turnsHtml=state.turns.map((t,ti)=>turnBox(t,ti,cw)).join('');
+  return `<div style="display:flex;flex-wrap:wrap;gap:${GAP}px;align-items:flex-start;width:${mobile?'100%':teamRowW+'px'};">${turnsHtml}</div>`;
 }
-function turnsBlockHorizontal(){
+function turnsBlockHorizontal(mobile){
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
   const tc=c=>charColor(c);
   const dodX=s.type==='DOD', nT=state.turns.length;
@@ -1395,7 +1396,7 @@ function turnsBlockHorizontal(){
       <div style="font:600 11px Inter,sans-serif;color:#f3f1f7;text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char))}</div></div>`;
   const turnRow=(t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2;
     const acts=(t.actions||[]).map(block).join('');
-    return `<div style="display:flex;gap:8px;align-items:stretch;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;width:${teamRowW}px;box-sizing:border-box;">
+    return `<div style="display:flex;gap:8px;align-items:stretch;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;width:${mobile?'100%':teamRowW+'px'};box-sizing:border-box;">
       <div style="flex:0 0 84px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1px solid #3a3550;padding-right:8px;">
         <div style="font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</div>
         ${t.note?`<div style="font:500 10px Inter,sans-serif;color:#cfe2f3;line-height:1.25;">${esc(t.note)}</div>`:''}</div>
@@ -1403,11 +1404,12 @@ function turnsBlockHorizontal(){
     </div>`;
   };
   const turnsHtml=state.turns.map((t,ti)=>turnRow(t,ti)).join('');
-  return `<div style="display:flex;flex-direction:column;gap:${GAP}px;width:${teamRowW}px;">${turnsHtml}</div>`;
+  return `<div style="display:flex;flex-direction:column;gap:${GAP}px;width:${mobile?'100%':teamRowW+'px'};">${turnsHtml}</div>`;
 }
-function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs, noBrand){
+function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs, noBrand, mobile){
   portraits=portraits||{}; pImgs=pImgs||{}; dImgs=dImgs||{}; deImgs=deImgs||{};
-  const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
+  const M=!!mobile;
+  const s=state.setup, PAD=M?14:28, COLW=212, GAP=12, TEAMW=184;
   const ord=['1ST','2ND','3RD','4TH'];
   const teamRowW=5*TEAMW+4*GAP;
   const inner=teamRowW;
@@ -1417,7 +1419,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   const typeFg={mld:'#3a2c00',dod:'#1a0a2e',nod:'#2c0710',sos:'#ffffff'}[tl]||'#fff';
   const card=(u,label,accent)=>{
     const art = withImages && portraits[u.name] ? `<img src="${portraits[u.name]}" style="display:block;width:100%;border-radius:6px;margin-bottom:6px;"/>` : '';
-    return `<div style="width:${TEAMW}px;background:#23202f;border:1px solid #3a3550;border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
+    return `<div style="${M?'flex:1 1 148px;min-width:148px;max-width:calc(50% - 6px);':'width:'+TEAMW+'px;'}background:#23202f;border:1px solid #3a3550;border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
     ${art}
     <div style="font:700 10px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">${esc(label)}</div>
     <div style="font:700 16px Oswald,sans-serif;color:#f3f1f7;margin:2px 0 4px;">${esc(u.name||'—')}</div>
@@ -1440,7 +1442,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   let personaLine='', tnLine='';
   if(withImages){
     const personaCards=persona.map(p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm];
-      return `<div style="width:174px;box-sizing:border-box;display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
+      return `<div style="${M?'flex:1 1 160px;min-width:160px;':'width:174px;'}box-sizing:border-box;display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
         ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
         <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
         ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:#9fc5e8;margin-top:3px;line-height:1.5;">${sk.map(esc).join('<br>')}</div>`:''}</div>
@@ -1459,7 +1461,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
       <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
       <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
     if(persona.length||tnText||(_dgEx&&_dgImgEx)){
-      personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
+      personaLine=`<div style="display:flex;gap:12px;${M?'flex-direction:column;width:100%;':'align-items:stretch;width:'+teamRowW+'px;'}box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
     }
   } else {
     const personaBlock=persona.length?`<div style="flex:0 1 auto;min-width:0;display:flex;flex-direction:column;">
@@ -1471,14 +1473,14 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
       <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
       <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
     if(persona.length||tnText){
-      personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBlock}</div>`;
+      personaLine=`<div style="display:flex;gap:12px;${M?'flex-direction:column;width:100%;':'align-items:stretch;width:'+teamRowW+'px;'}box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBlock}</div>`;
     }
   }
   const notesLine=(s.notes||'').trim()?`<div style="margin-top:16px;">
     <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">ROTATION NOTES</div>
     <div style="background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(s.notes)}</div></div>`:'';
   const v=document.createElement('div'); v.id='exportView';
-  v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
+  v.style.cssText=`position:fixed;left:-99999px;top:0;${M?'width:100%;max-width:100%;':'width:'+(inner+2*PAD)+'px;'}background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
   v.innerHTML=`
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" alt=""/>
     <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;${noBrand?'display:none;':''}">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
@@ -1493,7 +1495,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     ${rotationOnly?'':`<div style="display:flex;gap:${GAP}px;flex-wrap:wrap;margin-top:14px;">${teamCards}</div>
     ${personaLine}${tnLine}`}
     ${notesLine}
-    <div style="margin-top:16px;">${exportTurnsBlock()}</div>`;
+    <div style="margin-top:16px;">${exportTurnsBlock(M)}</div>`;
   document.body.appendChild(v); return v;
 }
 function loadImg(src){ return new Promise((res,rej)=>{
@@ -1627,16 +1629,29 @@ function enterViewMode(){
   const stage=document.getElementById('viewStage');
   document.getElementById('viewDownload').onclick=()=>{ try{ exportImage(true); }catch(e){} };
   document.getElementById('viewEdit').onclick=()=>{ try{ location.hash='r='+encodeShare(); location.reload(); }catch(e){} };
-  const place=(v)=>{ v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0';
+  const isMobileView=()=>window.matchMedia('(max-width: 600px)').matches;
+  _viewMobile=isMobileView();
+  const renderViewBody=()=>{
+    const mob=isMobileView();
+    const withImgs=!!_viewImgMaps; const m=_viewImgMaps||{portraits:{},pImgs:{},dImgs:{},deImgs:{}};
+    const v=buildExportView(withImgs, m.portraits, m.pImgs, false, m.dImgs, m.deImgs, true, mob);
+    v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0';
     stage.innerHTML=''; stage.appendChild(v);
-    fitView(); requestAnimationFrame(fitView); setTimeout(fitView,200);
-    if(window.ResizeObserver){ try{ new ResizeObserver(fitView).observe(v); }catch(e){} }
+    if(mob){ v.style.transform='none'; stage.style.width='100%'; stage.style.height='auto'; }
+    else { stage.style.width=''; stage.style.height=''; fitView(); requestAnimationFrame(fitView); setTimeout(fitView,200); }
   };
+  _renderViewBody=renderViewBody;
   collectExportImages()
-    .then(m=>place(buildExportView(true, m.portraits, m.pImgs, false, m.dImgs, m.deImgs, true)))
-    .catch(()=>place(buildExportView(false, {}, {}, false, {}, {}, true)));
+    .then(m=>{ _viewImgMaps=m; renderViewBody(); })
+    .catch(()=>{ _viewImgMaps=null; renderViewBody(); });
 }
-window.addEventListener('resize', ()=>{ if(document.body.classList.contains('view-mode')) fitView(); });
+let _viewImgMaps=null, _viewMobile=null, _renderViewBody=null;
+window.addEventListener('resize', ()=>{
+  if(!document.body.classList.contains('view-mode')) return;
+  const mob=window.matchMedia('(max-width: 600px)').matches;
+  if(mob!==_viewMobile){ _viewMobile=mob; if(_renderViewBody) _renderViewBody(); }   /* crossed the mobile breakpoint -> reflow */
+  else if(!mob){ fitView(); }                                                          /* desktop/landscape -> just refit */
+});
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
@@ -1667,6 +1682,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616h</div>
+<div class="version-tag">260616i</div>
 </body>
 </html>
