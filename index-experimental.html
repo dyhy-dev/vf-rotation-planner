@@ -1441,27 +1441,48 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   const tnText=(state.teamNotes||'').trim();
   let personaLine='', tnLine='';
   if(withImages){
-    const personaCards=persona.map(p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm];
-      return `<div style="${M?'flex:1 1 160px;min-width:160px;':'width:174px;'}box-sizing:border-box;display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
+    const pCard=p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm];
+      return `<div style="${M?'box-sizing:border-box;min-width:0;':'width:174px;box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
         ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
         <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
         ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:#9fc5e8;margin-top:3px;line-height:1.5;">${sk.map(esc).join('<br>')}</div>`:''}</div>
-      </div>`; }).join('');
-    const personaBlock=persona.length?`<div style="flex:0 0 auto;">
-      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
+      </div>`; };
+    const personaCards=persona.map(pCard).join('');
     const _wEx=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
     const _dgEx=_wEx?(_wEx.gear||''):''; const _dgImgEx=dImgs[_dgEx];
-    const daggerBlock=(_dgEx&&_dgImgEx)?`<div style="flex:0 0 auto;">
-      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">DAGGER</div>
-      <div style="width:140px;height:106px;box-sizing:border-box;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+    const hasDagger=!!(_dgEx&&_dgImgEx);
+    const daggerCard=hasDagger?`<div style="${M?'width:100%;min-height:96px;':'width:140px;height:106px;'}box-sizing:border-box;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
         <img src="${_dgImgEx}" style="max-height:54px;width:auto;display:block;border-radius:5px;"/>
-        <div style="font:700 12px Oswald,sans-serif;color:#9fc5e8;text-align:center;line-height:1.15;">${esc(_dgEx)}</div></div></div>`:'';
-    const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
-      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
-      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
-    if(persona.length||tnText||(_dgEx&&_dgImgEx)){
-      personaLine=`<div style="display:flex;gap:12px;${M?'flex-direction:column;width:100%;':'align-items:stretch;width:'+teamRowW+'px;'}box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
+        <div style="font:700 12px Oswald,sans-serif;color:#9fc5e8;text-align:center;line-height:1.15;">${esc(_dgEx)}</div></div>`:'';
+    const _hdr=t=>`<div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">${t}</div>`;
+    if(M){
+      let gridInner='';
+      if(hasDagger&&persona.length){
+        gridInner=`<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:8px;width:100%;box-sizing:border-box;">${_hdr('DAGGER')}${_hdr('PERSONAS')}${daggerCard}${personaCards}</div>`;
+      } else if(persona.length){
+        gridInner=`<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:8px;width:100%;box-sizing:border-box;"><div style="grid-column:1 / -1;font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">PERSONAS</div>${personaCards}</div>`;
+      } else if(hasDagger){
+        gridInner=`<div style="width:100%;box-sizing:border-box;">${_hdr('DAGGER')}<div style="margin-top:6px;">${daggerCard}</div></div>`;
+      }
+      const notesMobile=tnText?`<div style="width:100%;box-sizing:border-box;margin-top:14px;display:flex;flex-direction:column;">
+        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+        <div style="background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+      if(gridInner||tnText){
+        personaLine=`<div style="width:100%;box-sizing:border-box;margin-top:14px;">${gridInner}${notesMobile}</div>`;
+      }
+    } else {
+      const personaBlock=persona.length?`<div style="flex:0 0 auto;">
+        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
+      const daggerBlock=hasDagger?`<div style="flex:0 0 auto;">
+        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">DAGGER</div>
+        ${daggerCard}</div>`:'';
+      const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+        <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+      if(persona.length||tnText||hasDagger){
+        personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
+      }
     }
   } else {
     const personaBlock=persona.length?`<div style="flex:0 1 auto;min-width:0;display:flex;flex-direction:column;">
@@ -1682,6 +1703,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616i</div>
+<div class="version-tag">260616k</div>
 </body>
 </html>
