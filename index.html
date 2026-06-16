@@ -876,16 +876,59 @@ document.getElementById('importFile').onchange=e=>{
 /* ---------- share code / link (self-contained, no server) ---------- */
 function b64urlEncode(s){ const bytes=new TextEncoder().encode(s); let bin=''; for(const b of bytes) bin+=String.fromCharCode(b); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function b64urlDecode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; const bin=atob(s); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
+/* compact codec (scheme C): positional arrays + enum indices, then LZString */
+function _roster(){ return DATA.characterNames.concat(DATA.elucidatorNames.filter(n=>!DATA.characterNames.includes(n))); }
+function _io(v,list){ const i=list.indexOf(v); return i>=0?i:(v==null?'':v); }
+function _oi(v,list){ return typeof v==='number'?(list[v]!=null?list[v]:''):(v==null?'':v); }
+function compactEncode(st){
+  const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
+  const s=st.setup||{};
+  const unit=u=>[ _io(u.name,R), _io(u.awareness,AW), _io(u.rev,RV), u.gear||'', _io(u.space,SP), _io(u.sunsky,SS), u.role||'', u.companion||'' ];
+  const pnames=(st.personas||[]).map(p=>p.name);
+  const act=a=>{
+    if('btn' in a) return [ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
+    const pi=a.persona?pnames.indexOf(a.persona):-1;
+    return [ _io(a.char,R), pi>=0?pi:(a.persona||''), a.hl?1:0, a.text||'' ];
+  };
+  return [1,
+    [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
+    (st.units||[]).map(unit),
+    unit(st.elucidator||{}),
+    (st.personas||[]).map(p=>[ _io(p.name,PN), (p.skills||['','','']).slice(0,3) ]),
+    st.teamNotes||'',
+    (st.turns||[]).map(t=>[ t.name||'', (t.actions||[]).map(act) ]) ];
+}
+function compactDecode(arr){
+  const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
+  const su=arr[1]||[];
+  const unit=a=>({ name:_oi(a[0],R), awareness:_oi(a[1],AW), rev:_oi(a[2],RV), gear:a[3]||'', space:_oi(a[4],SP), sunsky:_oi(a[5],SS), role:a[6]||'', companion:a[7]||'' });
+  const personas=(arr[4]||[]).map(p=>({ name:_oi(p[0],PN), skills:(p[1]||['','','']).slice(0,3) }));
+  const pnames=personas.map(p=>p.name);
+  const act=a=>{
+    if(a.length===4) return { char:_oi(a[0],R), persona:typeof a[1]==='number'?(pnames[a[1]]||''):(a[1]||''), hl:!!a[2], text:a[3]||'' };
+    return { char:_oi(a[0],R), btn:_oi(a[1],AC), text:a[2]||'' };
+  };
+  return {
+    setup:{ rotationName:su[0]||'', tier:su[1]||'', boss:su[2]||'', type:_oi(su[3],TY), patch:su[4]||'', score:su[5]||'', notes:su[6]||'', credits:su[7]||'' },
+    units:(arr[2]||[]).map(unit),
+    elucidator:unit(arr[3]||[]),
+    personas, teamNotes:arr[5]||'',
+    turns:(arr[6]||[]).map(t=>({ name:t[0]||'', actions:(t[1]||[]).map(act) }))
+  };
+}
 function encodeShare(){
-  const json=JSON.stringify(state);
-  if(typeof LZString!=='undefined') return 'A'+LZString.compressToEncodedURIComponent(json);
-  return 'B'+b64urlEncode(json);
+  if(typeof LZString!=='undefined'){
+    try{ return 'C'+LZString.compressToEncodedURIComponent(JSON.stringify(compactEncode(state))); }catch(e){}
+    return 'A'+LZString.compressToEncodedURIComponent(JSON.stringify(state));
+  }
+  return 'B'+b64urlEncode(JSON.stringify(state));
 }
 function decodeShare(input){
   let code=(input||'').trim();
   const m=code.match(/[#?&]r=([^#?&\s]+)/); if(m) code=m[1];
   code=code.replace(/^#/,'').trim();
   const marker=code[0], rest=code.slice(1);
+  if(marker==='C'){ if(typeof LZString==='undefined') throw new Error('lib'); const j=LZString.decompressFromEncodedURIComponent(rest); if(!j) throw new Error('decode'); return compactDecode(JSON.parse(j)); }
   let json=null;
   if(marker==='A'){ if(typeof LZString==='undefined') throw new Error('lib'); json=LZString.decompressFromEncodedURIComponent(rest); }
   else if(marker==='B'){ json=b64urlDecode(rest); }
@@ -1295,6 +1338,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616H</div>
+<div class="version-tag">260616I</div>
 </body>
 </html>
