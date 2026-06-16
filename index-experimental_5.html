@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Velvet Frequency Rotation Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14121c; --panel:#1f1c2b; --panel2:#262234; --line:#3a3550;
+  --blue:#9fc5e8; --blue-strong:#5b9bd5; --blue-soft:#cfe2f3;
+  --gold:#f1c232; --text:#f3f1f7; --muted:#9d97b3; --row:#23202f;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:radial-gradient(1200px 600px at 70% -10%, #241f38 0%, var(--ink) 60%) fixed, var(--ink);
+  color:var(--text); font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.4;
+  padding:0 0 80px;
+}
+.wrap{max-width:1280px; margin:0 auto; padding:18px}
+h1,h2,h3{font-family:"Oswald",sans-serif; font-weight:600; letter-spacing:.04em; margin:0}
+button,select,input{font-family:inherit; color:inherit}
+button{cursor:pointer}
+
+/* toolbar */
+.toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px}
+.toolbar .brand{flex:0 0 100%}
+.toolbar-actions{display:flex; flex-wrap:wrap; gap:8px; width:100%; justify-content:flex-end}
+@media (min-width:1200px){
+  .toolbar .brand{flex:0 0 auto}
+  .toolbar-actions{flex:1 1 auto; width:auto; justify-content:flex-end}
+}
+.toolbar .spacer{flex:1}
+.btn{background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; transition:.15s}
+.btn:hover{border-color:var(--blue-strong); background:#2d283d}
+.btn.primary{background:var(--blue-strong); border-color:var(--blue-strong); color:#0b1626}
+.btn.primary:hover{background:var(--blue)}
+.dropdown{position:relative; display:inline-block}
+.dropdown-menu{position:absolute; top:calc(100% + 4px); left:0; min-width:130px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:80; box-shadow:0 10px 28px rgba(0,0,0,.45)}
+.dropdown-menu[hidden]{display:none}
+.dropdown-item{display:block; width:100%; white-space:nowrap; text-align:left; background:transparent; border:none; color:var(--text); padding:8px 10px; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer}
+.dropdown-item:hover{background:var(--line)}
+.brand{font-family:"Oswald"; font-weight:700; font-size:18px; letter-spacing:.12em;
+  text-transform:uppercase; color:#e0445e}
+.brand small{display:block; font-family:"Inter"; font-weight:500; font-size:10px;
+  letter-spacing:.18em; color:var(--muted)}
+
+/* panel shell */
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:16px; margin-bottom:16px; box-shadow:0 12px 30px -18px #000}
+
+/* header / setup */
+.head-top{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap}
+.rot-name{flex:1 1 320px}
+.rot-name input{width:100%; background:transparent; border:none; border-bottom:2px solid var(--line);
+  font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
+.rot-name input:focus{outline:none; border-color:var(--gold)}
+.tier{display:flex; align-items:center; gap:8px}
+.tier select{border:none; border-radius:8px; font-family:"Oswald"; font-weight:700; letter-spacing:.1em;
+  font-size:20px; padding:14px 18px; text-transform:uppercase; background:var(--gold); color:#3a2c00; transition:.15s}
+.tier.type-mld select{background:var(--gold); color:#3a2c00}
+.tier.type-dod select{background:#9b5de5; color:#1a0a2e}
+.tier.type-nod select{background:#e0445e; color:#2c0710}
+.tier.type-sos select{background:#151da6; color:#fff}
+.meta{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:14px}
+.field label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:4px}
+.field input,.field select{width:100%; background:var(--panel2); border:1px solid var(--line);
+  border-radius:8px; padding:8px 10px; font-weight:600}
+.field input:focus,.field select:focus{outline:none; border-color:var(--blue-strong)}
+.meta-big{display:flex; flex-wrap:wrap; gap:14px}
+.meta-big .field{flex:1 1 220px}
+.meta-big .field label{font-size:11px; margin-bottom:6px}
+.meta-big .field input,.meta-big .field select{height:56px; font-size:20px; font-weight:700; padding:0 16px}
+.meta-big .type-field{flex:0 0 112px}
+.meta-big .patch-field{flex:0 0 112px}
+.type-field label{display:block; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.type-field .tier{display:block}
+.type-field .tier select{width:100%; height:56px; padding:0 14px}
+
+/* team */
+.section-title{display:flex; align-items:center; gap:10px; margin:0 0 12px}
+.section-title h2{font-size:16px; text-transform:uppercase; color:var(--blue)}
+.section-title .rule{flex:1; height:1px; background:var(--line)}
+.section-title .whale-btn{padding:4px 14px; font-size:12px; flex:0 0 auto}
+.units{display:grid; grid-template-columns:repeat(auto-fit,minmax(188px,1fr)); gap:12px}
+.unit{background:var(--panel2); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  border-top:3px solid var(--ux,#888)}
+.unit .art{aspect-ratio:1/1; background:#0d0b14 center/cover no-repeat; position:relative; display:flex;
+  align-items:center; justify-content:center}
+.unit .art .ph{font-family:"Oswald"; font-weight:700; font-size:30px; color:#4a4560}
+.unit .body{padding:8px}
+.unit select.name{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px;
+  padding:8px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.05em; text-align:center}
+.unit .tags{display:flex; gap:6px; margin-top:6px}
+.unit .tags select{flex:1; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
+.unit .gear{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; color:var(--blue-soft)}
+.rev-row{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; align-items:end}
+.rev-row.one{grid-template-columns:1fr}
+.rev-lab{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; line-height:1.15}
+.rev-row select{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; font-weight:600; color:var(--blue-soft)}
+.rev-row select:focus{outline:none; border-color:var(--blue-strong)}
+.unit.elu{border-top-style:dashed}
+.unit .grip{position:absolute; top:6px; right:6px; z-index:2; background:#000a; border:1px solid var(--line);
+  color:#dfe6f5; border-radius:6px; padding:1px 6px 3px; cursor:grab; font-size:13px; line-height:1; user-select:none}
+.unit .grip:active{cursor:grabbing}
+.unit.dragging{opacity:.45}
+.unit.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+.elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
+  color:var(--blue); font-size:9px; letter-spacing:.12em; padding:2px 6px; border-radius:5px; font-weight:700}
+.order-badge{position:absolute; top:6px; left:6px; z-index:2; background:#0008; border:1px solid var(--gold);
+  color:var(--gold); font-family:"Oswald"; font-weight:700; font-size:12px; line-height:1;
+  min-width:20px; height:20px; padding:0 4px; display:flex; align-items:center; justify-content:center; border-radius:5px}
+
+.subrow{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:14px}
+.minicard{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px}
+.minicard label{font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+.minicard .vals{display:flex; flex-direction:column; gap:6px; margin-top:6px}
+.minicard select,.minicard input{background:#15131d; border:1px solid var(--line); border-radius:6px; padding:6px; font-weight:600; width:100%}
+.persona-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px}
+.persona-col{position:relative}
+.pcol-head{display:flex; align-items:center; justify-content:space-between; gap:6px}
+.pgrip{cursor:grab; color:var(--muted); user-select:none; font-size:13px; line-height:1; padding:0 2px}
+.pgrip:active{cursor:grabbing}
+.persona-col.dragging{opacity:.45}
+.persona-col.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+.persona-col select{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px;
+  padding:9px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.04em}
+.persona-col .skills{display:flex; flex-direction:column; gap:6px; margin-top:8px}
+.persona-col .skills input{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
+.persona-col select:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
+.pcol-body{display:flex; gap:8px; align-items:stretch; margin-top:6px}
+.pcol-fields{flex:1 1 auto; min-width:0; display:flex; flex-direction:column}
+.pcol-fields select{margin-top:0}
+.pcol-img{flex:0 0 auto}
+.pcol-img img{height:100%; max-height:150px; width:auto; max-width:100px; display:block; border-radius:6px; background:#15131d; object-fit:contain}
+@media (max-width:640px){ .persona-grid{grid-template-columns:1fr} }
+.team-notes{margin-top:14px}
+.team-notes .tn-label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.team-notes textarea{width:100%; min-height:60px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px; color:var(--text); font-family:inherit; font-size:16px; resize:vertical}
+.team-notes textarea:focus{outline:none; border-color:var(--blue-strong)}
+
+/* rotation */
+.turns{display:flex; gap:12px; overflow-x:auto; padding-bottom:8px}
+.turn{flex:0 0 280px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column}
+.turn-head{display:flex; align-items:center; gap:6px; background:linear-gradient(180deg,#34507a,#26405f);
+  padding:8px 10px; border-radius:11px 11px 0 0}
+.turn-head input.break{color:#e0445e; font-weight:700}
+.turn-head input{flex:1; background:transparent; border:none; color:#fff; font-family:"Oswald";
+  font-weight:600; letter-spacing:.08em; font-size:15px; text-align:center; text-transform:uppercase}
+.turn-head input:focus{outline:none}
+.turn-head .del{background:#0003; border:none; color:#cdd9ee; border-radius:6px; width:24px; height:24px; line-height:1}
+.turn-head .del:hover{background:#e06; color:#fff}
+.acts{padding:8px; display:flex; flex-direction:column; gap:6px; flex:1}
+.act{display:grid; grid-template-columns:22px 1fr 26px; gap:6px; align-items:stretch;
+  background:var(--row); border:1px solid var(--line); border-left:4px solid var(--ax,#666); border-radius:8px; padding:6px}
+.act .n{font-family:"Oswald"; font-weight:700; color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:grab; user-select:none}
+.act .n:active{cursor:grabbing}
+.act.dragging{opacity:.45}
+.act.drop-before{box-shadow:inset 0 3px 0 0 var(--blue-strong)}
+.act .mid{display:flex; flex-direction:column; gap:4px; min-width:0}
+.act .mid select{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:4px; font-weight:600; font-size:12px}
+.act .mid input{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:5px; font-size:12px}
+.act .mid input:focus,.act .mid select:focus{outline:none; border-color:var(--blue-strong)}
+.act-actions{display:flex; gap:3px}
+.actbtn{flex:1; padding:4px 2px; font-size:11px; font-weight:600; background:#15131d; border:1px solid var(--line); border-radius:5px; color:#cdd9ee; line-height:1; cursor:pointer; white-space:nowrap}
+.actbtn:hover{border-color:var(--blue-strong)}
+.actbtn.on{background:var(--blue-strong); border-color:var(--blue-strong); color:#0b1626}
+.act-wonder{display:flex; gap:4px; align-items:stretch}
+.act-wonder select{flex:1; min-width:0}
+.act-wonder .actbtn{flex:0 0 auto; padding:4px 14px}
+.act-charrow{display:flex; gap:4px; align-items:stretch}
+.act-charrow select{flex:1; min-width:0}
+.act-charrow .altbtn{flex:0 0 auto; padding:4px 12px}
+.rot-preview{margin-top:16px}
+.rot-preview-toggle{display:inline-flex; align-items:center; gap:6px; font-size:12px}
+.rot-preview-toggle svg{display:block}
+.rot-preview-body{margin-top:10px; border:1px solid var(--line); border-radius:10px; padding:14px; overflow:hidden}
+.modal{position:fixed; inset:0; z-index:200; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; background:rgba(8,7,12,.74); overflow:auto}
+.modal[hidden]{display:none}
+.modal-card{background:var(--panel); border:1px solid var(--line); border-radius:14px; max-width:780px; width:100%; box-shadow:0 24px 70px rgba(0,0,0,.6); margin:auto}
+.modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line); border-radius:14px 14px 0 0}
+.modal-head h2{margin:0; font:700 18px Oswald,sans-serif; letter-spacing:.04em; color:var(--text)}
+.modal-close{background:transparent; border:none; color:var(--muted); font-size:24px; line-height:1; cursor:pointer; padding:2px 8px; border-radius:6px}
+.modal-close:hover{color:var(--text); background:var(--panel2)}
+.guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
+.guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
+.guide p{margin:6px 0}
+.guide ul{margin:6px 0 6px 0; padding-left:20px}
+.guide li{margin:5px 0}
+.guide b{color:var(--text)}
+.guide code{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12px; color:var(--gold); white-space:nowrap}
+.guide .lead{color:var(--muted)}
+.io-card{max-width:560px}
+.io-body{padding:18px 22px 22px}
+.io-text{display:block; width:100%; box-sizing:border-box; min-height:120px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--text); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.5; resize:vertical}
+.io-hint{min-height:16px; margin:8px 2px 0; font:600 12px Inter,sans-serif; color:var(--blue)}
+.io-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
+.act-btns{display:flex; flex-direction:column; gap:3px}
+.act-btns button{flex:1; border:none; border-radius:5px; line-height:1; font-weight:700; cursor:pointer; padding:0; min-height:14px}
+.act-btns .addrow{background:#0003; color:#8aa6c8; font-size:13px}
+.act-btns .addrow:hover{background:#2e6b4d; color:#cffbe2}
+.act-btns .x{background:transparent; color:#6a647f; font-size:14px}
+.act-btns .x:hover{background:#e0245533; color:#ff6b8a}
+.add-act{margin:0 8px 8px; background:#15131d; border:1px dashed var(--line); color:var(--muted);
+  border-radius:8px; padding:7px; font-weight:600}
+.add-act:hover{border-color:var(--blue-strong); color:var(--blue)}
+.add-turn{flex:0 0 60px; align-self:stretch; background:transparent; border:2px dashed var(--line);
+  color:var(--muted); border-radius:12px; font-size:26px; font-family:"Oswald"}
+.add-turn:hover{border-color:var(--gold); color:var(--gold)}
+.notes-row{margin:12px 0}
+.notes-row textarea{width:100%; min-height:54px; background:var(--panel2); border:1px solid var(--line);
+  border-radius:10px; padding:10px; color:var(--text); font-family:inherit; font-size:16px; resize:vertical}
+.foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
+.foot a{color:var(--blue)}
+@media (max-width:560px){ .rot-name input{font-size:22px} }
+.version-tag{position:fixed; right:8px; bottom:6px; font:500 11px Inter,sans-serif; color:#5a5470; letter-spacing:.08em; z-index:50; pointer-events:none; user-select:none}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>/* lz-string 1.5.0 (MIT, pieroxy.net) — inlined, no CDN */
+var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
+    <div class="toolbar-actions">
+      <button class="btn" id="guideBtn" title="How the Rotation Planner works">Guide</button>
+      <div class="dropdown" id="loadExWrap">
+        <button class="btn" id="loadExBtn" aria-haspopup="true" aria-expanded="false">Load Examples ▾</button>
+        <div class="dropdown-menu" id="loadExMenu" hidden>
+          <button class="dropdown-item" data-example="MLD">MLD</button>
+          <button class="dropdown-item" data-example="DOD">DOD</button>
+        </div>
+      </div>
+      <div class="dropdown" id="importWrap">
+        <button class="btn" id="importMenuBtn" aria-haspopup="true" aria-expanded="false">Import ▾</button>
+        <div class="dropdown-menu" id="importMenu" hidden>
+          <button class="dropdown-item" data-import="json">Import JSON</button>
+          <button class="dropdown-item" data-import="code">Import Code</button>
+        </div>
+      </div>
+      <div class="dropdown" id="exportWrap">
+        <button class="btn" id="exportMenuBtn" aria-haspopup="true" aria-expanded="false">Export ▾</button>
+        <div class="dropdown-menu" id="exportMenu" hidden>
+          <button class="dropdown-item" data-export="json">JSON</button>
+          <button class="dropdown-item" data-export="png-art">PNG &amp; Images</button>
+          <button class="dropdown-item" data-export="png">PNG (no Images)</button>
+          <button class="dropdown-item" data-export="png-rot">PNG (Rotation only)</button>
+          <button class="dropdown-item" data-export="link">Share Link</button>
+          <button class="dropdown-item" data-export="code">Copy Code</button>
+        </div>
+      </div>
+      <button class="btn" id="refreshBtn" title="Reload the newest version of the page (bypasses cache)">Refresh</button>
+      <button class="btn" id="resetBtn">Reset</button>
+      <input type="file" id="importFile" accept="application/json" hidden/>
+    </div>
+  </div>
+
+  <div class="panel" id="headPanel"></div>
+  <div class="panel" id="teamPanel"></div>
+  <div class="panel">
+    <div class="section-title"><h2>Rotation</h2><div class="rule"></div>
+      <button class="btn" id="autoFill" title="Fill empty turn columns with characters 1–4 in order (columns that already have a character are left untouched)">Auto Fill</button>
+      <button class="btn" id="clearActions" title="Remove all actions from every turn">Clear</button>
+    </div>
+    <div class="notes-row"><textarea id="notes" placeholder="Rotation notes…"></textarea></div>
+    <div class="turns" id="turns"></div>
+    <div class="rot-preview">
+      <button class="btn rot-preview-toggle" id="rotPreviewToggle" aria-expanded="false" title="Live preview of how the rotation looks in the image export (not part of the export)">Rotation Preview</button>
+      <div class="rot-preview-body" id="rotPreviewBody" hidden></div>
+    </div>
+  </div>
+  <div class="foot">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener">Discord</a><br>Autosave is on (stored locally in your browser) · Export JSON to save your work as a file.</div>
+</div>
+
+<div class="modal" id="guideModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Rotation Planner guide">
+    <div class="modal-head">
+      <h2>How the Rotation Planner works</h2>
+      <button class="modal-close" id="guideClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="guide">
+      <p class="lead">Build a Persona 5: The Phantom X boss rotation, then export it as a shareable image or a JSON file. Everything you type is saved automatically in your browser.</p>
+
+      <h3>Toolbar</h3>
+      <ul>
+        <li><b>Guide</b> — opens this help.</li>
+        <li><b>Load Examples</b> — load a ready-made <b>MLD</b> or <b>DOD</b> rotation to see how a finished plan looks. This replaces your current work, so export first if you want to keep it.</li>
+        <li><b>Import</b> — load a rotation:
+          <ul>
+            <li><b>Import JSON</b> — from a <code>.json</code> file (e.g. one a teammate shared).</li>
+            <li><b>Import Code</b> — from a share code or link pasted into the box.</li>
+          </ul>
+        </li>
+        <li><b>Export</b> — save or share your rotation:
+          <ul>
+            <li><b>JSON</b> — a data file you can re-import later or share.</li>
+            <li><b>PNG &amp; Images</b> — an image with character portraits and persona art.</li>
+            <li><b>PNG (no Images)</b> — the same layout as text only.</li>
+            <li><b>PNG (Rotation only)</b> — just the turns, without the team section.</li>
+            <li><b>Share Link</b> — a link that loads the whole rotation when opened.</li>
+            <li><b>Copy Code</b> — a short text code that holds the whole rotation.</li>
+          </ul>
+        </li>
+        <li><b>Refresh</b> — reload the newest version of the page.</li>
+        <li><b>Reset</b> — clear all fields and start a blank plan.</li>
+      </ul>
+
+      <h3>Setup (top bar)</h3>
+      <p>Fill in the header: <b>Rotation Name</b>, <b>Mode</b> (MLD / DOD / NOD / SOS), <b>Boss</b>, <b>Patch</b>, <b>Expected Score</b> and <b>Credits</b>. Empty fields are simply left out of the export, but it is recommended to fill in all of them.</p>
+
+      <h3>Team</h3>
+      <p>There are four team slots (1st–4th) plus the <b>Elucidator</b>. For each unit pick a <b>Character</b>, then set:</p>
+      <ul>
+        <li><b>Awareness</b> — A0 to A6.</li>
+        <li><b>Reforge</b> — RX to R6.</li>
+        <li><b>Revelation Cards</b> — choose the <b>Space</b> card first, then the matching <b>Sun / Moon / Star / Sky</b> cards are shown.</li>
+        <li>Special fields appear automatically: <b>Wonder</b> gets a Dagger, <b>Twins</b> a Role, <b>Fuuka</b> a Backup.</li>
+      </ul>
+      <p>You can reorder team slots 1–4 by dragging them. The <b>Whale</b> button in the team header sets every Awareness to A6 and every Reforge to R6 at once.</p>
+      <p>Below the team you set up to three <b>Personas</b> (with up to three skills each) and a <b>Team Notes</b> box, where you can add information such as the required Pierce or Crit.</p>
+
+      <h3>Rotation</h3>
+      <p>The rotation is a row of <b>turns</b>; each turn has a name (which you can edit) and a list of <b>actions</b>.</p>
+      <p><b>Start here:</b> press <b>Auto Fill</b> first. It fills every empty turn column with your team characters 1–4 in order, so afterwards you only have to fill in the actions. It is recommended to do this before adding actions yourself. Afterwards Auto Fill never overwrites a column that already has a character, so if you add more turns later you can press Auto Fill again to fill them. <b>Clear</b> removes all actions from every turn if you want to start over.</p>
+      <p>For every action:</p>
+      <ul>
+        <li>Pick the acting <b>character</b> from the dropdown.</li>
+        <li>Optionally tap an <b>action button</b>. Normal characters have <code>S1 S2 S3 HL</code> plus <code>Attack Gun Guard</code>; SEES members show <code>TG</code> (Theurgy) instead of HL and <code>Assist</code> instead of Gun; the Elucidators only have <code>S1 S2 S3</code>. A few characters (Messa, Violet, Rin·F, Turbo, Twins, Ange, Akihiko) also have a separate button next to the character dropdown that exports to its own wording — e.g. Violet's <code>MSQ</code> → “Masquerade”, Ange's <code>DC</code> → “Da Capo”, Akihiko's <code>Alt</code> → “Punch”. Tap an active button again to clear it.</li>
+        <li><b>Wonder</b> is special: choose one of your three personas from the dropdown and optionally toggle the <b>HL</b> button next to it. You can also leave the persona unselected if Wonder should do a different action (e.g. Guard).</li>
+        <li>The <b>text field</b> is always available for free notes, e.g. the target of the action or other information.</li>
+      </ul>
+      <p>In the export, a button and text are joined with a space — e.g. <code>S2</code> + <code>Violet</code> becomes “S2 Violet”, and a Wonder action becomes e.g. “Koumokuten HL Haru”. You can also use only the text field without any button.</p>
+      <p>Use the controls on each turn/action to <b>add</b> or <b>remove</b> turns and actions and to <b>drag</b> them into a new order. A separate <b>Rotation Notes</b> box sits above the turns. In <b>DOD</b> mode the last two turns are breaks, highlighted in red in the export.</p>
+
+      <h3>Rotation Preview</h3>
+      <p>The <b>Rotation Preview</b> toggle below the turns shows a live preview of how the rotation will look in the image export. It updates as you type and is never part of the exported file.</p>
+
+      <h3>Saving &amp; sharing</h3>
+      <p>Your work is saved automatically in this browser (autosave). For a permanent backup, use <b>Export → JSON</b> and re-import the file later. For a picture to post, use one of the PNG exports.</p>
+      <p>To send a rotation to a teammate without a file, use <b>Export → Share Link</b> or <b>Copy Code</b>. Both open a box showing the link/code with a <b>Copy</b> button. Opening a <b>Share Link</b> loads the rotation automatically; a <b>Code</b> is loaded via <b>Import → Import Code</b> (which also accepts a full link). The whole rotation is packed into the link/code itself — nothing is uploaded to a server.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="ioModal" hidden>
+  <div class="modal-card io-card" role="dialog" aria-modal="true" aria-label="Share">
+    <div class="modal-head">
+      <h2 id="ioTitle">Share</h2>
+      <button class="modal-close" id="ioClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="io-body">
+      <textarea id="ioText" class="io-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
+      <div class="io-hint" id="ioHint"></div>
+      <div class="io-actions">
+        <button class="btn primary" id="ioPrimary">Copy</button>
+        <button class="btn" id="ioCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"characterImages": {"TWINS": "images/TWINS.webp", "SOY·P": "images/SOY-P.webp", "LUCE·N": "images/LUCE-N.webp", "FUKA": "images/FUKA.webp", "MITSURU": "images/KIRIJO.webp", "BUI·P": "images/BUI-P.webp", "BLITZ": "images/BLITZ.webp", "PUPPET·S": "images/PUPPET-S.webp", "MARIAN·S": "images/MARIAN-S.webp", "BERRY": "images/BERRY.webp", "AKIHIKO": "images/AKIHIKO.webp", "YUKARI": "images/YUKARI.webp", "MAKOTO": "images/MAKOTO.webp", "ANGE": "images/ANGE.webp", "LUCE": "images/LUCE.webp", "TURBO": "images/TURBO.webp", "CROW": "images/CROW.webp", "MATOI": "images/MATOI.webp", "RIN·L D": "images/RIN-L-D.webp", "TEMPEST": "images/TEMPEST.webp", "VIOLET": "images/VIOLET.webp", "HOWLER": "images/HOWLER.webp", "MONT·S": "images/MONT-S.webp", "NOIR": "images/NOIR.webp", "CHERISH": "images/CHERISH.webp", "NAVI": "images/NAVI.webp", "MESSA": "images/MESSA.webp", "MOKO·S": "images/MOKO-S.webp", "CLOSER·T": "images/CLOSER-T.webp", "CHORD": "images/CHORD.webp", "WIND": "images/WIND.webp", "PHOEBE": "images/PHOEBE.webp", "QUEEN": "images/QUEEN.webp", "VINO": "images/VINO.webp", "FOX": "images/FOX.webp", "BUI": "images/BUI.webp", "MARIAN": "images/MARIAN.webp", "JOKER": "images/JOKER.webp", "SKULL": "images/SKULL.webp", "MONA": "images/MONA.webp", "PANTHER": "images/PANTHER.webp", "RIN": "images/RIN.webp", "RIDDLE": "images/RIDDLE.webp", "CATTLE": "images/CATTLE.webp", "LEON": "images/LEON.webp", "CLOSER": "images/CLOSER.webp", "MONT": "images/MONT.webp", "SOY": "images/SOY.webp", "FLEURET": "images/FLEURET.webp", "YUKI": "images/YUKI.webp", "KEY": "images/KEY.webp", "MOKO": "images/MOKO.webp", "SEPIA": "images/SEPIA.webp", "PUPPET": "images/PUPPET.webp", "OKYANN": "images/OKYANN.webp", "WONDER": "images/WONDER.webp", "MONA·S": "images/MONA-S.webp", "JOKER·S": "images/JOKER-S.webp", "AIGIS": "images/AIGIS.webp", "CLOSER·R": "images/CLOSER-R.webp", "ANRI": "images/ANRI.webp", "KOROMARU": "images/KOROMARU.webp", "PINKY": "images/PINKY.webp", "JUNPEI": "images/JUNPEI.webp", "FUUKA": "images/FUKA.webp", "RIN·F": "images/RIN-L-D.webp", "WIND·T": "images/TEMPEST.webp", "MONT·F": "images/MONT-S.webp", "ORACLE": "images/NAVI.webp"}, "characterNames": ["AIGIS", "AKIHIKO", "ANGE", "ANRI", "BERRY", "BLITZ", "BUI", "BUI·P", "CATTLE", "CHERISH", "CHORD", "CLOSER", "CLOSER·R", "CLOSER·T", "CROW", "FLEURET", "FOX", "FUUKA", "HOWLER", "JOKER", "JOKER·S", "JUNPEI", "KEY", "KOROMARU", "LEON", "LUCE", "LUCE·N", "MAKOTO", "MARIAN", "MARIAN·S", "MATOI", "MESSA", "MITSURU", "MOKO", "MOKO·S", "MONA", "MONA·S", "MONT", "MONT·F", "NOIR", "OKYANN", "ORACLE", "PANTHER", "PHOEBE", "PINKY", "PUPPET", "PUPPET·S", "QUEEN", "RIDDLE", "RIN", "RIN·F", "SEPIA", "SKULL", "SOY", "SOY·P", "TURBO", "TWINS", "VINO", "VIOLET", "WIND", "WIND·T", "WONDER", "YUKARI", "YUKI"], "personaNames": ["Alice", "Ame-no-Uzume", "Anubis", "Apsaras", "Arahabaki", "Baphomet", "Belphegor", "Bishamonten", "Chernobog", "Cu Chulainn", "Dionysus", "Dominion", "Girimehkala", "Isis", "Janosik", "Jatayu", "Jikokuten", "King Frost", "Kohryu", "Koumokuten", "Kushinada", "Lakshmi", "Lamia", "Lilith", "Macabre", "Melchizedek", "Mithras", "Narcissus", "Neko Shogun", "Nian", "Norn", "Okuninushi", "Orobas", "Parvati", "Pazuzu", "Sahimochi-no-kami", "Sandalphon", "Sarasvati", "Setanta", "Shiva", "Siegfried", "Sraosha", "Succubus", "Surt", "Thor", "Throne", "Titania", "Trumpeter", "Vasuki", "Vishnu", "Yamata-no-Orochi", "Yatagarasu", "Yoshitsune", "Yurlungur", "Zaou-Gongen"], "daggerNames": ["Abyss Fang", "All In", "Arc Knife", "Chaos Hex", "Curse of the Phantom", "Cyclotron", "Entropy Zero", "Ex Machina", "Eye of Obsequies", "Glacial Eternity", "Glimmer", "Pheromone Sting", "Plasma Blade", "Purgatory", "Sennight Inferno", "Starry Compass"], "revSets": ["Departure & Control", "Departure & Prosperity", "Departure & Hindrance", "Awareness & Truth", "Awareness & Control", "Awareness & Hindrance", "Growth & Opulence", "Growth & Renewal", "Growth & Power", "Wisdom & Oppression", "Wisdom & Pleasure", "Wisdom & Virtue", "Meditation & Opulence", "Meditation & Courage", "Meditation & Love", "Faith & Peace", "Faith & Love", "Trust & Renewal", "Trust & Power", "Trust & Prosperity", "Harmony & Victory", "Harmony & Power", "Harmony & Truth", "Resolve & Virtue", "Resolve & Labor", "Acceptance & Peace", "Acceptance & Strife", "Acceptance & Love", "Integrity & Pleause", "Integrity & Labor"], "bossNames": ["ATAVAKA", "BAAL", "BAAL ZEBUL", "DOMINION", "FAFNIR", "KARTIKEYA", "KOHRYU", "MARA", "NIDHOGGR", "OUMITSUNU", "SLAUGHTER DRIVE", "SURT", "VISHNU", "YATSUFUSA"], "awarenessOpts": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "DGR"], "revOpts": ["RX", "R0", "R1", "R2", "R3", "R4", "R5", "R6"], "typeOpts": ["MLD", "DOD", "NOD", "SOS"], "tierOpts": ["DOLPHIN", "F2P", "MINNOW", "WHALE"], "elucidatorOpts": ["ANGE", "FUUKA", "OKYANN", "ORACLE", "PHOEBE", "PUPPET", "WIND"], "initial": {"rotationName": "Rotation Name", "tier": "WHALE", "boss": "FAFNIR", "type": "MLD", "patch": "4.3", "score": "1.0E9", "team": ["WONDER", "CHORD", "YUKARI", "VIOLET"], "elucidator": "ORACLE", "awareness": ["A6", "DGR", "A1", "A6", "A6"], "rev": ["R6", "R5", "R0", "R6", "R6"], "persona": ["Dionysus", "Sraosha", "Kohryu"], "skills": ["TARUKAJA", "RAKUNDA"], "gear": ["Glimmer", "Trust & Prosperity", "Creation & Reconciliation", "Wisdom & Virtue", "Resolve & Labor"], "notes": "Includes DPS & Navi", "turns": [{"name": "TURN 1", "actions": [{"char": "ANGE", "action": "S3 if A1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 2", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 3", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S1 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "CHORD", "action": "HL"}, {"char": "CHORD", "action": "S3 Violet"}, {"char": "VIOLET", "action": "HL HL S3"}]}, {"name": "TURN 4", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1 if A0, S2 if A1+"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 5", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2 if A0, S1 if A1+"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 6", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S2 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "ANGE", "action": "HL Chord"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "CHORD", "action": "S3 Violet x2"}, {"char": "ANGE", "action": "S3"}, {"char": "VIOLET", "action": "HL HL S3"}]}]}, "sunSkyCards": ["Change", "Control", "Courage", "Defeat", "Depravity", "Determination", "Disappointment", "Flourishing", "Futility", "Hindrance", "Labor", "Love", "Obtain", "Oppression", "Opulence", "Peace", "Pleasure", "Power", "Prosperity", "Prudence", "Reconciliation", "Renewal", "Ruin", "Satiety", "Sorrow", "Strife", "Tenacity", "Triumph", "Truth", "Victory", "Virtue", "Worry"], "spaceCards": ["Acceptance", "Agility", "Awareness", "Creation", "Departure", "Faith", "Freedom", "Growth", "Harmony", "Hope", "Integrity", "Meditation", "Nativity", "Perseverance", "Purity", "Resolve", "Trust", "Wisdom"], "spacePartners": {"Nativity": ["Power"], "Perseverance": ["Change", "Obtain", "Sorrow"], "Hope": ["Change", "Labor", "Ruin"], "Creation": ["Reconciliation", "Tenacity", "Worry"], "Integrity": ["Labor", "Pleasure", "Ruin"], "Resolve": ["Labor", "Prudence", "Virtue"], "Awareness": ["Control", "Hindrance", "Truth"], "Departure": ["Control", "Hindrance", "Prosperity"], "Growth": ["Opulence", "Power", "Renewal"], "Wisdom": ["Oppression", "Pleasure", "Virtue"], "Meditation": ["Courage", "Love", "Opulence"], "Faith": ["Futility", "Love", "Peace"], "Trust": ["Power", "Prosperity", "Renewal"], "Harmony": ["Power", "Truth", "Victory"], "Acceptance": ["Love", "Peace", "Strife"], "Freedom": ["Defeat", "Disappointment", "Triumph"], "Purity": ["Change", "Depravity", "Flourishing"], "Agility": ["Flourishing", "Hindrance", "Satiety"]}, "charColors": {"MONA·S": "#82ec2c", "JOKER·S": "#ff0036", "AIGIS": "#fe9e01", "CLOSER·R": "#fcff37", "ANRI": "#ff0036", "KOROMARU": "#ff0036", "PINKY": "#ff66ff", "JUNPEI": "#ff391d", "TWINS": "#ffffff", "SOY·P": "#fe9e01", "LUCE·N": "#ffffa2", "FUUKA": "#3a6dfa", "MITSURU": "#00afff", "BUI·P": "#00fcff", "BLITZ": "#fcff37", "PUPPET·S": "#00afff", "MARIAN·S": "#ffffa2", "BERRY": "#ff0036", "AKIHIKO": "#fcff37", "YUKARI": "#82ec2c", "MAKOTO": "#ff391d", "ANGE": "#3a6dfa", "LUCE": "#ffffa2", "TURBO": "#ff9d00", "CROW": "#ffffff", "MATOI": "#00afff", "RIN·F": "#ff391d", "WIND·T": "#82ec2c", "VIOLET": "#ffffa2", "HOWLER": "#ff391d", "MONT·F": "#82ec2c", "NOIR": "#ff66ff", "CHERISH": "#00afff", "ORACLE": "#3a6dfa", "MESSA": "#ff9d00", "MOKO·S": "#ff66ff", "CLOSER·T": "#ffffa2", "CHORD": "#fcff37", "WIND": "#3a6dfa", "PHOEBE": "#3a6dfa", "QUEEN": "#00fcff", "VINO": "#00fcff", "FOX": "#00afff", "BUI": "#fcff37", "MARIAN": "#ffffa2", "JOKER": "#ff0036", "SKULL": "#ff9d00", "MONA": "#82ec2c", "PANTHER": "#ff391d", "RIN": "#ff0036", "RIDDLE": "#ff66ff", "CATTLE": "#ff391d", "LEON": "#00fcff", "CLOSER": "#fcff37", "MONT": "#00afff", "SOY": "#00afff", "FLEURET": "#82ec2c", "YUKI": "#ffffa2", "KEY": "#ff391d", "MOKO": "#ff66ff", "SEPIA": "#ff0036", "PUPPET": "#3a6dfa", "OKYANN": "#3a6dfa"}, "elucidatorNames": ["ANGE", "FUUKA", "ORACLE", "WIND", "PHOEBE", "PUPPET", "OKYANN"]};
+
+/* ---------- helpers ---------- */
+const KNOWN_COLORS = {WONDER:'#c2002e'};
+const TWINS_ROLES = ['Sweeper','Assassin','Strategist','Saboteur','Medic','Guardian'];
+const ACT_SPECIAL = ['MAKOTO','YUKARI','AKIHIKO','MITSURU','JUNPEI','KOROMARU','AIGIS','FUUKA']; // the "SEES" characters (THEURGY/ASSIST); FUUKA is SEES but Elucidator rules take priority
+const SOS_BOSSES = ["ASURA","BAPHOMET","BISHAMONTEN","CU CHULAINN","LILITH AOE","LILITH ST","MELCHIZEDEK","POWER","QUETZALCOATL","SEIRYU","SETH","SRAOSHA","TITANIA","VISHNU","ZAOU-GONGEN"];
+function bossListFor(type){ return type==='SOS' ? SOS_BOSSES : DATA.bossNames; }
+const ACT_CODES = ['S1','S2','S3','HL','Atk','Gn','Gd','Ast'];
+const ACT_LABEL_TO_CODE = {theurgy:'HL', highlight:'HL', attack:'Atk', gun:'Gn', guard:'Gd', assist:'Ast'};
+const BTN_LABEL = {Atk:'Attack', Gn:'Gun', Gd:'Guard', Ast:'Assist'}; // written-out button labels; S1/S2/S3/HL show as-is
+function btnLabel(c){ return BTN_LABEL[c]||c||''; }
+const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO']; // get a separate button next to the character select
+const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC'};                       // editor button text; default 'Alt'
+const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch'}; // export text; default 'Button'
+function hasAlt(name){ return ALT_CHARS.includes((name||'').toUpperCase()); }
+function altBtnLabel(name){ return ALT_BTN_LABEL[(name||'').toUpperCase()] || 'Alt'; }
+function altExportLabel(name){ return ALT_EXPORT_LABEL[(name||'').toUpperCase()] || 'Button'; }
+function actButtonRows(name){
+  const u=(name||'').toUpperCase();
+  if((DATA.elucidatorNames||[]).includes(u)) return [['S1','S2','S3']];
+  if(ACT_SPECIAL.includes(u)) return [['S1','S2','S3','HL'],['Atk','Ast','Gd']];
+  return [['S1','S2','S3','HL'],['Atk','Gn','Gd']];
+}
+function actCodesFor(name){ return actButtonRows(name).reduce((acc,g)=>acc.concat(g),[]); }
+function actButtons(name){ return actCodesFor(name); } /* kept for compatibility */
+function actionLabel(a, name){
+  if((name||'').toUpperCase()==='WONDER'){
+    return [a.persona||'', a.hl?'HL':'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+  }
+  const special=ACT_SPECIAL.includes((name||'').toUpperCase());
+  const lbl=c=>!c?'':(c==='ALT'?altExportLabel(name):(c==='HL'?(special?'Theurgy':'Highlight'):(BTN_LABEL[c]||c)));
+  return [lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+}
+function migrateAction(a){
+  const isW=(a.char||'').toUpperCase()==='WONDER';
+  if(a.btn!==undefined || a.text!==undefined || a.persona!==undefined || a.hl!==undefined){
+    if(isW){ a.persona=a.persona||''; a.hl=!!a.hl; a.text=a.text||''; }
+    else { a.btn=a.btn||''; a.text=a.text||''; }
+    delete a.action; delete a.custom; return;
+  }
+  const raw=(a.action!=null?String(a.action):'');
+  if(isW){ a.persona=''; a.hl=false; a.text=raw; }
+  else {
+    const txt=raw.trim(); let code='';
+    if(ACT_CODES.includes(txt)) code=txt;
+    else { const m=ACT_LABEL_TO_CODE[txt.toLowerCase()]; if(m) code=m; }
+    if(code && !a.custom && actCodesFor(a.char).includes(code)){ a.btn=code; a.text=''; }
+    else { a.btn=''; a.text=raw; }
+  }
+  delete a.action; delete a.custom;
+}
+function normalizeActions(turns){
+  (turns||[]).forEach(t=>{ (t.actions||[]).forEach(a=>migrateAction(a)); });
+}
+function charColor(name){
+  if(!name) return '#666';
+  const u=name.toUpperCase();
+  if(DATA.charColors && DATA.charColors[u]) return DATA.charColors[u];
+  if(KNOWN_COLORS[u]) return KNOWN_COLORS[u];
+  let h=0; for(const c of u) h=(h*31+c.charCodeAt(0))%360;
+  return `hsl(${h} 55% 70%)`;
+}
+function imgFor(name){
+  if(!name) return '';
+  return DATA.characterImages[name.toUpperCase()] || DATA.characterImages[name] || '';
+}
+function personaImg(name){
+  if(!name) return '';
+  return 'personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png';
+}
+function opt(list, val){
+  return list.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('');
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- state ---------- */
+const KEY='paradise-rotation-v1';
+function defaultState(){
+  const i=DATA.initial;
+  function mk(n,aw,rv,g){
+    const u={name:n,awareness:aw,rev:rv,gear:'',space:'',sunsky:'',role:'',companion:''};
+    if((n||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; u.rev='R6'; u.gear=g; }
+    else if(g && g.indexOf(' & ')>-1){ const p=g.split(' & '); u.space=p[0].trim(); u.sunsky=p[1].trim(); }
+    return u;
+  }
+  const units=i.team.map((n,k)=>mk(n,i.awareness[k]||'A0',i.rev[k]||'R0',i.gear[k]||''));
+  const st={
+    setup:{rotationName:i.rotationName,tier:i.tier,boss:i.boss,type:i.type,patch:i.patch,score:i.score,notes:i.notes,credits:i.credits||''},
+    units,
+    elucidator:mk(i.elucidator,i.awareness[4]||'A6',i.rev[4]||'R6',i.gear[4]||''),
+    personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '', '' ]})),
+    teamNotes:'',
+    turns:JSON.parse(JSON.stringify(i.turns)),
+  };
+  normalizeActions(st.turns);
+  return st;
+}
+function blankState(){
+  const u=()=>({name:'',awareness:'A0',rev:'RX',gear:'',space:'',sunsky:'',role:'',companion:''});
+  return {
+    setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''},
+    units:[{name:'WONDER',awareness:'DGR',rev:'R0',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
+    elucidator:u(),
+    personas:[{name:'',skills:['','','']},{name:'',skills:['','','']},{name:'',skills:['','','']}],
+    teamNotes:'',
+    turns:Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',btn:'',text:''}]})),
+  };
+}
+let state;
+function migrate(st){
+  if(!st.personas){
+    const names=st.persona||DATA.initial.persona;
+    const old=st.skills||[];
+    st.personas=names.map((n,k)=>({name:n,skills:[old[k]||'','','']}));
+  }
+  st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<3)p.skills.push(''); p.skills=p.skills.slice(0,3); });
+  [].concat(st.units||[], st.elucidator?[st.elucidator]:[]).forEach(u=>{
+    if(!u) return;
+    if(u.space===undefined)u.space='';
+    if(u.sunsky===undefined)u.sunsky='';
+    if(u.gear===undefined)u.gear='';
+    if(u.role===undefined)u.role='';
+    if(u.companion===undefined)u.companion='';
+    const isW=(u.name||'').toUpperCase()==='WONDER';
+    if(!isW && !u.space && !u.sunsky && u.gear && u.gear.indexOf(' & ')>-1){ const p=u.gear.split(' & '); u.space=p[0].trim(); u.sunsky=p[1].trim(); u.gear=''; }
+  });
+  if(st.teamNotes===undefined) st.teamNotes='';
+  if(st.setup && st.setup.credits===undefined) st.setup.credits='';
+  if(st.setup){ if(!String(st.setup.boss||'').trim()) st.setup.boss=''; if(!String(st.setup.credits||'').trim()) st.setup.credits=''; }
+  normalizeActions(st.turns);
+  return st;
+}
+function load(){ try{const s=localStorage.getItem(KEY); if(s) return migrate(JSON.parse(s));}catch(e){} return blankState(); }
+function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} }
+
+/* ---------- render: header ---------- */
+function renderHead(){
+  const s=state.setup;
+  document.getElementById('headPanel').innerHTML=`
+    <div class="head-top">
+      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="Rotation Name"/></div>
+    </div>
+    <div class="meta meta-big">
+      <div class="type-field"><label>Mode</label><div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div></div>
+      <div class="field"><label>Boss</label><input id="f_boss" list="bossList" value="${esc(s.boss)}"/></div>
+      <div class="field patch-field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
+      <div class="field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
+      <div class="field credits-field"><label>Credits</label><input id="f_credits" value="${esc(s.credits||'')}"/></div>
+    </div>
+    <datalist id="bossList">${bossListFor(s.type).map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist>`;
+  bind('f_name','setup.rotationName');
+  bind('f_credits','setup.credits');
+  const tsel=document.getElementById('f_type');
+  tsel.onchange=()=>{
+    const oldType=state.setup.type, newType=tsel.value;
+    const crossDOD = (oldType==='DOD') !== (newType==='DOD');
+    if(crossDOD){
+      if(!confirm('Switching between DOD and MLD/NOD clears the entire Rotation (all turns and rotation notes).\n\nIt is strongly recommended to use "Export JSON" first to back up your data.\n\nContinue and clear the rotation?')){
+        tsel.value=oldType; return;
+      }
+      if(newType==='DOD'){
+        state.turns=[
+          {name:'TURN 1',actions:[{char:'',btn:'',text:''}]},
+          {name:'TURN 2',actions:[{char:'',btn:'',text:''}]},
+          {name:'Break 1',actions:[{char:'',btn:'',text:''}]},
+          {name:'Break 2',actions:[{char:'',btn:'',text:''}]}
+        ];
+      } else {
+        state.turns=Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',btn:'',text:''}]}));
+      }
+      state.setup.notes='';
+    }
+    state.setup.type=newType;
+    save();
+    const dl=document.getElementById('bossList'); if(dl) dl.innerHTML=bossListFor(newType).map(b=>`<option value="${esc(b)}"></option>`).join('');
+    tsel.closest('.tier').className='tier type-'+newType.toLowerCase();
+    renderTurns();
+    renderNotes();
+  };
+  bind('f_boss','setup.boss');
+  bind('f_patch','setup.patch'); bind('f_score','setup.score');
+}
+
+/* ---------- render: team ---------- */
+function unitCard(u, path, elu, idx){
+  const col=charColor(u.name); const img=imgFor(u.name);
+  const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
+  let nameOpts=[''].concat(names);
+  if(u.name && !nameOpts.includes(u.name)) nameOpts=[''].concat([u.name]).concat(names);
+  const isW = !elu && (u.name||'').toUpperCase()==='WONDER';
+  const awareOpts = isW ? ['DGR'] : DATA.awarenessOpts.filter(o=>o!=='DGR');
+  const revFull = isW ? DATA.revOpts.filter(o=>o!=='RX') : DATA.revOpts.slice();
+  if(isW){ if(u.awareness!=='DGR') u.awareness='DGR'; }
+  else if(!awareOpts.includes(u.awareness)) u.awareness='A0';
+  if(!revFull.includes(u.rev)) u.rev = isW ? 'R0' : 'RX';
+  // Wonder -> single Dagger select; everyone else -> Space + Sun/Moon/Star/Sky
+  let revBlock;
+  if(isW){
+    if(u.gear && !DATA.daggerNames.includes(u.gear)) u.gear='';
+    let gOpts=[''].concat(DATA.daggerNames);
+    if(u.gear && !gOpts.includes(u.gear)) gOpts=[''].concat([u.gear]).concat(DATA.daggerNames);
+    revBlock=`<div class="rev-row one"><div><div class="rev-lab">Dagger</div><select class="gear" data-path="${path}.gear">${opt(gOpts,u.gear)}</select></div></div>`;
+  } else {
+    let spOpts=[''].concat(DATA.spaceCards); if(u.space && !spOpts.includes(u.space)) spOpts=[''].concat([u.space]).concat(DATA.spaceCards);
+    const ssBase = (u.space && DATA.spacePartners && DATA.spacePartners[u.space]) ? DATA.spacePartners[u.space] : DATA.sunSkyCards;
+    let ssOpts=[''].concat(ssBase); if(u.sunsky && !ssOpts.includes(u.sunsky)) ssOpts=[''].concat([u.sunsky]).concat(ssBase);
+    revBlock=`<div class="rev-row">
+      <div><div class="rev-lab">Space</div><select data-path="${path}.space">${opt(spOpts,u.space)}</select></div>
+      <div><div class="rev-lab">Sun/Moon/Star/Sky</div><select data-path="${path}.sunsky">${opt(ssOpts,u.sunsky)}</select></div>
+    </div>`;
+  }
+  const nm=(u.name||'').toUpperCase();
+  let extraBlock='';
+  if(nm==='TWINS'){
+    let rOpts=[''].concat(TWINS_ROLES);
+    if(u.role && !rOpts.includes(u.role)) rOpts=[''].concat([u.role]).concat(TWINS_ROLES);
+    extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Role</div><select data-path="${path}.role">${opt(rOpts,u.role)}</select></div></div>`;
+  }
+  if(nm==='FUUKA'){
+    const compNames=DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
+    let cOpts=[''].concat(compNames);
+    if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
+    extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
+  }
+  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
+  const art = img
+    ? `<div class="art" style="background-image:url('${esc(img)}')">${overlay}</div>`
+    : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
+  return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
+    ${art}
+    <div class="body">
+      <select class="name" data-uname="${path}">${opt(nameOpts,u.name)}</select>
+      <div class="rev-row">
+        <div><div class="rev-lab">Awareness</div><select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select></div>
+        <div><div class="rev-lab">Reforge</div><select data-path="${path}.rev">${opt(revFull,u.rev)}</select></div>
+      </div>
+      ${revBlock}${extraBlock}
+    </div></div>`;
+}
+function renderTeam(){
+  const unitsHtml = state.units.map((u,k)=>unitCard(u,`units.${k}`,false,k)).join('') + unitCard(state.elucidator,'elucidator',true,null);
+  const personaHtml = state.personas.map((p,k)=>`
+    <div class="persona-col minicard" data-pidx="${k}">
+      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">\u283f</span></div>
+      <div class="pcol-body">
+        <div class="pcol-fields">
+          <select data-path="personas.${k}.name"><option value=""${p.name?'':' selected'}>Choose Persona</option>${opt(DATA.personaNames,p.name)}</select>
+          <div class="skills">${p.skills.map((s,si)=>`<input data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Skill ${si+1}"/>`).join('')}</div>
+        </div>
+        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="this.style.display='none'" loading="lazy"/>`:''}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('teamPanel').innerHTML=`
+    <div class="section-title"><h2>Team</h2><div class="rule"></div><button class="btn whale-btn" id="whaleBtn" title="Set every Awareness to A6 and every Reforge to R6">Whale</button></div>
+    <div class="units">${unitsHtml}</div>
+    <div class="persona-grid">${personaHtml}</div>
+    <div class="team-notes">
+      <textarea id="teamNotes" placeholder="Team notes…"></textarea>
+    </div>`;
+  const tp=document.getElementById('teamPanel');
+  const whaleBtn=document.getElementById('whaleBtn');
+  if(whaleBtn) whaleBtn.onclick=()=>{
+    const apply=u=>{ if(!u) return; if((u.name||'').toUpperCase()==='WONDER') u.rev='R6'; else { u.awareness='A6'; u.rev='R6'; } };
+    (state.units||[]).forEach(apply); apply(state.elucidator);
+    save(); renderTeam();
+  };
+  bindPaths(tp, ()=>{ renderTeam(); renderTurns(); });
+  const tn=document.getElementById('teamNotes'); tn.value=state.teamNotes||''; tn.oninput=()=>{ state.teamNotes=tn.value; save(); };
+  // drag & drop reorder of personas (slot labels Persona 1/2/3 stay fixed; only the content moves)
+  let dragP=null;
+  tp.querySelectorAll('.persona-col .pgrip').forEach(g=>{
+    g.addEventListener('dragstart',e=>{ const col=g.closest('[data-pidx]'); dragP=+col.dataset.pidx;
+      col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
+    g.addEventListener('dragend',()=>tp.querySelectorAll('.persona-col').forEach(c=>c.classList.remove('dragging','drag-over')));
+  });
+  tp.querySelectorAll('[data-pidx]').forEach(col=>{
+    col.addEventListener('dragover',e=>{ if(dragP!=null){ e.preventDefault(); col.classList.add('drag-over'); }});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',e=>{ e.preventDefault(); col.classList.remove('drag-over');
+      const to=+col.dataset.pidx;
+      if(dragP!=null && dragP!==to){ const[m]=state.personas.splice(dragP,1); state.personas.splice(to,0,m); save(); renderTeam(); }
+      dragP=null; });
+  });
+  tp.querySelectorAll('[data-uname]').forEach(el=>{
+    el.onchange=()=>{
+      const u=getByPath(el.dataset.uname);
+      u.name=el.value;
+      if((u.name||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; u.rev='R6'; }
+      save(); renderTeam(); renderTurns();
+    };
+  });
+  // drag & drop reorder of the 4 main units (elucidator excluded)
+  let dragIdx=null;
+  tp.querySelectorAll('.unit .grip').forEach(g=>{
+    g.addEventListener('dragstart',e=>{ const card=g.closest('[data-uidx]'); dragIdx=+card.dataset.uidx;
+      card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
+    g.addEventListener('dragend',()=>tp.querySelectorAll('.unit').forEach(c=>c.classList.remove('dragging','drag-over')));
+  });
+  tp.querySelectorAll('[data-uidx]').forEach(card=>{
+    card.addEventListener('dragover',e=>{ if(dragIdx!=null){ e.preventDefault(); card.classList.add('drag-over'); }});
+    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+    card.addEventListener('drop',e=>{ e.preventDefault(); card.classList.remove('drag-over');
+      const to=+card.dataset.uidx;
+      if(dragIdx!=null && dragIdx!==to){ const[m]=state.units.splice(dragIdx,1); state.units.splice(to,0,m); save(); renderTeam(); }
+      dragIdx=null; });
+  });
+}
+
+/* ---------- render: turns ---------- */
+function teamChars(){
+  const all=[...state.units, state.elucidator];
+  const comp=all.filter(u=>u && (u.name||'').toUpperCase()==='FUUKA').map(u=>u.companion);
+  const names=[...state.units.map(u=>u.name), state.elucidator.name, ...comp].filter(n=>n);
+  const uniq=names.filter((v,i,a)=>a.indexOf(v)===i);
+  return uniq.sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+}
+function moveAction(from,to){
+  const [m]=state.turns[from.ti].actions.splice(from.ai,1);
+  let idx=to.ai;
+  if(from.ti===to.ti && from.ai<to.ai) idx=to.ai-1;
+  state.turns[to.ti].actions.splice(idx,0,m);
+}
+function actRow(a, ti, ai){
+  const col=charColor(a.char);
+  const team=teamChars();
+  let chOpts=[''].concat(team);
+  if(a.char && !chOpts.includes(a.char)) chOpts=[''].concat([a.char]).concat(team);
+  const isWonder=(a.char||'').toUpperCase()==='WONDER';
+  let midBody;
+  if(isWonder){
+    const pNames=state.personas.map(p=>(p.name||'').trim()).filter(Boolean);
+    const extra=(a.persona && !pNames.includes(a.persona))?[a.persona]:[];
+    const pOptHtml=`<option value=""${a.persona?'':' selected'}>Persona…</option>`+extra.concat(pNames).map(nm=>`<option${a.persona===nm?' selected':''}>${esc(nm)}</option>`).join('');
+    midBody=`<div class="act-wonder">
+        <select data-wpersona="${ti}.${ai}">${pOptHtml}</select>
+        <button type="button" class="actbtn ${a.hl?'on':''}" data-whl="${ti}.${ai}">HL</button>
+      </div>
+      <input data-taction="${ti}.${ai}" value="${esc(a.text||'')}"/>`;
+  } else {
+    const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
+    const lab=c=>(c==='HL'&&special)?'TG':btnLabel(c);
+    const rows=actButtonRows(a.char).map(group=>`<div class="act-actions">${group.map(c=>`<button type="button" class="actbtn ${a.btn===c?'on':''}" data-actset="${ti}.${ai}" data-code="${esc(c)}">${esc(lab(c))}</button>`).join('')}</div>`).join('');
+    midBody=`${rows}<input data-taction="${ti}.${ai}" value="${esc(a.text||'')}"/>`;
+  }
+  const altHtml = hasAlt(a.char) ? `<button type="button" class="actbtn altbtn ${a.btn==='ALT'?'on':''}" data-actset="${ti}.${ai}" data-code="ALT">${esc(altBtnLabel(a.char))}</button>` : '';
+  return `<div class="act" style="--ax:${col}" data-ti="${ti}" data-ai="${ai}">
+    <div class="n" draggable="true" title="Drag to move">${ai+1}</div>
+    <div class="mid">
+      <div class="act-charrow"><select data-tchar="${ti}.${ai}">${opt(chOpts,a.char)}</select>${altHtml}</div>
+      ${midBody}
+    </div>
+    <div class="act-btns">
+      <button class="addrow" data-addabove="${ti}.${ai}" title="Add action above">+</button>
+      <button class="x" data-delact="${ti}.${ai}" title="Remove">×</button>
+      <button class="addrow" data-addbelow="${ti}.${ai}" title="Add action below">+</button>
+    </div>
+  </div>`;
+}
+function renumberTurns(){
+  let changed=false;
+  const dod=state.setup.type==='DOD', n=state.turns.length;
+  const auto=/^(TURN\s+\d+|Break\s+[12])$/i;
+  state.turns.forEach((t,i)=>{
+    let want, force=false;
+    if(dod && n>=2 && i===n-2){ want='Break 1'; force=true; }
+    else if(dod && n>=2 && i===n-1){ want='Break 2'; force=true; }
+    else want='TURN '+(i+1);
+    if((force || auto.test((t.name||'').trim())) && t.name!==want){ t.name=want; changed=true; }
+  });
+  if(changed) save();
+}
+function turnHtml(t,ti,isBreak){
+  return `
+    <div class="turn">
+      <div class="turn-head">
+        <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
+        ${isBreak?'':`<button class="del" data-delturn="${ti}" title="Remove turn">×</button>`}
+      </div>
+      <div class="acts" data-ti="${ti}">${t.actions.map((a,ai)=>actRow(a,ti,ai)).join('')}</div>
+      <button class="add-act" data-addact="${ti}">+ Action</button>
+    </div>`;
+}
+let rotationPreviewOpen=false;
+function renderRotationPreview(){
+  const body=document.getElementById('rotPreviewBody'), btn=document.getElementById('rotPreviewToggle');
+  if(!body||!btn) return;
+  const eyeOpen='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const eyeClosed='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  btn.innerHTML=(rotationPreviewOpen?eyeOpen:eyeClosed)+'<span>Rotation Preview</span>';
+  btn.setAttribute('aria-expanded', String(rotationPreviewOpen));
+  body.hidden=!rotationPreviewOpen;
+  if(!rotationPreviewOpen){ body.innerHTML=''; return; }
+  body.innerHTML=`<div style="font:600 10px Inter,sans-serif;color:#6f6a85;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Image export preview · scroll sideways · not part of the export</div>
+    <div style="overflow-x:auto;background:#14121c;padding:16px;box-sizing:border-box;border-radius:8px;font-family:Inter,system-ui,sans-serif;"><div style="zoom:1.4;">${exportTurnsBlock(true)}</div></div>`;
+}
+function renderTurns(){
+  renumberTurns();
+  const wrap=document.getElementById('turns');
+  const sl=wrap.scrollLeft;
+  const dod=state.setup.type==='DOD', n=state.turns.length;
+  const addBtn=`<button class="add-turn" id="addTurn" title="Add turn">+</button>`;
+  if(dod && n>=2){
+    wrap.innerHTML = state.turns.slice(0,n-2).map((t,i)=>turnHtml(t,i,false)).join('') + addBtn + state.turns.slice(n-2).map((t,i)=>turnHtml(t,n-2+i,true)).join('');
+  } else {
+    wrap.innerHTML = state.turns.map((t,ti)=>turnHtml(t,ti,false)).join('') + addBtn;
+  }
+
+  wrap.querySelectorAll('[data-tname]').forEach(el=>el.oninput=e=>{state.turns[+el.dataset.tname].name=e.target.value; save(); renderRotationPreview();});
+  wrap.querySelectorAll('[data-taction]').forEach(el=>el.oninput=e=>{const[t,a]=el.dataset.taction.split('.');state.turns[t].actions[a].text=e.target.value; save(); renderRotationPreview();});
+  wrap.querySelectorAll('[data-tchar]').forEach(el=>el.onchange=e=>{
+    const[t,a]=el.dataset.tchar.split('.'); const o=state.turns[t].actions[a]; o.char=e.target.value;
+    if((o.char||'').toUpperCase()!=='WONDER' && o.btn && !(actCodesFor(o.char).includes(o.btn) || (o.btn==='ALT'&&hasAlt(o.char)))) o.btn='';
+    save(); renderTurns();
+  });
+  wrap.querySelectorAll('[data-actset]').forEach(el=>el.onclick=()=>{
+    const[t,a]=el.dataset.actset.split('.'); const o=state.turns[t].actions[a];
+    o.btn = (o.btn===el.dataset.code) ? '' : el.dataset.code;       /* toggle */
+    save(); renderTurns();
+  });
+  wrap.querySelectorAll('[data-wpersona]').forEach(el=>el.onchange=e=>{
+    const[t,a]=el.dataset.wpersona.split('.'); state.turns[t].actions[a].persona=e.target.value; save(); renderRotationPreview();
+  });
+  wrap.querySelectorAll('[data-whl]').forEach(el=>el.onclick=()=>{
+    const[t,a]=el.dataset.whl.split('.'); const o=state.turns[t].actions[a]; o.hl=!o.hl; save(); renderTurns();
+  });
+  wrap.querySelectorAll('[data-delact]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.delact.split('.');state.turns[t].actions.splice(a,1); save(); renderTurns();});
+  wrap.querySelectorAll('[data-addabove]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addabove.split('.');state.turns[t].actions.splice(+a,0,{char:'',btn:'',text:''}); save(); renderTurns();});
+  wrap.querySelectorAll('[data-addbelow]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addbelow.split('.');state.turns[t].actions.splice(+a+1,0,{char:'',btn:'',text:''}); save(); renderTurns();});
+  wrap.querySelectorAll('[data-addact]').forEach(el=>el.onclick=()=>{state.turns[+el.dataset.addact].actions.push({char:'',btn:'',text:''}); save(); renderTurns();});
+  wrap.querySelectorAll('[data-delturn]').forEach(el=>el.onclick=()=>{if(confirm('Remove this turn?')){state.turns.splice(+el.dataset.delturn,1); save(); renderTurns();}});
+  document.getElementById('addTurn').onclick=()=>{
+    if(state.setup.type==='DOD' && state.turns.length>=2){
+      state.turns.splice(state.turns.length-2,0,{name:'TURN '+(state.turns.length-1),actions:[{char:'',btn:'',text:''}]});
+    } else {
+      state.turns.push({name:'TURN '+(state.turns.length+1),actions:[{char:'',btn:'',text:''}]});
+    }
+    save(); renderTurns();
+  };
+
+  // action drag & drop (reorder within a turn, move across turns; numbers re-index automatically)
+  let dragAct=null;
+  wrap.querySelectorAll('.act .n').forEach(n=>{
+    n.addEventListener('dragstart',e=>{ const row=n.closest('.act'); dragAct={ti:+row.dataset.ti, ai:+row.dataset.ai};
+      row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','a');}catch(_){} });
+    n.addEventListener('dragend',()=>wrap.querySelectorAll('.act').forEach(r=>r.classList.remove('dragging','drop-before')));
+  });
+  wrap.querySelectorAll('.act').forEach(row=>{
+    row.addEventListener('dragover',e=>{ if(dragAct){ e.preventDefault(); row.classList.add('drop-before'); }});
+    row.addEventListener('dragleave',()=>row.classList.remove('drop-before'));
+    row.addEventListener('drop',e=>{ if(!dragAct) return; e.preventDefault(); e.stopPropagation(); row.classList.remove('drop-before');
+      moveAction(dragAct,{ti:+row.dataset.ti, ai:+row.dataset.ai}); dragAct=null; save(); renderTurns(); });
+  });
+  wrap.querySelectorAll('.acts').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{ if(dragAct) e.preventDefault(); });
+    zone.addEventListener('drop',e=>{ if(!dragAct) return; e.preventDefault();
+      const ti=+zone.dataset.ti; const [m]=state.turns[dragAct.ti].actions.splice(dragAct.ai,1);
+      state.turns[ti].actions.push(m); dragAct=null; save(); renderTurns(); });
+  });
+  wrap.scrollLeft=sl;
+  renderRotationPreview();
+}
+
+/* ---------- generic binding ---------- */
+function setPath(path,val){ const p=path.split('.'); let o=state; for(let k=0;k<p.length-1;k++) o=o[p[k]]; o[p[p.length-1]]=val; }
+function getByPath(path){ const p=path.split('.'); let o=state; for(const k of p) o=o[k]; return o; }
+function bind(id,path){ const el=document.getElementById(id); el.oninput=el.onchange=()=>{setPath(path, el.value); save();}; }
+function bindPaths(root, afterStructural){
+  root.querySelectorAll('[data-path]').forEach(el=>{
+    el.onchange=()=>{ setPath(el.dataset.path, el.value);
+      if(el.dataset.path.endsWith('.space')){ const ssPath=el.dataset.path.replace(/\.space$/,'.sunsky');
+        const partners=(el.value && DATA.spacePartners && DATA.spacePartners[el.value]) || [];
+        setPath(ssPath, partners.length===1 ? partners[0] : ''); }
+      save(); if(el.classList.contains('name') || el.dataset.path.endsWith('.space') || el.dataset.path.endsWith('.companion') || el.dataset.path.endsWith('.name')) afterStructural(); };
+    el.oninput=()=>{ setPath(el.dataset.path, el.value); save(); };
+  });
+}
+
+function renderNotes(){
+  const ta=document.getElementById('notes'); ta.value=state.setup.notes||'';
+  ta.oninput=()=>{state.setup.notes=ta.value; save();};
+}
+function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); }
+
+/* ---------- toolbar ---------- */
+const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":"","boss":"SLAUGHTER DRIVE","type":"MLD","patch":"4.3","score":"2.4B","notes":"","credits":"Kimmy"},"units":[{"name":"YUKARI","awareness":"A6","rev":"R6","gear":"","space":"Creation","sunsky":"Reconciliation","role":"","companion":""},{"name":"TWINS","awareness":"A6","rev":"R6","gear":"","space":"Departure","sunsky":"Control","role":"Strategist","companion":""},{"name":"WONDER","awareness":"DGR","rev":"R6","gear":"Cyclotron","space":"","sunsky":"","role":"","companion":""},{"name":"AKIHIKO","awareness":"A6","rev":"R6","gear":"","space":"Perseverance","sunsky":"Change","role":"","companion":""}],"elucidator":{"name":"ANGE","awareness":"A6","rev":"R6","gear":"","space":"Hope","sunsky":"Labor","role":"","companion":""},"personas":[{"name":"Dionysus","skills":["Matarukaja","Tarukaja",""]},{"name":"Thor","skills":["Wild Thunder","",""]},{"name":"Kohryu","skills":["","",""]}],"teamNotes":"15.7 Pierce, 25.3 CR min (More can be better)","turns":[{"name":"TURN 1","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"Atk","text":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"Wild Thunder"},{"char":"AKIHIKO","btn":"S2","text":""}]},{"name":"TURN 2","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Mataru"},{"char":"AKIHIKO","btn":"S1","text":""}]},{"name":"TURN 3","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":true,"text":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"Sig"},{"char":"AKIHIKO","btn":"ALT","text":"x2"},{"char":"AKIHIKO","btn":"S3","text":""}]},{"name":"TURN 4","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Taru"},{"char":"AKIHIKO","btn":"S1","text":""}]},{"name":"TURN 5","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"TWINS","btn":"HL","text":"Fire/Ice"},{"char":"YUKARI","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"ALT","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Mataru"},{"char":"AKIHIKO","btn":"S1","text":""}]},{"name":"TURN 6","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"ANGE","btn":"ALT","text":"x2"},{"char":"YUKARI","btn":"HL","text":""},{"char":"AKIHIKO","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Thor","hl":false,"text":"Sig"},{"char":"AKIHIKO","btn":"ALT","text":""},{"char":"AKIHIKO","btn":"S3","text":"x2"},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"AKIHIKO","btn":"S3","text":""}]}]},"DOD":{"setup":{"rotationName":"Haru Whale","tier":"","boss":"KARTIKEYA","type":"DOD","patch":"4.1","score":"600 Mil","notes":"Attack adds","credits":"Yanagi + Segejin"},"units":[{"name":"MATOI","awareness":"A6","rev":"R6","gear":"","space":"Faith","sunsky":"Futility","role":"","companion":""},{"name":"WONDER","awareness":"DGR","rev":"R5","gear":"Starry Compass","space":"","sunsky":"","role":"","companion":""},{"name":"NOIR","awareness":"A6","rev":"R6","gear":"","space":"Wisdom","sunsky":"Pleasure","role":"","companion":""},{"name":"CROW","awareness":"A6","rev":"R6","gear":"","space":"Freedom","sunsky":"Disappointment","role":"","companion":""}],"elucidator":{"name":"ORACLE","awareness":"A6","rev":"R6","gear":"","space":"Trust","sunsky":"Power","role":"","companion":""},"personas":[{"name":"Koumokuten","skills":["","",""]},{"name":"Yurlungur","skills":["Wild Thunder","Tarukaja",""]},{"name":"Kohryu","skills":["Agi","",""]}],"teamNotes":"Adjust Pierce & Crit","turns":[{"name":"TURN 1","actions":[{"char":"MATOI","btn":"Gd","text":""},{"char":"WONDER","persona":"Kohryu","hl":false,"text":"Agi"},{"char":"NOIR","btn":"Atk","text":""},{"char":"CROW","btn":"Gn","text":"1-4 times"}]},{"name":"TURN 2","actions":[{"char":"ORACLE","btn":"S2","text":"outta bird"},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Koumokuten","hl":false,"text":"Revolution"},{"char":"NOIR","btn":"Gd","text":""},{"char":"CROW","btn":"S1","text":""}]},{"name":"Break 1","actions":[{"char":"MATOI","btn":"HL","text":""},{"char":"ORACLE","btn":"S1","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"Wild Thunder"},{"char":"NOIR","btn":"S3","text":""},{"char":"CROW","btn":"S2","text":""}]},{"name":"Break 2","actions":[{"char":"ORACLE","btn":"S3","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"Taru"},{"char":"NOIR","btn":"HL","text":""},{"char":"NOIR","btn":"Gn","text":""},{"char":"CROW","btn":"S3","text":""}]}]}};
+function closeAllMenus(){
+  document.querySelectorAll('.dropdown-menu').forEach(mn=>{ mn.hidden=true; });
+  document.querySelectorAll('.dropdown > button[aria-haspopup]').forEach(b=>b.setAttribute('aria-expanded','false'));
+}
+document.addEventListener('click', closeAllMenus);
+(function(){
+  const wrap=document.getElementById('loadExWrap'), btn=document.getElementById('loadExBtn'), menu=document.getElementById('loadExMenu');
+  if(!wrap||!btn||!menu) return;
+  const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const key=it.dataset.example, ex=EXAMPLES[key]; close(); if(!ex) return;
+    if(confirm('Load the '+key+' example? This replaces your current rotation.\n\nUse "Export JSON" first if you want to keep your work.')){
+      try{ state=migrate(JSON.parse(JSON.stringify(ex))); save(); renderAll(); }catch(err){ alert('Could not load example.'); }
+    }
+  }; });
+})();
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=exportBaseName()+'.json'; a.click();
+}
+document.getElementById('importFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{ try{ state=migrate(JSON.parse(r.result)); save(); renderAll(); }catch(err){ alert('Invalid JSON file.'); } }; r.readAsText(f);
+};
+(function(){
+  const wrap=document.getElementById('importWrap'), btn=document.getElementById('importMenuBtn'), menu=document.getElementById('importMenu');
+  if(!wrap||!btn||!menu) return;
+  const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.import; close();
+    if(k==='json') document.getElementById('importFile').click();
+    else if(k==='code') openImportCode();
+  }; });
+})();
+
+/* ---------- share code / link (self-contained, no server) ---------- */
+function b64urlEncode(s){ const bytes=new TextEncoder().encode(s); let bin=''; for(const b of bytes) bin+=String.fromCharCode(b); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function b64urlDecode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; const bin=atob(s); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
+/* compact codec (scheme C): positional arrays + enum indices, then LZString */
+function _roster(){ return DATA.characterNames.concat(DATA.elucidatorNames.filter(n=>!DATA.characterNames.includes(n))); }
+function _io(v,list){ const i=list.indexOf(v); return i>=0?i:(v==null?'':v); }
+function _oi(v,list){ return typeof v==='number'?(list[v]!=null?list[v]:''):(v==null?'':v); }
+function compactEncode(st){
+  const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
+  const s=st.setup||{};
+  const unit=u=>[ _io(u.name,R), _io(u.awareness,AW), _io(u.rev,RV), u.gear||'', _io(u.space,SP), _io(u.sunsky,SS), u.role||'', u.companion||'' ];
+  const pnames=(st.personas||[]).map(p=>p.name);
+  const act=a=>{
+    if('btn' in a) return [ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
+    const pi=a.persona?pnames.indexOf(a.persona):-1;
+    return [ _io(a.char,R), pi>=0?pi:(a.persona||''), a.hl?1:0, a.text||'' ];
+  };
+  return [1,
+    [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
+    (st.units||[]).map(unit),
+    unit(st.elucidator||{}),
+    (st.personas||[]).map(p=>[ _io(p.name,PN), (p.skills||['','','']).slice(0,3) ]),
+    st.teamNotes||'',
+    (st.turns||[]).map(t=>[ t.name||'', (t.actions||[]).map(act) ]) ];
+}
+function compactDecode(arr){
+  const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
+  const su=arr[1]||[];
+  const unit=a=>({ name:_oi(a[0],R), awareness:_oi(a[1],AW), rev:_oi(a[2],RV), gear:a[3]||'', space:_oi(a[4],SP), sunsky:_oi(a[5],SS), role:a[6]||'', companion:a[7]||'' });
+  const personas=(arr[4]||[]).map(p=>({ name:_oi(p[0],PN), skills:(p[1]||['','','']).slice(0,3) }));
+  const pnames=personas.map(p=>p.name);
+  const act=a=>{
+    if(a.length===4) return { char:_oi(a[0],R), persona:typeof a[1]==='number'?(pnames[a[1]]||''):(a[1]||''), hl:!!a[2], text:a[3]||'' };
+    return { char:_oi(a[0],R), btn:_oi(a[1],AC), text:a[2]||'' };
+  };
+  return {
+    setup:{ rotationName:su[0]||'', tier:su[1]||'', boss:su[2]||'', type:_oi(su[3],TY), patch:su[4]||'', score:su[5]||'', notes:su[6]||'', credits:su[7]||'' },
+    units:(arr[2]||[]).map(unit),
+    elucidator:unit(arr[3]||[]),
+    personas, teamNotes:arr[5]||'',
+    turns:(arr[6]||[]).map(t=>({ name:t[0]||'', actions:(t[1]||[]).map(act) }))
+  };
+}
+function encodeShare(){
+  if(typeof LZString!=='undefined'){
+    try{ return 'C'+LZString.compressToEncodedURIComponent(JSON.stringify(compactEncode(state))); }catch(e){}
+    return 'A'+LZString.compressToEncodedURIComponent(JSON.stringify(state));
+  }
+  return 'B'+b64urlEncode(JSON.stringify(state));
+}
+function decodeShare(input){
+  let code=(input||'').trim();
+  const m=code.match(/[#?&]r=([^#?&\s]+)/); if(m) code=m[1];
+  code=code.replace(/^#/,'').trim();
+  const marker=code[0], rest=code.slice(1);
+  if(marker==='C'){ if(typeof LZString==='undefined') throw new Error('lib'); const j=LZString.decompressFromEncodedURIComponent(rest); if(!j) throw new Error('decode'); return compactDecode(JSON.parse(j)); }
+  let json=null;
+  if(marker==='A'){ if(typeof LZString==='undefined') throw new Error('lib'); json=LZString.decompressFromEncodedURIComponent(rest); }
+  else if(marker==='B'){ json=b64urlDecode(rest); }
+  else if(typeof LZString!=='undefined'){ json=LZString.decompressFromEncodedURIComponent(code); }
+  if(!json) throw new Error('decode');
+  return JSON.parse(json);
+}
+function shareLinkURL(){ return location.origin+location.pathname+'#r='+encodeShare(); }
+let _ioPrimary=null;
+function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
+function openShareModal(opts){
+  const modal=document.getElementById('ioModal'); if(!modal) return;
+  document.getElementById('ioTitle').textContent=opts.title;
+  const t=document.getElementById('ioText'); t.value=opts.text||''; t.readOnly=!!opts.readonly; t.placeholder=opts.placeholder||'';
+  document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
+  document.getElementById('ioHint').textContent='';
+  _ioPrimary=opts.onPrimary||null;
+  modal.hidden=false;
+  setTimeout(()=>{ try{ t.focus(); if(opts.readonly) t.select(); }catch(_){} },30);
+}
+function copyShareText(t, hint){
+  const done=()=>{ hint.textContent='Copied to clipboard.'; };
+  const fallback=()=>{ try{ t.select(); document.execCommand('copy'); done(); }catch(e){ hint.textContent='Press Ctrl/Cmd+C to copy.'; } };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t.value).then(done, fallback); }
+  else fallback();
+}
+function openShareLink(){ let url; try{ url=shareLinkURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
+  openShareModal({title:'Share Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText}); }
+function openCopyCode(){ let code; try{ code=encodeShare(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
+  openShareModal({title:'Copy Code', text:code, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText}); }
+function openImportCode(){ openShareModal({title:'Import Code', text:'', readonly:false, placeholder:'Paste a rotation code or share link…', primaryLabel:'Import', onPrimary:(t,hint,close)=>{
+  const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a code or link first.'; return; }
+  let st; try{ st=decodeShare(v); }catch(e){ hint.textContent=(e&&e.message==='lib')?'Decoding needs the compression library (connect to the internet and retry).':'That code/link could not be read.'; return; }
+  try{ state=migrate(st); save(); renderAll(); close(); }catch(e){ hint.textContent='That code/link is not a valid rotation.'; }
+}}); }
+(function(){
+  const m=document.getElementById('ioModal'); if(!m) return;
+  document.getElementById('ioPrimary').onclick=()=>{ if(_ioPrimary) _ioPrimary(document.getElementById('ioText'), document.getElementById('ioHint'), closeShareModal); };
+  document.getElementById('ioClose').onclick=closeShareModal;
+  document.getElementById('ioCloseBtn').onclick=closeShareModal;
+  m.addEventListener('click', ev=>{ if(ev.target===m) closeShareModal(); });
+  document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && !m.hidden) closeShareModal(); });
+})();
+document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
+document.getElementById('refreshBtn').onclick=()=>{
+  const url=location.pathname.split('?')[0]+'?v='+Date.now();
+  const go=()=>location.replace(url);
+  try{ fetch(url,{cache:'no-store'}).then(go,go); }catch(e){ go(); }
+};
+document.getElementById('autoFill').onclick=()=>{
+  const chars=state.units.filter(u=>(u.name||'').trim()).map(u=>u.name);
+  if(!chars.length){ alert('No characters in team slots 1–4 yet.'); return; }
+  if(!state.turns.length){ alert('No turns to fill yet.'); return; }
+  let filled=0;
+  state.turns.forEach(t=>{
+    const hasChar=(t.actions||[]).some(a=>(a.char||'').trim());
+    if(hasChar) return;                                   /* skip columns that already have a character */
+    t.actions=chars.map(c=>({char:c, btn:'', text:''}));
+    filled++;
+  });
+  if(!filled){ alert('Every turn column already has a character — nothing to fill.'); return; }
+  save(); renderTurns();
+};
+document.getElementById('clearActions').onclick=()=>{
+  if(!state.turns.length) return;
+  if(!confirm('Remove all actions from every turn?')) return;
+  state.turns.forEach(t=>{ t.actions=[{char:'',btn:'',text:''}]; });
+  save(); renderTurns();
+};
+document.getElementById('rotPreviewToggle').onclick=()=>{ rotationPreviewOpen=!rotationPreviewOpen; renderRotationPreview(); };
+window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPreview(); });
+(function(){
+  const modal=document.getElementById('guideModal'); if(!modal) return;
+  const open=()=>{ modal.hidden=false; }, close=()=>{ modal.hidden=true; };
+  const gb=document.getElementById('guideBtn'); if(gb) gb.onclick=open;
+  const gc=document.getElementById('guideClose'); if(gc) gc.onclick=close;
+  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
+})();
+
+/* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
+function exportBaseName(){
+  const s=state.setup;
+  let name=[s.patch, s.type, s.rotationName||'rotation'].map(x=>(x||'').trim()).filter(Boolean).join('_');
+  name=name.replace(/[\\/:*?"<>|\r\n\t]+/g,'-').replace(/\s+/g,' ').trim();
+  return name||'rotation';
+}
+function gearText(u){ return u.gear || [u.space,u.sunsky].filter(Boolean).join(' & '); }
+
+function buildCSV(){
+  const s=state.setup, rows=[];
+  const q=v=>{ v=(v==null?'':String(v)); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  rows.push(['Rotation', s.rotationName]); rows.push(['Type', s.type]); rows.push(['Patch', s.patch]);
+  rows.push(['Boss', s.boss]); rows.push(['Expected Score', s.score]); rows.push(['Credits', s.credits||'']);
+  rows.push([]); rows.push(['TEAM']);
+  rows.push(['Slot','Name','Awareness','Rev','Gear / Space & Sun-Sky','Extra']);
+  state.units.forEach((u,i)=>{
+    const extra=(u.name||'').toUpperCase()==='TWINS' && u.role ? 'Role: '+u.role : '';
+    rows.push([i+1, u.name, u.awareness, u.rev, gearText(u), extra]);
+  });
+  const e=state.elucidator;
+  const ee=(e.name||'').toUpperCase()==='FUUKA' && e.companion ? 'Backup: '+e.companion : '';
+  rows.push(['Elucidator', e.name, e.awareness, e.rev, gearText(e), ee]);
+  rows.push([]); rows.push(['PERSONAS']); rows.push(['#','Persona','Skill 1','Skill 2','Skill 3']);
+  state.personas.forEach((p,i)=>rows.push([i+1, p.name, p.skills[0]||'', p.skills[1]||'', p.skills[2]||'']));
+  if((state.teamNotes||'').trim()){ rows.push([]); rows.push(['Team Notes', state.teamNotes]); }
+  rows.push([]); rows.push(['ROTATION']);
+  const maxA=Math.max(0,...state.turns.map(t=>t.actions.length));
+  const h1=[''], h2=['#'];
+  state.turns.forEach(t=>{ h1.push(t.name,''); h2.push('Char','Action'); });
+  rows.push(h1); rows.push(h2);
+  for(let i=0;i<maxA;i++){ const r=[i+1]; state.turns.forEach(t=>{ const a=t.actions[i]; r.push(a?a.char:'', a?a.action:''); }); rows.push(r); }
+  if((s.notes||'').trim()){ rows.push([]); rows.push(['Notes', s.notes]); }
+  return '\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n');
+}
+function exportCSV(){
+  const blob=new Blob([buildCSV()],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.csv'; a.click();
+}
+function sheetTextOn(hex){ const h=(hex||'').replace('#',''); if(h.length<6) return 'FFFFFFFF'; const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16); return (0.299*r+0.587*g+0.114*b)>140?'FF14121C':'FFFFFFFF'; }
+function argbOf(hex){ return 'FF'+(hex||'#666').replace('#','').toUpperCase(); }
+async function exportSheet(){
+  if(typeof ExcelJS==='undefined'){ alert('Sheet export needs the spreadsheet library (requires an internet connection the first time it is used).'); return; }
+  const s=state.setup;
+  const INK='FF14121C', PANEL='FF1F1C2B', PANEL2='FF23202F', LINE='FF3A3550', TEXT='FFF3F1F7', MUTED='FF9D97B3', GOLD='FFF1C232', RED='FFE0445E', BLUE='FF9FC5E8', CYAN='FFCFE2F3';
+  const NCOL=8, FONT='Arial';
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet('Rotation',{views:[{showGridLines:false}]});
+  [16,18,14,14,16,16,16,18].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  const fillOf=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
+  const thin={style:'thin',color:{argb:LINE}};
+  const box={top:thin,left:thin,bottom:thin,right:thin};
+  let row=1;
+  const set=(r,c,val,o)=>{ const cell=ws.getCell(r,c); cell.value=val; o=o||{}; cell.font={name:FONT,size:o.size||10,bold:!!o.bold,color:{argb:o.color||TEXT}}; cell.fill=fillOf(o.fill||PANEL2); cell.alignment={vertical:'middle',horizontal:o.align||'left',wrapText:!!o.wrap}; if(o.border!==false) cell.border=box; return cell; };
+  const merge=(r,c1,c2)=>ws.mergeCells(r,c1,r,c2);
+
+  // Title block
+  merge(row,1,NCOL); set(row,1,'VELVET FREQUENCY',{size:20,bold:true,color:RED,fill:INK,border:false}); ws.getRow(row).height=28; row++;
+  merge(row,1,NCOL); set(row,1,'ROTATION PLANNER',{size:10,bold:true,color:MUTED,fill:INK,border:false}); row++;
+  merge(row,1,NCOL); set(row,1,s.rotationName||'Rotation',{size:18,bold:true,color:TEXT,fill:INK,border:false}); ws.getRow(row).height=26; row++;
+  // Meta row
+  const tl=(s.type||'').toLowerCase(); const typeBg={mld:'FFF1C232',dod:'FF9B5DE5',nod:'FFE0445E',sos:'FF151DA6'}[tl]||PANEL2; const typeFg={mld:'FF3A2C00',dod:'FFFFFFFF',nod:'FFFFFFFF',sos:'FFFFFFFF'}[tl]||TEXT;
+  set(row,1,s.type||'',{bold:true,align:'center',fill:typeBg,color:typeFg});
+  const meta=[['Patch',s.patch],['Boss',s.boss],['Score',s.score],['Credits',s.credits]].filter(m=>String(m[1]||'').trim());
+  let mc=2; meta.forEach(m=>{ if(mc>NCOL) return; set(row,mc,m[0]+': '+m[1],{color:CYAN,fill:PANEL}); mc++; });
+  for(;mc<=NCOL;mc++) set(row,mc,'',{fill:PANEL});
+  ws.getRow(row).height=20; row+=2;
+
+  const sectionHeader=(label)=>{ merge(row,1,NCOL); set(row,1,label,{bold:true,color:MUTED,fill:INK,border:false}); row++; };
+  const headerCell=(r,c,val)=>set(r,c,val,{bold:true,color:MUTED,fill:PANEL});
+
+  // TEAM
+  sectionHeader('TEAM');
+  headerCell(row,1,'Slot'); headerCell(row,2,'Character'); headerCell(row,3,'Awareness'); headerCell(row,4,'Rev'); merge(row,5,6); headerCell(row,5,'Gear'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box; merge(row,7,8); headerCell(row,7,'Role / Backup'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box; row++;
+  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]);
+  teamRows.forEach(({u,label})=>{
+    set(row,1,label,{bold:true,color:MUTED,fill:PANEL});
+    const nm=u.name||''; const col=nm?charColor(nm):null;
+    set(row,2,nm,{bold:true,fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT});
+    set(row,3,u.awareness||'',{align:'center'}); set(row,4,u.rev||'',{align:'center'});
+    merge(row,5,6); set(row,5,gearText(u)||'',{color:CYAN}); ws.getCell(row,6).fill=fillOf(PANEL2); ws.getCell(row,6).border=box;
+    const extra=(nm.toUpperCase()==='TWINS'&&u.role)?('Role: '+u.role):((nm.toUpperCase()==='FUUKA'&&u.companion)?('Backup: '+u.companion):'');
+    merge(row,7,8); set(row,7,extra,{color:BLUE}); ws.getCell(row,8).fill=fillOf(PANEL2); ws.getCell(row,8).border=box;
+    row++;
+  });
+  row++;
+
+  // PERSONAS (with images via Google Sheets IMAGE() formulas, using the hosted page URL)
+  const baseURL=location.href.replace(/[?#].*$/,'').replace(/[^/]*$/,'');
+  const canImg=/^https?:$/.test(location.protocol);
+  sectionHeader('PERSONAS');
+  headerCell(row,1,'Image'); headerCell(row,2,'Persona');
+  merge(row,3,4); headerCell(row,3,'Skill 1'); ws.getCell(row,4).fill=fillOf(PANEL); ws.getCell(row,4).border=box;
+  merge(row,5,6); headerCell(row,5,'Skill 2'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box;
+  merge(row,7,8); headerCell(row,7,'Skill 3'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box;
+  row++;
+  state.personas.forEach(p=>{
+    const nm=(p.name||'').trim();
+    if(nm && canImg){ const c=ws.getCell(row,1); c.value={formula:`IMAGE("${baseURL+personaImg(nm)}",1)`}; c.fill=fillOf(PANEL2); c.border=box; c.alignment={vertical:'middle',horizontal:'center'}; }
+    else { set(row,1,'',{}); }
+    set(row,2,nm,{bold:true,color:GOLD});
+    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],p.skills[k]||'',{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
+    if(nm) ws.getRow(row).height=90;
+    row++;
+  });
+  row++;
+
+  // TEAM NOTES
+  if((state.teamNotes||'').trim()){ sectionHeader('TEAM NOTES'); merge(row,1,NCOL); const c=set(row,1,state.teamNotes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(state.teamNotes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
+
+  // ROTATION NOTES
+  if((s.notes||'').trim()){ sectionHeader('ROTATION NOTES'); merge(row,1,NCOL); set(row,1,s.notes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(s.notes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
+
+  // ROTATION (turns) in bands of 4, each turn = 2 columns
+  sectionHeader('ROTATION');
+  const dodX=s.type==='DOD', nT=state.turns.length;
+  const perBand=4;
+  for(let b=0;b<nT;b+=perBand){
+    const band=state.turns.slice(b,b+perBand).map((t,j)=>({t,gi:b+j,j}));
+    // header row
+    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const isBreak=dodX&&nT>=2&&gi>=nT-2; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
+    row++;
+    const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
+    for(let ai=0;ai<maxA;ai++){
+      band.forEach(({t,j})=>{ const c1=2*j+1; const a=(t.actions||[])[ai];
+        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,a.char||'',{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char)||'',{}); }
+        else { set(row,c1,'',{}); set(row,c1+1,'',{}); }
+      });
+      row++;
+    }
+    row++;
+  }
+
+  // backfill any empty cells in the used range with the dark background
+  const maxRow=row;
+  for(let r=1;r<=maxRow;r++){ for(let c=1;c<=NCOL;c++){ const cell=ws.getCell(r,c); if(!cell.fill || !cell.fill.fgColor){ cell.fill=fillOf(INK); } } }
+
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  deliverImage(URL.createObjectURL(blob), exportBaseName()+'.xlsx');
+}
+
+function exportTurnsBlock(scroll){
+  const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
+  const tc=c=>charColor(c);
+  const dodX=s.type==='DOD', nT=state.turns.length;
+  const block=(a,i)=>`<div style="position:relative;flex:0 0 100px;width:100px;min-height:44px;box-sizing:border-box;background:#23202f;border:1px solid #3a3550;border-top:3px solid ${tc(a.char)};border-radius:5px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;align-items:center;">
+      <span style="position:absolute;top:2px;left:4px;font:700 9px Oswald,sans-serif;color:#6f6a85;line-height:1;">${i+1}</span>
+      <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(a.char||'')}</div>
+      <div style="font:600 11px Inter,sans-serif;color:#f3f1f7;text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char))}</div></div>`;
+  const actsWrap = scroll ? 'display:flex;flex-wrap:nowrap;gap:5px;' : 'flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;';
+  const rowW = scroll ? '' : `width:${teamRowW}px;`;
+  const turnRow=(t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2;
+    const acts=(t.actions||[]).map(block).join('');
+    return `<div style="display:flex;gap:8px;align-items:stretch;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;${rowW}box-sizing:border-box;">
+      <div style="flex:0 0 84px;display:flex;align-items:center;font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;border-right:1px solid #3a3550;padding-right:8px;">${esc((t.name||'').toUpperCase())}</div>
+      <div style="${actsWrap}">${acts}</div>
+    </div>`;
+  };
+  const turnsHtml=state.turns.map((t,ti)=>turnRow(t,ti)).join('');
+  const cont = scroll ? `display:inline-flex;flex-direction:column;gap:${GAP}px;` : `display:flex;flex-direction:column;gap:${GAP}px;width:${teamRowW}px;`;
+  return `<div style="${cont}">${turnsHtml}</div>`;
+}
+function buildExportView(withImages, portraits, pImgs, rotationOnly){
+  portraits=portraits||{}; pImgs=pImgs||{};
+  const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
+  const ord=['1ST','2ND','3RD','4TH'];
+  const teamRowW=5*TEAMW+4*GAP;
+  const inner=teamRowW;
+  const tc=c=>charColor(c);
+  const tl=(s.type||'').toLowerCase();
+  const typeBg={mld:'#f1c232',dod:'#9b5de5',nod:'#e0445e',sos:'#151da6'}[tl]||'#3a3550';
+  const typeFg={mld:'#3a2c00',dod:'#1a0a2e',nod:'#2c0710',sos:'#ffffff'}[tl]||'#fff';
+  const card=(u,label,accent)=>{
+    const art = withImages && portraits[u.name] ? `<img src="${portraits[u.name]}" style="display:block;width:100%;border-radius:6px;margin-bottom:6px;"/>` : '';
+    return `<div style="width:${TEAMW}px;background:#23202f;border:1px solid #3a3550;border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
+    ${art}
+    <div style="font:700 10px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">${esc(label)}</div>
+    <div style="font:700 16px Oswald,sans-serif;color:#f3f1f7;margin:2px 0 4px;">${esc(u.name||'—')}</div>
+    <div style="font:600 12px Inter,sans-serif;color:#cfe2f3;">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
+    <div style="font:500 11px Inter,sans-serif;color:#9d97b3;margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
+    ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:#f1c232;margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
+    ${(u.name||'').toUpperCase()==='FUUKA'&&u.companion?`<div style="font:600 11px Inter,sans-serif;color:#9fc5e8;margin-top:2px;">Backup: ${esc(u.companion)}</div>`:''}
+  </div>`;
+  };
+  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), tc(u.name))).join('')+card(state.elucidator,'ELUCIDATOR','#5b9bd5');
+  const persona=state.personas.filter(p=>(p.name||'').trim());
+  const tnText=(state.teamNotes||'').trim();
+  let personaLine='', tnLine='';
+  if(withImages){
+    const personaCards=persona.map(p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm];
+      return `<div style="width:174px;box-sizing:border-box;display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
+        ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
+        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
+        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:#9fc5e8;margin-top:3px;line-height:1.5;">${sk.map(esc).join('<br>')}</div>`:''}</div>
+      </div>`; }).join('');
+    const personaBlock=persona.length?`<div style="flex:0 0 auto;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
+    const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+    if(persona.length||tnText){
+      personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBox}</div>`;
+    }
+  } else {
+    const personaBlock=persona.length?`<div style="flex:0 1 auto;min-width:0;display:flex;flex-direction:column;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;line-height:1.6;">
+        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}</div>`; }).join('')}
+      </div></div>`:'';
+    const notesBlock=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+    if(persona.length||tnText){
+      personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBlock}</div>`;
+    }
+  }
+  const notesLine=(s.notes||'').trim()?`<div style="margin-top:16px;">
+    <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">ROTATION NOTES</div>
+    <div style="background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(s.notes)}</div></div>`:'';
+  const v=document.createElement('div'); v.id='exportView';
+  v.style.cssText=`position:fixed;left:-99999px;top:0;width:${inner+2*PAD}px;background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
+  v.innerHTML=`
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" alt=""/>
+    <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
+    <div style="font:700 30px Oswald,sans-serif;color:#f3f1f7;letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:#cfe2f3;">
+      <span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type||'')}</span>
+      ${s.patch?`<span><span style="color:#9d97b3;">Patch</span> ${esc(s.patch)}</span>`:''}
+      ${s.boss?`<span><span style="color:#9d97b3;">Boss</span> ${esc(s.boss)}</span>`:''}
+      ${s.score?`<span><span style="color:#9d97b3;">Score</span> ${esc(s.score)}</span>`:''}
+      ${s.credits?`<span><span style="color:#9d97b3;">Credits</span> ${esc(s.credits)}</span>`:''}
+    </div>
+    ${rotationOnly?'':`<div style="display:flex;gap:${GAP}px;flex-wrap:wrap;margin-top:14px;">${teamCards}</div>
+    ${personaLine}${tnLine}`}
+    ${notesLine}
+    <div style="margin-top:16px;">${exportTurnsBlock()}</div>`;
+  document.body.appendChild(v); return v;
+}
+function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); const t=setTimeout(()=>rej(new Error('timeout: '+src)),10000); im.onload=()=>{clearTimeout(t);res(im);}; im.onerror=()=>{clearTimeout(t);rej(new Error('image load failed: '+src));}; im.src=src; }); }
+function portraitDataURL(img,size){
+  const c=document.createElement('canvas'); c.width=size; c.height=size;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const sc=Math.max(size/iw,size/ih), dw=iw*sc, dh=ih*sc;       /* cover */
+  x.drawImage(img,(size-dw)/2,(size-dh)/2,dw,dh);               /* center crop, matches the page */
+  return c.toDataURL('image/png');
+}
+function fullDataURL(img){
+  const c=document.createElement('canvas'); c.width=img.naturalWidth||img.width; c.height=img.naturalHeight||img.height;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
+  x.drawImage(img,0,0);
+  return c.toDataURL('image/png');
+}
+function detachCrossOriginSheets(){
+  const moved=[];
+  Array.from(document.styleSheets).forEach(s=>{
+    try{ void s.cssRules; }                                   /* same-origin: ok */
+    catch(e){ const n=s.ownerNode; if(n&&n.parentNode){ moved.push({n,parent:n.parentNode,next:n.nextSibling}); n.parentNode.removeChild(n); } }
+  });
+  return moved;
+}
+function reattachSheets(moved){ moved.forEach(m=>{ try{ m.parent.insertBefore(m.n, m.next); }catch(e){ try{ m.parent.appendChild(m.n); }catch(_){} } }); }
+function deliverImage(url, fname){
+  const a=document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 5000);
+}
+function renderExport(withImages, portraits, pImgs, rotationOnly){
+  const v=buildExportView(withImages, portraits, pImgs, rotationOnly);
+  const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:8000};
+  let done=false;
+  const cleanup=()=>{ if(v&&v.parentNode) v.remove(); };
+  const fail=err=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); alert('Image export failed: '+((err&&err.message)||err)); };
+  const finish=canvas=>{
+    if(done) return;
+    const fname=exportBaseName()+'.png';
+    const out=url=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); deliverImage(url, fname); };
+    try{
+      if(canvas.toBlob){ canvas.toBlob(b=>{ if(!b){ fail(new Error('empty image')); return; } out(URL.createObjectURL(b)); },'image/png'); }
+      else { out(canvas.toDataURL('image/png')); }
+    }catch(e){ fail(e); }
+  };
+  /* hard 3s timeout so the button can never just silently do nothing */
+  const guard=setTimeout(()=>fail(new Error('rendering timed out')), 3000);
+  /* wait for web fonts (raced with a timeout so it can never hang) before capturing */
+  const fontsReady=(document.fonts&&document.fonts.ready)?Promise.resolve(document.fonts.ready).catch(()=>{}):Promise.resolve();
+  const ready=Promise.race([fontsReady, new Promise(r=>setTimeout(r,2000))]);
+  ready.then(()=>html2canvas(v,opts)).then(finish).catch(()=>{
+    /* retry once with cross-origin stylesheets detached (html2canvas can choke on their cssRules when hosted) */
+    const moved=detachCrossOriginSheets();
+    html2canvas(v,opts).then(c=>{ reattachSheets(moved); finish(c); }).catch(err=>{ reattachSheets(moved); fail(err); });
+  });
+}
+function exportImage(withImages, rotationOnly){
+  if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
+  if(!withImages){ renderExport(false, {}, {}, rotationOnly); return; }
+  const portraits={}, pImgs={}, seen={}, tasks=[];
+  [...state.units, state.elucidator].forEach(u=>{
+    const src=imgFor(u.name); if(!src || seen['c:'+u.name]) return; seen['c:'+u.name]=1;
+    tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
+  });
+  state.personas.forEach(p=>{
+    const nm=(p.name||'').trim(); if(!nm || seen['p:'+nm]) return; seen['p:'+nm]=1;
+    tasks.push(loadImg(personaImg(nm)).then(img=>{ pImgs[nm]=fullDataURL(img); }).catch(()=>{}));
+  });
+  Promise.all(tasks).then(()=>renderExport(true, portraits, pImgs)).catch(()=>{
+    alert('Portrait export failed. This usually happens when the page is opened directly from a file (file://). Host it (e.g. GitHub Pages) so the character images can be embedded, or use "Export Image" without portraits.');
+  });
+}
+(function(){
+  const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
+  if(!wrap||!btn||!menu) return;
+  const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.export; close();
+    if(k==='json') exportJSON();
+    else if(k==='png-art') exportImage(true);
+    else if(k==='png') exportImage(false);
+    else if(k==='png-rot') exportImage(false, true);
+    else if(k==='link') openShareLink();
+    else if(k==='code') openCopyCode();
+  }; });
+})();
+
+state=load(); renderAll();
+(function(){
+  const m=(location.hash||'').match(/[#&]r=([^&]+)/);
+  if(!m) return;
+  try{ const st=decodeShare(m[1]); state=migrate(st); save(); renderAll(); }catch(e){ /* ignore an unreadable link */ }
+  try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
+})();
+</script>
+<div class="version-tag">260616g</div>
+</body>
+</html>
