@@ -100,6 +100,15 @@ button{cursor:pointer}
   padding:8px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.05em; text-align:center}
 .unit .tags{display:flex; gap:6px; margin-top:6px}
 .unit .tags select{flex:1; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
+.unit select:disabled{opacity:.4; cursor:not-allowed}
+.twins-duals{display:flex; gap:6px; margin-top:6px}
+.twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:#15131d; border:1px solid var(--line); border-radius:5px; padding:2px 6px}
+.twins-dual .td-lab{font:700 11px "Oswald",sans-serif; color:var(--blue-soft)}
+.twins-dual img{height:18px; width:auto; display:block; margin-left:auto}
+body.view-mode > *:not(#viewRoot){ display:none !important; }
+#viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:16px; overflow-x:auto; }
+#viewRoot > #exportView{ position:static !important; left:auto !important; top:auto !important; margin:0 auto !important; }
+.view-loading{ color:#9d97b3; font:600 14px Inter,sans-serif; padding:40px; text-align:center; }
 .unit .gear{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; color:var(--blue-soft)}
 .unit .unit-note{width:100%; margin-top:6px; box-sizing:border-box; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:11px; color:var(--text); font-family:inherit; resize:vertical; min-height:34px; line-height:1.35}
 .unit .unit-note:focus{outline:none; border-color:var(--blue-strong)}
@@ -137,14 +146,14 @@ button{cursor:pointer}
 .pgrip:active{cursor:grabbing}
 .persona-col.dragging{opacity:.45}
 .persona-col.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
-.persona-col select{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px;
-  padding:9px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.04em}
+.persona-col select, .persona-col input.persona-name{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px;
+  padding:9px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.04em; box-sizing:border-box; color:var(--text)}
 .persona-col .skills{display:flex; flex-direction:column; gap:6px; margin-top:8px}
 .persona-col .skills input{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
-.persona-col select:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
+.persona-col select:focus,.persona-col input.persona-name:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
 .pcol-body{display:flex; gap:8px; align-items:stretch; margin-top:6px}
 .pcol-fields{flex:1 1 auto; min-width:0; display:flex; flex-direction:column}
-.pcol-fields select{margin-top:0}
+.pcol-fields select, .pcol-fields input.persona-name{margin-top:0}
 .pcol-img{flex:0 0 auto}
 .pcol-img img{height:100%; max-height:200px; width:auto; max-width:130px; display:block; border-radius:6px; background:#15131d; object-fit:contain}
 @media (max-width:640px){ .persona-grid{grid-template-columns:1fr} }
@@ -164,6 +173,12 @@ button{cursor:pointer}
 .turn-head input:focus{outline:none}
 .turn-head .del{background:#0003; border:none; color:#cdd9ee; border-radius:6px; width:24px; height:24px; line-height:1}
 .turn-head .del:hover{background:#e06; color:#fff}
+.turn-head .dup{background:#0003; border:none; color:#cdd9ee; border-radius:6px; width:24px; height:24px; line-height:1; cursor:pointer; font-size:13px}
+.turn-head .dup:hover{background:#2a8c5a; color:#fff}
+.turn-head .tgrip{cursor:grab; color:#cdd9ee; user-select:none; font-size:14px; line-height:1; padding:0 2px; opacity:.85}
+.turn-head .tgrip:active{cursor:grabbing}
+.turn.dragging{opacity:.45}
+.turn.drag-over{outline:2px dashed var(--blue-strong); outline-offset:-2px}
 .acts{padding:8px; display:flex; flex-direction:column; gap:6px; flex:1}
 .turn .turn-note{margin:8px 8px 0; width:calc(100% - 16px); box-sizing:border-box; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:12px; font-weight:600; color:var(--text)}
 .turn .turn-note:focus{outline:none; border-color:var(--blue-strong)}
@@ -270,6 +285,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="dropdown-item" data-export="png">PNG (no Images)</button>
           <button class="dropdown-item" data-export="png-rot">PNG (Rotation only)</button>
           <button class="dropdown-item" data-export="link">Share Link</button>
+          <button class="dropdown-item" data-export="viewlink">Share View Link</button>
           <button class="dropdown-item" data-export="code">Copy Code</button>
         </div>
       </div>
@@ -327,7 +343,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             <li><b>PNG &amp; Images</b> — an image with character portraits, persona art and the Wonder's dagger.</li>
             <li><b>PNG (no Images)</b> — the same layout as text only.</li>
             <li><b>PNG (Rotation only)</b> — just the turns, without the team section.</li>
-            <li><b>Share Link</b> — a link that loads the whole rotation when opened.</li>
+            <li><b>Share Link</b> — a link that loads the whole rotation into the editor when opened.</li>
+            <li><b>Share View Link</b> — a link that opens a read-only view which looks like the image export (no editing controls), ideal for sharing a finished rotation.</li>
             <li><b>Copy Code</b> — a short text code that holds the whole rotation.</li>
           </ul>
         </li>
@@ -344,11 +361,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <li><b>Awareness</b> — A0 to A6.</li>
         <li><b>Reforge</b> — RX to R6.</li>
         <li><b>Revelation Cards</b> — choose the <b>Space</b> card first, then the matching <b>Sun / Moon / Star / Sky</b> cards are shown.</li>
-        <li>Special fields appear automatically: <b>Wonder</b> gets a Dagger (its artwork appears in its own box next to the Personas), <b>Twins</b> a Role, <b>Fuuka</b> a Backup.</li>
+        <li>Special fields appear automatically: <b>Wonder</b> gets a Dagger (its artwork appears in its own box next to the Personas), <b>Twins</b> a Role (which shows the matching S1 / S2 dual-element symbols below it, and in the image export too), <b>Fuuka</b> a Backup.</li>
         <li>Each character has its own <b>Notes</b> field at the bottom of the card; it also appears at the end of the character's box in the image export.</li>
       </ul>
       <p>You can reorder team slots 1–4 by dragging them. The <b>Whale</b> button in the team header sets every Awareness to A6 and every Reforge to R6 at once.</p>
-      <p>Below the team you set up to three <b>Personas</b> (with up to two teachable skills each) and a <b>Team Notes</b> box, where you can add information such as the required Pierce or Crit.</p>
+      <p>Below the team you set up to three <b>Personas</b> (with up to two teachable skills each) and a <b>Team Notes</b> box, where you can add information such as the required Pierce or Crit. The Persona field works like the Boss field — click it to see the full list, or type to filter it (only names from the list are accepted).</p>
 
       <h3>Rotation</h3>
       <p>The rotation is a row of <b>turns</b>; each turn has a name (which you can edit), an optional <b>turn note</b> field below the name, and a list of <b>actions</b>. The turn note is shown in the export next to the turn name — in the vertical layout right-aligned in the header, in the horizontal layout under the turn name.</p>
@@ -361,7 +378,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <li>The <b>text field</b> is always available for free notes, e.g. the target of the action or other information.</li>
       </ul>
       <p>In the export, a button and text are joined with a space — e.g. <code>S2</code> + <code>Violet</code> becomes “S2 Violet”, and a Wonder action becomes e.g. “Koumokuten HL Haru”. You can also use only the text field without any button.</p>
-      <p>Use the controls on each turn/action to <b>add</b> or <b>remove</b> turns and actions and to <b>drag</b> them into a new order. A separate <b>Rotation Notes</b> box sits above the turns. In <b>DOD</b> mode the last two turns are breaks, highlighted in red in the export.</p>
+      <p>Each turn header has a <b>grip</b> (drag to reorder the column), a <b>duplicate</b> button (copies the turn with all its content to the right) and a <b>×</b> button (remove). You can also <b>drag</b> actions into a new order. Turns stay numbered left to right (1, 2, 3, …); in <b>DOD</b> mode the last two turns are breaks (<b>Break 1</b>, <b>Break 2</b>), always pinned at the end and highlighted in red in the export. A separate <b>Rotation Notes</b> box sits above the turns.</p>
 
       <h3>Rotation Preview</h3>
       <p>The <b>Rotation Preview</b> toggle below the turns shows a live preview of how the rotation will look in the image export. It updates as you type and is never part of the exported file.</p>
@@ -418,6 +435,21 @@ function charClass(name){ return (DATA.classTags && DATA.classTags[name]) || '';
 /* ---------- helpers ---------- */
 const KNOWN_COLORS = {WONDER:'#c2002e'};
 const TWINS_ROLES = ['Sweeper','Assassin','Strategist','Saboteur','Medic','Guardian'];
+/* Twins role -> [S1 dual-element, S2 dual-element] (from lufel J&C; Fire/Ice is always S1, Bless/Curse always S2) */
+const TWINS_ROLE_DUALS = {
+  'Sweeper':['Fire/Ice','Bless/Curse'],
+  'Assassin':['Psy/Nuke','Bless/Curse'],
+  'Strategist':['Fire/Ice','Psy/Nuke'],
+  'Saboteur':['Elec/Wind','Bless/Curse'],
+  'Medic':['Fire/Ice','Elec/Wind'],
+  'Guardian':['Elec/Wind','Psy/Nuke']
+};
+const DUAL_ELEM_IMG = {
+  'Fire/Ice':'elements/Fire_Ice.png',
+  'Elec/Wind':'elements/Elec_Wind.png',
+  'Psy/Nuke':'elements/Psy_Nuke.png',
+  'Bless/Curse':'elements/Bless_Curse.png'
+};
 const ACT_SPECIAL = ['MAKOTO','YUKARI','AKIHIKO','MITSURU','JUNPEI','KOROMARU','AIGIS','FUUKA']; // the "SEES" characters (THEURGY/ASSIST); FUUKA is SEES but Elucidator rules take priority
 const SOS_BOSSES = ["ASURA","BAPHOMET","BISHAMONTEN","CU CHULAINN","LILITH AOE","LILITH ST","MELCHIZEDEK","POWER","QUETZALCOATL","SEIRYU","SETH","SRAOSHA","TITANIA","VISHNU","ZAOU-GONGEN"];
 function bossListFor(type){ return type==='SOS' ? SOS_BOSSES : DATA.bossNames; }
@@ -425,9 +457,9 @@ const ACT_CODES = ['S1','S2','S3','HL','Atk','Gn','Gd','Ast'];
 const ACT_LABEL_TO_CODE = {theurgy:'HL', highlight:'HL', attack:'Atk', gun:'Gn', guard:'Gd', assist:'Ast'};
 const BTN_LABEL = {Atk:'Attack', Gn:'Gun', Gd:'Guard', Ast:'Assist'}; // written-out button labels; S1/S2/S3/HL show as-is
 function btnLabel(c){ return BTN_LABEL[c]||c||''; }
-const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO']; // get a separate button next to the character select
-const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC'};                       // editor button text; default 'Alt'
-const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch'}; // export text; default 'Button'
+const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO','CROW','QUEEN','MONT·F','LUCE']; // get a separate button next to the character select
+const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC', QUEEN:'CO'};                       // editor button text; default 'Alt'
+const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch', QUEEN:'Crash Out'}; // export text; default 'Button'
 function hasAlt(name){ return ALT_CHARS.includes((name||'').toUpperCase()); }
 function altBtnLabel(name){ return ALT_BTN_LABEL[(name||'').toUpperCase()] || 'Alt'; }
 function altExportLabel(name){ return ALT_EXPORT_LABEL[(name||'').toUpperCase()] || 'Button'; }
@@ -634,7 +666,7 @@ function unitCard(u, path, elu, idx){
     let ssOpts=[''].concat(ssBase); if(u.sunsky && !ssOpts.includes(u.sunsky)) ssOpts=[''].concat([u.sunsky]).concat(ssBase);
     revBlock=`<div class="rev-row">
       <div><div class="rev-lab">Space</div><select data-path="${path}.space">${opt(spOpts,u.space)}</select></div>
-      <div><div class="rev-lab">Sun/Moon/Star/Sky</div><select data-path="${path}.sunsky">${opt(ssOpts,u.sunsky)}</select></div>
+      <div><div class="rev-lab">Sun/Moon/Star/Sky</div><select data-path="${path}.sunsky" ${u.space?'':'disabled'}>${opt(ssOpts,u.sunsky)}</select></div>
     </div>`;
   }
   const nm=(u.name||'').toUpperCase();
@@ -643,6 +675,13 @@ function unitCard(u, path, elu, idx){
     let rOpts=[''].concat(TWINS_ROLES);
     if(u.role && !rOpts.includes(u.role)) rOpts=[''].concat([u.role]).concat(TWINS_ROLES);
     extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Role</div><select data-path="${path}.role">${opt(rOpts,u.role)}</select></div></div>`;
+    const _td=TWINS_ROLE_DUALS[u.role];
+    if(_td){
+      extraBlock+=`<div class="twins-duals">
+        <div class="twins-dual"><span class="td-lab">S1</span><img src="${esc(DUAL_ELEM_IMG[_td[0]])}" alt="${esc(_td[0])}" title="${esc(_td[0])}" onerror="this.style.display='none'" loading="lazy"/></div>
+        <div class="twins-dual"><span class="td-lab">S2</span><img src="${esc(DUAL_ELEM_IMG[_td[1]])}" alt="${esc(_td[1])}" title="${esc(_td[1])}" onerror="this.style.display='none'" loading="lazy"/></div>
+      </div>`;
+    }
   }
   if(nm==='FUUKA'){
     const compNames=DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
@@ -673,7 +712,7 @@ function renderTeam(){
       <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">\u283f</span></div>
       <div class="pcol-body">
         <div class="pcol-fields">
-          <select data-path="personas.${k}.name"><option value=""${p.name?'':' selected'}>Choose Persona</option>${opt(DATA.personaNames,p.name)}</select>
+          <input class="persona-name" list="personaList" data-path="personas.${k}.name" value="${esc(p.name)}" placeholder="Choose Persona" autocomplete="off"/>
           <div class="skills">${p.skills.slice(0,2).map((s,si)=>`<input data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Teachable Skill ${si+1}"/>`).join('')}</div>
         </div>
         <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="this.style.display='none'" loading="lazy"/>`:''}</div>
@@ -692,6 +731,7 @@ function renderTeam(){
     <div class="section-title"><h2>Team</h2><div class="rule"></div><button class="btn whale-btn" id="whaleBtn" title="Set every Awareness to A6 and every Reforge to R6">Whale</button></div>
     <div class="units">${unitsHtml}</div>
     <div class="persona-grid">${daggerBox}${personaHtml}</div>
+    <datalist id="personaList">${DATA.personaNames.map(n=>`<option value="${esc(n)}"></option>`).join('')}</datalist>
     <div class="team-notes">
       <textarea id="teamNotes" placeholder="Team notes…"></textarea>
     </div>`;
@@ -703,6 +743,15 @@ function renderTeam(){
     save(); renderTeam();
   };
   bindPaths(tp, ()=>{ renderTeam(); renderTurns(); });
+  // Persona field: value must come from the list (no free text). Normalize case; reject anything else.
+  tp.querySelectorAll('input.persona-name').forEach(inp=>{
+    inp.onchange=()=>{
+      const raw=(inp.value||'').trim();
+      const hit=raw?DATA.personaNames.find(n=>n.toLowerCase()===raw.toLowerCase()):'';
+      setPath(inp.dataset.path, hit||'');
+      save(); renderTeam(); renderTurns();
+    };
+  });
   const tn=document.getElementById('teamNotes'); tn.value=state.teamNotes||''; tn.oninput=()=>{ state.teamNotes=tn.value; save(); };
   // drag & drop reorder of personas (slot labels Persona 1/2/3 stay fixed; only the content moves)
   let dragP=null;
@@ -809,10 +858,11 @@ function renumberTurns(){
 }
 function turnHtml(t,ti,isBreak){
   return `
-    <div class="turn">
+    <div class="turn" data-tidx="${ti}">
       <div class="turn-head">
+        ${isBreak?'':`<span class="tgrip" draggable="true" title="Drag to reorder">\u283f</span>`}
         <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
-        ${isBreak?'':`<button class="del" data-delturn="${ti}" title="Remove turn">×</button>`}
+        ${isBreak?'':`<button class="dup" data-dupturn="${ti}" title="Duplicate turn">\u29c9</button><button class="del" data-delturn="${ti}" title="Remove turn">\u00d7</button>`}
       </div>
       <input class="turn-note" value="${esc(t.note||'')}" data-tnote="${ti}" placeholder="Turn note…"/>
       <div class="acts" data-ti="${ti}">${t.actions.map((a,ai)=>actRow(a,ti,ai)).join('')}</div>
@@ -891,6 +941,12 @@ function renderTurns(){
   wrap.querySelectorAll('[data-addbelow]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addbelow.split('.');state.turns[t].actions.splice(+a+1,0,{char:'',btn:'',text:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-addact]').forEach(el=>el.onclick=()=>{state.turns[+el.dataset.addact].actions.push({char:'',btn:'',text:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-delturn]').forEach(el=>el.onclick=()=>{if(confirm('Remove this turn?')){state.turns.splice(+el.dataset.delturn,1); save(); renderTurns();}});
+  wrap.querySelectorAll('[data-dupturn]').forEach(el=>el.onclick=()=>{
+    const ti=+el.dataset.dupturn;
+    const copy=JSON.parse(JSON.stringify(state.turns[ti]));
+    state.turns.splice(ti+1,0,copy);   /* insert duplicate directly to the right */
+    save(); renderTurns();             /* renumberTurns() in renderTurns keeps 1,2,3,…,Break 1,Break 2 */
+  });
   document.getElementById('addTurn').onclick=()=>{
     if(state.setup.type==='DOD' && state.turns.length>=2){
       state.turns.splice(state.turns.length-2,0,{name:'TURN '+(state.turns.length-1),note:'',actions:[{char:'',btn:'',text:''}]});
@@ -919,6 +975,25 @@ function renderTurns(){
       const ti=+zone.dataset.ti; const [m]=state.turns[dragAct.ti].actions.splice(dragAct.ai,1);
       state.turns[ti].actions.push(m); dragAct=null; save(); renderTurns(); });
   });
+  // turn-column drag & drop reorder via the grip; breaks stay pinned at the end, numbering re-indexes
+  let dragTurn=null;
+  wrap.querySelectorAll('.tgrip').forEach(g=>{
+    g.addEventListener('dragstart',e=>{ const col=g.closest('[data-tidx]'); dragTurn=+col.dataset.tidx;
+      col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','t');}catch(_){} });
+    g.addEventListener('dragend',()=>wrap.querySelectorAll('.turn').forEach(c=>c.classList.remove('dragging','drag-over')));
+  });
+  wrap.querySelectorAll('[data-tidx]').forEach(col=>{
+    col.addEventListener('dragover',e=>{ if(dragTurn!=null){ e.preventDefault(); col.classList.add('drag-over'); }});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',e=>{ if(dragTurn==null) return; e.preventDefault(); col.classList.remove('drag-over');
+      let to=+col.dataset.tidx;
+      const dd=state.setup.type==='DOD', nn=state.turns.length, maxNormal=(dd&&nn>=2)?nn-2:nn;
+      if(dragTurn<maxNormal && dragTurn!==to){            /* only reorder normal turns */
+        to=Math.max(0,Math.min(to,maxNormal-1));          /* never past the breaks */
+        const[m]=state.turns.splice(dragTurn,1); state.turns.splice(to,0,m); save(); renderTurns();
+      }
+      dragTurn=null; });
+  });
   wrap.scrollLeft=sl;
   renderRotationPreview();
 }
@@ -933,7 +1008,7 @@ function bindPaths(root, afterStructural){
       if(el.dataset.path.endsWith('.space')){ const ssPath=el.dataset.path.replace(/\.space$/,'.sunsky');
         const partners=(el.value && DATA.spacePartners && DATA.spacePartners[el.value]) || [];
         setPath(ssPath, partners.length===1 ? partners[0] : ''); }
-      save(); if(el.classList.contains('name') || el.dataset.path.endsWith('.space') || el.dataset.path.endsWith('.companion') || el.dataset.path.endsWith('.name') || el.dataset.path.endsWith('.gear')) afterStructural(); };
+      save(); if(el.classList.contains('name') || el.dataset.path.endsWith('.space') || el.dataset.path.endsWith('.companion') || el.dataset.path.endsWith('.name') || el.dataset.path.endsWith('.gear') || el.dataset.path.endsWith('.role')) afterStructural(); };
     el.oninput=()=>{ setPath(el.dataset.path, el.value); save(); };
   });
 }
@@ -1053,7 +1128,7 @@ function openShareModal(opts){
   document.getElementById('ioTitle').textContent=opts.title;
   const t=document.getElementById('ioText'); t.value=opts.text||''; t.readOnly=!!opts.readonly; t.placeholder=opts.placeholder||'';
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
-  document.getElementById('ioHint').textContent='';
+  document.getElementById('ioHint').textContent=opts.hint||'';
   _ioPrimary=opts.onPrimary||null;
   modal.hidden=false;
   setTimeout(()=>{ try{ t.focus(); if(opts.readonly) t.select(); }catch(_){} },30);
@@ -1304,8 +1379,8 @@ function turnsBlockHorizontal(){
   const turnsHtml=state.turns.map((t,ti)=>turnRow(t,ti)).join('');
   return `<div style="display:flex;flex-direction:column;gap:${GAP}px;width:${teamRowW}px;">${turnsHtml}</div>`;
 }
-function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs){
-  portraits=portraits||{}; pImgs=pImgs||{}; dImgs=dImgs||{};
+function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs){
+  portraits=portraits||{}; pImgs=pImgs||{}; dImgs=dImgs||{}; deImgs=deImgs||{};
   const s=state.setup, PAD=28, COLW=212, GAP=12, TEAMW=184;
   const ord=['1ST','2ND','3RD','4TH'];
   const teamRowW=5*TEAMW+4*GAP;
@@ -1323,6 +1398,12 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs){
     <div style="font:600 12px Inter,sans-serif;color:#cfe2f3;">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
     <div style="font:500 11px Inter,sans-serif;color:#9d97b3;margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
     ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:#f1c232;margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
+    ${(u.name||'').toUpperCase()==='TWINS'&&TWINS_ROLE_DUALS[u.role]?(()=>{ const td=TWINS_ROLE_DUALS[u.role];
+      if(withImages && deImgs[td[0]] && deImgs[td[1]]) return `<div style="display:flex;gap:8px;margin-top:4px;align-items:center;">
+        <span style="display:flex;align-items:center;gap:3px;"><span style="font:700 10px Oswald,sans-serif;color:#9fc5e8;">S1</span><img src="${deImgs[td[0]]}" style="height:18px;width:auto;display:block;"/></span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="font:700 10px Oswald,sans-serif;color:#9fc5e8;">S2</span><img src="${deImgs[td[1]]}" style="height:18px;width:auto;display:block;"/></span></div>`;
+      return `<div style="font:600 11px Inter,sans-serif;color:#9fc5e8;margin-top:2px;">S1: ${esc(td[0])} · S2: ${esc(td[1])}</div>`;
+    })():''}
     ${(u.name||'').toUpperCase()==='FUUKA'&&u.companion?`<div style="font:600 11px Inter,sans-serif;color:#9fc5e8;margin-top:2px;">Backup: ${esc(u.companion)}</div>`:''}
     ${u.note?`<div style="font:500 11px Inter,sans-serif;color:#cfe2f3;margin-top:6px;padding-top:6px;border-top:1px solid #3a3550;line-height:1.35;white-space:pre-wrap;">${esc(u.note)}</div>`:''}
   </div>`;
@@ -1418,8 +1499,8 @@ function deliverImage(url, fname){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 5000);
 }
-function renderExport(withImages, portraits, pImgs, rotationOnly, dImgs){
-  const v=buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs);
+function renderExport(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs){
+  const v=buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs);
   const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:8000};
   let done=false;
   const cleanup=()=>{ if(v&&v.parentNode) v.remove(); };
@@ -1444,10 +1525,8 @@ function renderExport(withImages, portraits, pImgs, rotationOnly, dImgs){
     html2canvas(v,opts).then(c=>{ reattachSheets(moved); finish(c); }).catch(err=>{ reattachSheets(moved); fail(err); });
   });
 }
-function exportImage(withImages, rotationOnly){
-  if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
-  if(!withImages){ renderExport(false, {}, {}, rotationOnly); return; }
-  const portraits={}, pImgs={}, dImgs={}, seen={}, tasks=[];
+function collectExportImages(){
+  const portraits={}, pImgs={}, dImgs={}, deImgs={}, seen={}, tasks=[];
   [...state.units, state.elucidator].forEach(u=>{
     const src=imgFor(u.name); if(!src || seen['c:'+u.name]) return; seen['c:'+u.name]=1;
     tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
@@ -1456,13 +1535,38 @@ function exportImage(withImages, rotationOnly){
     const dn=u.gear, src=daggerImg(dn); if(!src || seen['d:'+dn]) return; seen['d:'+dn]=1;
     tasks.push(loadImg(src).then(img=>{ dImgs[dn]=fullDataURL(img); }).catch(()=>{}));
   });
+  [...state.units, state.elucidator].forEach(u=>{
+    if((u.name||'').toUpperCase()!=='TWINS') return; const td=TWINS_ROLE_DUALS[u.role]; if(!td) return;
+    td.forEach(dn=>{ const src=DUAL_ELEM_IMG[dn]; if(!src||seen['de:'+dn])return; seen['de:'+dn]=1;
+      tasks.push(loadImg(src).then(img=>{ deImgs[dn]=fullDataURL(img); }).catch(()=>{})); });
+  });
   state.personas.forEach(p=>{
     const nm=(p.name||'').trim(); if(!nm || seen['p:'+nm]) return; seen['p:'+nm]=1;
     tasks.push(loadImg(personaImg(nm)).then(img=>{ pImgs[nm]=fullDataURL(img); }).catch(()=>{}));
   });
-  Promise.all(tasks).then(()=>renderExport(true, portraits, pImgs, rotationOnly, dImgs)).catch(()=>{
+  return Promise.all(tasks).then(()=>({portraits,pImgs,dImgs,deImgs}));
+}
+function exportImage(withImages, rotationOnly){
+  if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
+  if(!withImages){ renderExport(false, {}, {}, rotationOnly); return; }
+  collectExportImages().then(m=>renderExport(true, m.portraits, m.pImgs, rotationOnly, m.dImgs, m.deImgs)).catch(()=>{
     alert('Portrait export failed. This usually happens when the page is opened directly from a file (file://). Host it (e.g. GitHub Pages) so the character images can be embedded, or use "Export Image" without portraits.');
   });
+}
+/* ---------- read-only shareable Webview (#v=<code>) ---------- */
+function shareViewURL(){ return location.origin+location.pathname+'#v='+encodeShare(); }
+function openShareViewLink(){ let url; try{ url=shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
+  openShareModal({title:'Share View Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, hint:'Opens a read-only view that looks like the image export.'}); }
+function enterViewMode(){
+  try{ save=function(){}; }catch(e){}                 /* read-only: never write to the viewer's storage */
+  document.body.classList.add('view-mode');
+  let root=document.getElementById('viewRoot');
+  if(!root){ root=document.createElement('div'); root.id='viewRoot'; document.body.appendChild(root); }
+  root.innerHTML='<div class="view-loading">Loading view…</div>';
+  const place=(v)=>{ v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0 auto'; root.innerHTML=''; root.appendChild(v); };
+  collectExportImages()
+    .then(m=>place(buildExportView(true, m.portraits, m.pImgs, false, m.dImgs, m.deImgs)))
+    .catch(()=>place(buildExportView(false, {}, {}, false, {}, {})));
 }
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
@@ -1475,18 +1579,25 @@ function exportImage(withImages, rotationOnly){
     else if(k==='png') exportImage(false);
     else if(k==='png-rot') exportImage(false, true);
     else if(k==='link') openShareLink();
+    else if(k==='viewlink') openShareViewLink();
     else if(k==='code') openCopyCode();
   }; });
 })();
 
 state=load(); renderAll();
 (function(){
+  const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
+  if(vm){
+    let ok=false;
+    try{ const st=decodeShare(vm[1]); state=migrate(st); ok=true; }catch(e){ /* unreadable view link */ }
+    if(ok){ enterViewMode(); return; }   /* read-only view; do NOT save() or clear the hash */
+  }
   const m=(location.hash||'').match(/[#&]r=([^&]+)/);
   if(!m) return;
   try{ const st=decodeShare(m[1]); state=migrate(st); save(); renderAll(); }catch(e){ /* ignore an unreadable link */ }
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616u</div>
+<div class="version-tag">260616a</div>
 </body>
 </html>
