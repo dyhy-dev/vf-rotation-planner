@@ -1563,23 +1563,27 @@ function deliverImage(url, fname){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 5000);
 }
+let _onExportSettled=null;
+function _settleExport(){ if(_onExportSettled){ const f=_onExportSettled; _onExportSettled=null; try{ f(); }catch(e){} } }
 function renderExport(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs){
   const v=buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs);
-  const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:8000};
+  const opts={backgroundColor:'#14121c',scale:2,logging:false,useCORS:true,imageTimeout:8000,
+    onclone:doc=>{ try{ doc.body.classList.remove('view-mode'); const vr=doc.getElementById('viewRoot'); if(vr) vr.remove(); }catch(e){} }};
   let done=false;
   const cleanup=()=>{ if(v&&v.parentNode) v.remove(); };
-  const fail=err=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); alert('Image export failed: '+((err&&err.message)||err)); };
+  const fail=err=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); _settleExport(); alert('Image export failed: '+((err&&err.message)||err)); };
   const finish=canvas=>{
     if(done) return;
     const fname=exportBaseName()+'.png';
-    const out=url=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); deliverImage(url, fname); };
+    const out=url=>{ if(done) return; done=true; clearTimeout(guard); cleanup(); _settleExport(); deliverImage(url, fname); };
     try{
       if(canvas.toBlob){ canvas.toBlob(b=>{ if(!b){ fail(new Error('empty image')); return; } out(URL.createObjectURL(b)); },'image/png'); }
       else { out(canvas.toDataURL('image/png')); }
     }catch(e){ fail(e); }
   };
-  /* hard 3s timeout so the button can never just silently do nothing */
-  const guard=setTimeout(()=>fail(new Error('rendering timed out')), 3000);
+  /* safety-net timeout so the button can never silently hang; cleared as soon as html2canvas resolves.
+     Must comfortably exceed the up-to-2s font wait + imageTimeout (8s) + a retry pass. */
+  const guard=setTimeout(()=>fail(new Error('rendering timed out')), 30000);
   /* wait for web fonts (raced with a timeout so it can never hang) before capturing */
   const fontsReady=(document.fonts&&document.fonts.ready)?Promise.resolve(document.fonts.ready).catch(()=>{}):Promise.resolve();
   const ready=Promise.race([fontsReady, new Promise(r=>setTimeout(r,2000))]);
@@ -1611,9 +1615,10 @@ function collectExportImages(){
   return Promise.all(tasks).then(()=>({portraits,pImgs,dImgs,deImgs}));
 }
 function exportImage(withImages, rotationOnly){
-  if(typeof html2canvas==='undefined'){ alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
+  if(typeof html2canvas==='undefined'){ _settleExport(); alert('Image export needs the rendering library (requires an internet connection the first time it is used).'); return; }
   if(!withImages){ renderExport(false, {}, {}, rotationOnly); return; }
   collectExportImages().then(m=>renderExport(true, m.portraits, m.pImgs, rotationOnly, m.dImgs, m.deImgs)).catch(()=>{
+    _settleExport();
     alert('Portrait export failed. This usually happens when the page is opened directly from a file (file://). Host it (e.g. GitHub Pages) so the character images can be embedded, or use "Export Image" without portraits.');
   });
 }
@@ -1621,6 +1626,20 @@ function exportImage(withImages, rotationOnly){
 function shareViewURL(){ return location.origin+location.pathname+'#v='+encodeShare(); }
 function openShareViewLink(){ let url; try{ url=shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
   openShareModal({title:'Share View Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:'Opens a read-only view that looks like the image export.'}); }
+function exportViewPNG(){
+  const body=document.body;
+  const wasView=body.classList.contains('view-mode');
+  const vr=document.getElementById('viewRoot');
+  let ov=document.getElementById('viewExportOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='viewExportOverlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:9999;background:#14121c;display:flex;align-items:center;justify-content:center;color:#9d97b3;font:600 15px Inter,system-ui,sans-serif;';
+    ov.textContent='Generating image\u2026'; document.body.appendChild(ov); }
+  ov.style.display='flex';
+  _onExportSettled=()=>{ if(wasView) body.classList.add('view-mode'); if(vr) vr.style.display=''; ov.style.display='none'; };
+  if(wasView) body.classList.remove('view-mode');   /* render in the exact same DOM context as the editor */
+  if(vr) vr.style.display='none';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ try{ exportImage(true); }catch(e){ _settleExport(); } }));
+}
 function fitView(){
   const v=document.getElementById('exportView'), stage=document.getElementById('viewStage');
   if(!v||!stage) return;
@@ -1651,7 +1670,7 @@ function enterViewMode(){
     <div id="viewStage"><div class="view-loading">Loading view\u2026</div></div>
     <div id="viewFooter">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div>`;
   const stage=document.getElementById('viewStage');
-  document.getElementById('viewDownload').onclick=()=>{ try{ exportImage(true); }catch(e){} };
+  document.getElementById('viewDownload').onclick=()=>{ try{ exportViewPNG(); }catch(e){ _settleExport(); } };
   document.getElementById('viewEdit').onclick=()=>{ try{ location.hash='r='+encodeShare(); location.reload(); }catch(e){} };
   const isMobileView=()=>window.matchMedia('(max-width: 600px)').matches;
   _viewMobile=isMobileView();
@@ -1706,6 +1725,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616l</div>
+<div class="version-tag">260616p</div>
 </body>
 </html>
