@@ -88,6 +88,7 @@ button{cursor:pointer}
 .section-title{display:flex; align-items:center; gap:10px; margin:0 0 12px}
 .section-title h2{font-size:16px; text-transform:uppercase; color:var(--blue)}
 .section-title .rule{flex:1; height:1px; background:var(--line)}
+.section-title .whale-btn{padding:4px 14px; font-size:12px; flex:0 0 auto}
 .units{display:grid; grid-template-columns:repeat(auto-fit,minmax(188px,1fr)); gap:12px}
 .unit{background:var(--panel2); border:1px solid var(--line); border-radius:12px; overflow:hidden;
   border-top:3px solid var(--ux,#888)}
@@ -325,7 +326,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <li><b>Revelation Cards</b> — choose the <b>Space</b> card first, then the matching <b>Sun / Moon / Star / Sky</b> cards are shown.</li>
         <li>Special fields appear automatically: <b>Wonder</b> gets a Dagger, <b>Twins</b> a Role, <b>Fuuka</b> a Backup.</li>
       </ul>
-      <p>You can reorder team slots 1–4 by dragging them.</p>
+      <p>You can reorder team slots 1–4 by dragging them. The <b>Whale</b> button in the team header sets every Awareness to A6 and every Reforge to R6 at once.</p>
       <p>Below the team you set up to three <b>Personas</b> (with up to three skills each) and a <b>Team Notes</b> box, where you can add information such as the required Pierce or Crit.</p>
 
       <h3>Rotation</h3>
@@ -623,13 +624,19 @@ function renderTeam(){
       </div>
     </div>`).join('');
   document.getElementById('teamPanel').innerHTML=`
-    <div class="section-title"><h2>Team</h2><div class="rule"></div></div>
+    <div class="section-title"><h2>Team</h2><div class="rule"></div><button class="btn whale-btn" id="whaleBtn" title="Set every Awareness to A6 and every Reforge to R6">Whale</button></div>
     <div class="units">${unitsHtml}</div>
     <div class="persona-grid">${personaHtml}</div>
     <div class="team-notes">
       <textarea id="teamNotes" placeholder="Team notes…"></textarea>
     </div>`;
   const tp=document.getElementById('teamPanel');
+  const whaleBtn=document.getElementById('whaleBtn');
+  if(whaleBtn) whaleBtn.onclick=()=>{
+    const apply=u=>{ if(!u) return; if((u.name||'').toUpperCase()==='WONDER') u.rev='R6'; else { u.awareness='A6'; u.rev='R6'; } };
+    (state.units||[]).forEach(apply); apply(state.elucidator);
+    save(); renderTeam();
+  };
   bindPaths(tp, ()=>{ renderTeam(); renderTurns(); });
   const tn=document.getElementById('teamNotes'); tn.value=state.teamNotes||''; tn.oninput=()=>{ state.teamNotes=tn.value; save(); };
   // drag & drop reorder of personas (slot labels Persona 1/2/3 stay fixed; only the content moves)
@@ -1356,6 +1363,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616M</div>
+<div class="version-tag">260616O</div>
 </body>
 </html>
