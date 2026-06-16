@@ -195,7 +195,7 @@ button{cursor:pointer}
 .guide .lead{color:var(--muted)}
 .share-card{max-width:560px}
 .share-body{padding:18px 22px 22px}
-.share-text{width:100%; box-sizing:border-box; min-height:120px; resize:vertical; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--text); font:500 13px ui-monospace,Menlo,Consolas,monospace; line-height:1.5; word-break:break-all; white-space:pre-wrap}
+.share-text{display:block; width:100%; box-sizing:border-box; min-height:120px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--text); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.5; resize:vertical}
 .share-hint{min-height:16px; margin:8px 2px 0; font:600 12px Inter,sans-serif; color:var(--blue)}
 .share-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
 .act-btns{display:flex; flex-direction:column; gap:3px}
@@ -227,6 +227,7 @@ button{cursor:pointer}
   <div class="toolbar">
     <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
     <div class="toolbar-actions">
+      <button class="btn" id="guideBtn" title="How the Rotation Planner works">Guide</button>
       <div class="dropdown" id="loadExWrap">
         <button class="btn" id="loadExBtn" aria-haspopup="true" aria-expanded="false">Load Examples ▾</button>
         <div class="dropdown-menu" id="loadExMenu" hidden>
@@ -254,7 +255,6 @@ button{cursor:pointer}
       </div>
       <button class="btn" id="refreshBtn" title="Reload the newest version of the page (bypasses cache)">Refresh</button>
       <button class="btn" id="resetBtn">Reset</button>
-      <button class="btn" id="guideBtn" title="How the Rotation Planner works">Guide</button>
       <input type="file" id="importFile" accept="application/json" hidden/>
     </div>
   </div>
@@ -345,7 +345,7 @@ button{cursor:pointer}
       <button class="modal-close" id="shareClose" aria-label="Close">&times;</button>
     </div>
     <div class="share-body">
-      <textarea id="shareText" class="share-text" spellcheck="false" autocomplete="off"></textarea>
+      <textarea id="shareText" class="share-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
       <div class="share-hint" id="shareHint"></div>
       <div class="share-actions">
         <button class="btn primary" id="sharePrimary">Copy</button>
@@ -1293,6 +1293,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260616F</div>
+<div class="version-tag">260616G</div>
 </body>
 </html>
