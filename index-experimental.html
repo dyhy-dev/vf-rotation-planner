@@ -473,7 +473,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       <h3>Saving &amp; sharing</h3>
       <p>Your work is saved automatically in this browser (autosave). For a permanent backup, use <b>Export → JSON</b> and re-import the file later. For a picture to post, use one of the PNG exports.</p>
-      <p>To send a rotation to a teammate without a file, use <b>Export → Share Editor Link</b> or <b>Copy Code</b>. Both open a box showing the link/code with a <b>Copy</b> button. The two share-link boxes (<b>Share Editor Link</b> and <b>Share View Link</b>) offer a <b>Create short link</b> button that turns the long link into a short one (via a small Cloudflare service), plus an editable <b>Discord title</b> line, pre-filled with the rotation name, mode, patch and credits. Adjust the title however you like, then press the Discord button to copy a <b>masked link</b> (your title as a single clickable label, with the link hidden behind it) ready to paste into Discord — if you created a short link first, the masked link uses the short one. Opening a <b>Share Editor Link</b> loads the rotation automatically; a <b>Code</b> is loaded via <b>Import → Import Code</b> (which also accepts a full link). The whole rotation is packed into the link/code itself — nothing is uploaded to a server.</p>
+      <p>To send a rotation to a teammate without a file, use <b>Export → Share Editor Link</b> or <b>Copy Code</b>. Both open a box showing the link/code with a <b>Copy</b> button. The two share-link boxes (<b>Share Editor Link</b> and <b>Share View Link</b>) automatically turn the link into a short one (via a small Cloudflare service) the moment they open, and also show an editable <b>Discord title</b> line, pre-filled with the rotation name, mode, patch and credits. If the short-link service can't be reached, the full link is shown instead and a button lets you retry. Adjust the title however you like, then press the Discord button to copy a <b>masked link</b> (your title as a single clickable label, with the link hidden behind it) ready to paste into Discord. Opening a <b>Share Editor Link</b> loads the rotation automatically; a <b>Code</b> is loaded via <b>Import → Import Code</b> (which also accepts a full link). The whole rotation is packed into the link/code itself — nothing is uploaded to a server.</p>
     </div>
   </div>
 </div>
@@ -2047,8 +2047,8 @@ async function shortenLink(fragment){
     if(btn) btn.hidden=true;                          /* one short link per share is enough */
     if(hint) hint.textContent='Short link created. Use Copy or Copy for Discord below.';
   }catch(e){
-    if(hint) hint.textContent='Could not reach the short-link service — check your connection and try again.';
-    if(btn) btn.disabled=false;
+    if(hint) hint.textContent='Short-link service unavailable — using the full link. Tap “Create short link” to retry.';
+    if(btn){ btn.hidden=false; btn.disabled=false; }
   }
 }
 function openShareModal(opts){
@@ -2063,7 +2063,7 @@ function openShareModal(opts){
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
   const shBtn=document.getElementById('ioShorten');
-  if(shBtn){ if(opts.shortenFragment){ shBtn.hidden=false; shBtn.disabled=false; shBtn.onclick=()=>shortenLink(opts.shortenFragment); } else { shBtn.hidden=true; shBtn.onclick=null; } }
+  if(shBtn){ shBtn.hidden=true; if(opts.shortenFragment){ shBtn.disabled=false; shBtn.onclick=()=>shortenLink(opts.shortenFragment); } else { shBtn.onclick=null; } }
   const dWrap=document.getElementById('ioDiscordWrap'), dText=document.getElementById('ioDiscordText'), dBtn=document.getElementById('ioDiscord');
   if(opts.discordUrl){
     if(dWrap) dWrap.hidden=false; if(dText) dText.value=opts.discordLabel||'';
@@ -2075,6 +2075,7 @@ function openShareModal(opts){
   }
   _ioPrimary=opts.onPrimary||null;
   modal.hidden=false;
+  if(opts.shortenFragment) shortenLink(opts.shortenFragment);   /* create + show the short link right away */
   if(opts.autoHeight){ t.style.height='auto'; t.style.height=Math.min(Math.round((window.innerHeight||800)*0.6), t.scrollHeight+8)+'px'; }
   else { t.style.height=''; }
   setTimeout(()=>{ try{ t.focus(); if(opts.readonly && !opts.noSelect) t.select(); }catch(_){} },30);
@@ -2892,6 +2893,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260617e</div>
+<div class="version-tag">260617f</div>
 </body>
 </html>
