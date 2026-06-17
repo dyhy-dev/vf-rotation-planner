@@ -41,6 +41,8 @@ button{cursor:pointer}
   padding:8px 14px; border-radius:8px; font-weight:600; font-size:13px; transition:.15s}
 .btn:hover{border-color:var(--blue-strong); background:#2d283d}
 .btn.primary{background:var(--blue-strong); border-color:var(--blue-strong); color:#0b1626}
+.btn.ac-btn{background:#5a1d28; border-color:#e0445e; color:#ffd9df}
+.btn.ac-btn:hover{background:#6e2533; border-color:#ff5d75}
 .btn.primary:hover{background:var(--blue)}
 .dropdown{position:relative; display:inline-block}
 .dropdown-menu{position:absolute; top:calc(100% + 4px); left:0; min-width:130px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:80; box-shadow:0 10px 28px rgba(0,0,0,.45)}
@@ -210,6 +212,8 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .act .mid select{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:4px; font-weight:600; font-size:12px}
 .act .mid input{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:5px; font-size:12px}
 .act .mid input:focus,.act .mid select:focus{outline:none; border-color:var(--blue-strong)}
+.act .mid select:disabled{opacity:.45; cursor:not-allowed}
+.setup-invalid{border-color:#e0445e !important; background:#2a1116 !important}
 .act-actions{display:flex; gap:3px}
 .actbtn{flex:1; padding:4px 2px; font-size:11px; font-weight:600; background:#15131d; border:1px solid var(--line); border-radius:5px; color:#cdd9ee; line-height:1; cursor:pointer; white-space:nowrap}
 .actbtn:hover{border-color:var(--blue-strong)}
@@ -250,6 +254,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .io-hint{min-height:16px; margin:8px 2px 0; font:600 12px Inter,sans-serif; color:var(--blue)}
 .io-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
 .io-keep{display:flex; align-items:center; gap:8px; margin-top:10px; font:500 12px Inter,sans-serif; color:var(--muted); cursor:pointer; user-select:none}
+.io-keep[hidden]{display:none}
 .io-keep input{cursor:pointer; margin:0}
 .imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
 .imp-note[hidden]{display:none}
@@ -301,6 +306,20 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .disc-banner .disc-msg{flex:1; min-width:0}
 .disc-banner .disc-x{flex:0 0 auto; background:transparent; border:none; color:#ffd9df; font-size:20px; line-height:1; cursor:pointer; padding:0 4px}
 .disc-banner .disc-x:hover{color:#fff}
+.ac-body{padding:16px 22px; color:#cdd3e3; font:14px/1.5 Inter,sans-serif; max-height:60vh; overflow:auto}
+.ac-body h3{font:700 11px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:18px 0 8px}
+.ac-body h3:first-child{margin-top:0}
+.ac-row{display:flex; gap:9px; align-items:flex-start; margin:7px 0; cursor:pointer}
+.ac-row input{margin:3px 0 0; flex:0 0 auto; cursor:pointer}
+.ac-row span b{color:var(--text)}
+.ac-note{color:var(--muted); font-size:13px; margin:8px 0}
+.ac-warn{color:#ffb3c0; font-size:13px; margin:8px 0; padding:8px 10px; background:rgba(224,68,94,.12); border:1px solid #6e2b38; border-radius:8px; line-height:1.45}
+.ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
+.ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
+.ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
+.ac-undo[hidden]{display:none}
+.ac-undo .ac-undo-x{background:transparent; border:none; color:#5a4a10; font-size:18px; line-height:1; cursor:pointer; padding:0 2px}
+.ac-undo .ac-undo-x:hover{color:#3a2c00}
 .act.discrepant{background:rgba(224,68,94,.16); border-color:#e0445e}
   .act.imp-act{background:rgba(241,194,50,.15); border-color:#f1c232}
   input.imp-miss, select.imp-miss, textarea.imp-miss{ background:rgba(241,194,50,.16)!important; border-color:#f1c232!important; box-shadow:0 0 0 1px rgba(241,194,50,.5) inset; }
@@ -356,8 +375,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="panel" id="teamPanel"></div>
   <div class="panel">
     <div class="section-title"><h2>Rotation</h2><div class="rule"></div>
+      <button class="btn ac-btn" id="autoCorrect" hidden title="Fix discrepancies: replace missing characters/personas and resolve turn order">Auto Correct</button>
       <button class="btn" id="autoFill" title="Fill empty turn columns with characters 1–4 in order (columns that already have a character are left untouched)">Auto Fill</button>
-      <button class="btn" id="autoCorrect" hidden title="Fix discrepancies: replace missing characters with the ones that replaced them, and reorder the team to match the turns">Auto Correct</button>
       <button class="btn" id="clearActions" title="Remove all actions from every turn">Clear</button>
     </div>
     <div class="notes-row"><textarea id="notes" placeholder="Rotation notes…"></textarea></div>
@@ -431,14 +450,15 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <p>The rotation is a row of <b>turns</b>; each turn has a name (which you can edit), an optional <b>turn note</b> field below the name, and a list of <b>actions</b>. The turn note is shown in the export next to the turn name — in the vertical layout right-aligned in the header, in the horizontal layout under the turn name.</p>
       <p><b>Start here:</b> press <b>Auto Fill</b> first. It fills every empty turn column with your team characters 1–4 in order, so afterwards you only have to fill in the actions. It is recommended to do this before adding actions yourself. Afterwards Auto Fill never overwrites a column that already has a character, so if you add more turns later you can press Auto Fill again to fill them. <b>Clear</b> removes all actions from every turn if you want to start over.</p>
       <p>If you swap a team character or a Persona while actions still reference the old one, those actions are highlighted in red (in the editor and the preview) and the <b>Export</b> button is disabled until you fix them — this prevents exporting a broken rotation. A banner briefly appears to point it out. As soon as every action again points to a current character/Persona, export is re-enabled automatically.</p>
-      <p>When there is a discrepancy, an <b>Auto Correct</b> button appears next to <b>Auto Fill</b>. It replaces a missing character in the actions with the one that took its team slot, and reorders the team to match the order the characters act in the turns. It always asks for confirmation first and lists exactly what it will change. Anything it can't resolve automatically (e.g. a Wonder Persona no longer on the team) is left for you to fix by hand.</p>
+      <p><b>Export</b> is also disabled while the <b>Setup</b> is incomplete. Every setup field is required except <b>Expected Score</b>, which is optional. <b>Patch</b> must be a number like <code>4.3</code>, and <b>Expected Score</b> accepts plain numbers or magnitudes such as <code>100M</code>, <code>1.3 B</code>, <code>945 Mil</code>, <code>2Bil</code> or <code>59T</code>. A comma is converted to a period automatically, and a lower-case T/M/B is capitalised for you. An invalid field turns red and a tooltip explains the problem with an example.</p>
+      <p>When there is a discrepancy, an <b>Auto Correct</b> button appears next to <b>Auto Fill</b>. It opens a dialog with a <b>checklist</b> of every change it can make, each one toggleable, so you stay in control. It can: <b>replace a missing character</b> in the actions with the one that took its team slot; <b>fix a Wonder Persona</b> that is no longer in a slot (swapping it for a free slot persona, or dropping it into an empty slot); and resolve <b>turn order</b>. For the order it offers a choice — <b>reorder the team slots</b> to match the turns, <b>reorder the actions</b> inside each turn (keep both, fix the order), or <b>delete</b> the too-early or the too-late action in each conflicting turn. When characters act in conflicting orders across different turns (so no single team order can satisfy them all), it says so and recommends reordering the actions instead. After applying, an <b>Undo</b> appears so you can revert everything in one click. Anything it genuinely can't resolve (e.g. a missing character with no free slot) is listed for you to fix by hand.</p>
       <p>A turn is also tinted red when the characters in it don't act in <b>team order</b>: the planner reads the first Skill/Attack/Gun/Guard of each character (ignoring Highlights/Theurgy, Assists and the Elucidator) and compares it to the order of your team slots. This is enforced the same way — the banner reports it and <b>Export</b> stays disabled until the turn matches the team order again. Reordering your team (or editing a turn) re-checks every turn instantly, so it's easy to spot a sequence that slipped.</p>
       <p>For every action:</p>
       <ul>
         <li>Pick the acting <b>character</b> from the dropdown.</li>
         <li>Optionally tap an <b>action button</b>. Normal characters have <code>S1 S2 S3 HL</code> plus <code>Attack Gun Guard</code>; SEES members show <code>TG</code> (Theurgy) instead of HL and <code>Assist</code> instead of Gun; the Elucidators only have <code>S1 S2 S3</code>. A few characters (Messa, Violet, Rin·F, Turbo, Twins, Ange, Akihiko) also have a separate button next to the character dropdown that exports to its own wording — e.g. Violet's <code>MSQ</code> → “Masquerade”, Ange's <code>DC</code> → “Da Capo”, Akihiko's <code>Alt</code> → “Punch”. Tap an active button again to clear it.</li>
-        <li><b>Wonder</b> is special: choose one of your three personas from the dropdown and optionally toggle the <b>HL</b> button next to it. You can also leave the persona unselected if Wonder should do a different action (e.g. Guard).</li>
-        <li>The <b>text field</b> is always available for free notes, e.g. the target of the action or other information.</li>
+        <li><b>Wonder</b> is special: choose one of your three personas from the dropdown and optionally toggle the <b>HL</b> button next to it. A second row of buttons (<b>Attack / Gun / Guard</b>) covers Wonder's basic actions. Once a persona is selected, a <b>skill dropdown</b> appears with that persona's three skills (its signature plus the two teachable skills) so you can pick the exact skill quickly. In a text import, a bare <b>Wonder HL</b> automatically adopts the persona Wonder used most recently.</li>
+        <li>The <b>text field</b> is always available as the last line for free notes, e.g. the target of the action or other information.</li>
       </ul>
       <p>In the export, a button and text are joined with a space — e.g. <code>S2</code> + <code>Violet</code> becomes “S2 Violet”, and a Wonder action becomes e.g. “Koumokuten HL Haru”. You can also use only the text field without any button.</p>
       <p>Each turn header has a <b>grip</b> (drag to reorder the column), a <b>duplicate</b> button (copies the turn with all its content to the right) and a <b>×</b> button (remove). You can also <b>drag</b> actions into a new order. Turns stay numbered left to right (1, 2, 3, …); in <b>DOD</b> mode the last two turns are breaks (<b>Break 1</b>, <b>Break 2</b>), always pinned at the end and highlighted in red in the export. A separate <b>Rotation Notes</b> box sits above the turns.</p>
@@ -477,6 +497,18 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <pre class="imp-note-body" id="impNoteBody"></pre>
 </div>
 <div id="discBanner" class="disc-banner" hidden><span class="disc-msg"></span><button type="button" class="disc-x" aria-label="Dismiss">&times;</button></div>
+
+<div class="modal" id="acModal" hidden>
+  <div class="modal-card" style="max-width:560px;">
+    <div class="modal-head"><h2>Auto Correct</h2><button class="modal-close" id="acClose" aria-label="Close">&times;</button></div>
+    <div class="ac-body" id="acBody"></div>
+    <div class="ac-foot">
+      <button class="btn primary" id="acApply">Apply selected</button>
+      <button class="btn" id="acCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+<div id="acUndo" class="ac-undo" hidden><span class="ac-undo-msg">Auto Correct applied.</span><button type="button" class="btn" id="acUndoBtn">Undo</button><button type="button" class="ac-undo-x" id="acUndoX" aria-label="Dismiss">&times;</button></div>
 <div id="comboPanel" class="combo-panel" hidden></div>
 
 <script>
@@ -552,9 +584,11 @@ function actButtonRows(name){
 }
 function actCodesFor(name){ return actButtonRows(name).reduce((acc,g)=>acc.concat(g),[]); }
 function actButtons(name){ return actCodesFor(name); } /* kept for compatibility */
+/* combined "what Wonder does" (skill + basic action + free text); HL is tracked separately */
+function wonderBody(a){ return [a.skill||'', a.btn?btnLabel(a.btn):'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' '); }
 function actionLabel(a, name){
   if((name||'').toUpperCase()==='WONDER'){
-    return [a.persona||'', a.hl?'HL':'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+    return [a.persona||'', a.hl?'HL':'', wonderBody(a)].map(s=>String(s).trim()).filter(Boolean).join(' ');
   }
   const special=ACT_SPECIAL.includes((name||'').toUpperCase());
   const lbl=c=>!c?'':(c==='ALT'?altExportLabel(name):(c==='HL'?(special?'Theurgy':'Highlight'):(BTN_LABEL[c]||c)));
@@ -562,13 +596,13 @@ function actionLabel(a, name){
 }
 function migrateAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
-  if(a.btn!==undefined || a.text!==undefined || a.persona!==undefined || a.hl!==undefined){
-    if(isW){ a.persona=a.persona||''; a.hl=!!a.hl; a.text=a.text||''; }
+  if(a.btn!==undefined || a.text!==undefined || a.persona!==undefined || a.hl!==undefined || a.skill!==undefined){
+    if(isW){ a.persona=a.persona||''; a.hl=!!a.hl; a.text=a.text||''; a.skill=a.skill||''; a.btn=a.btn||''; }
     else { a.btn=a.btn||''; a.text=a.text||''; }
     delete a.action; delete a.custom; return;
   }
   const raw=(a.action!=null?String(a.action):'');
-  if(isW){ a.persona=''; a.hl=false; a.text=raw; }
+  if(isW){ a.persona=''; a.hl=false; a.text=raw; a.skill=''; a.btn=''; }
   else {
     const txt=raw.trim(); let code='';
     if(ACT_CODES.includes(txt)) code=txt;
@@ -745,10 +779,25 @@ function matchDagger(str){ const t=_n(str);
   let h=DATA.daggerNames.find(d=>d.toLowerCase()===t)||DATA.daggerNames.find(d=>d.toLowerCase().startsWith(t)&&t.length>=3);
   if(!h&&t.length>=4) h=DATA.daggerNames.find(d=>lev(d,t)<=2);
   return h||''; }
+/* strip a trailing/standalone reforge token (R5, R0X, R3 …) so "Plasma Blade R5" -> "Plasma Blade" */
+function stripReforge(s){ return String(s||'').replace(/\bR[0-6X]\b/ig,' ').replace(/\bR\d+\b/ig,' ').replace(/\s+/g,' ').trim(); }
+/* find a known dagger anywhere in a short line via exact (normalized) word-window match — no fuzzy, to avoid false hits in prose */
+function findDaggerIn(base){
+  base=String(base||'').trim(); if(!base) return '';
+  let dg=DATA.daggerNames.find(d=>_n(d)===_n(base)); if(dg) return dg;
+  const words=base.split(/\s+/).filter(Boolean); if(words.length>5) return '';
+  for(let wlen=Math.min(4,words.length); wlen>=1; wlen--){
+    for(let i=0;i+wlen<=words.length;i++){ const c=words.slice(i,i+wlen).join(' ');
+      dg=DATA.daggerNames.find(d=>_n(d)===_n(c)); if(dg) return dg; } }
+  return '';
+}
 
 /* "Sig"/"Signature" -> the persona's signature skill; a known abbreviation -> its full skill name; otherwise unchanged. Only the leading token is touched. */
 function expandSkillText(text, persona){
   const t=String(text||'').trim(); if(!t) return text;
+  const whole=t.toLowerCase();
+  if(whole==='sig'||whole==='signature') return (persona&&PERSONA_SIGNATURES[persona])||text;
+  if(SKILL_ALIAS_MAP[whole]) return SKILL_ALIAS_MAP[whole]; // the whole text is a known skill / alias
   const sp=t.indexOf(' '), head=(sp<0?t:t.slice(0,sp)), tail=(sp<0?'':t.slice(sp));
   const lc=head.toLowerCase(); let rep=null;
   if(lc==='sig'||lc==='signature'){ rep=(persona&&PERSONA_SIGNATURES[persona])||null; }
@@ -762,19 +811,22 @@ function buildActions(actor,toks,raw,warn){
     const pname=actor.type==='persona'?actor.name:'';
     const text=expandSkillText(toks.filter(t=>_n(t).replace(/[().]/g,'')!=='hl').join(' ').trim(), pname);
     return [{char:'WONDER',persona:pname,hl,text,_fuzzy:!!actor.fuzzy}]; }
-  // character: one action per action-code; non-code tokens attach as text to the current code
-  const acts=[]; let cur=null; const pending=[];
-  for(const tok of toks){ const c=codeOf(tok);
+  // character: one action per action-code; non-code tokens attach as text to the current code.
+  // tokens inside parentheses are treated as a note (never as new action codes), e.g. "S3 (Turbo HL if ...)".
+  const acts=[]; let cur=null; const pending=[]; let paren=0;
+  for(const tok of toks){ const startsParen=/^[(\[]/.test(tok);
+    const c=(paren>0||startsParen)?null:codeOf(tok);
     if(c){ if(cur)acts.push(cur); cur={char:actor.name,btn:c.btn,text:c.extra||'',_fuzzy:!!actor.fuzzy};
       if(pending.length){ cur.text=(pending.join(' ')+(cur.text?(' '+cur.text):'')).trim(); pending.length=0; } }
-    else { if(cur) cur.text=(cur.text+' '+tok).trim(); else pending.push(tok); } }
+    else { if(cur) cur.text=(cur.text+' '+tok).trim(); else pending.push(tok); }
+    paren+=(tok.match(/[(\[]/g)||[]).length-(tok.match(/[)\]]/g)||[]).length; if(paren<0)paren=0; }
   if(cur) acts.push(cur);
   if(!acts.length) acts.push({char:actor.name,btn:'',text:pending.join(' ').trim(),_fuzzy:!!actor.fuzzy,_uncertain:true});
   return acts;
 }
 function parseTurnContent(content,warn){
   const actions=[];
-  for(const unit of content.split(/[,|]/).map(u=>u.trim()).filter(Boolean)){
+  for(const unit of content.split(/[,|>\u203a\u2192]/).map(u=>u.trim()).filter(Boolean)){
     let cur=null;
     for(const seg of unit.split('+').map(s=>s.trim()).filter(Boolean)){
       const toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
@@ -799,7 +851,7 @@ function parseTurnContent(content,warn){
 /* ---- main ---- */
 function parseRotationText(text){
   const warn=[];
-  const lines=text.split(/\r?\n/);
+  const lines=text.split(/\r?\n/).map(s=>s.replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,''));
   const reInline=/^\s*(?:t|turn)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
   const reAlone=/^\s*(?:t|turn)\s*(\d+)\s*[:.)]?\s*$/i;
   // classify lines: turn vs header
@@ -816,7 +868,7 @@ function parseRotationText(text){
 
   // state skeleton
   const blankUnit=()=>({name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:'',note:''});
-  const setup={rotationName:'',tier:'',boss:'',type:'',patch:'',score:'',notes:'',credits:''};
+  const setup={rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''};
   const charData={}; // name -> {awareness,rev,space,sunsky,note}
   const charOrder=[];
   let dagger='', personas=[]; const headerDuals=[];
@@ -842,7 +894,7 @@ function parseRotationText(text){
       parsePersonaList(rest);
       continue;
     }
-    if(/^(knife|dagger)\s*:/i.test(line)){ const dg=matchDagger(line.split(':')[1]||''); if(dg){dagger=dg;got.dagger=1;} continue; }
+    if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1); const dg=matchDagger(stripReforge(val))||findDaggerIn(stripReforge(val)); if(dg){dagger=dg;got.dagger=1;} continue; }
     { const pInline=line.match(/^personas?\s*:\s*(.+)$/i); if(pInline){ parsePersonaList(pInline[1]); continue; } }
     if(/^personas?\s*:?\s*$/i.test(line)){ // following lines are personas until blank/block
       let j=hi+1; while(j<headerLines.length && !/^(cards?|knife|dagger)\s*:/i.test(headerLines[j]) && !/[:]/.test(headerLines[j].split(' ')[0]||'')){ 
@@ -850,6 +902,15 @@ function parseRotationText(text){
       continue;
     }
     if(/^cards?\s*:?\s*$/i.test(line)){ let j=hi+1; while(j<headerLines.length){ if(!parseCardLine(headerLines[j])) break; headerLines[j]='\u0000'; j++; } continue; }
+    // standalone "Dagger" / "Knife" / "Weapon" header -> dagger sits on the following non-blank line ("Plasma Blade R5")
+    if(/^(knife|dagger|weapon)s?\s*:?\s*$/i.test(line)){
+      for(let j=hi+1;j<headerLines.length;j++){ const hl=headerLines[j]; if(!hl||hl==='\u0000') continue;
+        const dg=matchDagger(stripReforge(hl))||findDaggerIn(stripReforge(hl)); if(dg){ dagger=dg; got.dagger=1; headerLines[j]='\u0000'; }
+        break; }
+      continue;
+    }
+    // bare section headers that carry no data themselves
+    if(/^(rotation|rotations|turns?|team|comp|composition|notes?|info|setup)\s*:?\s*$/i.test(line)) continue;
     if(line==='\u0000') continue;
 
     // "<name>: <rest>" — dagger line, card line, or a stat note, even without a "Cards:" header
@@ -863,6 +924,21 @@ function parseRotationText(text){
           if(cp.space||cp.sunsky){ const info={}; if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky; addChar(a.name,info); got.cards=1; continue; }
           noteLines.push(line); continue; } } }
 
+
+    // team chain line: "A A1R0 > B > C A2R0 > D" — split on chevrons, each segment carries its own awareness/reforge
+    if(/[>\u203a\u2192]/.test(line)){
+      const segs=line.split(/\s*[>\u203a\u2192]\s*/).map(s=>s.trim()).filter(Boolean);
+      const parsed=[]; let clean=segs.length>=2;
+      for(const seg of segs){
+        const am=seg.match(/\b(A[0-6]|DGR)\s*(R[0-6X])?\b/i);
+        let nm=seg, info={};
+        if(am){ nm=seg.slice(0,seg.indexOf(am[0])).trim()||seg; info.awareness=am[1].toUpperCase(); info.rev=(am[2]||'').toUpperCase(); }
+        const a=resolveActor(nm.split(/\s+/)[0]);
+        if(a && a.type==='char'){ parsed.push({name:a.name,info}); }
+        else { clean=false; break; }
+      }
+      if(clean && parsed.length>=2){ parsed.forEach(p=>addChar(p.name,p.info)); got.team=1; continue; }
+    }
 
     // team character line: has awareness token AND a recognized character before it
     const aw=line.match(/\b(A[0-6]|DGR)\s*(R[0-6X])?\b/i);
@@ -912,14 +988,32 @@ function parseRotationText(text){
     noteLines.push(line);
   }
 
+  // general dagger fallback: if nothing structured gave a dagger, look for a known dagger name
+  // anywhere in the leftover (non-turn) lines — daggers are usually mentioned somewhere in the header text.
+  if(!got.dagger && noteLines.length){
+    for(let n=0;n<noteLines.length;n++){
+      const base=stripReforge(noteLines[n]); const dg=findDaggerIn(base);
+      if(dg){ dagger=dg; got.dagger=1;
+        if(base.split(/\s+/).filter(Boolean).length<=3) noteLines.splice(n,1); // drop a bare "Plasma Blade R5"-style line
+        break; }
+    }
+  }
+
   function parsePersonaList(str){ if(!str)return; str.split(/,(?![^(]*\))/).forEach(chunk=>parsePersonaLine(chunk)); }
   function parsePersonaLine(line){
-    line=String(line||'').trim(); if(!line) return false;
-    const m=line.match(/^([^(:/]+?)(?:\s*[:\(]\s*(.*?)\)?\s*)?$/);
+    line=String(line||'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'').trim();
+    if(!line) return false;
     let nameStr=line, skillStr='';
-    const pm=line.match(/^(.*?)\s*\(([^)]*)\)\s*$/); // name (skills)
+    let pm=line.match(/^(.*?)\s*\(([^)]*)\)/); // 1) Name (skills) — first parenthetical group; trailing text (e.g. "or X") ignored
     if(pm){ nameStr=pm[1].trim(); skillStr=pm[2]; }
-    else { const cm=line.match(/^([^\s]+)\s+(.*)$/); if(cm && /[\/]/.test(cm[2])){ nameStr=cm[1]; skillStr=cm[2]; } }
+    else {
+      // 2) Name <dash/colon> skills  (en/em dash, hyphen with spaces, or colon)
+      let dm=line.match(/^(.*?)\s*[:\u2013\u2014]\s*(.+)$/) || line.match(/^(.*?)\s+-\s+(.+)$/);
+      if(dm){ nameStr=dm[1].trim(); skillStr=dm[2].trim(); }
+      else { // 3) Name skillA/skillB
+        const cm=line.match(/^(\S+)\s+(.*)$/); if(cm && /\//.test(cm[2])){ nameStr=cm[1]; skillStr=cm[2]; }
+      }
+    }
     const tok=nameStr.split(/\s+/)[0];
     const a=resolveActor(tok);
     if(a&&a.type==='persona'){ const skills=skillStr.split(/[\/,+]/).map(s=>s.trim()).filter(Boolean)
@@ -942,6 +1036,10 @@ function parseRotationText(text){
   // turns (parse first, so we can fill the team from turn actors if the header is sparse)
   const turns=[]; turnEntries.sort((a,b)=>a.num-b.num);
   turnEntries.forEach(te=>turns.push({name:'TURN '+te.num,note:'',actions:parseTurnContent(te.content,warn)}));
+  // a bare "Wonder HL" (HL only, no persona/skill/text) inherits the most recently used Wonder persona
+  { let lastP=''; turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER') return;
+      if(a.persona){ lastP=a.persona; return; }
+      if(a.hl && !a.persona && !String(a.text||'').trim() && lastP) a.persona=lastP; })); }
   const turnChars=[]; let turnHasWonder=false;
   turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'){turnHasWonder=true;} else if(a.char && !turnChars.includes(a.char)) turnChars.push(a.char); }));
 
@@ -1045,7 +1143,7 @@ function isRotationEmpty(st){
   if(us.some(u=>(u.name||u.space||u.sunsky||u.gear||u.role||u.companion)||String(u.note||'').trim())) return false;
   if((st.personas||[]).some(p=>p.name||(p.skills||[]).some(x=>x))) return false;
   if(String(st.teamNotes||'').trim()) return false;
-  if((st.turns||[]).some(t=>(t.actions||[]).some(a=>a.char||a.persona||a.btn||String(a.text||'').trim()))) return false;
+  if((st.turns||[]).some(t=>(t.actions||[]).some(a=>a.char||a.persona||a.btn||a.skill||String(a.text||'').trim()))) return false;
   return true;
 }
 function showImportFeedback(res){
@@ -1129,10 +1227,12 @@ function renderHead(){
     tsel.closest('.tier').className='tier type-'+newType.toLowerCase();
     renderTurns();
     renderNotes();
+    paintSetupValidity(); refreshDiscrepancies();
   };
   bind('f_boss','setup.boss');
-  bind('f_patch','setup.patch'); bind('f_score','setup.score');
+  bind('f_patch','setup.patch', normalizePatch); bind('f_score','setup.score', normalizeScore);
   paintImp();
+  paintSetupValidity(); refreshDiscrepancies();
 }
 
 /* ---------- render: team ---------- */
@@ -1321,7 +1421,7 @@ function countOrderViolations(){
 /* Order-relevant = a real action (Skill/Attack/Gun/Guard, or a Wonder persona-skill).
    HL/Theurgy/Assist, ALT, and the elucidator are ignored — same actions ignored when deriving the order. */
 function isOrderRelevant(a){
-  if((a.char||'').toUpperCase()==='WONDER') return !!String(a.text||'').trim();
+  if((a.char||'').toUpperCase()==='WONDER') return !!wonderBody(a);
   return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn);
 }
 function turnOrderViolation(t){
@@ -1343,37 +1443,112 @@ function turnOrderViolation(t){
 function buildActionOrder(){
   const order=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{
-    if((a.char||'').toUpperCase()==='WONDER'){ if(String(a.text||'').trim() && !order.includes('WONDER')) order.push('WONDER'); }
+    if((a.char||'').toUpperCase()==='WONDER'){ if(wonderBody(a) && !order.includes('WONDER')) order.push('WONDER'); }
     else { const cn=(a.char||'').toUpperCase(); if(cn && ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) && !order.includes(cn)) order.push(cn); }
   }));
   return order;
 }
+/* order-relevant character sequence (UPPER names) for a list of actions, against a team index map */
+function _orderSeq(actions, idx, elu){
+  const seq=[], seen=new Set();
+  for(const a of (actions||[])){ if(!isOrderRelevant(a)) continue;
+    const cn=(a.char||'').toUpperCase(); if(!cn||cn===elu) continue;
+    if(idx[cn]===undefined) continue; if(seen.has(cn)) continue; seen.add(cn); seq.push(cn); }
+  return seq;
+}
+function _seqViolates(seq, idx){ for(let i=1;i<seq.length;i++){ if(idx[seq[i]]<idx[seq[i-1]]) return true; } return false; }
+function _blankUnit(){ return {name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:'',note:''}; }
+
 function autoCorrectPlan(){
   const team=teamChars(), teamUp=team.map(c=>c.toUpperCase());
-  // missing: characters that act in the turns but are no longer on the team (Wonder handled separately), in first-seen order
+  // ---- character replacements: missing acting character -> a team character that acts nowhere ----
   const missing=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ const cn=a.char; if(!cn) return;
     if(cn.toUpperCase()==='WONDER') return;
     if(!teamUp.includes(cn.toUpperCase()) && !missing.includes(cn)) missing.push(cn); }));
-  // free: team characters that don't act anywhere (these replaced the missing ones), in team-slot order
   const acting=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char) acting.add(a.char.toUpperCase()); }));
   const free=[]; (state.units||[]).forEach(u=>{ const nm=u.name; if(nm && nm.toUpperCase()!=='WONDER' && !acting.has(nm.toUpperCase()) && !free.includes(nm)) free.push(nm); });
-  const replacements=[]; const n=Math.min(missing.length, free.length);
-  for(let i=0;i<n;i++) replacements.push({from:missing[i], to:free[i]});
-  const unmatched=missing.slice(n);
-  const orderNeeded=(state.turns||[]).some(t=>turnOrderViolation(t));
-  return {replacements, unmatched, orderNeeded};
+  const charReplacements=[]; { const n=Math.min(missing.length, free.length);
+    for(let i=0;i<n;i++) charReplacements.push({from:missing[i], to:free[i]}); }
+  const unmatchedChars=missing.slice(charReplacements.length);
+
+  // ---- persona replacements: Wonder persona used in turns but not in a slot ----
+  const slotPersUp=state.personas.map(p=>(p.name||'').trim().toUpperCase()).filter(Boolean);
+  const missP=[];
+  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER') return;
+    const p=(a.persona||'').trim(); if(!p) return;
+    if(!slotPersUp.includes(p.toUpperCase()) && !missP.includes(p)) missP.push(p); }));
+  const usedP=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && a.persona) usedP.add(a.persona.toUpperCase()); }));
+  const freeP=[]; state.personas.forEach(p=>{ const nm=(p.name||'').trim(); if(nm && !usedP.has(nm.toUpperCase()) && !freeP.includes(nm)) freeP.push(nm); });
+  const emptySlots=state.personas.filter(p=>!(p.name||'').trim()).length;
+  const personaIntoEmpty=missP.slice(0, emptySlots);          // fill empty slots first (keeps the action's persona)
+  let restP=missP.slice(personaIntoEmpty.length);
+  const personaReplacements=[]; { const n=Math.min(restP.length, freeP.length);
+    for(let i=0;i<n;i++) personaReplacements.push({from:restP[i], to:freeP[i]}); }
+  const unmatchedPersonas=restP.slice(personaReplacements.length);
+
+  // ---- order: project char/persona replacements, then detect violations & cross-turn conflicts ----
+  const cmap={}; charReplacements.forEach(r=>cmap[r.from.toUpperCase()]=r.to);
+  const idx={}; state.units.forEach((u,i)=>{ if(u.name){ const up=u.name.toUpperCase(); idx[up]=i; } });
+  // characters that will exist on the team after replacement still map to their current slot; that is what idx already holds
+  const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
+  const projTurns=(state.turns||[]).map(t=>({actions:(t.actions||[]).map(a=>{ const cn=(a.char||'').toUpperCase();
+    return Object.assign({},a,{char:cmap[cn]||a.char}); })}));
+  const violatingTurns=[]; projTurns.forEach((t,ti)=>{ if(_seqViolates(_orderSeq(t.actions,idx,elu),idx)) violatingTurns.push(ti); });
+  // cross-turn conflicts: A before B in one turn, B before A in another -> no single team order satisfies all
+  const before={};
+  projTurns.forEach(t=>{ const seq=_orderSeq(t.actions,idx,elu);
+    for(let i=0;i<seq.length;i++) for(let j=i+1;j<seq.length;j++) before[seq[i]+'>'+seq[j]]=true; });
+  const conflicts=[]; const seenPair=new Set();
+  Object.keys(before).forEach(k=>{ const p=k.split('>'); const key=[p[0],p[1]].sort().join('|');
+    if(seenPair.has(key)) return; if(before[p[1]+'>'+p[0]]){ seenPair.add(key); conflicts.push([p[0],p[1]]); } });
+  const hasOrderIssue=violatingTurns.length>0;
+  const orderResolvable=hasOrderIssue && conflicts.length===0;   // team-reorder can satisfy all turns
+
+  const actionable=charReplacements.length||personaReplacements.length||personaIntoEmpty.length||hasOrderIssue;
+  return {charReplacements, unmatchedChars, personaReplacements, personaIntoEmpty, unmatchedPersonas,
+          violatingTurns, conflicts, hasOrderIssue, orderResolvable, actionable};
 }
-function autoCorrectApply(plan){
-  const map={}; plan.replacements.forEach(r=>map[r.from.toUpperCase()]=r.to);
-  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char && map[a.char.toUpperCase()]) a.char=map[a.char.toUpperCase()]; }));
-  // reorder units by action order (stable; characters with no action keep their relative order at the end)
-  const order=buildActionOrder();
-  const rank=u=>{ const i=order.indexOf((u.name||'').toUpperCase()); return i<0?999:i; };
-  const named=(state.units||[]).filter(u=>u.name);
-  const sorted=named.map((u,i)=>({u,i})).sort((A,B)=>{ const d=rank(A.u)-rank(B.u); return d!==0?d:A.i-B.i; }).map(x=>x.u);
-  while(sorted.length<4) sorted.push({name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:'',note:''});
-  state.units=sorted.slice(0,4);
+/* sel = {charReplacements:[…], personaReplacements:[…], personaIntoEmpty:[…], order:'team'|'turns'|'none'} */
+function autoCorrectApply(sel){
+  sel=sel||{};
+  const cmap={}; (sel.charReplacements||[]).forEach(r=>cmap[r.from.toUpperCase()]=r.to);
+  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char && cmap[a.char.toUpperCase()]) a.char=cmap[a.char.toUpperCase()]; }));
+  const pmap={}; (sel.personaReplacements||[]).forEach(r=>pmap[r.from.toUpperCase()]=r.to);
+  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && a.persona && pmap[a.persona.toUpperCase()]) a.persona=pmap[a.persona.toUpperCase()]; }));
+  (sel.personaIntoEmpty||[]).forEach(name=>{ const slot=state.personas.find(p=>!(p.name||'').trim()); if(slot){ slot.name=name; if(!Array.isArray(slot.skills)) slot.skills=['','']; } });
+  if(sel.order==='team'){
+    const order=buildActionOrder();
+    const rank=u=>{ const i=order.indexOf((u.name||'').toUpperCase()); return i<0?999:i; };
+    const named=(state.units||[]).filter(u=>u.name);
+    const sorted=named.map((u,i)=>({u,i})).sort((A,B)=>{ const d=rank(A.u)-rank(B.u); return d!==0?d:A.i-B.i; }).map(x=>x.u);
+    while(sorted.length<4) sorted.push(_blankUnit());
+    state.units=sorted.slice(0,4);
+  } else if(sel.order==='turns'){
+    const idx={}; state.units.forEach((u,i)=>{ if(u.name) idx[u.name.toUpperCase()]=i; });
+    const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
+    (state.turns||[]).forEach(t=>{ const acts=t.actions||[]; const relPos=[], rel=[];
+      acts.forEach((a,i)=>{ if(!isOrderRelevant(a)) return; const cn=(a.char||'').toUpperCase();
+        if(!cn||cn===elu||idx[cn]===undefined) return; relPos.push(i); rel.push(a); });
+      const sortedRel=rel.map((a,i)=>({a,i})).sort((A,B)=>{ const d=idx[(A.a.char||'').toUpperCase()]-idx[(B.a.char||'').toUpperCase()]; return d!==0?d:A.i-B.i; }).map(x=>x.a);
+      relPos.forEach((pos,k)=>{ acts[pos]=sortedRel[k]; }); });
+  } else if(sel.order==='delEarly' || sel.order==='delLate'){
+    const idx={}; state.units.forEach((u,i)=>{ if(u.name) idx[u.name.toUpperCase()]=i; });
+    const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
+    (state.turns||[]).forEach(t=>{ const acts=t.actions||[]; const drop=new Set();
+      // index the order-relevant actions and their team ranks
+      const rel=[]; acts.forEach((a,i)=>{ if(!isOrderRelevant(a)) return; const cn=(a.char||'').toUpperCase();
+        if(!cn||cn===elu||idx[cn]===undefined) return; rel.push({i, rank:idx[cn]}); });
+      if(sel.order==='delLate'){
+        // walk forward; an action whose rank dips below the running max came "too late" -> drop it
+        let mx=-1; rel.forEach(r=>{ if(r.rank>=mx) mx=r.rank; else drop.add(r.i); });
+      } else {
+        // delEarly: walk backward; an action whose rank exceeds the running min sits "too early" -> drop it
+        let mn=Infinity; for(let k=rel.length-1;k>=0;k--){ const r=rel[k]; if(r.rank<=mn) mn=r.rank; else drop.add(r.i); }
+      }
+      if(drop.size) t.actions=acts.filter((a,i)=>!drop.has(i));
+    });
+  }
 }
 let _discBannerTimer=null, _prevDiscCount=0;
 function showDiscBanner(nChar,nOrd){
@@ -1388,12 +1563,66 @@ function showDiscBanner(nChar,nOrd){
   _discBannerTimer=setTimeout(()=>{ b.hidden=true; }, 10000);
 }
 function hideDiscBanner(){ const b=document.getElementById('discBanner'); if(b) b.hidden=true; clearTimeout(_discBannerTimer); }
+/* ---------- setup-field validation (Patch / Expected Score / required fields) ---------- */
+function normalizePatch(raw){
+  let v=String(raw==null?'':raw).replace(/,/g,'.').trim();
+  if(!v) return {ok:false, value:v, reason:'Enter the patch, e.g. 4.3'};
+  if(!/^\d+\.\d+$/.test(v)) return {ok:false, value:v, reason:'The patch must look like 4.3 (major.minor numbers).'};
+  return {ok:true, value:v};
+}
+function normalizeScore(raw){
+  let v=String(raw==null?'':raw).replace(/,/g,'.').trim();
+  if(!v) return {ok:true, value:''};                       /* Expected Score is optional */
+  const m=v.match(/^(\d+(?:\.\d+)?(?:[eE]\d+)?)(\s*)([a-zA-Z]+)?$/);
+  if(!m) return {ok:false, value:v, reason:'Enter a number, optionally with a magnitude. Examples: 945 Mil, 1.3 B, 100M, 59T.'};
+  let num=m[1], sp=m[2]||'', suf=m[3]||'';
+  if(suf){
+    const U=suf.toUpperCase();
+    const allowed=['K','M','MIL','MILLION','B','BIL','BILLION','T','TRIL','TRILLION'];
+    if(!allowed.includes(U)) return {ok:false, value:num+sp+suf, reason:'Unknown magnitude "'+suf+'". Use K, M, Mil, B, Bil or T. Examples: 1.3 B, 945 Mil.'};
+    suf = (suf.length===1) ? U : (suf[0].toUpperCase()+suf.slice(1).toLowerCase());   /* T/M/B → uppercase; Mil/Bil → capitalised */
+  }
+  return {ok:true, value:num+sp+suf};
+}
+function setupIssues(){
+  const s=state.setup||{};
+  const missing=[];
+  if(!String(s.rotationName||'').trim()) missing.push('Rotation Name');
+  if(!String(s.type||'').trim()) missing.push('Mode');
+  if(!String(s.boss||'').trim()) missing.push('Boss');
+  if(!String(s.patch||'').trim()) missing.push('Patch');
+  if(!String(s.credits||'').trim()) missing.push('Credits');
+  const pv=normalizePatch(s.patch), sv=normalizeScore(s.score);
+  const patchBad = !!String(s.patch||'').trim() && !pv.ok;
+  const scoreBad = !sv.ok;
+  return {missing, patchBad, patchReason:pv.reason, scoreBad, scoreReason:sv.reason, ok:!missing.length && !patchBad && !scoreBad};
+}
+function paintSetupValidity(){
+  const iss=setupIssues();
+  const mark=(id,bad,reason)=>{ const el=document.getElementById(id); if(!el) return;
+    el.classList.toggle('setup-invalid', !!bad); if(bad){ el.title=reason||''; } else { el.removeAttribute('title'); } };
+  const need=name=>iss.missing.includes(name);
+  mark('f_name', need('Rotation Name'), 'This field is required.');
+  mark('f_type', need('Mode'), 'Please choose a mode.');
+  mark('f_boss', need('Boss'), 'This field is required.');
+  mark('f_credits', need('Credits'), 'This field is required.');
+  if(need('Patch')) mark('f_patch', true, 'This field is required. Example: 4.3');
+  else mark('f_patch', iss.patchBad, iss.patchReason);
+  mark('f_score', iss.scoreBad, iss.scoreReason);
+}
 function refreshDiscrepancies(){
   const nChar=countDiscrepancies();
   const nOrd=countOrderViolations();
   const total=nChar+nOrd;
+  const iss=setupIssues();
   const eb=document.getElementById('exportMenuBtn');
-  if(eb){ eb.disabled=total>0; eb.classList.toggle('disabled', total>0); }
+  if(eb){
+    const blocked = total>0 || !iss.ok;
+    eb.disabled=blocked; eb.classList.toggle('disabled', blocked);
+    if(total>0) eb.title='Resolve the discrepancies before exporting.';
+    else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); eb.title='Complete the setup first — '+parts.join('; ')+'.'; }
+    else eb.removeAttribute('title');
+  }
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
   if(total>0){ if(total>_prevDiscCount) showDiscBanner(nChar,nOrd); }
   else { hideDiscBanner(); }
@@ -1430,10 +1659,24 @@ function actRow(a, ti, ai){
     const pNames=state.personas.map(p=>(p.name||'').trim()).filter(Boolean);
     const extra=(a.persona && !pNames.includes(a.persona))?[a.persona]:[];
     const pOptHtml=`<option value=""${a.persona?'':' selected'}>Persona…</option>`+extra.concat(pNames).map(nm=>`<option${a.persona===nm?' selected':''}>${esc(nm)}</option>`).join('');
+    let row2;
+    if(a.persona){
+      // a persona is selected -> a skill dropdown replaces the basic-action buttons (Wonder can't do a persona skill and Attack/Gun/Guard at once)
+      const slot=state.personas.find(p=>(p.name||'').trim()===a.persona);
+      const sig=PERSONA_SIGNATURES[a.persona]||'';
+      const list=[sig].concat(slot?(slot.skills||[]):[]).map(s=>String(s||'').trim()).filter(Boolean);
+      const uniq=list.filter((v,i,arr)=>arr.indexOf(v)===i);
+      const cur=a.skill||'';
+      const extraSk=(cur && !uniq.includes(cur))?[cur]:[];
+      row2=`<select data-wskill="${ti}.${ai}"${a.hl?' disabled title="Highlight is selected — Wonder can\'t also use a persona skill"':''}><option value=""${cur?'':' selected'}>Skill…</option>${extraSk.concat(uniq).map(s=>`<option${cur===s?' selected':''}>${esc(s)}</option>`).join('')}</select>`;
+    } else {
+      row2=`<div class="act-actions">${['Atk','Gn','Gd'].map(c=>`<button type="button" class="actbtn ${a.btn===c?'on':''}" data-actset="${ti}.${ai}" data-code="${c}">${esc(btnLabel(c))}</button>`).join('')}</div>`;
+    }
     midBody=`<div class="act-wonder">
         <select data-wpersona="${ti}.${ai}">${pOptHtml}</select>
         <button type="button" class="actbtn ${a.hl?'on':''}" data-whl="${ti}.${ai}">HL</button>
       </div>
+      ${row2}
       <input data-taction="${ti}.${ai}" value="${esc(a.text||'')}"/>`;
   } else {
     const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
@@ -1543,10 +1786,20 @@ function renderTurns(){
     save(); renderTurns();
   });
   wrap.querySelectorAll('[data-wpersona]').forEach(el=>el.onchange=e=>{
-    const[t,a]=el.dataset.wpersona.split('.'); state.turns[t].actions[a].persona=e.target.value; save(); renderRotationPreview(); refreshDiscHints();
+    const[t,a]=el.dataset.wpersona.split('.'); const o=state.turns[t].actions[a]; o.persona=e.target.value;
+    if(o.persona){ o.btn=''; }                  /* a persona skill and Attack/Gun/Guard are mutually exclusive */
+    if(o.skill){ const slot=state.personas.find(p=>(p.name||'').trim()===o.persona); const sig=PERSONA_SIGNATURES[o.persona]||'';
+      const list=[sig].concat(slot?(slot.skills||[]):[]).map(s=>String(s||'').trim());
+      if(!list.includes(o.skill)) o.skill=''; }   /* drop a skill that doesn't belong to the new persona */
+    save(); renderTurns();
+  });
+  wrap.querySelectorAll('[data-wskill]').forEach(el=>el.onchange=e=>{
+    const[t,a]=el.dataset.wskill.split('.'); state.turns[t].actions[a].skill=e.target.value; save(); renderRotationPreview(); refreshDiscHints();
   });
   wrap.querySelectorAll('[data-whl]').forEach(el=>el.onclick=()=>{
-    const[t,a]=el.dataset.whl.split('.'); const o=state.turns[t].actions[a]; o.hl=!o.hl; save(); renderTurns();
+    const[t,a]=el.dataset.whl.split('.'); const o=state.turns[t].actions[a]; o.hl=!o.hl;
+    if(o.hl) o.skill='';                       /* HL and a persona skill are mutually exclusive */
+    save(); renderTurns();
   });
   wrap.querySelectorAll('[data-delact]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.delact.split('.');state.turns[t].actions.splice(a,1); save(); renderTurns();});
   wrap.querySelectorAll('[data-addabove]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addabove.split('.');state.turns[t].actions.splice(+a,0,{char:'',btn:'',text:''}); save(); renderTurns();});
@@ -1614,7 +1867,10 @@ function renderTurns(){
 /* ---------- generic binding ---------- */
 function setPath(path,val){ const p=path.split('.'); let o=state; for(let k=0;k<p.length-1;k++) o=o[p[k]]; o[p[p.length-1]]=val; }
 function getByPath(path){ const p=path.split('.'); let o=state; for(const k of p) o=o[k]; return o; }
-function bind(id,path){ const el=document.getElementById(id); el.oninput=el.onchange=()=>{setPath(path, el.value); save();}; }
+function bind(id,path,normFn){ const el=document.getElementById(id); if(!el) return;
+  el.oninput=()=>{ setPath(path, el.value); save(); paintSetupValidity(); refreshDiscrepancies(); };
+  el.onchange=()=>{ if(normFn){ const r=normFn(el.value); if(r && r.value!==el.value) el.value=r.value; } setPath(path, el.value); save(); paintSetupValidity(); refreshDiscrepancies(); };
+}
 function bindPaths(root, afterStructural){
   root.querySelectorAll('[data-path]').forEach(el=>{
     el.onchange=()=>{ setPath(el.dataset.path, el.value);
@@ -1634,7 +1890,7 @@ function renderNotes(){
 function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); document.querySelectorAll('#viewSwitch .view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical'))); }
 
 /* ---------- toolbar ---------- */
-const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":"","boss":"SLAUGHTER DRIVE","type":"MLD","patch":"4.3","score":"2.4B","notes":"","credits":"Kimmy"},"units":[{"name":"YUKARI","awareness":"A6","rev":"R6","gear":"","space":"Creation","sunsky":"Reconciliation","role":"","companion":""},{"name":"TWINS","awareness":"A6","rev":"R6","gear":"","space":"Departure","sunsky":"Control","role":"Strategist","companion":""},{"name":"WONDER","awareness":"DGR","rev":"R6","gear":"Cyclotron","space":"","sunsky":"","role":"","companion":""},{"name":"AKIHIKO","awareness":"A6","rev":"R6","gear":"","space":"Perseverance","sunsky":"Change","role":"","companion":""}],"elucidator":{"name":"ANGE","awareness":"A6","rev":"R6","gear":"","space":"Hope","sunsky":"Labor","role":"","companion":""},"personas":[{"name":"Dionysus","skills":["Matarukaja","Tarukaja",""]},{"name":"Thor","skills":["Wild Thunder","",""]},{"name":"Kohryu","skills":["","",""]}],"teamNotes":"15.7 Pierce, 25.3 CR min (More can be better)","turns":[{"name":"TURN 1","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"Atk","text":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"Wild Thunder"},{"char":"AKIHIKO","btn":"S2","text":""}]},{"name":"TURN 2","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Mataru"},{"char":"AKIHIKO","btn":"S1","text":""}]},{"name":"TURN 3","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":true,"text":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"Sig"},{"char":"AKIHIKO","btn":"ALT","text":"x2"},{"char":"AKIHIKO","btn":"S3","text":""}]},{"name":"TURN 4","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Taru"},{"char":"AKIHIKO","btn":"S1","text":""}]},{"name":"TURN 5","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"TWINS","btn":"HL","text":"Fire/Ice"},{"char":"YUKARI","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"ALT","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Mataru"},{"char":"AKIHIKO","btn":"S1","text":""}]},{"name":"TURN 6","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"ANGE","btn":"ALT","text":"x2"},{"char":"YUKARI","btn":"HL","text":""},{"char":"AKIHIKO","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Thor","hl":false,"text":"Sig"},{"char":"AKIHIKO","btn":"ALT","text":""},{"char":"AKIHIKO","btn":"S3","text":"x2"},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"AKIHIKO","btn":"S3","text":""}]}]},"DOD":{"setup":{"rotationName":"Haru Whale","tier":"","boss":"KARTIKEYA","type":"DOD","patch":"4.1","score":"600 Mil","notes":"Attack adds","credits":"Yanagi + Segejin"},"units":[{"name":"MATOI","awareness":"A6","rev":"R6","gear":"","space":"Faith","sunsky":"Futility","role":"","companion":""},{"name":"WONDER","awareness":"DGR","rev":"R5","gear":"Starry Compass","space":"","sunsky":"","role":"","companion":""},{"name":"NOIR","awareness":"A6","rev":"R6","gear":"","space":"Wisdom","sunsky":"Pleasure","role":"","companion":""},{"name":"CROW","awareness":"A6","rev":"R6","gear":"","space":"Freedom","sunsky":"Disappointment","role":"","companion":""}],"elucidator":{"name":"ORACLE","awareness":"A6","rev":"R6","gear":"","space":"Trust","sunsky":"Power","role":"","companion":""},"personas":[{"name":"Koumokuten","skills":["","",""]},{"name":"Yurlungur","skills":["Wild Thunder","Tarukaja",""]},{"name":"Kohryu","skills":["Agi","",""]}],"teamNotes":"Adjust Pierce & Crit","turns":[{"name":"TURN 1","actions":[{"char":"MATOI","btn":"Gd","text":""},{"char":"WONDER","persona":"Kohryu","hl":false,"text":"Agi"},{"char":"NOIR","btn":"Atk","text":""},{"char":"CROW","btn":"Gn","text":"1-4 times"}]},{"name":"TURN 2","actions":[{"char":"ORACLE","btn":"S2","text":"outta bird"},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Koumokuten","hl":false,"text":"Revolution"},{"char":"NOIR","btn":"Gd","text":""},{"char":"CROW","btn":"S1","text":""}]},{"name":"Break 1","actions":[{"char":"MATOI","btn":"HL","text":""},{"char":"ORACLE","btn":"S1","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"Wild Thunder"},{"char":"NOIR","btn":"S3","text":""},{"char":"CROW","btn":"S2","text":""}]},{"name":"Break 2","actions":[{"char":"ORACLE","btn":"S3","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"Taru"},{"char":"NOIR","btn":"HL","text":""},{"char":"NOIR","btn":"Gn","text":""},{"char":"CROW","btn":"S3","text":""}]}]}};
+const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":"","boss":"SLAUGHTER DRIVE","type":"MLD","patch":"4.3","score":"2.4B","notes":"","credits":"Kimmy"},"units":[{"name":"YUKARI","awareness":"A6","rev":"R6","gear":"","space":"Creation","sunsky":"Reconciliation","role":"","companion":"","note":""},{"name":"TWINS","awareness":"A6","rev":"R6","gear":"","space":"Departure","sunsky":"Control","role":"Strategist","companion":"","note":""},{"name":"WONDER","awareness":"DGR","rev":"R6","gear":"Cyclotron","space":"","sunsky":"","role":"","companion":"","note":""},{"name":"AKIHIKO","awareness":"A6","rev":"R6","gear":"","space":"Perseverance","sunsky":"Change","role":"","companion":"","note":""}],"elucidator":{"name":"ANGE","awareness":"A6","rev":"R6","gear":"","space":"Hope","sunsky":"Labor","role":"","companion":"","note":""},"personas":[{"name":"Dionysus","skills":["Matarukaja","Tarukaja"]},{"name":"Thor","skills":["Wild Thunder",""]},{"name":"Kohryu","skills":["",""]}],"teamNotes":"15.7 Pierce, 25.3 CR min (More can be better)","turns":[{"name":"TURN 1","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"Atk","text":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Wild Thunder","btn":""},{"char":"AKIHIKO","btn":"S2","text":""}],"note":""},{"name":"TURN 2","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Matarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 3","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":true,"text":"","skill":"","btn":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Thunder Caller","btn":""},{"char":"AKIHIKO","btn":"ALT","text":"x2"},{"char":"AKIHIKO","btn":"S3","text":""}],"note":""},{"name":"TURN 4","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Tarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 5","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"TWINS","btn":"HL","text":"Fire/Ice"},{"char":"YUKARI","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"ALT","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Matarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 6","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"ANGE","btn":"ALT","text":"x2"},{"char":"YUKARI","btn":"HL","text":""},{"char":"AKIHIKO","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Thunder Caller","btn":""},{"char":"AKIHIKO","btn":"ALT","text":""},{"char":"AKIHIKO","btn":"S3","text":"x2"},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"AKIHIKO","btn":"S3","text":""}],"note":""}],"rotationView":"vertical"},"DOD":{"setup":{"rotationName":"Haru Whale","tier":"","boss":"KARTIKEYA","type":"DOD","patch":"4.1","score":"600 Mil","notes":"Attack adds","credits":"Yanagi + Segejin"},"units":[{"name":"MATOI","awareness":"A6","rev":"R6","gear":"","space":"Faith","sunsky":"Futility","role":"","companion":"","note":""},{"name":"WONDER","awareness":"DGR","rev":"R5","gear":"Starry Compass","space":"","sunsky":"","role":"","companion":"","note":""},{"name":"NOIR","awareness":"A6","rev":"R6","gear":"","space":"Wisdom","sunsky":"Pleasure","role":"","companion":"","note":"Low pierce"},{"name":"CROW","awareness":"A6","rev":"R6","gear":"","space":"Freedom","sunsky":"Disappointment","role":"","companion":"","note":"No pierce"}],"elucidator":{"name":"ORACLE","awareness":"A6","rev":"R6","gear":"","space":"Trust","sunsky":"Power","role":"","companion":"","note":""},"personas":[{"name":"Koumokuten","skills":["",""]},{"name":"Yurlungur","skills":["Wild Thunder","Tarukaja"]},{"name":"Kohryu","skills":["Agi",""]}],"teamNotes":"Adjust Pierce & Crit","turns":[{"name":"TURN 1","actions":[{"char":"MATOI","btn":"Gd","text":""},{"char":"WONDER","persona":"Kohryu","hl":false,"text":"","skill":"Agi","btn":""},{"char":"NOIR","btn":"Atk","text":""},{"char":"CROW","btn":"Gn","text":"1-4 times"}],"note":"Attack birds"},{"name":"TURN 2","actions":[{"char":"ORACLE","btn":"S2","text":"outta bird"},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Koumokuten","hl":false,"text":"Noir","skill":"Revolution","btn":""},{"char":"NOIR","btn":"Gd","text":""},{"char":"CROW","btn":"S1","text":""}],"note":""},{"name":"Break 1","actions":[{"char":"MATOI","btn":"HL","text":""},{"char":"ORACLE","btn":"S1","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"(5 shocks)","skill":"Wild Thunder","btn":""},{"char":"NOIR","btn":"S3","text":""},{"char":"CROW","btn":"S2","text":""}],"note":""},{"name":"Break 2","actions":[{"char":"ORACLE","btn":"S3","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"","skill":"Tarukaja","btn":""},{"char":"NOIR","btn":"HL","text":""},{"char":"NOIR","btn":"Gn","text":""},{"char":"CROW","btn":"S3","text":""}],"note":""}],"rotationView":"horizontal"}};
 function closeAllMenus(){
   document.querySelectorAll('.dropdown-menu').forEach(mn=>{ mn.hidden=true; });
   document.querySelectorAll('.dropdown > button[aria-haspopup]').forEach(b=>b.setAttribute('aria-expanded','false'));
@@ -1685,9 +1941,11 @@ function compactEncode(st){
   const unit=u=>[ _io(u.name,R), _io(u.awareness,AW), _io(u.rev,RV), u.gear||'', _io(u.space,SP), _io(u.sunsky,SS), u.role||'', u.companion||'', u.note||'' ];
   const pnames=(st.personas||[]).map(p=>p.name);
   const act=a=>{
-    if('btn' in a) return [ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
-    const pi=a.persona?pnames.indexOf(a.persona):-1;
-    return [ _io(a.char,R), pi>=0?pi:(a.persona||''), a.hl?1:0, a.text||'' ];
+    if((a.char||'').toUpperCase()==='WONDER'){
+      const pi=a.persona?pnames.indexOf(a.persona):-1;
+      return [ _io(a.char,R), pi>=0?pi:(a.persona||''), a.hl?1:0, a.text||'', a.skill||'', _io(a.btn||'',AC) ];
+    }
+    return [ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
   };
   return [1,
     [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
@@ -1705,8 +1963,11 @@ function compactDecode(arr){
   const personas=(arr[4]||[]).map(p=>({ name:_oi(p[0],PN), skills:(p[1]||['','']).slice(0,2) }));
   const pnames=personas.map(p=>p.name);
   const act=a=>{
-    if(a.length===4) return { char:_oi(a[0],R), persona:typeof a[1]==='number'?(pnames[a[1]]||''):(a[1]||''), hl:!!a[2], text:a[3]||'' };
-    return { char:_oi(a[0],R), btn:_oi(a[1],AC), text:a[2]||'' };
+    const charName=_oi(a[0],R);
+    if((charName||'').toUpperCase()==='WONDER'){
+      return { char:'WONDER', persona:typeof a[1]==='number'?(pnames[a[1]]||''):(a[1]||''), hl:!!a[2], text:a[3]||'', skill:a[4]||'', btn:_oi(a[5],AC)||'' };
+    }
+    return { char:charName, btn:_oi(a[1],AC), text:a[2]||'' };
   };
   return {
     setup:{ rotationName:su[0]||'', tier:su[1]||'', boss:su[2]||'', type:_oi(su[3],TY), patch:su[4]||'', score:su[5]||'', notes:su[6]||'', credits:su[7]||'' },
@@ -1769,7 +2030,7 @@ function textAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
   if(isW){
     const actor=a.persona?a.persona:titleCase(a.char||'Wonder');
-    const rest=[a.hl?'HL':'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+    const rest=[a.hl?'HL':'', wonderBody(a)].map(s=>String(s).trim()).filter(Boolean).join(' ');
     return [actor, rest].filter(Boolean).join(' ');
   }
   const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
@@ -1838,8 +2099,7 @@ function showImportNote(text){
   document.getElementById('impNoteBody').textContent=text||'';
   p.classList.remove('collapsed');
   p.style.transform='none'; p.hidden=false;
-  const w=p.offsetWidth||340;
-  p.style.left=Math.max(8, Math.round(((window.innerWidth||800)-w)/2))+'px';
+  p.style.left='12px';
   p.style.top='72px';
 }
 (function(){
@@ -1884,20 +2144,77 @@ document.getElementById('autoFill').onclick=()=>{
   if(!filled){ alert('Every turn column already has a character — nothing to fill.'); return; }
   save(); renderTurns();
 };
-document.getElementById('autoCorrect').onclick=()=>{
-  const plan=autoCorrectPlan();
-  if(!plan.replacements.length && !plan.orderNeeded){
-    alert('Nothing to auto-correct. (Any remaining discrepancy needs a manual fix — e.g. a Wonder persona that is no longer in the team.)');
-    return;
+function esc2(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let _acPlan=null, _acSnapshot=null, _acUndoTimer=null;
+function openAutoCorrectDialog(){
+  const plan=autoCorrectPlan(); _acPlan=plan;
+  const body=document.getElementById('acBody'); if(!body) return;
+  let h='';
+  if(plan.charReplacements.length){
+    h+='<h3>Replace characters</h3>';
+    plan.charReplacements.forEach((r,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="char" data-i="${i}" checked><span>Use <b>${esc2(r.to)}</b> in every action that currently uses <b>${esc2(r.from)}</b> (no longer on the team)</span></label>`; });
   }
-  const lines=[];
-  plan.replacements.forEach(r=>lines.push('• Replace "'+r.from+'" with "'+r.to+'" in every action'));
-  if(plan.orderNeeded) lines.push('• Reorder the team slots to match the order the characters act in the turns');
-  if(plan.unmatched.length) lines.push('• Note: "'+plan.unmatched.join('", "')+'" cannot be reassigned (no free team slot) — fix manually');
-  if(!confirm('Auto Correct will:\n\n'+lines.join('\n')+'\n\nApply these changes?')) return;
-  autoCorrectApply(plan);
+  if(plan.personaReplacements.length||plan.personaIntoEmpty.length){
+    h+='<h3>Fix Wonder personas</h3>';
+    plan.personaReplacements.forEach((r,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="prep" data-i="${i}" checked><span>Use <b>${esc2(r.to)}</b> in every Wonder action that currently uses <b>${esc2(r.from)}</b> (not in a persona slot)</span></label>`; });
+    plan.personaIntoEmpty.forEach((nm,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="pempty" data-i="${i}" checked><span>Add <b>${esc2(nm)}</b> to an empty persona slot</span></label>`; });
+  }
+  if(plan.hasOrderIssue){
+    const turns=plan.violatingTurns.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))).join(', ');
+    h+='<h3>Turn order</h3>';
+    h+=`<div class="ac-note">${plan.violatingTurns.length===1?'1 turn has':plan.violatingTurns.length+' turns have'} characters acting out of team order (${esc2(turns)}).</div>`;
+    if(plan.orderResolvable){
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="team" checked><span><b>Reorder the team slots</b> to match the order characters act in the turns (recommended)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns"><span><b>Reorder the actions</b> inside each turn — keep both, fix the order</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is</span></label>`;
+    } else {
+      h+=`<div class="ac-warn">These characters act in different orders in different turns, so no single team order can satisfy every turn: ${esc2(plan.conflicts.map(c=>c[0]+' \u2194 '+c[1]).join(', '))}. Reordering the team can't fully fix this.</div>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn — keep both, fix the order (recommended)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is — I'll fix it by hand</span></label>`;
+    }
+  }
+  if(plan.unmatchedChars.length) h+=`<div class="ac-warn">Cannot reassign automatically (no free team slot): ${esc2(plan.unmatchedChars.join(', '))}. Add them to the team manually.</div>`;
+  if(plan.unmatchedPersonas.length) h+=`<div class="ac-warn">Cannot place automatically (no free persona slot): ${esc2(plan.unmatchedPersonas.join(', '))}. Add them to a persona slot manually.</div>`;
+  if(!plan.actionable && !h) h=`<div class="ac-note">Nothing can be auto-corrected. Any remaining discrepancy needs a manual fix.</div>`;
+  body.innerHTML=h;
+  const applyBtn=document.getElementById('acApply'); if(applyBtn) applyBtn.disabled=!plan.actionable;
+  document.getElementById('acModal').hidden=false;
+}
+function applyAutoCorrectFromDialog(){
+  const plan=_acPlan; if(!plan) return;
+  const body=document.getElementById('acBody');
+  const sel={charReplacements:[], personaReplacements:[], personaIntoEmpty:[], order:'none'};
+  body.querySelectorAll('input[data-ac]').forEach(inp=>{ if(!inp.checked) return; const i=+inp.dataset.i;
+    if(inp.dataset.ac==='char') sel.charReplacements.push(plan.charReplacements[i]);
+    else if(inp.dataset.ac==='prep') sel.personaReplacements.push(plan.personaReplacements[i]);
+    else if(inp.dataset.ac==='pempty') sel.personaIntoEmpty.push(plan.personaIntoEmpty[i]); });
+  const od=body.querySelector('input[name="acOrder"]:checked'); if(od) sel.order=od.value;
+  _acSnapshot=JSON.stringify(state);
+  autoCorrectApply(sel);
   save(); renderTeam(); renderTurns();
-};
+  document.getElementById('acModal').hidden=true;
+  showAcUndo();
+}
+function showAcUndo(){
+  const b=document.getElementById('acUndo'); if(!b) return; b.hidden=false;
+  clearTimeout(_acUndoTimer); _acUndoTimer=setTimeout(()=>{ b.hidden=true; }, 12000);
+}
+function undoAutoCorrect(){
+  if(!_acSnapshot) return;
+  try{ state=migrate(JSON.parse(_acSnapshot)); save(); renderTeam(); renderTurns(); }catch(e){}
+  _acSnapshot=null; const b=document.getElementById('acUndo'); if(b) b.hidden=true; clearTimeout(_acUndoTimer);
+}
+document.getElementById('autoCorrect').onclick=openAutoCorrectDialog;
+document.getElementById('acApply').onclick=applyAutoCorrectFromDialog;
+document.getElementById('acCancel').onclick=()=>{ document.getElementById('acModal').hidden=true; };
+document.getElementById('acClose').onclick=()=>{ document.getElementById('acModal').hidden=true; };
+document.getElementById('acModal').addEventListener('click', ev=>{ if(ev.target.id==='acModal') document.getElementById('acModal').hidden=true; });
+document.getElementById('acUndoBtn').onclick=undoAutoCorrect;
+document.getElementById('acUndoX').onclick=()=>{ const b=document.getElementById('acUndo'); if(b) b.hidden=true; clearTimeout(_acUndoTimer); };
 document.getElementById('clearActions').onclick=()=>{
   if(!state.turns.length) return;
   if(!confirm('Remove all actions from every turn?')) return;
@@ -2204,7 +2521,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;${noBrand?'display:none;':''}">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
     <div style="font:700 30px Oswald,sans-serif;color:#f3f1f7;letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:#cfe2f3;">
-      <span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type||'')}</span>
+      ${s.type?`<span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type)}</span>`:''}
       ${s.patch?`<span><span style="color:#9d97b3;">Patch</span> ${esc(s.patch)}</span>`:''}
       ${s.boss?`<span><span style="color:#9d97b3;">Boss</span> ${esc(s.boss)}</span>`:''}
       ${s.score?`<span><span style="color:#9d97b3;">Score</span> ${esc(s.score)}</span>`:''}
@@ -2504,6 +2821,6 @@ state=load(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260617X</div>
+<div class="version-tag">260617Z</div>
 </body>
 </html>
