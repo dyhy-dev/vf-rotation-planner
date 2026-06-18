@@ -14,10 +14,53 @@
 :root{
   --ink:#14121c; --panel:#1f1c2b; --panel2:#262234; --line:#3a3550;
   --blue:#9fc5e8; --blue-strong:#5b9bd5; --blue-soft:#cfe2f3;
-  --gold:#f1c232; --text:#f3f1f7; --muted:#9d97b3; --row:#23202f;
+  --gold:#f1c232; --text:#f3f1f7; --muted:#9d97b3; --row:#23202f; --field:#15131d;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
+/* ---------- light theme ---------- */
+body.theme-light{
+  --ink:#e7e4f0; --panel:#f3f1f9; --panel2:#e9e6f3; --line:#d3cee1;
+  --blue:#3f6fa5; --blue-strong:#6ea7dc; --blue-soft:#3a5572;
+  --gold:#8a6d12; --text:#1f1c2b; --muted:#6b6680; --row:#ece9f5; --field:#fbfaff;
+  background:radial-gradient(1200px 600px at 70% -10%, #fafaff 0%, var(--ink) 60%) fixed, var(--ink);
+}
+body.theme-light .btn{ background:#e7e3f2; border-color:#d0cae0 }
+body.theme-light .btn:hover{ background:#dcd6ec }
+body.theme-light #viewActions a.btn:hover{ background:#dcd6ec }
+body.theme-light .combo-panel{ background:#f3f1f9 }
+body.theme-light .combo-item:hover{ background:#e3def0 }
+body.theme-light .combo-clear:hover{ background:#e3def0 }
+body.theme-light #viewRoot{ background:#e7e4f0 }
+body.theme-light #viewFooter{ color:#6b6680 }
+body.theme-light .toggle .track{ background:#d8d3e6 }
+body.theme-light .toggle .thumb{ background:#ffffff; border:1px solid #c7c1d8 }
+body.theme-light .toggle input:checked ~ .thumb{ background:#ffffff; border-color:var(--blue-strong) }
+body.theme-light .actbtn{ color:#33405a }
+body.theme-light .turn-head .del, body.theme-light .turn-head .dup{ background:#ffffffcc; color:#33304a }
+body.theme-light .turn-head .del:hover{ background:#e06; color:#fff }
+body.theme-light .turn-head .dup:hover{ background:#2a8c5a; color:#fff }
+body.theme-light .turn-head .tgrip{ color:#26405f }
+body.theme-light .act-btns .addrow{ background:#e8edf5; color:#2f5d8a }
+body.theme-light .act-btns .addrow:hover{ background:#dff3e6; color:#1a7a34 }
+body.theme-light .act-btns .x{ color:#7a7490 }
+body.theme-light .guide{ color:#2e2b3a }
+body.theme-light .order-badge{ color:#f1c232 }
+body.theme-light .elu-badge{ color:#9fc5e8 }
+body.theme-light .setup-invalid{ background:#fbe4e8 !important; border-color:#cc2f4c !important }
+body.theme-light .btn.ac-btn{ background:#fbe1e7; border-color:#cc2f4c; color:#9a1228 }
+body.theme-light .btn.ac-btn:hover{ background:#f7cdd6; border-color:#cc2f4c }
+body.theme-light .ac-body{ color:#2e2b3a }
+body.theme-light .ac-warn{ color:#9a1228; background:#fbe4e8; border-color:#e8b8c2 }
+body.theme-light .set-status.err{ color:#9a1228; background:#fbe4e8; border-color:#e8b8c2 }
+body.theme-light .set-status.ok{ color:#1a7a34; background:#e3f6e8; border-color:#bfe6c8 }
+body.theme-light .combo-item.active{ color:#0b1626 }
+body.theme-light .turn-head{ background:linear-gradient(180deg,#cfe0f3,#bcd2ec) }
+body.theme-light .turn-head input{ color:#23314d }
+body.theme-light .turn-head input.break{ color:#cc2f4c }
+body.theme-light .twins-dual{ background:#e7e3f0 }
+body.theme-light .brand{ color:#cf3340 }
+body.theme-light .add-turn:hover{ border-color:#f1c232; color:#f1c232 }
 body{
   background:radial-gradient(1200px 600px at 70% -10%, #241f38 0%, var(--ink) 60%) fixed, var(--ink);
   color:var(--text); font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.4;
@@ -25,7 +68,7 @@ body{
 }
 .wrap{max-width:1280px; margin:0 auto; padding:18px}
 h1,h2,h3{font-family:"Oswald",sans-serif; font-weight:600; letter-spacing:.04em; margin:0}
-button,select,input{font-family:inherit; color:inherit}
+button,select,input,textarea{font-family:inherit; color:inherit}
 button{cursor:pointer}
 
 /* toolbar */
@@ -67,7 +110,7 @@ button{cursor:pointer}
 .tier{display:flex; align-items:center; gap:8px}
 .tier select{border:none; border-radius:8px; font-family:"Oswald"; font-weight:700; letter-spacing:.1em;
   font-size:20px; padding:14px 18px; text-transform:uppercase; background:var(--gold); color:#3a2c00; transition:.15s}
-.tier.type-mld select{background:var(--gold); color:#3a2c00}
+.tier.type-mld select{background:#f1c232; color:#3a2c00}
 .tier.type-dod select{background:#9b5de5; color:#1a0a2e}
 .tier.type-nod select{background:#e0445e; color:#2c0710}
 .tier.type-sos select{background:#151da6; color:#fff}
@@ -80,6 +123,10 @@ button{cursor:pointer}
 .meta-big .field{flex:1 1 220px}
 .meta-big .field label{font-size:11px; margin-bottom:6px}
 .meta-big .field input,.meta-big .field select{height:56px; font-size:20px; font-weight:700; padding:0 16px}
+.meta-big .field textarea#f_credits{box-sizing:border-box; width:100%; height:56px; background:var(--panel2); border:1px solid var(--line);
+  border-radius:8px; font-size:20px; font-weight:700; line-height:24px; padding:6px 16px;
+  resize:none; overflow:hidden; white-space:normal; overflow-wrap:anywhere; display:block}
+.meta-big .field textarea#f_credits:focus{outline:none; border-color:var(--blue-strong)}
 .meta-big .type-field{flex:0 0 112px}
 .meta-big .patch-field{flex:0 0 112px}
 .type-field label{display:block; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
@@ -99,15 +146,15 @@ button{cursor:pointer}
 .unit .art .ph{font-family:"Oswald"; font-weight:700; font-size:30px; color:#4a4560}
 .unit .body{padding:8px; flex:1 1 auto; display:flex; flex-direction:column}
 .unit .note-pad{flex:1 1 auto; min-height:6px}
-.unit select.name, .unit input.name{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px;
+.unit select.name, .unit input.name{width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px;
   padding:8px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.05em; text-align:center}
 .unit input.name{box-sizing:border-box}
 .unit input.name:focus{outline:none; border-color:var(--blue-strong)}
 .unit .tags{display:flex; gap:6px; margin-top:6px}
-.unit .tags select{flex:1; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
+.unit .tags select{flex:1; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
 .unit select:disabled{opacity:.4; cursor:not-allowed}
 .twins-duals{display:flex; gap:6px; margin-top:6px}
-.twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:#15131d; border:1px solid var(--line); border-radius:5px; padding:2px 6px}
+.twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:var(--field); border:1px solid var(--line); border-radius:5px; padding:2px 6px}
 .twins-dual .td-lab{font:700 11px "Oswald",sans-serif; color:var(--blue-soft)}
 .twins-dual img{height:18px; width:auto; display:block; margin-left:auto}
 body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version-tag){ display:none !important; }
@@ -122,12 +169,13 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 #viewStage{ margin:0 auto; position:relative; }
 #viewStage > #exportView{ position:static !important; left:auto !important; top:auto !important; transform-origin:top left; }
 #viewFooter{ text-align:center; color:#9d97b3; font:500 13px Inter,sans-serif; padding:20px 12px 8px; line-height:1.5; }
+#viewThemeToggle{ margin-top:12px; }
 #viewFooter a{ color:#e0445e; text-decoration:none; font-weight:700; }
 #viewFooter a:hover{ text-decoration:underline; }
 .view-loading{ color:#9d97b3; font:600 14px Inter,sans-serif; padding:40px; text-align:center; }
 @media (max-width:560px){ #viewRoot{ padding:12px 8px 8px; } #viewHeader{ margin-bottom:12px; gap:8px; } #viewBrandWrap{ gap:10px; } #viewFooter{ font-size:12px; } }
-.unit .gear{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; color:var(--blue-soft)}
-.unit .unit-note{width:100%; box-sizing:border-box; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:11px; color:var(--text); font-family:inherit; resize:vertical; min-height:34px; line-height:1.35}
+.unit .gear{width:100%; margin-top:6px; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; color:var(--blue-soft)}
+.unit .unit-note{width:100%; box-sizing:border-box; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:11px; color:var(--text); font-family:inherit; resize:vertical; min-height:34px; line-height:1.35}
 .unit .unit-note:focus{outline:none; border-color:var(--blue-strong)}
 .dagger-box{display:flex; flex-direction:column}
 .dagger-box .dagger-box-body{flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; margin-top:6px}
@@ -137,7 +185,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .rev-row{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; align-items:end}
 .rev-row.one{grid-template-columns:1fr}
 .rev-lab{font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; line-height:1.15}
-.rev-row select{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; font-weight:600; color:var(--blue-soft)}
+.rev-row select{width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px; font-size:11px; font-weight:600; color:var(--blue-soft)}
 .rev-row select:focus{outline:none; border-color:var(--blue-strong)}
 .unit.elu{border-top-style:dashed}
 .unit .grip{position:absolute; top:6px; right:6px; z-index:2; background:#000a; border:1px solid var(--line);
@@ -155,7 +203,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .minicard{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px}
 .minicard label{font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
 .minicard .vals{display:flex; flex-direction:column; gap:6px; margin-top:6px}
-.minicard select,.minicard input{background:#15131d; border:1px solid var(--line); border-radius:6px; padding:6px; font-weight:600; width:100%}
+.minicard select,.minicard input{background:var(--field); border:1px solid var(--line); border-radius:6px; padding:6px; font-weight:600; width:100%}
 .persona-grid{display:grid; grid-template-columns:120px repeat(3,1fr); gap:12px; margin-top:14px}
 .persona-col{position:relative}
 .pcol-head{display:flex; align-items:center; justify-content:space-between; gap:6px}
@@ -163,10 +211,10 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .pgrip:active{cursor:grabbing}
 .persona-col.dragging{opacity:.45}
 .persona-col.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
-.persona-col select, .persona-col input.persona-name{width:100%; margin-top:6px; background:#15131d; border:1px solid var(--line); border-radius:6px;
+.persona-col select, .persona-col input.persona-name{width:100%; margin-top:6px; background:var(--field); border:1px solid var(--line); border-radius:6px;
   padding:9px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.04em; box-sizing:border-box; color:var(--text)}
 .persona-col .skills{display:flex; flex-direction:column; gap:6px; margin-top:8px}
-.persona-col .skills input{width:100%; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
+.persona-col .skills input{width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
 .persona-col .skills .sig-skill{opacity:.7; cursor:default; border-style:dashed; color:var(--blue-strong)}
 .persona-col .skills .combo-wrap{width:100%}
 .persona-col select:focus,.persona-col input.persona-name:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
@@ -174,7 +222,8 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .pcol-fields{flex:1 1 auto; min-width:0; display:flex; flex-direction:column}
 .pcol-fields select, .pcol-fields input.persona-name{margin-top:0}
 .pcol-img{flex:0 0 auto}
-.pcol-img img{height:100%; max-height:200px; width:auto; max-width:130px; display:block; border-radius:6px; background:#15131d; object-fit:contain}
+.pcol-img img{height:100%; max-height:200px; width:auto; max-width:130px; display:block; border-radius:6px; background:var(--field); object-fit:contain}
+body.persona-img-left .pcol-body{flex-direction:row-reverse}
 @media (max-width:640px){ .persona-grid{grid-template-columns:1fr} }
 .team-notes{margin-top:14px}
 .team-notes .tn-label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
@@ -200,7 +249,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .turn.dragging{opacity:.45}
 .turn.drag-over{outline:2px dashed var(--blue-strong); outline-offset:-2px}
 .acts{padding:8px; display:flex; flex-direction:column; gap:6px; flex:1}
-.turn .turn-note{margin:8px 8px 0; width:calc(100% - 16px); box-sizing:border-box; background:#15131d; border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:12px; font-weight:600; color:var(--text)}
+.turn .turn-note{margin:8px 8px 0; width:calc(100% - 16px); box-sizing:border-box; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px 8px; font-size:12px; font-weight:600; color:var(--text)}
 .turn .turn-note:focus{outline:none; border-color:var(--blue-strong)}
 .act{display:grid; grid-template-columns:22px 1fr 26px; gap:6px; align-items:stretch;
   background:var(--row); border:1px solid var(--line); border-left:4px solid var(--ax,#666); border-radius:8px; padding:6px}
@@ -209,13 +258,13 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .act.dragging{opacity:.45}
 .act.drop-before{box-shadow:inset 0 3px 0 0 var(--blue-strong)}
 .act .mid{display:flex; flex-direction:column; gap:4px; min-width:0}
-.act .mid select{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:4px; font-weight:600; font-size:12px}
-.act .mid input{background:#15131d; border:1px solid var(--line); border-radius:5px; padding:5px; font-size:12px}
+.act .mid select{background:var(--field); border:1px solid var(--line); border-radius:5px; padding:4px; font-weight:600; font-size:12px}
+.act .mid input{background:var(--field); border:1px solid var(--line); border-radius:5px; padding:5px; font-size:12px}
 .act .mid input:focus,.act .mid select:focus{outline:none; border-color:var(--blue-strong)}
 .act .mid select:disabled{opacity:.45; cursor:not-allowed}
 .setup-invalid{border-color:#e0445e !important; background:#2a1116 !important}
 .act-actions{display:flex; gap:3px}
-.actbtn{flex:1; padding:4px 2px; font-size:11px; font-weight:600; background:#15131d; border:1px solid var(--line); border-radius:5px; color:#cdd9ee; line-height:1; cursor:pointer; white-space:nowrap}
+.actbtn{flex:1; padding:4px 2px; font-size:11px; font-weight:600; background:var(--field); border:1px solid var(--line); border-radius:5px; color:#cdd9ee; line-height:1; cursor:pointer; white-space:nowrap}
 .actbtn:hover{border-color:var(--blue-strong)}
 .actbtn.on{background:var(--blue-strong); border-color:var(--blue-strong); color:#0b1626}
 .act-wonder{display:flex; gap:4px; align-items:stretch}
@@ -230,6 +279,43 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .view-switch .view-opt{background:var(--panel2); color:var(--muted); border:none; padding:5px 12px; font:600 12px Inter,sans-serif; cursor:pointer}
 .view-switch .view-opt+.view-opt{border-left:1px solid var(--line)}
 .view-switch .view-opt.on{background:var(--blue-strong); color:#0b1626}
+.theme-switch{display:inline-flex; border:1px solid var(--line); border-radius:7px; overflow:hidden}
+.theme-switch .theme-opt{background:var(--panel2); color:var(--muted); border:none; padding:5px 12px; font:600 12px Inter,sans-serif; cursor:pointer}
+.theme-switch .theme-opt+.theme-opt{border-left:1px solid var(--line)}
+.theme-switch .theme-opt.on{background:var(--blue-strong); color:#0b1626}
+/* settings: hide note fields locally */
+body.hide-rota-notes .notes-row{display:none}
+body.hide-team-notes .team-notes{display:none}
+body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{display:none}
+.set-body{padding:4px 20px 20px}
+.set-group-title{font:600 11px Inter,sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:6px 0 2px}
+.abbr-list{max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px 8px; margin-top:4px}
+.abbr-cols{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px}
+.abbr-col .set-label{margin:0}
+@media (max-width:600px){ .abbr-cols{grid-template-columns:1fr} }
+.abbr-row{display:flex; flex-wrap:wrap; align-items:center; gap:5px; padding:5px 0; border-bottom:1px solid var(--line)}
+.abbr-row:last-child{border-bottom:none}
+.abbr-opt{background:var(--field); color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:3px 8px; font:600 11px Inter,sans-serif; cursor:pointer; line-height:1.2}
+.abbr-opt:first-child{font-weight:700; color:var(--text)}
+.abbr-opt:hover{border-color:var(--blue-strong)}
+.abbr-opt.on{background:var(--blue-strong); border-color:var(--blue-strong); color:#0b1626}
+.abbr-check{display:flex; gap:8px; align-items:flex-start; font:500 12px Inter,sans-serif; color:var(--muted); margin:6px 0 2px; cursor:pointer; line-height:1.4}
+.abbr-check input{margin:2px 0 0; flex:0 0 auto}
+.set-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line)}
+.set-row:last-of-type{border-bottom:none}
+.set-row .set-label{font:600 13px Inter,sans-serif; color:var(--text)}
+.set-row .set-sub{font:400 12px Inter,sans-serif; color:var(--muted); margin-top:2px}
+.set-note{margin-top:14px; font:400 11px Inter,sans-serif; color:var(--muted); line-height:1.5}
+.set-backup-btns{display:flex; gap:8px; flex:0 0 auto}
+.set-status{margin-top:10px; font:600 12px Inter,sans-serif; padding:8px 10px; border-radius:6px}
+.set-status.ok{background:rgba(46,160,67,.15); color:#7ee787; border:1px solid rgba(46,160,67,.4)}
+.set-status.err{background:rgba(224,68,94,.12); color:#ff8a9b; border:1px solid rgba(224,68,94,.4)}
+.toggle{position:relative; width:42px; height:24px; flex:0 0 auto; cursor:pointer; display:inline-block}
+.toggle input{position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; z-index:1}
+.toggle .track{position:absolute; inset:0; background:var(--panel2); border:1px solid var(--line); border-radius:999px; transition:.15s}
+.toggle .thumb{position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--muted); transition:.15s}
+.toggle input:checked ~ .track{background:var(--blue-strong); border-color:var(--blue-strong)}
+.toggle input:checked ~ .thumb{left:21px; background:#0b1626}
 .rot-preview-toggle{display:inline-flex; align-items:center; gap:6px; font-size:12px}
 .rot-preview-toggle svg{display:block}
 .rot-preview-body{margin-top:10px; border:1px solid var(--line); border-radius:10px; padding:14px; overflow:hidden}
@@ -281,7 +367,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .act-btns .addrow:hover{background:#2e6b4d; color:#cffbe2}
 .act-btns .x{background:transparent; color:#6a647f; font-size:14px}
 .act-btns .x:hover{background:#e0245533; color:#ff6b8a}
-.add-act{margin:0 8px 8px; background:#15131d; border:1px dashed var(--line); color:var(--muted);
+.add-act{margin:0 8px 8px; background:var(--field); border:1px dashed var(--line); color:var(--muted);
   border-radius:8px; padding:7px; font-weight:600}
 .add-act:hover{border-color:var(--blue-strong); color:var(--blue)}
 .add-turn{flex:0 0 60px; align-self:stretch; background:transparent; border:2px dashed var(--line);
@@ -293,7 +379,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
-.version-tag{position:fixed; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:1000; pointer-events:none; user-select:none}
+.version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:1000; pointer-events:none; user-select:none}
 .combo-panel{position:fixed; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
 .combo-item{padding:6px 10px; border-radius:5px; font:600 13px Inter,sans-serif; color:var(--text); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .combo-item:hover{background:#2a2740}
@@ -370,7 +456,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="dropdown-item" data-export="code">Copy Code</button>
         </div>
       </div>
-      <button class="btn" id="refreshBtn" title="Reload the newest version of the page (bypasses cache)">Refresh</button>
+      <button class="btn" id="settingsBtn" title="Open settings (local display options)">Settings</button>
       <button class="btn" id="resetBtn">Reset</button>
       <input type="file" id="importFile" accept="application/json" hidden/>
     </div>
@@ -432,7 +518,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             <li><b>Copy Code</b> — a short text code that holds the whole rotation.</li>
           </ul>
         </li>
-        <li><b>Refresh</b> — reload the newest version of the page.</li>
+        <li><b>Settings</b> — local display options (saved only on this device): choose a <b>Light, Dark or System</b> theme (the image export always stays dark), show or hide the Character, Team and Rotation notes fields, put the persona images on the left, choose whether the rotation preview starts expanded, switch the rotation layout between vertical and horizontal, and export or import your settings as a JSON file. These never affect your rotation, share links or exports.</li>
         <li><b>Reset</b> — clear all fields and start a blank plan.</li>
       </ul>
 
@@ -455,7 +541,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <p>The rotation is a row of <b>turns</b>; each turn has a name (which you can edit), an optional <b>turn note</b> field below the name, and a list of <b>actions</b>. The turn note is shown in the export next to the turn name — in the vertical layout right-aligned in the header, in the horizontal layout under the turn name.</p>
       <p><b>Start here:</b> press <b>Auto Fill</b> first. It fills every empty turn column with your team characters 1–4 in order, so afterwards you only have to fill in the actions. It is recommended to do this before adding actions yourself. Afterwards Auto Fill never overwrites a column that already has a character, so if you add more turns later you can press Auto Fill again to fill them. <b>Clear</b> removes all actions from every turn if you want to start over.</p>
       <p>If you swap a team character or a Persona while actions still reference the old one, those actions are highlighted in red (in the editor and the preview) and the <b>Export</b> button is disabled until you fix them — this prevents exporting a broken rotation. A banner briefly appears to point it out. As soon as every action again points to a current character/Persona, export is re-enabled automatically.</p>
-      <p><b>Export</b> is also disabled while the <b>Setup</b> is incomplete. Every setup field is required except <b>Expected Score</b>, which is optional. <b>Patch</b> must be a number like <code>4.3</code>, and <b>Expected Score</b> accepts plain numbers or magnitudes such as <code>100M</code>, <code>1.3 B</code>, <code>945 Mil</code>, <code>2Bil</code> or <code>59T</code>. A comma is converted to a period automatically, and a lower-case T/M/B is capitalised for you. An invalid field turns red and a tooltip explains the problem with an example.</p>
+      <p><b>Export</b> is also disabled while the <b>Setup</b> is incomplete. Every setup field is required except <b>Expected Score</b>, which is optional. <b>Patch</b> must be a number like <code>4.3</code>, and <b>Expected Score</b> accepts plain numbers, grouped numbers like <code>1,000,000</code> or <code>1.000.000</code>, or magnitudes such as <code>100M</code>, <code>1.3 B</code>, <code>945 Mil</code>, <code>2Bil</code> or <code>59T</code>. A decimal comma like <code>1,3</code> is converted to a period automatically, and a lower-case T/M/B is capitalised for you. An invalid field turns red and a tooltip explains the problem with an example.</p>
       <p>When there is a discrepancy, an <b>Auto Correct</b> button appears next to <b>Auto Fill</b>. It opens a dialog with a <b>checklist</b> of every change it can make, each one toggleable, so you stay in control. It can: <b>replace a missing character</b> in the actions with the one that took its team slot; <b>fix a Wonder Persona</b> that is no longer in a slot (swapping it for a free slot persona, or dropping it into an empty slot); and resolve <b>turn order</b>. For the order it offers a choice — <b>reorder the team slots</b> to match the turns, <b>reorder the actions</b> inside each turn (keep both, fix the order), or <b>delete</b> the too-early or the too-late action in each conflicting turn. When characters act in conflicting orders across different turns (so no single team order can satisfy them all), it says so and recommends reordering the actions instead. After applying, an <b>Undo</b> appears so you can revert everything in one click. Anything it genuinely can't resolve (e.g. a missing character with no free slot) is listed for you to fix by hand.</p>
       <p>A turn is also tinted red when the characters in it don't act in <b>team order</b>: the planner reads the first Skill/Attack/Gun/Guard of each character (ignoring Highlights/Theurgy, Assists and the Elucidator) and compares it to the order of your team slots. This is enforced the same way — the banner reports it and <b>Export</b> stays disabled until the turn matches the team order again. Reordering your team (or editing a turn) re-checks every turn instantly, so it's easy to spot a sequence that slipped.</p>
       <p>For every action:</p>
@@ -487,6 +573,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="io-body">
       <textarea id="ioText" class="io-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
       <div class="io-hint" id="ioHint"></div>
+      <label class="io-keep" id="ioDodRow" hidden><input type="checkbox" id="ioDod"> DOD rotation</label>
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
       <div class="io-actions">
         <button class="btn primary" id="ioPrimary">Copy</button>
@@ -501,6 +588,75 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="btn io-discord-btn" id="ioDiscord" title="Copy a masked Discord link using this title">Copy for <svg class="dc-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg></button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal-head">
+      <h2>Settings</h2>
+      <button class="modal-close" id="settingsClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="set-body">
+      <div class="set-group-title">Appearance</div>
+      <div class="set-row">
+        <div><div class="set-label">Theme</div><div class="set-sub">Light or dark mode, or follow your system setting. The image export always stays dark.</div></div>
+        <div class="theme-switch" id="themeSwitch" title="Choose the colour theme">
+          <button class="theme-opt" data-theme="system">System</button>
+          <button class="theme-opt" data-theme="light">Light</button>
+          <button class="theme-opt" data-theme="dark">Dark</button>
+        </div>
+      </div>
+      <div class="set-group-title" style="margin-top:18px">Notes fields</div>
+      <div class="set-row">
+        <div><div class="set-label">Character notes</div><div class="set-sub">Per-character note field on each unit card</div></div>
+        <label class="toggle"><input type="checkbox" id="setCharNotes"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-row">
+        <div><div class="set-label">Team notes</div><div class="set-sub">The Team Notes box below the personas</div></div>
+        <label class="toggle"><input type="checkbox" id="setTeamNotes"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-row">
+        <div><div class="set-label">Rotation notes</div><div class="set-sub">The Rotation Notes box above the turns</div></div>
+        <label class="toggle"><input type="checkbox" id="setRotaNotes"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-group-title" style="margin-top:18px">Editor layout</div>
+      <div class="set-row">
+        <div><div class="set-label">Persona images on the left</div><div class="set-sub">Show each persona's image on the left and its fields on the right</div></div>
+        <label class="toggle"><input type="checkbox" id="setPersonaImgLeft"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-group-title" style="margin-top:18px">Rotation layout</div>
+      <div class="set-row">
+        <div><div class="set-label">Orientation</div><div class="set-sub">Vertical or horizontal layout (linked with the switch in the editor)</div></div>
+        <div class="view-switch" id="viewSwitchSettings" title="Switch between vertical and horizontal layout">
+          <button class="view-opt" data-view="vertical">Vertical</button>
+          <button class="view-opt" data-view="horizontal">Horizontal</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div><div class="set-label">Open the rotation preview by default</div><div class="set-sub">Start with the live preview expanded (you can always collapse it with its own button)</div></div>
+        <label class="toggle"><input type="checkbox" id="setPreviewOpen"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-group-title" style="margin-top:18px">Skill &amp; persona abbreviations</div>
+      <div class="set-note" style="margin:2px 0 6px">Pick a short form for any skill or persona. The chosen abbreviation replaces the full name in the live preview, the shared webview, the image export and text export. Leaving it on the full name keeps the original.</div>
+      <div class="set-row" style="margin-top:2px;border-bottom:none">
+        <div><div class="set-label">Show signature skills as "Sig"</div><div class="set-sub">Replace every persona's signature skill with "Sig" in all outputs</div></div>
+        <label class="toggle"><input type="checkbox" id="setSigAsSig"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <label class="abbr-check"><input type="checkbox" id="setSigExclude"><span id="sigExcludeLabel">Keep</span></label>
+      <div class="abbr-cols">
+        <div class="abbr-col"><div class="set-label">Skills</div><div class="abbr-list" id="setSkillAbbr"></div></div>
+        <div class="abbr-col"><div class="set-label">Personas</div><div class="abbr-list" id="setPersonaAbbr"></div></div>
+      </div>
+      <div class="set-group-title" style="margin-top:18px">Backup</div>
+      <div class="set-row">
+        <div><div class="set-label">Settings file</div><div class="set-sub">Export your settings to a JSON file, or import one to restore them</div></div>
+        <div class="set-backup-btns"><button class="btn" id="settingsExport">Export</button><button class="btn" id="settingsImport">Import</button></div>
+      </div>
+      <div class="set-status" id="settingsStatus" hidden></div>
+      <input type="file" id="settingsFile" accept="application/json,.json" hidden/>
+      <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports — hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
     </div>
   </div>
 </div>
@@ -532,9 +688,13 @@ const CHAR_CARD_DEFAULTS = {"AIGIS":{space:"Creation",sunsky:"Tenacity"}, "AKIHI
 /* ---------- skill data (signatures per persona, teachable skill list + abbreviations) ---------- */
 const PERSONA_SIGNATURES = {"Alice":"Die For Me!","Ame-no-Uzume":"Electric Dance","Anubis":"Underworld Judgment","Apsaras":"Rebellion","Arahabaki":"Tarunda","Baphomet":"Red-Hot","Belphegor":"Rakunda","Bishamonten":"Imperial Purge","Chernobog":"Verdict of Agony","Cu Chulainn":"Gae Bolg","Dionysus":"Revolution","Dominion":"Cohesion","Girimehkala":"Matarunda","Isis":"Diarama","Janosik":"Tatra Shot","Jatayu":"Wind Break","Jikokuten":"Matarukaja","King Frost":"Snow King's Protection","Kohryu":"Spirit Strike","Koumokuten":"Revolution","Kushinada":"Matarukaja","Lakshmi":"Flowers of the Pure Land","Lamia":"Bonfire Festival","Lilith":"Killer Allure","Macabre":"Death's Mercy","Melchizedek":"Shining Salvation","Mithras":"Marakukaja","Narcissus":"Spike","Neko Shogun":"Hunter's Instincts","Nian":"Disaster Ward","Norn":"Wind Barrier","Okuninushi":"Spirit Wave","Orobas":"Fire Break","Parvati":"Diarama","Pazuzu":"Maeigaon","Sahimochi-no-kami":"Chilling Depth","Sandalphon":"Devoted Guard","Sarasvati":"Mother Goddess' Chant","Setanta":"Spirit Binding","Shiva":"Dance of Destruction","Siegfried":"Dragonslayer's Sword","Sraosha":"Absolute Obedience","Succubus":"Rebellion","Surt":"Marakunda","Thor":"Thunder Caller","Throne":"Purifying Flames","Titania":"Reassuring Embrace","Trumpeter":"Bewitching Sound","Vasuki":"Endless Bind","Vishnu":"Wind of Nirvana","Yamata-no-Orochi":"Raging Blizzard","Yatagarasu":"Maragidyne","Yoshitsune":"Hassou Tobi","Yurlungur":"Elec Break","Zaou-Gongen":"Exorcising Flames"};
 const SKILL_LIST = ["Abyssal Field","Accuracy Boost","Accuracy Boost III","Accuracy Boost IV","Adverse Resolve II","Adverse Resolve III","Adverse Resolve IV","Agidyne","Agilao","Agility Master","Agility Master II","Agility Master III","Agility Master IV","Almighty Boost","Ambient Aid","Apt Pupil","Apt Pupil II","Apt Pupil IV","Assault Dive","Attack Boost","Attack Boost I","Attack Boost III","Attack Master","Attack Master II","Attack Master III","Auto-Maraku","Auto-Maraku I","Auto-Maraku II","Auto-Maraku III","Auto-Maraku IV","Auto-Mataru","Auto-Mataru III","Baisudi","Battle Acumen","Battle Acumen III","Battle Acumen IV","Bless Boost","Bless Boost II","Bless Reduction III","Bloodbath","Brave Blade","Bufu","Bufudyne","Bufula","Bullet Time","Burn Boost","Burn Boost III","Call of the Abyss IV","Charge","Cohesion","Concentrate","Cosmic Flare","Curse Boost","Curse Boost I","Curse Boost II","Curse Boost III","Curse Reduction III","Curse Reduction IV","Dazzler","Deadly Fury","Defense Master","Defense Master II","Defense Master III","Defense Master IV","Dekunda","Demonic Decree","Diamond Dust","Diarama","Divine Grace III","Divine Guidance III","Divine Judgment","Dizzy Boost III","Dormina","Eiga","Eigaon","Elec Boost","Elec Boost III","Elec Boost IV","Electric Reduction IV","Fire Boost","Fire Boost II","Fire Boost III","Fire Boost IV","Fire Reduction II","Fire Reduction III","Fortified Moxy III","Fortified Moxy IV","Freeze Boost IV","Freila","Garudyne","Garula","Gun Boost III","Gun Reduction III","Hamaon","Healing Boost","Healing Boost II","Healing Boost III","Healing Boost IV","HP Boost III","Ice Boost","Ice Boost IV","Ice Reduction III","Ice Reduction IV","Infinite Algorithm","Ironclad Resolve I","Ironclad Resolve II","Ironclad Resolve III","Ironclad Resolve IV","Kouga","Kougaon","Life Aid I","Life Aid IV","Mabufu","Mabufudyne","Mabufula","Maeigaon","Magarudyne","Magarula","Mahamaon","Makougaon","Mapsiodyne","Maragidyne","Maragion","Marakunda","Masukukaja","Matarukaja","Maziodyne","Mazionga","Media","Mediarahan","Mediarama","Megaton Raid","Megidolaon","Memory Blow","Mudo","Mudoon","Nuclear Reduction IV","Nuke Boost III","Nuke Boost IV","Nurture II","Nurture III","Nurture IV","One-shot Kill","Phys Boost","Phys Boost IV","Physical Reduction III","Pinpoint","Pinpoint IV","Power Surge","Protect Boost","Protect Boost II","Psio","Psiodyne","Psy Boost","Psy Boost II","Psy Boost III","Psy Boost IV","Psy Reduction III","Psycho Blast","Psycho Force","Rakukaja","Rakunda","Rebellion","Reduction Boost","Reduction Boost II","Reduction Boost IV","Regenerate","Regenerate III","Resist Forget II","Resist Sleep IV","Resistance Boost III","Seize the Day","Sharp Student III","Sharp Student IV","Shield Boost","Shield Boost IV","Shock Boost","Shock Boost II","Shock Boost III","Shock Boost IV","Sleep Boost II","Sonic Interference","Spell Master I","Spell Master IV","Spirit Harmony","Sukukaja","Sword Dance","Tarukaja","Tarunda","Tempest Slash","Wild Thunder","Wind Boost","Wind Boost II","Wind Boost III","Wind Reduction I","Wind Reduction III","Windsweep Boost III","Windswept Boost","Year End Calamity","Yggdrasil Evolution","Ziodyne","Zionga"];
-const SKILL_ALIASES = {"Abyssal Field":["AF","Abyssal"],"Agidyne":["Agi"],"Agilao":["Agi"],"Agility Master":["Agi Master 1"],"Agility Master II":["Agi Master 2"],"Agility Master III":["Agi Master 3"],"Agility Master IV":["Agi Master 4"],"Chilling Depth":["Chilling","CD"],"Cohesion":["Coh"],"Cosmic Flare":["Cosmic","Flare"],"Dance of Destruction":["Dance"],"Dekunda":["Dek"],"Die For Me!":["DFM"],"Electric Dance":["ED"],"Garudyne":["Garu"],"Garula":["Garu"],"Hassou Tobi":["HT"],"Imperial Purge":["IP"],"Infinite Algorithm":["IA","Infinite"],"Mabufu":["Mabu"],"Mabufudyne":["Mabu"],"Mabufula":["Mabu"],"Magarudyne":["Magaru"],"Magarula":["Magaru"],"Mapsiodyne":["Mapsi"],"Maragidyne":["Maragi"],"Maragion":["Maragi"],"Marakunda":["Marak"],"Masukukaja":["Masu"],"Matarukaja":["Mataru"],"Maziodyne":["Mazio"],"Mazionga":["Mazio"],"Mediarahan":["Media"],"Mediarama":["Media"],"Megidolaon":["Megido"],"Rakunda":["Rak"],"Rebellion":["Reb","Rebel","Rebell"],"Revolution":["Rev","Revo"],"Sonic Interference":["SI","Sonic"],"Tarukaja":["Taru"],"Wild Thunder":["WT","Wild"],"Ziodyne":["Zio"],"Zionga":["Zio"]};
-const SKILL_ALIAS_MAP = {"absolute obedience":"Absolute Obedience","abyssal field":"Abyssal Field","accuracy boost":"Accuracy Boost","accuracy boost iii":"Accuracy Boost III","accuracy boost iv":"Accuracy Boost IV","adverse resolve ii":"Adverse Resolve II","adverse resolve iii":"Adverse Resolve III","adverse resolve iv":"Adverse Resolve IV","agidyne":"Agidyne","agilao":"Agilao","agility master":"Agility Master","agility master ii":"Agility Master II","agility master iii":"Agility Master III","agility master iv":"Agility Master IV","almighty boost":"Almighty Boost","ambient aid":"Ambient Aid","apt pupil":"Apt Pupil","apt pupil ii":"Apt Pupil II","apt pupil iv":"Apt Pupil IV","assault dive":"Assault Dive","attack boost":"Attack Boost","attack boost i":"Attack Boost I","attack boost iii":"Attack Boost III","attack master":"Attack Master","attack master ii":"Attack Master II","attack master iii":"Attack Master III","auto-maraku":"Auto-Maraku","auto-maraku i":"Auto-Maraku I","auto-maraku ii":"Auto-Maraku II","auto-maraku iii":"Auto-Maraku III","auto-maraku iv":"Auto-Maraku IV","auto-mataru":"Auto-Mataru","auto-mataru iii":"Auto-Mataru III","baisudi":"Baisudi","battle acumen":"Battle Acumen","battle acumen iii":"Battle Acumen III","battle acumen iv":"Battle Acumen IV","bewitching sound":"Bewitching Sound","bless boost":"Bless Boost","bless boost ii":"Bless Boost II","bless reduction iii":"Bless Reduction III","bloodbath":"Bloodbath","bonfire festival":"Bonfire Festival","brave blade":"Brave Blade","bufu":"Bufu","bufudyne":"Bufudyne","bufula":"Bufula","bullet time":"Bullet Time","burn boost":"Burn Boost","burn boost iii":"Burn Boost III","call of the abyss iv":"Call of the Abyss IV","charge":"Charge","chilling depth":"Chilling Depth","cohesion":"Cohesion","concentrate":"Concentrate","cosmic flare":"Cosmic Flare","curse boost":"Curse Boost","curse boost i":"Curse Boost I","curse boost ii":"Curse Boost II","curse boost iii":"Curse Boost III","curse reduction iii":"Curse Reduction III","curse reduction iv":"Curse Reduction IV","dance of destruction":"Dance of Destruction","dazzler":"Dazzler","deadly fury":"Deadly Fury","death's mercy":"Death's Mercy","defense master":"Defense Master","defense master ii":"Defense Master II","defense master iii":"Defense Master III","defense master iv":"Defense Master IV","dekunda":"Dekunda","demonic decree":"Demonic Decree","devoted guard":"Devoted Guard","diamond dust":"Diamond Dust","diarama":"Diarama","die for me!":"Die For Me!","disaster ward":"Disaster Ward","divine grace iii":"Divine Grace III","divine guidance iii":"Divine Guidance III","divine judgment":"Divine Judgment","dizzy boost iii":"Dizzy Boost III","dormina":"Dormina","dragonslayer's sword":"Dragonslayer's Sword","eiga":"Eiga","eigaon":"Eigaon","elec boost":"Elec Boost","elec boost iii":"Elec Boost III","elec boost iv":"Elec Boost IV","elec break":"Elec Break","electric dance":"Electric Dance","electric reduction iv":"Electric Reduction IV","endless bind":"Endless Bind","exorcising flames":"Exorcising Flames","fire boost":"Fire Boost","fire boost ii":"Fire Boost II","fire boost iii":"Fire Boost III","fire boost iv":"Fire Boost IV","fire break":"Fire Break","fire reduction ii":"Fire Reduction II","fire reduction iii":"Fire Reduction III","flowers of the pure land":"Flowers of the Pure Land","fortified moxy iii":"Fortified Moxy III","fortified moxy iv":"Fortified Moxy IV","freeze boost iv":"Freeze Boost IV","freila":"Freila","gae bolg":"Gae Bolg","garudyne":"Garudyne","garula":"Garula","gun boost iii":"Gun Boost III","gun reduction iii":"Gun Reduction III","hamaon":"Hamaon","hassou tobi":"Hassou Tobi","healing boost":"Healing Boost","healing boost ii":"Healing Boost II","healing boost iii":"Healing Boost III","healing boost iv":"Healing Boost IV","hp boost iii":"HP Boost III","hunter's instincts":"Hunter's Instincts","ice boost":"Ice Boost","ice boost iv":"Ice Boost IV","ice reduction iii":"Ice Reduction III","ice reduction iv":"Ice Reduction IV","imperial purge":"Imperial Purge","infinite algorithm":"Infinite Algorithm","ironclad resolve i":"Ironclad Resolve I","ironclad resolve ii":"Ironclad Resolve II","ironclad resolve iii":"Ironclad Resolve III","ironclad resolve iv":"Ironclad Resolve IV","killer allure":"Killer Allure","kouga":"Kouga","kougaon":"Kougaon","life aid i":"Life Aid I","life aid iv":"Life Aid IV","mabufu":"Mabufu","mabufudyne":"Mabufudyne","mabufula":"Mabufula","maeigaon":"Maeigaon","magarudyne":"Magarudyne","magarula":"Magarula","mahamaon":"Mahamaon","makougaon":"Makougaon","mapsiodyne":"Mapsiodyne","maragidyne":"Maragidyne","maragion":"Maragion","marakukaja":"Marakukaja","marakunda":"Marakunda","masukukaja":"Masukukaja","matarukaja":"Matarukaja","matarunda":"Matarunda","maziodyne":"Maziodyne","mazionga":"Mazionga","media":"Media","mediarahan":"Mediarahan","mediarama":"Mediarama","megaton raid":"Megaton Raid","megidolaon":"Megidolaon","memory blow":"Memory Blow","mother goddess' chant":"Mother Goddess' Chant","mudo":"Mudo","mudoon":"Mudoon","nuclear reduction iv":"Nuclear Reduction IV","nuke boost iii":"Nuke Boost III","nuke boost iv":"Nuke Boost IV","nurture ii":"Nurture II","nurture iii":"Nurture III","nurture iv":"Nurture IV","one-shot kill":"One-shot Kill","phys boost":"Phys Boost","phys boost iv":"Phys Boost IV","physical reduction iii":"Physical Reduction III","pinpoint":"Pinpoint","pinpoint iv":"Pinpoint IV","power surge":"Power Surge","protect boost":"Protect Boost","protect boost ii":"Protect Boost II","psio":"Psio","psiodyne":"Psiodyne","psy boost":"Psy Boost","psy boost ii":"Psy Boost II","psy boost iii":"Psy Boost III","psy boost iv":"Psy Boost IV","psy reduction iii":"Psy Reduction III","psycho blast":"Psycho Blast","psycho force":"Psycho Force","purifying flames":"Purifying Flames","raging blizzard":"Raging Blizzard","rakukaja":"Rakukaja","rakunda":"Rakunda","reassuring embrace":"Reassuring Embrace","rebellion":"Rebellion","red-hot":"Red-Hot","reduction boost":"Reduction Boost","reduction boost ii":"Reduction Boost II","reduction boost iv":"Reduction Boost IV","regenerate":"Regenerate","regenerate iii":"Regenerate III","resist forget ii":"Resist Forget II","resist sleep iv":"Resist Sleep IV","resistance boost iii":"Resistance Boost III","revolution":"Revolution","seize the day":"Seize the Day","sharp student iii":"Sharp Student III","sharp student iv":"Sharp Student IV","shield boost":"Shield Boost","shield boost iv":"Shield Boost IV","shining salvation":"Shining Salvation","shock boost":"Shock Boost","shock boost ii":"Shock Boost II","shock boost iii":"Shock Boost III","shock boost iv":"Shock Boost IV","sleep boost ii":"Sleep Boost II","snow king's protection":"Snow King's Protection","sonic interference":"Sonic Interference","spell master i":"Spell Master I","spell master iv":"Spell Master IV","spike":"Spike","spirit binding":"Spirit Binding","spirit harmony":"Spirit Harmony","spirit strike":"Spirit Strike","spirit wave":"Spirit Wave","sukukaja":"Sukukaja","sword dance":"Sword Dance","tarukaja":"Tarukaja","tarunda":"Tarunda","tatra shot":"Tatra Shot","tempest slash":"Tempest Slash","thunder caller":"Thunder Caller","underworld judgment":"Underworld Judgment","verdict of agony":"Verdict of Agony","wild thunder":"Wild Thunder","wind barrier":"Wind Barrier","wind boost":"Wind Boost","wind boost ii":"Wind Boost II","wind boost iii":"Wind Boost III","wind break":"Wind Break","wind of nirvana":"Wind of Nirvana","wind reduction i":"Wind Reduction I","wind reduction iii":"Wind Reduction III","windsweep boost iii":"Windsweep Boost III","windswept boost":"Windswept Boost","year end calamity":"Year End Calamity","yggdrasil evolution":"Yggdrasil Evolution","ziodyne":"Ziodyne","zionga":"Zionga","af":"Abyssal Field","abyssal":"Abyssal Field","agi master 1":"Agility Master","agi master 2":"Agility Master II","agi master 3":"Agility Master III","agi master 4":"Agility Master IV","chilling":"Chilling Depth","cd":"Chilling Depth","coh":"Cohesion","cosmic":"Cosmic Flare","flare":"Cosmic Flare","dance":"Dance of Destruction","dek":"Dekunda","dfm":"Die For Me!","ed":"Electric Dance","ht":"Hassou Tobi","ip":"Imperial Purge","ia":"Infinite Algorithm","infinite":"Infinite Algorithm","mapsi":"Mapsiodyne","marak":"Marakunda","masu":"Masukukaja","mataru":"Matarukaja","megido":"Megidolaon","rak":"Rakunda","reb":"Rebellion","rebel":"Rebellion","rebell":"Rebellion","rev":"Revolution","revo":"Revolution","si":"Sonic Interference","sonic":"Sonic Interference","taru":"Tarukaja","wt":"Wild Thunder","wild":"Wild Thunder"};
+const SKILL_ALIASES = {"Abyssal Field":["AF","Abyssal"],"Agidyne":["Agi"],"Agilao":["Agi"],"Agility Master":["Agi Master 1"],"Agility Master II":["Agi Master 2"],"Agility Master III":["Agi Master 3"],"Agility Master IV":["Agi Master 4"],"Chilling Depth":["Chilling","CD"],"Cohesion":["Coh"],"Cosmic Flare":["Cosmic"],"Dance of Destruction":["Dance"],"Dekunda":["Dek"],"Die For Me!":["DFM"],"Electric Dance":["ED"],"Garudyne":["Garu"],"Garula":["Garu"],"Hassou Tobi":["HT"],"Imperial Purge":["IP"],"Infinite Algorithm":["IA","Infinite"],"Mabufu":["Mabu"],"Mabufudyne":["Mabu"],"Mabufula":["Mabu"],"Magarudyne":["Magaru"],"Magarula":["Magaru"],"Mapsiodyne":["Mapsi"],"Maragidyne":["Maragi"],"Maragion":["Maragi"],"Marakunda":["Marak","Maraku"],"Sukukaja":["Suku"],"Masukukaja":["Masu"],"Matarukaja":["Mataru"],"Maziodyne":["Mazio"],"Mazionga":["Mazio"],"Mediarahan":["Media"],"Mediarama":["Media"],"Megidolaon":["Megido"],"Rakunda":["Rak"],"Rebellion":["Reb","Rebel","Rebell"],"Revolution":["Rev","Revo"],"Sonic Interference":["SI","Sonic"],"Tarukaja":["Taru"],"Wild Thunder":["WT","Wild"],"Ziodyne":["Zio"],"Zionga":["Zio"]};
+const SKILL_ALIAS_MAP = {"absolute obedience":"Absolute Obedience","abyssal field":"Abyssal Field","accuracy boost":"Accuracy Boost","accuracy boost iii":"Accuracy Boost III","accuracy boost iv":"Accuracy Boost IV","adverse resolve ii":"Adverse Resolve II","adverse resolve iii":"Adverse Resolve III","adverse resolve iv":"Adverse Resolve IV","agidyne":"Agidyne","agilao":"Agilao","agility master":"Agility Master","agility master ii":"Agility Master II","agility master iii":"Agility Master III","agility master iv":"Agility Master IV","almighty boost":"Almighty Boost","ambient aid":"Ambient Aid","apt pupil":"Apt Pupil","apt pupil ii":"Apt Pupil II","apt pupil iv":"Apt Pupil IV","assault dive":"Assault Dive","attack boost":"Attack Boost","attack boost i":"Attack Boost I","attack boost iii":"Attack Boost III","attack master":"Attack Master","attack master ii":"Attack Master II","attack master iii":"Attack Master III","auto-maraku":"Auto-Maraku","auto-maraku i":"Auto-Maraku I","auto-maraku ii":"Auto-Maraku II","auto-maraku iii":"Auto-Maraku III","auto-maraku iv":"Auto-Maraku IV","auto-mataru":"Auto-Mataru","auto-mataru iii":"Auto-Mataru III","baisudi":"Baisudi","battle acumen":"Battle Acumen","battle acumen iii":"Battle Acumen III","battle acumen iv":"Battle Acumen IV","bewitching sound":"Bewitching Sound","bless boost":"Bless Boost","bless boost ii":"Bless Boost II","bless reduction iii":"Bless Reduction III","bloodbath":"Bloodbath","bonfire festival":"Bonfire Festival","brave blade":"Brave Blade","bufu":"Bufu","bufudyne":"Bufudyne","bufula":"Bufula","bullet time":"Bullet Time","burn boost":"Burn Boost","burn boost iii":"Burn Boost III","call of the abyss iv":"Call of the Abyss IV","charge":"Charge","chilling depth":"Chilling Depth","cohesion":"Cohesion","concentrate":"Concentrate","cosmic flare":"Cosmic Flare","curse boost":"Curse Boost","curse boost i":"Curse Boost I","curse boost ii":"Curse Boost II","curse boost iii":"Curse Boost III","curse reduction iii":"Curse Reduction III","curse reduction iv":"Curse Reduction IV","dance of destruction":"Dance of Destruction","dazzler":"Dazzler","deadly fury":"Deadly Fury","death's mercy":"Death's Mercy","defense master":"Defense Master","defense master ii":"Defense Master II","defense master iii":"Defense Master III","defense master iv":"Defense Master IV","dekunda":"Dekunda","demonic decree":"Demonic Decree","devoted guard":"Devoted Guard","diamond dust":"Diamond Dust","diarama":"Diarama","die for me!":"Die For Me!","disaster ward":"Disaster Ward","divine grace iii":"Divine Grace III","divine guidance iii":"Divine Guidance III","divine judgment":"Divine Judgment","dizzy boost iii":"Dizzy Boost III","dormina":"Dormina","dragonslayer's sword":"Dragonslayer's Sword","eiga":"Eiga","eigaon":"Eigaon","elec boost":"Elec Boost","elec boost iii":"Elec Boost III","elec boost iv":"Elec Boost IV","elec break":"Elec Break","electric dance":"Electric Dance","electric reduction iv":"Electric Reduction IV","endless bind":"Endless Bind","exorcising flames":"Exorcising Flames","fire boost":"Fire Boost","fire boost ii":"Fire Boost II","fire boost iii":"Fire Boost III","fire boost iv":"Fire Boost IV","fire break":"Fire Break","fire reduction ii":"Fire Reduction II","fire reduction iii":"Fire Reduction III","flowers of the pure land":"Flowers of the Pure Land","fortified moxy iii":"Fortified Moxy III","fortified moxy iv":"Fortified Moxy IV","freeze boost iv":"Freeze Boost IV","freila":"Freila","gae bolg":"Gae Bolg","garudyne":"Garudyne","garula":"Garula","gun boost iii":"Gun Boost III","gun reduction iii":"Gun Reduction III","hamaon":"Hamaon","hassou tobi":"Hassou Tobi","healing boost":"Healing Boost","healing boost ii":"Healing Boost II","healing boost iii":"Healing Boost III","healing boost iv":"Healing Boost IV","hp boost iii":"HP Boost III","hunter's instincts":"Hunter's Instincts","ice boost":"Ice Boost","ice boost iv":"Ice Boost IV","ice reduction iii":"Ice Reduction III","ice reduction iv":"Ice Reduction IV","imperial purge":"Imperial Purge","infinite algorithm":"Infinite Algorithm","ironclad resolve i":"Ironclad Resolve I","ironclad resolve ii":"Ironclad Resolve II","ironclad resolve iii":"Ironclad Resolve III","ironclad resolve iv":"Ironclad Resolve IV","killer allure":"Killer Allure","kouga":"Kouga","kougaon":"Kougaon","life aid i":"Life Aid I","life aid iv":"Life Aid IV","mabufu":"Mabufu","mabufudyne":"Mabufudyne","mabufula":"Mabufula","maeigaon":"Maeigaon","magarudyne":"Magarudyne","magarula":"Magarula","mahamaon":"Mahamaon","makougaon":"Makougaon","mapsiodyne":"Mapsiodyne","maragidyne":"Maragidyne","maragion":"Maragion","marakukaja":"Marakukaja","marakunda":"Marakunda","maraku":"Marakunda","masukukaja":"Masukukaja","matarukaja":"Matarukaja","matarunda":"Matarunda","maziodyne":"Maziodyne","mazionga":"Mazionga","media":"Media","mediarahan":"Mediarahan","mediarama":"Mediarama","megaton raid":"Megaton Raid","megidolaon":"Megidolaon","memory blow":"Memory Blow","mother goddess' chant":"Mother Goddess' Chant","mudo":"Mudo","mudoon":"Mudoon","nuclear reduction iv":"Nuclear Reduction IV","nuke boost iii":"Nuke Boost III","nuke boost iv":"Nuke Boost IV","nurture ii":"Nurture II","nurture iii":"Nurture III","nurture iv":"Nurture IV","one-shot kill":"One-shot Kill","phys boost":"Phys Boost","phys boost iv":"Phys Boost IV","physical reduction iii":"Physical Reduction III","pinpoint":"Pinpoint","pinpoint iv":"Pinpoint IV","power surge":"Power Surge","protect boost":"Protect Boost","protect boost ii":"Protect Boost II","psio":"Psio","psiodyne":"Psiodyne","psy boost":"Psy Boost","psy boost ii":"Psy Boost II","psy boost iii":"Psy Boost III","psy boost iv":"Psy Boost IV","psy reduction iii":"Psy Reduction III","psycho blast":"Psycho Blast","psycho force":"Psycho Force","purifying flames":"Purifying Flames","raging blizzard":"Raging Blizzard","rakukaja":"Rakukaja","rakunda":"Rakunda","reassuring embrace":"Reassuring Embrace","rebellion":"Rebellion","red-hot":"Red-Hot","reduction boost":"Reduction Boost","reduction boost ii":"Reduction Boost II","reduction boost iv":"Reduction Boost IV","regenerate":"Regenerate","regenerate iii":"Regenerate III","resist forget ii":"Resist Forget II","resist sleep iv":"Resist Sleep IV","resistance boost iii":"Resistance Boost III","revolution":"Revolution","seize the day":"Seize the Day","sharp student iii":"Sharp Student III","sharp student iv":"Sharp Student IV","shield boost":"Shield Boost","shield boost iv":"Shield Boost IV","shining salvation":"Shining Salvation","shock boost":"Shock Boost","shock boost ii":"Shock Boost II","shock boost iii":"Shock Boost III","shock boost iv":"Shock Boost IV","sleep boost ii":"Sleep Boost II","snow king's protection":"Snow King's Protection","sonic interference":"Sonic Interference","spell master i":"Spell Master I","spell master iv":"Spell Master IV","spike":"Spike","spirit binding":"Spirit Binding","spirit harmony":"Spirit Harmony","spirit strike":"Spirit Strike","spirit wave":"Spirit Wave","sukukaja":"Sukukaja","suku":"Sukukaja","sword dance":"Sword Dance","tarukaja":"Tarukaja","tarunda":"Tarunda","tatra shot":"Tatra Shot","tempest slash":"Tempest Slash","thunder caller":"Thunder Caller","underworld judgment":"Underworld Judgment","verdict of agony":"Verdict of Agony","wild thunder":"Wild Thunder","wind barrier":"Wind Barrier","wind boost":"Wind Boost","wind boost ii":"Wind Boost II","wind boost iii":"Wind Boost III","wind break":"Wind Break","wind of nirvana":"Wind of Nirvana","wind reduction i":"Wind Reduction I","wind reduction iii":"Wind Reduction III","windsweep boost iii":"Windsweep Boost III","windswept boost":"Windswept Boost","year end calamity":"Year End Calamity","yggdrasil evolution":"Yggdrasil Evolution","ziodyne":"Ziodyne","zionga":"Zionga","af":"Abyssal Field","abyssal":"Abyssal Field","agi master 1":"Agility Master","agi master 2":"Agility Master II","agi master 3":"Agility Master III","agi master 4":"Agility Master IV","chilling":"Chilling Depth","cd":"Chilling Depth","coh":"Cohesion","cosmic":"Cosmic Flare","flare":"Cosmic Flare","dance":"Dance of Destruction","dek":"Dekunda","dfm":"Die For Me!","ed":"Electric Dance","ht":"Hassou Tobi","ip":"Imperial Purge","ia":"Infinite Algorithm","infinite":"Infinite Algorithm","mapsi":"Mapsiodyne","marak":"Marakunda","masu":"Masukukaja","mataru":"Matarukaja","megido":"Megidolaon","rak":"Rakunda","reb":"Rebellion","rebel":"Rebellion","rebell":"Rebellion","rev":"Revolution","revo":"Revolution","si":"Sonic Interference","sonic":"Sonic Interference","taru":"Tarukaja","wt":"Wild Thunder","wild":"Wild Thunder"};
 
+
+/* Number of break turns in a DOD rotation. They are always the LAST turns, pinned at the end.
+   Change this single constant to support a different count (e.g. 3) — all turn logic derives from it. */
+const DOD_BREAKS = 2;
 
 /* Internal class tags (lufel.net character "position") — data only, no UI.
    All 8 positions; lufel names mapped to the planner roster (e.g. MONT·Frostgale -> MONT·F,
@@ -598,10 +758,16 @@ function actButtonRows(name){
 function actCodesFor(name){ return actButtonRows(name).reduce((acc,g)=>acc.concat(g),[]); }
 function actButtons(name){ return actCodesFor(name); } /* kept for compatibility */
 /* combined "what Wonder does" (skill + basic action + free text); HL is tracked separately */
-function wonderBody(a){ return [a.skill||'', a.btn?btnLabel(a.btn):'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' '); }
-function actionLabel(a, name){
+function skillLabel(n){ if(!n) return n; const m=settings.skillAbbr||{}; const a=m[n]; return (a && SKILL_ALIASES[n] && SKILL_ALIASES[n].indexOf(a)>=0) ? a : n; }
+/* signature skills: any skill that is a persona signature. SIG_EXCLUDE = signatures that are also Recommended/Innate on lufel and keep their real name when the exclude box is on. */
+const _SIG_SET = new Set(Object.values(PERSONA_SIGNATURES));
+const SIG_EXCLUDE = new Set(['Cohesion','Revolution','Rebellion','Tarunda','Rakunda','Matarunda','Matarukaja','Marakunda']);
+function skillDisplay(n){ if(!n) return n; if(settings.sigAsSig && _SIG_SET.has(n) && !(settings.sigExclude && SIG_EXCLUDE.has(n))) return 'Sig'; return skillLabel(n); }
+function personaLabel(n){ if(!n) return n; const m=settings.personaAbbr||{}; const a=m[n]; return (a && PERSONA_ALIASES[n] && PERSONA_ALIASES[n].indexOf(a)>=0) ? a : n; }
+function wonderBody(a, abbr){ return [(abbr?skillDisplay(a.skill||''):(a.skill||'')), a.btn?btnLabel(a.btn):'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' '); }
+function actionLabel(a, name, abbr){
   if((name||'').toUpperCase()==='WONDER'){
-    return [a.persona||'', a.hl?'HL':'', wonderBody(a)].map(s=>String(s).trim()).filter(Boolean).join(' ');
+    return [(abbr?personaLabel(a.persona||''):(a.persona||'')), a.hl?'HL':'', wonderBody(a, abbr)].map(s=>String(s).trim()).filter(Boolean).join(' ');
   }
   const special=ACT_SPECIAL.includes((name||'').toUpperCase());
   const lbl=c=>!c?'':(c==='ALT'?altExportLabel(name):(c==='HL'?(special?'Theurgy':'Highlight'):(BTN_LABEL[c]||c)));
@@ -636,6 +802,32 @@ function charColor(name){
   let h=0; for(const c of u) h=(h*31+c.charCodeAt(0))%360;
   return `hsl(${h} 55% 70%)`;
 }
+/* editor accent: in light mode, near-white character colours (e.g. Twins/Crow) become near-black so they stay visible */
+function _nearWhiteHex(c){ const m=/^#([0-9a-fA-F]{6})$/.exec(String(c||'')); if(!m) return false; const n=parseInt(m[1],16); return ((n>>16)&255)>230 && ((n>>8)&255)>230 && (n&255)>230; }
+function uiAccent(name){ const c=charColor(name); return (_effTheme==='light' && _nearWhiteHex(c)) ? '#1f1c2b' : c; }
+/* export/preview/webview card palettes: dark is the default (image export ALWAYS uses dark); light is used for the on-screen live preview and webview when light mode is active */
+const EX_DARK={_light:false, bg:'#14121c', panel:'#23202f', panel2:'#1f1c2b', border:'#3a3550', muted:'#9d97b3', text:'#f3f1f7', soft:'#cfe2f3', blue:'#9fc5e8', gold:'#f1c232', red:'#e0445e', elu:'#5b9bd5', disc:'rgba(224,68,94,.22)'};
+const EX_LIGHT={_light:true, bg:'#e7e4f0', panel:'#f4f2fa', panel2:'#ece9f5', border:'#d3cee1', muted:'#6b6680', text:'#1f1c2b', soft:'#37516e', blue:'#2f6db0', gold:'#8a6d12', red:'#cf3340', elu:'#3a78b8', disc:'rgba(204,47,76,.14)'};
+function exPalette(light){ return light?EX_LIGHT:EX_DARK; }
+function _relLum(r,g,b){ const f=c=>{c/=255; return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);}; return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b); }
+/* darken a bright accent (same hue) until it reads on a light card column; dark accents pass through unchanged */
+function _darkenForLight(hex){ const m=/^#?([0-9a-fA-F]{6})$/.exec(hex); if(!m) return hex;
+  const n=parseInt(m[1],16); let r=(n>>16)&255, g=(n>>8)&255, b=n&255, guard=0;
+  while(_relLum(r,g,b)>0.25 && guard++<40){ r=Math.round(r*0.90); g=Math.round(g*0.90); b=Math.round(b*0.90); }
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+/* card strip/border accent in light mode: keep the original bright hue (Bless #ffffa2 stays light yellow), except Electric -> MLD gold and Almighty (white) -> black */
+function cardStrip(name, C){ const c=charColor(name); if(!(C&&C._light)) return c;
+  const x=(c||'').toLowerCase();
+  if(x==='#fcff37') return '#f1c232';
+  if(x==='#ffffff') return '#1f1c2b';
+  return c; }
+/* card character-name text in light mode: gently darken bright hues for legibility, except Electric -> gold and Almighty -> black */
+function cardAccent(name, C){ const c=charColor(name); if(!(C&&C._light)) return c;
+  const x=(c||'').toLowerCase();
+  if(x==='#fcff37') return '#f1c232';
+  if(x==='#ffffff') return '#1f1c2b';
+  if(x==='#ffffa2') return '#fae878';
+  return _darkenForLight(c); }
 /* Images load from the hosted site (absolute URL) so they also show + export when the file is opened locally (file://).
    Relative paths are kept as an automatic fallback (see imgFallback/bgURL/loadImg), so images still work if this domain
    ever changes or someone else self-hosts the page. Set IMG_BASE='' to force relative-only. */
@@ -672,7 +864,8 @@ function opt(list, val){
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 /* ---------- state ---------- */
-const KEY='paradise-rotation-v1';
+const KEY='vf-rotation-storage';
+const LEGACY_KEY='paradise-rotation-v1';   /* old key name; read once so existing drafts carry over */
 function defaultState(){
   const i=DATA.initial;
   function mk(n,aw,rv,g){
@@ -731,387 +924,46 @@ function migrate(st){
   normalizeActions(st.turns);
   return st;
 }
-function load(){ try{const s=localStorage.getItem(KEY); if(s) return migrate(JSON.parse(s));}catch(e){} return blankState(); }
+function load(){
+  try{
+    let s=localStorage.getItem(KEY);
+    if(!s){                                                 /* migrate the old draft once */
+      const old=localStorage.getItem(LEGACY_KEY);
+      if(old){ try{ localStorage.setItem(KEY, old); }catch(e){} s=old; }
+    }
+    /* remove the old key only once the data is safely under the new key */
+    try{ if(localStorage.getItem(LEGACY_KEY)!==null && localStorage.getItem(KEY)!==null) localStorage.removeItem(LEGACY_KEY); }catch(e){}
+    if(s) return migrate(JSON.parse(s));
+  }catch(e){}
+  return blankState();
+}
 function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} }
+
+/* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
+const _SET_KEY='vf-settings-v1';
+const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true };
+let settings=Object.assign({}, DEFAULT_SETTINGS);
+function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
+function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} }
+let _effTheme='dark';
+function _systemPrefersLight(){ try{ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches); }catch(e){ return false; } }
+function effectiveTheme(){ const t=settings.theme||'dark'; if(t==='light') return 'light'; if(t==='dark') return 'dark'; return _systemPrefersLight()?'light':'dark'; }
+function applyTheme(){ _effTheme=effectiveTheme(); const b=document.body; b.classList.toggle('theme-light', _effTheme==='light'); b.classList.toggle('theme-dark', _effTheme==='dark');
+  if(b.classList.contains('view-mode') && typeof _renderViewBody==='function') _renderViewBody();   /* re-render webview chrome on theme change */
+}
+try{ const _mq=window.matchMedia('(prefers-color-scheme: light)'); const _onSys=()=>{ if((settings.theme||'dark')==='system'){ applyTheme(); if(!document.body.classList.contains('view-mode') && typeof renderAll==='function') renderAll(); } };
+  if(_mq.addEventListener) _mq.addEventListener('change',_onSys); else if(_mq.addListener) _mq.addListener(_onSys); }catch(e){}
+function applySettings(){ const b=document.body;
+  b.classList.toggle('hide-char-notes', !settings.showCharNotes);
+  b.classList.toggle('hide-team-notes', !settings.showTeamNotes);
+  b.classList.toggle('hide-rota-notes', !settings.showRotaNotes);
+  b.classList.toggle('persona-img-left', !!settings.personaImgLeft);
+  applyTheme();
+}
 
 /* ---------- render: header ---------- */
 /* ===== rotation text import (parser + highlight) ===== */
-/* ============ ROTATION TEXT PARSER ============ */
-const _n = s => String(s||'').trim().toLowerCase();
-function lev(a,b){ a=_n(a);b=_n(b);const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
-  const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);for(let j=0;j<=n;j++)d[0][j]=j;
-  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);}return d[m][n]; }
-
-function resolveActor(token){
-  const t=_n(token); if(!t) return null;
-  const chars=DATA.characterNames, pers=DATA.personaNames;
-  let h=chars.find(c=>c.toLowerCase()===t); if(h) return {type:'char',name:h};
-  for(const c in CHAR_ALIASES){ if(CHAR_ALIASES[c].some(a=>a.toLowerCase()===t)) return {type:'char',name:c}; }
-  h=pers.find(p=>p.toLowerCase()===t); if(h) return {type:'persona',name:h};
-  for(const p in PERSONA_ALIASES){ if(PERSONA_ALIASES[p].some(a=>a.toLowerCase()===t)) return {type:'persona',name:p}; }
-  if(t.length>=3){
-    h=chars.find(c=>c.toLowerCase().startsWith(t)); if(h) return {type:'char',name:h,fuzzy:true};
-    h=pers.find(p=>p.toLowerCase().startsWith(t)); if(h) return {type:'persona',name:h,fuzzy:true};
-    for(const c in CHAR_ALIASES){ if(CHAR_ALIASES[c].some(a=>a.toLowerCase().startsWith(t))) return {type:'char',name:c,fuzzy:true}; }
-    for(const p in PERSONA_ALIASES){ if(PERSONA_ALIASES[p].some(a=>a.toLowerCase().startsWith(t))) return {type:'persona',name:p,fuzzy:true}; }
-  }
-  if(t.length>=4){ const tol=t.length>=6?2:1;
-    for(const c of chars){ if(lev(c,t)<=tol) return {type:'char',name:c,fuzzy:true}; }
-    for(const p of pers){ if(lev(p,t)<=tol) return {type:'persona',name:p,fuzzy:true}; }
-    for(const c in CHAR_ALIASES){ if(CHAR_ALIASES[c].some(a=>a.length>=4&&lev(a,t)<=tol)) return {type:'char',name:c,fuzzy:true}; }
-    for(const p in PERSONA_ALIASES){ if(PERSONA_ALIASES[p].some(a=>a.length>=4&&lev(a,t)<=tol)) return {type:'persona',name:p,fuzzy:true}; }
-  }
-  return null;
-}
-const ELEM_MAP={f:'Fire',fire:'Fire',i:'Ice',ice:'Ice',e:'Elec',el:'Elec',elec:'Elec',electric:'Elec',w:'Wind',wind:'Wind',p:'Psy',psy:'Psy',n:'Nuke',nuke:'Nuke',nuclear:'Nuke',b:'Bless',bless:'Bless',c:'Curse',curse:'Curse'};
-const VALID_DUALS=['Fire/Ice','Elec/Wind','Psy/Nuke','Bless/Curse'];
-function _knownName(s){ const a=resolveActor((s||'').split(/\s+/)[0]); return !!(a && !a.fuzzy); }
-function normDual(str){ const parts=String(str).split('/').map(p=>ELEM_MAP[_n(p)]).filter(Boolean);
-  if(parts.length<2) return ''; for(const d of VALID_DUALS){ const ds=d.split('/'); if(ds.includes(parts[0])&&ds.includes(parts[1])) return d; } return ''; }
-const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gd:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT'};
-function codeOf(token){
-  const t=_n(token).replace(/[().]/g,'');
-  if(CODE[t]) return {btn:CODE[t],extra:''};
-  if(/^[123]$/.test(t)) return {btn:'S'+t,extra:''};
-  if(/^(da ?capo|de ?capo|dacapo|decapo)$/.test(t)) return {btn:'ALT',extra:''};
-  let m=t.match(/^(\d+)x?(da ?capo|decapo|dacapo)$/); if(m) return {btn:'ALT',extra:'x'+m[1]};
-  m=t.match(/^(s[123]|hl)(x?\d+)?$/); if(m&&CODE[m[1]]) return {btn:CODE[m[1]],extra:(m[2]||'')};
-  return null;
-}
-function cardPair(str){
-  const parts=String(str).split(/[\/+\s]+/).map(s=>s.trim()).filter(Boolean);
-  let space='',sunsky='';
-  const findSp=p=>{ const t=_n(p); if(t.length<3)return ''; return DATA.spaceCards.find(c=>c.toLowerCase()===t)||DATA.spaceCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.spaceCards.find(c=>lev(c,t)<=2))||''; };
-  const findSs=p=>{ const t=_n(p); if(t.length<3)return ''; return DATA.sunSkyCards.find(c=>c.toLowerCase()===t)||DATA.sunSkyCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.sunSkyCards.find(c=>lev(c,t)<=2))||''; };
-  for(const part of parts){ if(space&&sunsky)break; const sp=findSp(part),ss=findSs(part);
-    if(sp&&!ss){ if(!space)space=sp; } else if(ss&&!sp){ if(!sunsky)sunsky=ss; }
-    else if(sp&&ss){ if(!space)space=sp; else if(!sunsky)sunsky=ss; } }
-  return {space,sunsky};
-}
-function matchDagger(str){ const t=_n(str);
-  let h=DATA.daggerNames.find(d=>d.toLowerCase()===t)||DATA.daggerNames.find(d=>d.toLowerCase().startsWith(t)&&t.length>=3);
-  if(!h&&t.length>=4) h=DATA.daggerNames.find(d=>lev(d,t)<=2);
-  return h||''; }
-/* strip a trailing/standalone reforge token (R5, R0X, R3 …) so "Plasma Blade R5" -> "Plasma Blade" */
-function stripReforge(s){ return String(s||'').replace(/\bR[0-6X]\b/ig,' ').replace(/\bR\d+\b/ig,' ').replace(/\s+/g,' ').trim(); }
-/* find a known dagger anywhere in a short line via exact (normalized) word-window match — no fuzzy, to avoid false hits in prose */
-function findDaggerIn(base){
-  base=String(base||'').trim(); if(!base) return '';
-  let dg=DATA.daggerNames.find(d=>_n(d)===_n(base)); if(dg) return dg;
-  const words=base.split(/\s+/).filter(Boolean); if(words.length>5) return '';
-  for(let wlen=Math.min(4,words.length); wlen>=1; wlen--){
-    for(let i=0;i+wlen<=words.length;i++){ const c=words.slice(i,i+wlen).join(' ');
-      dg=DATA.daggerNames.find(d=>_n(d)===_n(c)); if(dg) return dg; } }
-  return '';
-}
-
-/* "Sig"/"Signature" -> the persona's signature skill; a known abbreviation -> its full skill name; otherwise unchanged. Only the leading token is touched. */
-function expandSkillText(text, persona){
-  const t=String(text||'').trim(); if(!t) return text;
-  const whole=t.toLowerCase();
-  if(whole==='sig'||whole==='signature') return (persona&&PERSONA_SIGNATURES[persona])||text;
-  if(SKILL_ALIAS_MAP[whole]) return SKILL_ALIAS_MAP[whole]; // the whole text is a known skill / alias
-  const sp=t.indexOf(' '), head=(sp<0?t:t.slice(0,sp)), tail=(sp<0?'':t.slice(sp));
-  const lc=head.toLowerCase(); let rep=null;
-  if(lc==='sig'||lc==='signature'){ rep=(persona&&PERSONA_SIGNATURES[persona])||null; }
-  else if(SKILL_ALIAS_MAP[lc]){ rep=SKILL_ALIAS_MAP[lc]; }
-  return rep!==null ? (rep+tail) : text;
-}
-function buildActions(actor,toks,raw,warn){
-  if(!actor){ if(raw&&raw.trim())warn.push(raw.trim()); return []; }
-  const isW=actor.type==='persona'||actor.name==='WONDER';
-  if(isW){ const hl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
-    const pname=actor.type==='persona'?actor.name:'';
-    const text=expandSkillText(toks.filter(t=>_n(t).replace(/[().]/g,'')!=='hl').join(' ').trim(), pname);
-    return [{char:'WONDER',persona:pname,hl,text,_fuzzy:!!actor.fuzzy}]; }
-  // character: one action per action-code; non-code tokens attach as text to the current code.
-  // tokens inside parentheses are treated as a note (never as new action codes), e.g. "S3 (Turbo HL if ...)".
-  const acts=[]; let cur=null; const pending=[]; let paren=0;
-  for(const tok of toks){ const startsParen=/^[(\[]/.test(tok);
-    const c=(paren>0||startsParen)?null:codeOf(tok);
-    if(c){ if(cur)acts.push(cur); cur={char:actor.name,btn:c.btn,text:c.extra||'',_fuzzy:!!actor.fuzzy};
-      if(pending.length){ cur.text=(pending.join(' ')+(cur.text?(' '+cur.text):'')).trim(); pending.length=0; } }
-    else { if(cur) cur.text=(cur.text+' '+tok).trim(); else pending.push(tok); }
-    paren+=(tok.match(/[(\[]/g)||[]).length-(tok.match(/[)\]]/g)||[]).length; if(paren<0)paren=0; }
-  if(cur) acts.push(cur);
-  if(!acts.length) acts.push({char:actor.name,btn:'',text:pending.join(' ').trim(),_fuzzy:!!actor.fuzzy,_uncertain:true});
-  return acts;
-}
-function parseTurnContent(content,warn){
-  const actions=[];
-  for(const unit of content.split(/[,|>\u203a\u2192]/).map(u=>u.trim()).filter(Boolean)){
-    let cur=null;
-    for(const seg of unit.split('+').map(s=>s.trim()).filter(Boolean)){
-      const toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
-      if(!((_n(toks[0])==='wonder')||resolveActor(toks[0]))){
-        const segHl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl'); const segDual=toks.map(t=>normDual(t)).find(Boolean);
-        if(segHl&&segDual){ actions.push({char:'TWINS',btn:'HL',text:segDual,_twinsHL:segDual}); continue; }
-        const t0=_n(toks[0]).replace(/[().]/g,'');
-        if(toks.length===1 && /^(mas|masq|msq|masquerade)$/.test(t0)){ actions.push({char:'VIOLET',btn:'ALT',text:''}); continue; }
-      }
-      let actor=null,rest=toks;
-      if(_n(toks[0])==='wonder'){ const pa=toks[1]?resolveActor(toks[1]):null;
-        if(pa&&pa.type==='persona'){actor={type:'persona',name:pa.name,fuzzy:pa.fuzzy};rest=toks.slice(2);}
-        else{actor={type:'char',name:'WONDER'};rest=toks.slice(1);} }
-      else{ const a0=resolveActor(toks[0]); if(a0){actor=a0;rest=toks.slice(1);} }
-      if(actor)cur=actor; else{actor=cur;rest=toks;}
-      buildActions(actor,rest,seg,warn).forEach(a=>actions.push(a));
-    }
-  }
-  return actions;
-}
-
-/* ---- main ---- */
-function parseRotationText(text){
-  const warn=[];
-  const lines=text.split(/\r?\n/).map(s=>s.replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,''));
-  const reInline=/^\s*(?:t|turn)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
-  const reAlone=/^\s*(?:t|turn)\s*(\d+)\s*[:.)]?\s*$/i;
-  // classify lines: turn vs header
-  const turnEntries=[]; const headerLines=[]; const lineIsTurn=new Array(lines.length).fill(false);
-  for(let i=0;i<lines.length;i++){
-    let m=lines[i].match(reInline);
-    if(m){ turnEntries.push({num:+m[1],content:m[2]}); lineIsTurn[i]=true; continue; }
-    m=lines[i].match(reAlone);
-    if(m){ lineIsTurn[i]=true; let j=i+1,content='';
-      while(j<lines.length){ if(reInline.test(lines[j])||reAlone.test(lines[j]))break; if(lines[j].trim()){content=lines[j].trim();lineIsTurn[j]=true;break;} j++; }
-      turnEntries.push({num:+m[1],content}); continue; }
-  }
-  for(let i=0;i<lines.length;i++){ if(!lineIsTurn[i]&&lines[i].trim()) headerLines.push(lines[i].trim()); }
-
-  // state skeleton
-  const blankUnit=()=>({name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:'',note:''});
-  const setup={rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''};
-  const charData={}; // name -> {awareness,rev,space,sunsky,note}
-  const charOrder=[];
-  let dagger='', personas=[]; const headerDuals=[];
-  const noteLines=[];
-  const got={}; // track which info recognized
-
-  function addChar(name,info){ if(!charData[name]){charData[name]={};charOrder.push(name);} Object.assign(charData[name],info); }
-
-  // title (first header line) -> boss/mode/patch
-  let titleConsumed=false;
-  for(let hi=0; hi<headerLines.length; hi++){
-    const line=headerLines[hi];
-    const low=line.toLowerCase();
-
-    // Wonder line
-    if(/^wonder\b/i.test(line)){
-      let rest=line.replace(/^wonder\b/i,'').trim();
-      // dagger = first chunk up to , or :
-      const dm=rest.match(/^([^,:]+)[,:]?(.*)$/);
-      if(dm){ const dg=matchDagger(dm[1].trim().split(/\s+/)[0]) || matchDagger(dm[1].trim()); if(dg){dagger=dg;got.dagger=1;} 
-        rest=dm[2]||''; if(!dg) rest=dm[1]+(dm[2]?(','+dm[2]):''); }
-      // personas from rest (comma separated, skip if it was just dagger)
-      parsePersonaList(rest);
-      continue;
-    }
-    if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1); const dg=matchDagger(stripReforge(val))||findDaggerIn(stripReforge(val)); if(dg){dagger=dg;got.dagger=1;} continue; }
-    { const pInline=line.match(/^personas?\s*:\s*(.+)$/i); if(pInline){ parsePersonaList(pInline[1]); continue; } }
-    if(/^personas?\s*:?\s*$/i.test(line)){ // following lines are personas until blank/block
-      let j=hi+1; while(j<headerLines.length && !/^(cards?|knife|dagger)\s*:/i.test(headerLines[j]) && !/[:]/.test(headerLines[j].split(' ')[0]||'')){ 
-        if(!parsePersonaLine(headerLines[j])) break; headerLines[j]='\u0000'; j++; }
-      continue;
-    }
-    if(/^cards?\s*:?\s*$/i.test(line)){ let j=hi+1; while(j<headerLines.length){ if(!parseCardLine(headerLines[j])) break; headerLines[j]='\u0000'; j++; } continue; }
-    // standalone "Dagger" / "Knife" / "Weapon" header -> dagger sits on the following non-blank line ("Plasma Blade R5")
-    if(/^(knife|dagger|weapon)s?\s*:?\s*$/i.test(line)){
-      for(let j=hi+1;j<headerLines.length;j++){ const hl=headerLines[j]; if(!hl||hl==='\u0000') continue;
-        const dg=matchDagger(stripReforge(hl))||findDaggerIn(stripReforge(hl)); if(dg){ dagger=dg; got.dagger=1; headerLines[j]='\u0000'; }
-        break; }
-      continue;
-    }
-    // bare section headers that carry no data themselves
-    if(/^(rotation|rotations|turns?|team|comp|composition|notes?|info|setup)\s*:?\s*$/i.test(line)) continue;
-    if(line==='\u0000') continue;
-
-    // "<name>: <rest>" — dagger line, card line, or a stat note, even without a "Cards:" header
-    { const lm=line.match(/^([^:]{1,24}):\s*(.+)$/);
-      if(lm){ const label=lm[1].trim(), rest=lm[2].trim();
-        const dg=matchDagger(label);
-        if(dg){ dagger=dg; got.dagger=1; parsePersonaList(rest); continue; }
-        const a=resolveActor(label.split(/\s+/)[0]);
-        if(a && a.type==='char'){ const cp=cardPair(rest);
-          if(a.name==='TWINS'){ (rest.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
-          if(cp.space||cp.sunsky){ const info={}; if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky; addChar(a.name,info); got.cards=1; continue; }
-          noteLines.push(line); continue; } } }
-
-
-    // team chain line: "A A1R0 > B > C A2R0 > D" — split on chevrons, each segment carries its own awareness/reforge
-    if(/[>\u203a\u2192]/.test(line)){
-      const segs=line.split(/\s*[>\u203a\u2192]\s*/).map(s=>s.trim()).filter(Boolean);
-      const parsed=[]; let clean=segs.length>=2;
-      for(const seg of segs){
-        const am=seg.match(/\b(A[0-6]|DGR)\s*(R[0-6X])?\b/i);
-        let nm=seg, info={};
-        if(am){ nm=seg.slice(0,seg.indexOf(am[0])).trim()||seg; info.awareness=am[1].toUpperCase(); info.rev=(am[2]||'').toUpperCase(); }
-        const a=resolveActor(nm.split(/\s+/)[0]);
-        if(a && a.type==='char'){ parsed.push({name:a.name,info}); }
-        else { clean=false; break; }
-      }
-      if(clean && parsed.length>=2){ parsed.forEach(p=>addChar(p.name,p.info)); got.team=1; continue; }
-    }
-
-    // team character line: has awareness token AND a recognized character before it
-    const aw=line.match(/\b(A[0-6]|DGR)\s*(R[0-6X])?\b/i);
-    if(aw){
-      const idx=line.indexOf(aw[0]);
-      const namePart=line.slice(0,idx).trim();
-      const afterPart=line.slice(idx+aw[0].length).trim();
-      const names=namePart.split('/').map(s=>s.trim()).filter(Boolean);
-      const recog=[];
-      names.forEach((nm,k)=>{ const a=resolveActor(nm.split(/\s+/)[0]); if(a&&a.type==='char') recog.push({name:a.name,last:k===names.length-1}); });
-      if(recog.length){
-        recog.forEach(r=>{ const info={awareness:aw[1].toUpperCase(),rev:(aw[2]||'').toUpperCase()};
-          if(r.last && afterPart){ const cp=cardPair(afterPart); if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky; }
-          addChar(r.name,info); });
-        got.team=1; continue;
-      }
-      // no recognized character -> fall through (likely the title line)
-    }
-
-    // title line: only the very first header line
-    if(hi===0 && !titleConsumed){
-      titleConsumed=true;
-      let t2=line;
-      // expected score: a number directly followed by M / B / T
-      const sm=t2.match(/\b(\d+(?:\.\d+)?)\s*([MBT])\b/i); if(sm){ setup.score=sm[1]+sm[2].toUpperCase(); got.score=1; t2=t2.replace(sm[0],' '); }
-      // patch: an x.y number >= 4.2 (current patches are 4.2+; bare lower numbers are not a patch)
-      const pms=[...t2.matchAll(/\b(\d+\.\d+)\b/g)]; for(const pm of pms){ const v=parseFloat(pm[1]); if(v>=4.2 && v<20){ setup.patch=pm[1]; got.patch=1; t2=t2.replace(pm[0],' '); break; } }
-      // boss + mode
-      const bm=matchBoss(t2); if(bm){ setup.boss=bm; got.boss=1; t2=t2.replace(new RegExp('\\b'+bm.split(' ').join('\\s+')+'\\b','i'),' '); }
-      const mm=t2.match(/\b(MLD|DOD|NOD|SOS)\b/i); if(mm){ setup.type=mm[1].toUpperCase(); got.mode=1; t2=t2.replace(/\b(MLD|DOD|NOD|SOS)\b/i,' '); }
-      let rn=t2.replace(/\s+/g,' ').trim();
-      // credit: an unknown name after "by" (1-2 words) or a single unknown word after "-"
-      const cmBy=rn.match(/^(.*?)\bby\s+(.+)$/i); const cmDash=rn.match(/^(.*?)\s*[-–]\s*(\S+)$/);
-      const _notSide=s=>!/^(side|weak|strong)$/i.test(s);
-      if(cmBy){ const r=(cmBy[2]||'').trim(); if(r && r.split(/\s+/).length<=2 && _notSide(r) && !matchBoss(r) && !_knownName(r)){ setup.credits=r; got.credit=1; rn=(cmBy[1]||'').trim(); } }
-      else if(cmDash){ const r=(cmDash[2]||'').trim(); if(r && _notSide(r) && !matchBoss(r) && !_knownName(r)){ setup.credits=r; got.credit=1; rn=(cmDash[1]||'').trim(); } }
-      // otherwise: a single leftover word that is not awareness / boss / character is likely the credit (name kept intact)
-      if(!setup.credits){ const unknown=rn.split(/\s+/).filter(Boolean).filter(t=>{ const tl=t.replace(/[^A-Za-z0-9\u00b7]/g,'');
-        if(!tl||/^(all|a[0-6]|dgr|r[0-6x]|weak|strong|side)$/i.test(tl)) return false;
-        if(matchBoss(tl)) return false; const a=resolveActor(tl); return !(a && !a.fuzzy); });
-        if(unknown.length===1){ setup.credits=unknown[0]; got.credit=1; } }
-      rn=rn.replace(/[-–]/g,' ').replace(/\s+/g,' ').trim().replace(/[.\-–\s]+$/,'').trim();
-      if(rn) setup.rotationName=rn;
-      continue;
-    }
-    // leftover -> note
-    noteLines.push(line);
-  }
-
-  // general dagger fallback: if nothing structured gave a dagger, look for a known dagger name
-  // anywhere in the leftover (non-turn) lines — daggers are usually mentioned somewhere in the header text.
-  if(!got.dagger && noteLines.length){
-    for(let n=0;n<noteLines.length;n++){
-      const base=stripReforge(noteLines[n]); const dg=findDaggerIn(base);
-      if(dg){ dagger=dg; got.dagger=1;
-        if(base.split(/\s+/).filter(Boolean).length<=3) noteLines.splice(n,1); // drop a bare "Plasma Blade R5"-style line
-        break; }
-    }
-  }
-
-  function parsePersonaList(str){ if(!str)return; str.split(/,(?![^(]*\))/).forEach(chunk=>parsePersonaLine(chunk)); }
-  function parsePersonaLine(line){
-    line=String(line||'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'').trim();
-    if(!line) return false;
-    let nameStr=line, skillStr='';
-    let pm=line.match(/^(.*?)\s*\(([^)]*)\)/); // 1) Name (skills) — first parenthetical group; trailing text (e.g. "or X") ignored
-    if(pm){ nameStr=pm[1].trim(); skillStr=pm[2]; }
-    else {
-      // 2) Name <dash/colon> skills  (en/em dash, hyphen with spaces, or colon)
-      let dm=line.match(/^(.*?)\s*[:\u2013\u2014]\s*(.+)$/) || line.match(/^(.*?)\s+-\s+(.+)$/);
-      if(dm){ nameStr=dm[1].trim(); skillStr=dm[2].trim(); }
-      else { // 3) Name skillA/skillB
-        const cm=line.match(/^(\S+)\s+(.*)$/); if(cm && /\//.test(cm[2])){ nameStr=cm[1]; skillStr=cm[2]; }
-      }
-    }
-    const tok=nameStr.split(/\s+/)[0];
-    const a=resolveActor(tok);
-    if(a&&a.type==='persona'){ const skills=skillStr.split(/[\/,+]/).map(s=>s.trim()).filter(Boolean)
-        .filter(s=>!/^(sig|signature)$/i.test(s))
-        .map(s=>SKILL_ALIAS_MAP[s.toLowerCase()]||s).slice(0,2);
-      personas.push({name:a.name,skills:[skills[0]||'',skills[1]||'']}); got.personas=1; return true; }
-    return false;
-  }
-  function parseCardLine(line){
-    line=String(line||'').trim(); if(!line||line==='\u0000') return false;
-    const m=line.match(/^([^:]+):\s*(.+)$/); if(!m) return false;
-    const a=resolveActor(m[1].trim().split(/\s+/)[0]); if(!(a&&a.type==='char')) return false;
-    const cp=cardPair(m[2].replace(/[\d.%]+/g,'').trim());
-    const info={}; if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky;
-    addChar(a.name,info); got.cards=1; return true;
-  }
-  function matchBoss(line){ for(const b of DATA.bossNames){ const w=b.split(' ')[0]; if(new RegExp('\\b'+w+'\\b','i').test(line)) return b; } return ''; }
-  function boggWord(line,boss){ return boss.split(' ')[0]; }
-
-  // turns (parse first, so we can fill the team from turn actors if the header is sparse)
-  const turns=[]; turnEntries.sort((a,b)=>a.num-b.num);
-  turnEntries.forEach(te=>turns.push({name:'TURN '+te.num,note:'',actions:parseTurnContent(te.content,warn)}));
-  // a bare "Wonder HL" (HL only, no persona/skill/text) inherits the most recently used Wonder persona
-  { let lastP=''; turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER') return;
-      if(a.persona){ lastP=a.persona; return; }
-      if(a.hl && !a.persona && !String(a.text||'').trim() && lastP) a.persona=lastP; })); }
-  const turnChars=[]; let turnHasWonder=false;
-  turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'){turnHasWonder=true;} else if(a.char && !turnChars.includes(a.char)) turnChars.push(a.char); }));
-
-  // assemble units from header chars first, then any turn-only chars (no data -> empty fields highlighted)
-  // "All A6": every character is A6R6 unless stated otherwise; capture explicit overrides like "Yukari A2"
-  const allA6=/\ball\s*a6\b/i.test(text);
-  if(allA6){ headerLines.forEach(hl=>{ if(!hl||hl==='\u0000')return; const re=/\b([A-Za-z\u00b7]+)\s+(A[0-6]|DGR)(?:\s*(R[0-6X]))?\b/gi; let m2;
-    while((m2=re.exec(hl))){ if(m2[1].toLowerCase()==='all')continue; const a=resolveActor(m2[1]); if(a&&a.type==='char') addChar(a.name,{awareness:m2[2].toUpperCase(),rev:(m2[3]||'').toUpperCase()}); } }); }
-
-  // character order: by first Skill/Attack/Gun/Guard in the turns (HL/TG/Assist + elucidator are ignored).
-  // Wonder is ordered too, via its persona-skill actions (a HL-only Wonder action is ignored like any HL).
-  const hasWonder = charOrder.includes('WONDER') || dagger || personas.length || turnHasWonder;
-  const actionOrder=[];
-  turns.forEach(t=>t.actions.forEach(a=>{
-    if(a.char==='WONDER'){ if((a.text||'').trim() && !actionOrder.includes('WONDER')) actionOrder.push('WONDER'); }
-    else if(a.char && ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) && !actionOrder.includes(a.char)) actionOrder.push(a.char); }));
-  const ordered=[]; const addOrd=c=>{ if(c&&!ordered.includes(c)) ordered.push(c); };
-  actionOrder.forEach(addOrd); if(hasWonder) addOrd('WONDER'); charOrder.forEach(addOrd); turnChars.forEach(addOrd);
-
-  const units=[blankUnit(),blankUnit(),blankUnit(),blankUnit()];
-  let elucidator=blankUnit();
-  let ui=0; const placed=new Set();
-  // elucidator (prefer the classic navis ORACLE/FUUKA, else first elucidator-capable; never Wonder)
-  { const cands=ordered.filter(nm=>nm!=='WONDER'&&!placed.has(nm)&&(DATA.elucidatorNames||[]).includes(nm));
-    const eluName=cands.find(nm=>nm==='ORACLE'||nm==='FUUKA')||cands[0];
-    if(eluName){ elucidator=Object.assign(blankUnit(),{name:eluName},pick(charData[eluName])); placed.add(eluName); } }
-  // place every character (incl. Wonder, at its action-order position) into units; a 5th extra char becomes Fuuka's backup
-  for(const nm of ordered){ if(placed.has(nm))continue;
-    if(ui>3){ const fuuka=[...units,elucidator].find(u=>(u.name||'').toUpperCase()==='FUUKA');
-      if(fuuka && !fuuka.companion){ fuuka.companion=nm; placed.add(nm); } else warn.push(nm+' (no free team slot)'); continue; }
-    if(nm==='WONDER'){ units[ui]=Object.assign(blankUnit(),{name:'WONDER',awareness:'DGR',rev:(charData['WONDER']&&charData['WONDER'].rev)||'',gear:dagger||''}); }
-    else units[ui]=Object.assign(blankUnit(),{name:nm},pick(charData[nm]));
-    placed.add(nm); ui++; }
-  // infer Twins role from the two Fire/Ice-style HL duals seen across the turns
-  { const tw=units.find(u=>(u.name||'').toUpperCase()==='TWINS');
-    if(tw && !tw.role){ const seen=headerDuals.slice(); turns.forEach(t=>t.actions.forEach(a=>{ if(a._twinsHL && !seen.includes(a._twinsHL)) seen.push(a._twinsHL); }));
-      if(seen.length>=2){ const role=TWINS_ROLES.find(r=>{ const d=TWINS_ROLE_DUALS[r]; return d.includes(seen[0])&&d.includes(seen[1]); }); if(role) tw.role=role; } } }
-  // apply All-A6 defaults (explicit per-character awareness already set above wins; bare overrides get R0)
-  if(allA6){ [...units,elucidator].forEach(u=>{ if(!u.name)return;
-    if((u.name||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; if(!u.rev)u.rev='R6'; return; }
-    if(!u.awareness){ u.awareness='A6'; if(!u.rev)u.rev='R6'; } else if(!u.rev){ u.rev='R0'; } }); }
-  // default card set per character: fill space/sun-sky only when the text gave none (an explicit set in the import wins)
-  [...units,elucidator].forEach(u=>{ if(!u.name)return;
-    if(!u.space && !u.sunsky){ const def=CHAR_CARD_DEFAULTS[(u.name||'').toUpperCase()]; if(def){ u.space=def.space; u.sunsky=def.sunsky; } } });
-  function pick(d){ d=d||{}; return {awareness:d.awareness||'',rev:d.rev||'',space:d.space||'',sunsky:d.sunsky||'',role:d.role||'',companion:d.companion||'',note:d.note||''}; }
-
-  // merge in Wonder-action personas not already listed (more sources -> more reliable), header order first, up to 3
-  { const have=personas.map(p=>(p.name||'').toLowerCase());
-    turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'&&a.persona){ const lc=a.persona.toLowerCase();
-      if(!have.includes(lc) && personas.length<3){ personas.push({name:a.persona,skills:['','']}); have.push(lc); } } })); }
-  // personas -> 3 slots
-  const pslots=[{name:'',skills:['','']},{name:'',skills:['','']},{name:'',skills:['','']}];
-  personas.slice(0,3).forEach((p,i)=>pslots[i]=p);
-
-  if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
-  const teamNotes=noteLines.join('\n');
-
-  return { state:{setup,units,elucidator,personas:pslots,teamNotes,turns}, warnings:warn, got };
-}
+/* ============ ROTATION TEXT PARSER — externalized to vf-parser.js (loaded as a classic <script> after this one; reads the shared data tables above) ============ */
 /* ============ TEXT IMPORT: highlight (yellow) ============ */
 let IMP_MISS=new Set(), IMP_ACT=new Set();
 function impClearAll(){ IMP_MISS=new Set(); IMP_ACT=new Set();
@@ -1177,12 +1029,14 @@ function showImportFeedback(res){
   openShareModal({title:'Import Summary', text:txt, readonly:true, primaryLabel:'Close', onPrimary:(t,h,close)=>close(), autoHeight:true, noSelect:true, hidePrimary:true});
 }
 function openImportText(){
-  openShareModal({title:'Import Text', text:'', readonly:false, showKeepText:true,
+  openShareModal({title:'Import Text', text:'', readonly:false, showKeepText:true, showDodToggle:true,
     placeholder:'Paste a rotation written in plain text — like a post from Discord. The planner recognizes what it can (boss, team, personas, turns) and highlights what still needs filling in.',
     primaryLabel:'Import', onPrimary:(t,hint,close)=>{
       const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a rotation text first.'; return; }
       if(!isRotationEmpty(state) && !confirm('This replaces your current rotation (team, personas and all turns).\n\nConsider using Export \u2192 Export JSON first to back it up.\n\nReplace it now?')) return;
-      let res; try{ res=parseRotationText(v); }catch(e){ hint.textContent='Sorry, that text could not be read.'; return; }
+      const dodEl=document.getElementById('ioDod'); const dodOn=!!(dodEl&&dodEl.checked);
+      if(typeof parseRotationText!=='function'){ hint.textContent='Text-import parser (vf-parser.js) is not loaded. Make sure vf-parser.js sits in the same folder as the tool, then reload.'; return; }
+      let res; try{ res=parseRotationText(v,{dod:dodOn}); }catch(e){ hint.textContent='Sorry, that text could not be read.'; return; }
       IMP_ACT=new Set();
       (res.state.turns||[]).forEach((tt,ti)=>(tt.actions||[]).forEach((a,ai)=>{ if(a._uncertain) IMP_ACT.add(ti+'.'+ai); }));
       const clean=JSON.parse(JSON.stringify(res.state));
@@ -1198,6 +1052,26 @@ function openImportText(){
 }
 
 
+/* Credits field auto-fit: keep the whole value visible inside the fixed-height box,
+   wrapping to at most 2 lines and shrinking the font size when needed. */
+function fitCredits(){
+  const el=document.getElementById('f_credits'); if(!el) return;
+  const BOX=56, MAXF=20, MINF=10, prevH=el.style.height;
+  let fs=MAXF, lh=Math.round(MAXF*1.2), lines=1;
+  el.style.paddingTop='0px'; el.style.paddingBottom='0px';
+  for(fs=MAXF; fs>=MINF; fs--){
+    lh=Math.round(fs*1.2);
+    el.style.fontSize=fs+'px'; el.style.lineHeight=lh+'px';
+    el.style.height='0px';                       // collapse so scrollHeight == content height
+    lines=Math.max(1, Math.round(el.scrollHeight/lh));
+    if(lines<=2) break;
+  }
+  el.style.height=BOX+'px';                       // restore the box height
+  const contentH=Math.min(2,lines)*lh;
+  const pad=Math.max(2, Math.round((BOX-contentH)/2));
+  el.style.paddingTop=pad+'px'; el.style.paddingBottom=pad+'px';
+}
+
 function renderHead(){
   const s=state.setup;
   document.getElementById('headPanel').innerHTML=`
@@ -1209,11 +1083,16 @@ function renderHead(){
       <div class="field"><label>Boss</label><span class="combo-wrap"><input id="f_boss" class="combo" data-combo="boss" autocomplete="off" placeholder="Choose Boss" value="${esc(s.boss)}"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span></div>
       <div class="field patch-field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
       <div class="field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
-      <div class="field credits-field"><label>Credits</label><input id="f_credits" value="${esc(s.credits||'')}"/></div>
+      <div class="field credits-field"><label>Credits</label><textarea id="f_credits" rows="1" spellcheck="false">${esc(s.credits||'')}</textarea></div>
     </div>
     <datalist id="bossList"></datalist>`;
   bind('f_name','setup.rotationName');
   bind('f_credits','setup.credits');
+  { const cf=document.getElementById('f_credits');
+    if(cf){ cf.addEventListener('input', fitCredits);
+      cf.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); } });
+      fitCredits(); requestAnimationFrame(fitCredits); } }
+  if(!window.__creditsResizeHooked){ window.__creditsResizeHooked=true; window.addEventListener('resize', fitCredits); }
   const tsel=document.getElementById('f_type');
   tsel.onchange=()=>{
     const oldType=state.setup.type, newType=tsel.value;
@@ -1225,10 +1104,8 @@ function renderHead(){
       if(newType==='DOD'){
         state.turns=[
           {name:'TURN 1',actions:[{char:'',btn:'',text:''}]},
-          {name:'TURN 2',actions:[{char:'',btn:'',text:''}]},
-          {name:'Break 1',actions:[{char:'',btn:'',text:''}]},
-          {name:'Break 2',actions:[{char:'',btn:'',text:''}]}
-        ];
+          {name:'TURN 2',actions:[{char:'',btn:'',text:''}]}
+        ].concat(Array.from({length:DOD_BREAKS},(_,i)=>({name:'Break '+(i+1),actions:[{char:'',btn:'',text:''}]})));
       } else {
         state.turns=Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',btn:'',text:''}]}));
       }
@@ -1250,7 +1127,7 @@ function renderHead(){
 
 /* ---------- render: team ---------- */
 function unitCard(u, path, elu, idx){
-  const col=charColor(u.name); const img=imgFor(u.name);
+  const col=uiAccent(u.name); const img=imgFor(u.name);
   const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
   let nameOpts=[''].concat(names);
   if(u.name && !nameOpts.includes(u.name)) nameOpts=[''].concat([u.name]).concat(names);
@@ -1584,11 +1461,12 @@ function normalizePatch(raw){
   return {ok:true, value:v};
 }
 function normalizeScore(raw){
-  let v=String(raw==null?'':raw).replace(/,/g,'.').trim();
+  let v=String(raw==null?'':raw).trim();
   if(!v) return {ok:true, value:''};                       /* Expected Score is optional */
-  const m=v.match(/^(\d+(?:\.\d+)?(?:[eE]\d+)?)(\s*)([a-zA-Z]+)?$/);
-  if(!m) return {ok:false, value:v, reason:'Enter a number, optionally with a magnitude. Examples: 945 Mil, 1.3 B, 100M, 59T.'};
+  const m=v.match(/^([\d][\d.,]*(?:[eE]\d+)?)(\s*)([a-zA-Z]+)?$/);
+  if(!m) return {ok:false, value:v, reason:'Enter a number, optionally with a magnitude. Examples: 1,000,000 or 1.000.000, 945 Mil, 1.3 B, 100M, 59T.'};
   let num=m[1], sp=m[2]||'', suf=m[3]||'';
+  if(/^\d+,\d{1,2}$/.test(num)) num=num.replace(',', '.');   /* decimal comma (1,3) -> period; grouped numbers (1,000,000) are kept as typed */
   if(suf){
     const U=suf.toUpperCase();
     const allowed=['K','M','MIL','MILLION','B','BIL','BILLION','T','TRIL','TRILLION'];
@@ -1662,7 +1540,7 @@ function moveAction(from,to){
   state.turns[to.ti].actions.splice(idx,0,m);
 }
 function actRow(a, ti, ai){
-  const col=charColor(a.char);
+  const col=uiAccent(a.char);
   const team=teamChars();
   let chOpts=[''].concat(team);
   if(a.char && !chOpts.includes(a.char)) chOpts=[''].concat([a.char]).concat(team);
@@ -1713,12 +1591,11 @@ function actRow(a, ti, ai){
 }
 function renumberTurns(){
   let changed=false;
-  const dod=state.setup.type==='DOD', n=state.turns.length;
-  const auto=/^(TURN\s+\d+|Break\s+[12])$/i;
+  const dod=state.setup.type==='DOD', n=state.turns.length, B=DOD_BREAKS;
+  const auto=/^(TURN\s+\d+|Break\s+\d+)$/i;
   state.turns.forEach((t,i)=>{
     let want, force=false;
-    if(dod && n>=2 && i===n-2){ want='Break 1'; force=true; }
-    else if(dod && n>=2 && i===n-1){ want='Break 2'; force=true; }
+    if(dod && n>=B && i>=n-B){ want='Break '+(i-(n-B)+1); force=true; }
     else want='TURN '+(i+1);
     if((force || auto.test((t.name||'').trim())) && t.name!==want){ t.name=want; changed=true; }
   });
@@ -1749,6 +1626,7 @@ function renderRotationPreview(){
   btn.setAttribute('aria-expanded', String(rotationPreviewOpen));
   body.hidden=!rotationPreviewOpen;
   if(!rotationPreviewOpen){ body.innerHTML=''; return; }
+  const PC=exPalette(_effTheme==='light');
   const FULLW=5*184+4*12;            /* 968 logical content width */
   const FRAME=32;                    /* dark frame padding (16*2) */
   if(state.rotationView==='horizontal'){
@@ -1757,11 +1635,11 @@ function renderRotationPreview(){
     const eff=z=>fitScale*(1+z);                                      /* z: 0..2 extra zoom */
     body.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
         <div style="font:600 10px Inter,sans-serif;color:#6f6a85;letter-spacing:.08em;text-transform:uppercase;">Image export preview · not part of the export</div>
-        <div style="display:flex;align-items:center;gap:6px;font:600 11px Inter,sans-serif;color:#9d97b3;white-space:nowrap;">Zoom
+        <div style="display:flex;align-items:center;gap:6px;font:600 11px Inter,sans-serif;color:${PC.muted};white-space:nowrap;">Zoom
           <input id="rotPreviewZoom" type="range" min="0" max="2" step="0.1" value="${rotationPreviewZoom}" style="width:110px;accent-color:#5b9bd5;cursor:pointer;"/>
-          <span id="rotPreviewZoomVal" style="min-width:30px;text-align:right;color:#cfe2f3;">${rotationPreviewZoom.toFixed(1)}×</span></div>
+          <span id="rotPreviewZoomVal" style="min-width:30px;text-align:right;color:${PC.text};">${rotationPreviewZoom.toFixed(1)}×</span></div>
       </div>
-      <div style="overflow-x:auto;background:#14121c;padding:16px;box-sizing:border-box;border-radius:8px;font-family:Inter,system-ui,sans-serif;"><div id="rotPreviewScale" style="zoom:${eff(rotationPreviewZoom)};">${exportTurnsBlock()}</div></div>`;
+      <div style="overflow-x:auto;background:${PC.bg};padding:16px;box-sizing:border-box;border-radius:8px;font-family:Inter,system-ui,sans-serif;"><div id="rotPreviewScale" style="zoom:${eff(rotationPreviewZoom)};">${exportTurnsBlock(undefined, PC)}</div></div>`;
     const zin=document.getElementById('rotPreviewZoom'), zval=document.getElementById('rotPreviewZoomVal'), zscale=document.getElementById('rotPreviewScale');
     if(zin) zin.oninput=()=>{ rotationPreviewZoom=+zin.value; if(zscale) zscale.style.zoom=eff(rotationPreviewZoom); if(zval) zval.textContent=rotationPreviewZoom.toFixed(1)+'×'; };
   } else {
@@ -1770,17 +1648,17 @@ function renderRotationPreview(){
     const contentW=Math.max(240,(body.clientWidth||target)-28);
     const scale=contentW/target;
     body.innerHTML=`<div style="font:600 10px Inter,sans-serif;color:#6f6a85;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Image export preview · not part of the export</div>
-      <div style="zoom:${scale};"><div style="background:#14121c;padding:16px;box-sizing:border-box;width:${target}px;border-radius:8px;font-family:Inter,system-ui,sans-serif;">${exportTurnsBlock()}</div></div>`;
+      <div style="zoom:${scale};"><div style="background:${PC.bg};padding:16px;box-sizing:border-box;width:${target}px;border-radius:8px;font-family:Inter,system-ui,sans-serif;">${exportTurnsBlock(undefined, PC)}</div></div>`;
   }
 }
 function renderTurns(){
   renumberTurns();
   const wrap=document.getElementById('turns');
   const sl=wrap.scrollLeft;
-  const dod=state.setup.type==='DOD', n=state.turns.length;
+  const dod=state.setup.type==='DOD', n=state.turns.length, B=DOD_BREAKS;
   const addBtn=`<button class="add-turn" id="addTurn" title="Add turn">+</button>`;
-  if(dod && n>=2){
-    wrap.innerHTML = state.turns.slice(0,n-2).map((t,i)=>turnHtml(t,i,false)).join('') + addBtn + state.turns.slice(n-2).map((t,i)=>turnHtml(t,n-2+i,true)).join('');
+  if(dod && n>=B){
+    wrap.innerHTML = state.turns.slice(0,n-B).map((t,i)=>turnHtml(t,i,false)).join('') + addBtn + state.turns.slice(n-B).map((t,i)=>turnHtml(t,n-B+i,true)).join('');
   } else {
     wrap.innerHTML = state.turns.map((t,ti)=>turnHtml(t,ti,false)).join('') + addBtn;
   }
@@ -1826,8 +1704,8 @@ function renderTurns(){
     save(); renderTurns();             /* renumberTurns() in renderTurns keeps 1,2,3,…,Break 1,Break 2 */
   });
   document.getElementById('addTurn').onclick=()=>{
-    if(state.setup.type==='DOD' && state.turns.length>=2){
-      state.turns.splice(state.turns.length-2,0,{name:'TURN '+(state.turns.length-1),note:'',actions:[{char:'',btn:'',text:''}]});
+    if(state.setup.type==='DOD' && state.turns.length>=DOD_BREAKS){
+      state.turns.splice(state.turns.length-DOD_BREAKS,0,{name:'TURN '+(state.turns.length-DOD_BREAKS+1),note:'',actions:[{char:'',btn:'',text:''}]});
     } else {
       state.turns.push({name:'TURN '+(state.turns.length+1),note:'',actions:[{char:'',btn:'',text:''}]});
     }
@@ -1865,7 +1743,7 @@ function renderTurns(){
     col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
     col.addEventListener('drop',e=>{ if(dragTurn==null) return; e.preventDefault(); col.classList.remove('drag-over');
       let to=+col.dataset.tidx;
-      const dd=state.setup.type==='DOD', nn=state.turns.length, maxNormal=(dd&&nn>=2)?nn-2:nn;
+      const dd=state.setup.type==='DOD', nn=state.turns.length, maxNormal=(dd&&nn>=DOD_BREAKS)?nn-DOD_BREAKS:nn;
       if(dragTurn<maxNormal && dragTurn!==to){            /* only reorder normal turns */
         to=Math.max(0,Math.min(to,maxNormal-1));          /* never past the breaks */
         const[m]=state.turns.splice(dragTurn,1); state.turns.splice(to,0,m); save(); renderTurns();
@@ -1900,7 +1778,7 @@ function renderNotes(){
   const ta=document.getElementById('notes'); ta.value=state.setup.notes||'';
   ta.oninput=()=>{state.setup.notes=ta.value; save();};
 }
-function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); document.querySelectorAll('#viewSwitch .view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical'))); }
+function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); document.querySelectorAll('.view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical'))); }
 
 /* ---------- toolbar ---------- */
 const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":"","boss":"SLAUGHTER DRIVE","type":"MLD","patch":"4.3","score":"2.4B","notes":"","credits":"Kimmy"},"units":[{"name":"YUKARI","awareness":"A6","rev":"R6","gear":"","space":"Creation","sunsky":"Reconciliation","role":"","companion":"","note":""},{"name":"TWINS","awareness":"A6","rev":"R6","gear":"","space":"Departure","sunsky":"Control","role":"Strategist","companion":"","note":""},{"name":"WONDER","awareness":"DGR","rev":"R6","gear":"Cyclotron","space":"","sunsky":"","role":"","companion":"","note":""},{"name":"AKIHIKO","awareness":"A6","rev":"R6","gear":"","space":"Perseverance","sunsky":"Change","role":"","companion":"","note":""}],"elucidator":{"name":"ANGE","awareness":"A6","rev":"R6","gear":"","space":"Hope","sunsky":"Labor","role":"","companion":"","note":""},"personas":[{"name":"Dionysus","skills":["Matarukaja","Tarukaja"]},{"name":"Thor","skills":["Wild Thunder",""]},{"name":"Kohryu","skills":["",""]}],"teamNotes":"15.7 Pierce, 25.3 CR min (More can be better)","turns":[{"name":"TURN 1","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"Atk","text":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Wild Thunder","btn":""},{"char":"AKIHIKO","btn":"S2","text":""}],"note":""},{"name":"TURN 2","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Matarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 3","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":true,"text":"","skill":"","btn":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Thunder Caller","btn":""},{"char":"AKIHIKO","btn":"ALT","text":"x2"},{"char":"AKIHIKO","btn":"S3","text":""}],"note":""},{"name":"TURN 4","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Tarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 5","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"TWINS","btn":"HL","text":"Fire/Ice"},{"char":"YUKARI","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"ALT","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Matarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 6","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"ANGE","btn":"ALT","text":"x2"},{"char":"YUKARI","btn":"HL","text":""},{"char":"AKIHIKO","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Thunder Caller","btn":""},{"char":"AKIHIKO","btn":"ALT","text":""},{"char":"AKIHIKO","btn":"S3","text":"x2"},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"AKIHIKO","btn":"S3","text":""}],"note":""}],"rotationView":"vertical"},"DOD":{"setup":{"rotationName":"Haru Whale","tier":"","boss":"KARTIKEYA","type":"DOD","patch":"4.1","score":"600 Mil","notes":"Attack adds","credits":"Yanagi + Segejin"},"units":[{"name":"MATOI","awareness":"A6","rev":"R6","gear":"","space":"Faith","sunsky":"Futility","role":"","companion":"","note":""},{"name":"WONDER","awareness":"DGR","rev":"R5","gear":"Starry Compass","space":"","sunsky":"","role":"","companion":"","note":""},{"name":"NOIR","awareness":"A6","rev":"R6","gear":"","space":"Wisdom","sunsky":"Pleasure","role":"","companion":"","note":"Low pierce"},{"name":"CROW","awareness":"A6","rev":"R6","gear":"","space":"Freedom","sunsky":"Disappointment","role":"","companion":"","note":"No pierce"}],"elucidator":{"name":"ORACLE","awareness":"A6","rev":"R6","gear":"","space":"Trust","sunsky":"Power","role":"","companion":"","note":""},"personas":[{"name":"Koumokuten","skills":["",""]},{"name":"Yurlungur","skills":["Wild Thunder","Tarukaja"]},{"name":"Kohryu","skills":["Agi",""]}],"teamNotes":"Adjust Pierce & Crit","turns":[{"name":"TURN 1","actions":[{"char":"MATOI","btn":"Gd","text":""},{"char":"WONDER","persona":"Kohryu","hl":false,"text":"","skill":"Agi","btn":""},{"char":"NOIR","btn":"Atk","text":""},{"char":"CROW","btn":"Gn","text":"1-4 times"}],"note":"Attack birds"},{"name":"TURN 2","actions":[{"char":"ORACLE","btn":"S2","text":"outta bird"},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Koumokuten","hl":false,"text":"Noir","skill":"Revolution","btn":""},{"char":"NOIR","btn":"Gd","text":""},{"char":"CROW","btn":"S1","text":""}],"note":""},{"name":"Break 1","actions":[{"char":"MATOI","btn":"HL","text":""},{"char":"ORACLE","btn":"S1","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"(5 shocks)","skill":"Wild Thunder","btn":""},{"char":"NOIR","btn":"S3","text":""},{"char":"CROW","btn":"S2","text":""}],"note":""},{"name":"Break 2","actions":[{"char":"ORACLE","btn":"S3","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"","skill":"Tarukaja","btn":""},{"char":"NOIR","btn":"HL","text":""},{"char":"NOIR","btn":"Gn","text":""},{"char":"CROW","btn":"S3","text":""}],"note":""}],"rotationView":"horizontal"}};
@@ -2075,6 +1953,7 @@ function openShareModal(opts){
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
   { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; }
+  { const dr=document.getElementById('ioDodRow'); if(dr){ dr.hidden=!opts.showDodToggle; const cb=document.getElementById('ioDod'); if(cb) cb.checked=false; } }
   document.getElementById('ioHint').textContent=opts.hint||'';
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
@@ -2105,9 +1984,9 @@ function copyShareText(t, hint){
 function discordLabel(){
   const s=state.setup||{};
   const name=(s.rotationName||'').trim()||'Rotation';
-  const meta=[(s.type||'').trim(),(s.patch||'').trim()].filter(Boolean).join(' ');
+  const meta=[(s.patch||'').trim(),(s.type||'').trim()].filter(Boolean).join(' ');
   const credit=(s.credit||s.credits||'').trim();
-  const parts=[name]; if(meta) parts.push(meta); if(credit) parts.push('by '+credit);
+  const parts=[]; if(meta) parts.push(meta); parts.push(name); if(credit) parts.push('by '+credit);
   return parts.join(' · ');
 }
 function maskedDiscordLink(label,url){ return '['+String(label||'').replace(/[\[\]]/g,'').trim()+']('+url+')'; }
@@ -2117,8 +1996,8 @@ function titleCase(s){ return String(s||'').toLowerCase().replace(/(^|[\s·.\-/'
 function textAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
   if(isW){
-    const actor=a.persona?a.persona:titleCase(a.char||'Wonder');
-    const rest=[a.hl?'HL':'', wonderBody(a)].map(s=>String(s).trim()).filter(Boolean).join(' ');
+    const actor=a.persona?personaLabel(a.persona):titleCase(a.char||'Wonder');
+    const rest=[a.hl?'HL':'', wonderBody(a, true)].map(s=>String(s).trim()).filter(Boolean).join(' ');
     return [actor, rest].filter(Boolean).join(' ');
   }
   const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
@@ -2128,16 +2007,13 @@ function textAction(a){
 }
 function buildTextExport(){
   const s=state.setup, L=[];
-  const titleLine=[(s.patch||'').trim(),(s.type||'').trim(),((s.rotationName||'').trim()||'Rotation')].filter(Boolean).join(' ');
-  if(titleLine){ L.push(titleLine); L.push(''); }
-  if((s.credits||'').trim()) L.push('Credit: '+s.credits.trim());
-  const pers=state.personas.map(p=>{
-    const nm=(p.name||'').trim(); if(!nm) return null;
-    const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean);
-    return sk.length?`${nm} (${sk.join(' + ')})`:nm;
-  }).filter(Boolean);
   const boss=(s.boss||'').trim();
-  if(boss||pers.length) L.push((boss||'Boss')+(pers.length?': '+pers.join(', '):''));
+  const name=((s.rotationName||'').trim()||'Rotation');
+  // title: "<patch> <mode> <BOSS>: <name>"  (the boss lives in the title now)
+  const head=[(s.patch||'').trim(),(s.type||'').trim()].filter(Boolean).join(' ');
+  L.push((head?head+' ':'')+(boss?boss+': ':'')+name);
+  if((s.credits||'').trim()) L.push('Credit: '+s.credits.trim());
+  if((s.score||'').trim()) L.push('Expected Score: '+s.score.trim());
   const team=[];
   [...state.units, state.elucidator].forEach(u=>{
     const nm=(u.name||'').trim(); if(!nm) return;
@@ -2153,6 +2029,13 @@ function buildTextExport(){
     team.push(line);
   });
   if(team.length){ L.push(''); L.push(...team); }
+  // Wonder personas as a bare comma list (the boss is already in the title)
+  const pers=state.personas.map(p=>{
+    const nm=(p.name||'').trim(); if(!nm) return null;
+    const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean).map(skillDisplay);
+    return sk.length?`${personaLabel(nm)} (${sk.join(' + ')})`:personaLabel(nm);
+  }).filter(Boolean);
+  if(pers.length){ L.push(''); L.push(pers.join(', ')); }
   const tn=(state.teamNotes||'').trim();
   if(tn){ L.push(''); L.push(tn); }
   const turnLines=[];
@@ -2226,10 +2109,92 @@ function showImportNote(text){
   document.addEventListener('touchend', end);
 })();
 document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
-document.getElementById('refreshBtn').onclick=()=>{
-  const url=location.pathname.split('?')[0]+'?v='+Date.now();
-  const go=()=>location.replace(url);
-  try{ fetch(url,{cache:'no-store'}).then(go,go); }catch(e){ go(); }
+function _abbrRows(map, aliasData, kind){
+  const m=map||{};
+  return Object.keys(aliasData).sort((a,b)=>a.localeCompare(b)).map(name=>{
+    const cur=m[name]||name;
+    const btns=[name].concat(aliasData[name]).map(o=>`<button type="button" class="abbr-opt${o===cur?' on':''}" data-abbr="${kind}" data-name="${esc(name)}" data-val="${esc(o)}">${esc(o)}</button>`).join('');
+    return `<div class="abbr-row">${btns}</div>`;
+  }).join('');
+}
+function buildAbbrControls(){
+  const s=document.getElementById('setSkillAbbr'), p=document.getElementById('setPersonaAbbr');
+  if(s) s.innerHTML=_abbrRows(settings.skillAbbr, SKILL_ALIASES, 'skill');
+  if(p) p.innerHTML=_abbrRows(settings.personaAbbr, PERSONA_ALIASES, 'persona');
+}
+function syncSettingsModal(){
+  document.getElementById('setCharNotes').checked=!!settings.showCharNotes;
+  document.getElementById('setTeamNotes').checked=!!settings.showTeamNotes;
+  document.getElementById('setRotaNotes').checked=!!settings.showRotaNotes;
+  document.getElementById('setPersonaImgLeft').checked=!!settings.personaImgLeft;
+  document.getElementById('setPreviewOpen').checked=!!settings.previewExpanded;
+  document.querySelectorAll('#themeSwitch .theme-opt').forEach(x=>x.classList.toggle('on', x.dataset.theme===(settings.theme||'dark')));
+  document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical')));
+  document.getElementById('setSigAsSig').checked=!!settings.sigAsSig;
+  document.getElementById('setSigExclude').checked=settings.sigExclude!==false;
+  { const el=document.getElementById('sigExcludeLabel'); if(el) el.textContent='Don\'t show "Sig" for '+[...SIG_EXCLUDE].join(', '); }
+  buildAbbrControls();
+}
+function _setStatus(msg, ok){ const el=document.getElementById('settingsStatus'); if(!el) return; el.textContent=msg; el.className='set-status '+(ok?'ok':'err'); el.hidden=false; }
+function openSettings(){ syncSettingsModal(); const st=document.getElementById('settingsStatus'); if(st) st.hidden=true; document.getElementById('settingsModal').hidden=false; }
+function closeSettings(){ document.getElementById('settingsModal').hidden=true; }
+document.getElementById('settingsBtn').onclick=openSettings;
+document.getElementById('settingsClose').onclick=closeSettings;
+document.getElementById('settingsModal').addEventListener('click', e=>{ if(e.target.id==='settingsModal') closeSettings(); });
+document.getElementById('settingsModal').addEventListener('click', e=>{
+  const opt=e.target.closest&&e.target.closest('.abbr-opt'); if(!opt) return;
+  const kind=opt.dataset.abbr, name=opt.dataset.name, val=opt.dataset.val;
+  const key=kind==='skill'?'skillAbbr':'personaAbbr';
+  const m=Object.assign({}, settings[key]||{});
+  if(val===name) delete m[name]; else m[name]=val;
+  settings[key]=m; saveSettings();
+  const row=opt.closest('.abbr-row'); if(row) row.querySelectorAll('.abbr-opt').forEach(b=>b.classList.toggle('on', b===opt));
+  renderRotationPreview();
+  if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody();
+});
+(function(){ const t=(id,key)=>{ const el=document.getElementById(id); if(el) el.onchange=()=>{ settings[key]=el.checked; saveSettings(); applySettings(); }; };
+  t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaImgLeft','personaImgLeft'); })();
+document.getElementById('setPreviewOpen').onchange=function(){ settings.previewExpanded=this.checked; saveSettings(); rotationPreviewOpen=this.checked; renderRotationPreview(); };
+(function(){ function rr(){ renderRotationPreview(); if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody(); }
+  const a=document.getElementById('setSigAsSig'); if(a) a.onchange=function(){ settings.sigAsSig=this.checked; saveSettings(); rr(); };
+  const x=document.getElementById('setSigExclude'); if(x) x.onchange=function(){ settings.sigExclude=this.checked; saveSettings(); rr(); }; })();
+document.querySelectorAll('#themeSwitch .theme-opt').forEach(b=>b.onclick=()=>{ settings.theme=b.dataset.theme; saveSettings(); applyTheme(); if(!document.body.classList.contains('view-mode')) renderAll(); document.querySelectorAll('#themeSwitch .theme-opt').forEach(x=>x.classList.toggle('on', x.dataset.theme===settings.theme)); });
+document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(b=>b.onclick=()=>setRotationView(b.dataset.view));
+function exportSettings(){
+  try{
+    const blob=new Blob([JSON.stringify(settings,null,2)], {type:'application/json'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='vfrp-settings.json'; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+    _setStatus('Settings exported to vfrp-settings.json', true);
+  }catch(e){ _setStatus('Could not export settings.', false); }
+}
+function _validAbbrMap(obj, aliasData){ const out={}; if(obj && typeof obj==='object' && !Array.isArray(obj)){ Object.keys(obj).forEach(k=>{ const v=obj[k]; if(typeof v==='string' && aliasData[k] && aliasData[k].indexOf(v)>=0) out[k]=v; }); } return out; }
+function applyImportedSettings(text){
+  let obj; try{ obj=JSON.parse(text); }catch(e){ return false; }
+  if(!obj || typeof obj!=='object' || Array.isArray(obj)) return false;
+  const next=Object.assign({}, DEFAULT_SETTINGS);
+  let any=false;
+  Object.keys(DEFAULT_SETTINGS).forEach(k=>{ if(typeof obj[k]==='boolean'){ next[k]=obj[k]; any=true; } });
+  if(['system','light','dark'].indexOf(obj.theme)>=0){ next.theme=obj.theme; any=true; }
+  next.skillAbbr=_validAbbrMap(obj.skillAbbr, SKILL_ALIASES);
+  next.personaAbbr=_validAbbrMap(obj.personaAbbr, PERSONA_ALIASES);
+  if(Object.keys(next.skillAbbr).length||Object.keys(next.personaAbbr).length) any=true;
+  if(!any) return false;
+  settings=next; saveSettings(); applySettings(); syncSettingsModal();
+  renderRotationPreview();
+  if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody();
+  return true;
+}
+document.getElementById('settingsExport').onclick=exportSettings;
+document.getElementById('settingsImport').onclick=()=>document.getElementById('settingsFile').click();
+document.getElementById('settingsFile').onchange=e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value='';
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ if(applyImportedSettings(String(r.result||''))) _setStatus('Settings imported.', true); else _setStatus('That file is not a valid settings file.', false); };
+  r.onerror=()=>_setStatus('Could not read that file.', false);
+  r.readAsText(f);
 };
 document.getElementById('autoFill').onclick=()=>{
   const chars=state.units.filter(u=>(u.name||'').trim()).map(u=>u.name);
@@ -2322,12 +2287,9 @@ document.getElementById('clearActions').onclick=()=>{
   state.turns.forEach(t=>{ t.actions=[{char:'',btn:'',text:''}]; });
   save(); renderTurns();
 };
-document.getElementById('rotPreviewToggle').onclick=()=>{ rotationPreviewOpen=!rotationPreviewOpen; renderRotationPreview(); };
-document.querySelectorAll('#viewSwitch .view-opt').forEach(b=>b.onclick=()=>{
-  state.rotationView=b.dataset.view; save();
-  document.querySelectorAll('#viewSwitch .view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===state.rotationView));
-  renderRotationPreview();
-});
+document.getElementById('rotPreviewToggle').onclick=()=>{ rotationPreviewOpen=!rotationPreviewOpen; settings.previewExpanded=rotationPreviewOpen; saveSettings(); renderRotationPreview(); };
+function setRotationView(v){ state.rotationView=v; save(); document.querySelectorAll('.view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===v)); renderRotationPreview(); }
+document.querySelectorAll('#viewSwitch .view-opt').forEach(b=>b.onclick=()=>setRotationView(b.dataset.view));
 window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPreview(); });
 (function(){
   const modal=document.getElementById('guideModal'); if(!modal) return;
@@ -2438,8 +2400,8 @@ async function exportSheet(){
     const nm=(p.name||'').trim();
     if(nm && canImg){ const c=ws.getCell(row,1); c.value={formula:`IMAGE("${baseURL+personaImg(nm)}",1)`}; c.fill=fillOf(PANEL2); c.border=box; c.alignment={vertical:'middle',horizontal:'center'}; }
     else { set(row,1,'',{}); }
-    set(row,2,nm,{bold:true,color:GOLD});
-    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],p.skills[k]||'',{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
+    set(row,2,personaLabel(nm),{bold:true,color:GOLD});
+    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],skillDisplay(p.skills[k]||''),{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
     if(nm) ws.getRow(row).height=90;
     row++;
   });
@@ -2458,12 +2420,12 @@ async function exportSheet(){
   for(let b=0;b<nT;b+=perBand){
     const band=state.turns.slice(b,b+perBand).map((t,j)=>({t,gi:b+j,j}));
     // header row
-    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const isBreak=dodX&&nT>=2&&gi>=nT-2; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
+    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const isBreak=dodX&&nT>=DOD_BREAKS&&gi>=nT-DOD_BREAKS; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
     row++;
     const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
     for(let ai=0;ai<maxA;ai++){
       band.forEach(({t,j})=>{ const c1=2*j+1; const a=(t.actions||[])[ai];
-        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,a.char||'',{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char)||'',{}); }
+        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,a.char||'',{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char,true)||'',{}); }
         else { set(row,c1,'',{}); set(row,c1+1,'',{}); }
       });
       row++;
@@ -2480,19 +2442,19 @@ async function exportSheet(){
   deliverImage(URL.createObjectURL(blob), exportBaseName()+'.xlsx');
 }
 
-function exportTurnsBlock(mobile){ return state.rotationView==='horizontal' ? turnsBlockHorizontal(mobile) : turnsBlockVertical(mobile); }
-function turnsBlockVertical(mobile){
+function exportTurnsBlock(mobile, C){ return state.rotationView==='horizontal' ? turnsBlockHorizontal(mobile, C) : turnsBlockVertical(mobile, C); }
+function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
-  const tc=c=>charColor(c);
+  const tc=c=>cardAccent(c, C);
   const dodX=s.type==='DOD', nT=state.turns.length;
-  const turnBox=(t,ti,cssW)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2; return `<div style="width:${cssW};box-sizing:border-box;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid #3a3550;padding-bottom:5px;margin-bottom:6px;">
-      <span style="font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</span>
-      ${t.note?`<span style="font:500 11px Inter,sans-serif;color:#cfe2f3;text-align:right;flex:1;min-width:0;">${esc(t.note)}</span>`:''}</div>
-    ${(t.actions||[]).map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${tc(a.char)};margin-bottom:3px;background:${actionDiscrepant(a)?'rgba(224,68,94,.22)':'#23202f'};border-radius:4px;">
-      <span style="font:700 11px Oswald,sans-serif;color:#9d97b3;min-width:12px;">${i+1}</span>
+  const turnBox=(t,ti,cssW)=>{ const isBreak=dodX&&nT>=DOD_BREAKS&&ti>=nT-DOD_BREAKS; return `<div style="width:${cssW};box-sizing:border-box;background:${C.panel2};border:1px solid ${C.border};border-radius:8px;padding:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid ${C.border};padding-bottom:5px;margin-bottom:6px;">
+      <span style="font:700 13px Oswald,sans-serif;color:${isBreak?C.red:C.blue};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</span>
+      ${t.note?`<span style="font:500 11px Inter,sans-serif;color:${C.soft};text-align:right;flex:1;min-width:0;">${esc(t.note)}</span>`:''}</div>
+    ${(t.actions||[]).map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${cardStrip(a.char, C)};margin-bottom:3px;background:${actionDiscrepant(a)?C.disc:C.panel};border-radius:4px;">
+      <span style="font:700 11px Oswald,sans-serif;color:${C.muted};min-width:12px;">${i+1}</span>
       <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
-      <span style="font:500 11px Inter,sans-serif;color:#f3f1f7;flex:1;">${esc(actionLabel(a, a.char))}</span></div>`).join('')}
+      <span style="font:500 11px Inter,sans-serif;color:${C.text};flex:1;">${esc(actionLabel(a, a.char, true))}</span></div>`).join('')}
   </div>`; };
   const perRow=mobile?1:(function(n){ if(n<=4) return Math.max(1,n); if(n%4===0) return 4; if(n%3===0) return 3; return n===5?3:4; })(nT);
   const colW=(teamRowW-(perRow-1)*GAP)/perRow;
@@ -2500,138 +2462,140 @@ function turnsBlockVertical(mobile){
   const turnsHtml=state.turns.map((t,ti)=>turnBox(t,ti,cw)).join('');
   return `<div style="display:flex;flex-wrap:wrap;gap:${GAP}px;align-items:flex-start;width:${mobile?'100%':teamRowW+'px'};">${turnsHtml}</div>`;
 }
-function turnsBlockHorizontal(mobile){
+function turnsBlockHorizontal(mobile, C){ C=C||EX_DARK;
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
-  const tc=c=>charColor(c);
+  const tc=c=>cardAccent(c, C);
   const dodX=s.type==='DOD', nT=state.turns.length;
-  const block=(a,i)=>`<div style="position:relative;flex:0 0 100px;width:100px;min-height:44px;box-sizing:border-box;background:${actionDiscrepant(a)?'rgba(224,68,94,.22)':'#23202f'};border:1px solid #3a3550;border-top:3px solid ${tc(a.char)};border-radius:5px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;align-items:center;">
+  const block=(a,i)=>`<div style="position:relative;flex:0 0 100px;width:100px;min-height:44px;box-sizing:border-box;background:${actionDiscrepant(a)?C.disc:C.panel};border:1px solid ${C.border};border-top:3px solid ${cardStrip(a.char, C)};border-radius:5px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;align-items:center;">
       <span style="position:absolute;top:2px;left:4px;font:700 9px Oswald,sans-serif;color:#6f6a85;line-height:1;">${i+1}</span>
       <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(a.char||'')}</div>
-      <div style="font:600 11px Inter,sans-serif;color:#f3f1f7;text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char))}</div></div>`;
-  const turnRow=(t,ti)=>{ const isBreak=dodX&&nT>=2&&ti>=nT-2;
+      <div style="font:600 11px Inter,sans-serif;color:${C.text};text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char, true))}</div></div>`;
+  const turnRow=(t,ti)=>{ const isBreak=dodX&&nT>=DOD_BREAKS&&ti>=nT-DOD_BREAKS;
     const acts=(t.actions||[]).map(block).join('');
-    return `<div style="display:flex;gap:8px;align-items:stretch;background:#1f1c2b;border:1px solid #3a3550;border-radius:8px;padding:8px;width:${mobile?'100%':teamRowW+'px'};box-sizing:border-box;">
-      <div style="flex:0 0 84px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1px solid #3a3550;padding-right:8px;">
-        <div style="font:700 13px Oswald,sans-serif;color:${isBreak?'#e0445e':'#9fc5e8'};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</div>
-        ${t.note?`<div style="font:500 10px Inter,sans-serif;color:#cfe2f3;line-height:1.25;">${esc(t.note)}</div>`:''}</div>
+    return `<div style="display:flex;gap:8px;align-items:stretch;background:${C.panel2};border:1px solid ${C.border};border-radius:8px;padding:8px;width:${mobile?'100%':teamRowW+'px'};box-sizing:border-box;">
+      <div style="flex:0 0 84px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1px solid ${C.border};padding-right:8px;">
+        <div style="font:700 13px Oswald,sans-serif;color:${isBreak?C.red:C.blue};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</div>
+        ${t.note?`<div style="font:500 10px Inter,sans-serif;color:${C.soft};line-height:1.25;">${esc(t.note)}</div>`:''}</div>
       <div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start;">${acts}</div>
     </div>`;
   };
   const turnsHtml=state.turns.map((t,ti)=>turnRow(t,ti)).join('');
   return `<div style="display:flex;flex-direction:column;gap:${GAP}px;width:${mobile?'100%':teamRowW+'px'};">${turnsHtml}</div>`;
 }
-function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs, noBrand, mobile){
+function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs, noBrand, mobile, hideNotes, theme){
+  const _hn=hideNotes||{};
+  const C=exPalette(theme==='light');
   portraits=portraits||{}; pImgs=pImgs||{}; dImgs=dImgs||{}; deImgs=deImgs||{};
   const M=!!mobile;
   const s=state.setup, PAD=M?14:28, COLW=212, GAP=12, TEAMW=184;
   const ord=['1ST','2ND','3RD','4TH'];
   const teamRowW=5*TEAMW+4*GAP;
   const inner=teamRowW;
-  const tc=c=>charColor(c);
+  const tc=c=>cardAccent(c, C);
   const tl=(s.type||'').toLowerCase();
   const typeBg={mld:'#f1c232',dod:'#9b5de5',nod:'#e0445e',sos:'#151da6'}[tl]||'#3a3550';
   const typeFg={mld:'#3a2c00',dod:'#1a0a2e',nod:'#2c0710',sos:'#ffffff'}[tl]||'#fff';
   const card=(u,label,accent)=>{
     const art = withImages && portraits[u.name] ? `<img src="${portraits[u.name]}" style="display:block;width:100%;border-radius:6px;margin-bottom:6px;"/>` : '';
-    return `<div style="${M?'flex:1 1 148px;min-width:148px;max-width:calc(50% - 6px);':'width:'+TEAMW+'px;'}background:#23202f;border:1px solid #3a3550;border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
+    return `<div style="${M?'flex:1 1 148px;min-width:148px;max-width:calc(50% - 6px);':'width:'+TEAMW+'px;'}background:${C.panel};border:1px solid ${C.border};border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
     ${art}
-    <div style="font:700 10px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">${esc(label)}</div>
-    <div style="font:700 16px Oswald,sans-serif;color:#f3f1f7;margin:2px 0 4px;">${esc(u.name||'—')}</div>
-    <div style="font:600 12px Inter,sans-serif;color:#cfe2f3;">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
-    <div style="font:500 11px Inter,sans-serif;color:#9d97b3;margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
-    ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:#f1c232;margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
+    <div style="font:700 10px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;">${esc(label)}</div>
+    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(u.name||'—')}</div>
+    <div style="font:600 12px Inter,sans-serif;color:${C.soft};">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
+    <div style="font:500 11px Inter,sans-serif;color:${C.muted};margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
+    ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:${C.gold};margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
     ${(u.name||'').toUpperCase()==='TWINS'&&TWINS_ROLE_DUALS[u.role]?(()=>{ const td=TWINS_ROLE_DUALS[u.role];
       if(withImages && deImgs[td[0]] && deImgs[td[1]]) return `<div style="display:flex;gap:8px;margin-top:4px;align-items:center;">
-        <span style="display:flex;align-items:center;gap:3px;"><span style="font:700 10px Oswald,sans-serif;color:#9fc5e8;">S1</span><img src="${deImgs[td[0]]}" style="height:18px;width:auto;display:block;"/></span>
-        <span style="display:flex;align-items:center;gap:3px;"><span style="font:700 10px Oswald,sans-serif;color:#9fc5e8;">S2</span><img src="${deImgs[td[1]]}" style="height:18px;width:auto;display:block;"/></span></div>`;
-      return `<div style="font:600 11px Inter,sans-serif;color:#9fc5e8;margin-top:2px;">S1: ${esc(td[0])} · S2: ${esc(td[1])}</div>`;
+        <span style="display:flex;align-items:center;gap:3px;"><span style="font:700 10px Oswald,sans-serif;color:${C.blue};">S1</span><img src="${deImgs[td[0]]}" style="height:18px;width:auto;display:block;${C._light?'background:#e7e3f0;border-radius:4px;padding:1px 3px;':''}"/></span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="font:700 10px Oswald,sans-serif;color:${C.blue};">S2</span><img src="${deImgs[td[1]]}" style="height:18px;width:auto;display:block;${C._light?'background:#e7e3f0;border-radius:4px;padding:1px 3px;':''}"/></span></div>`;
+      return `<div style="font:600 11px Inter,sans-serif;color:${C.blue};margin-top:2px;">S1: ${esc(td[0])} · S2: ${esc(td[1])}</div>`;
     })():''}
-    ${(u.name||'').toUpperCase()==='FUUKA'&&u.companion?`<div style="font:600 11px Inter,sans-serif;color:#9fc5e8;margin-top:2px;">Backup: ${esc(u.companion)}</div>`:''}
-    ${u.note?`<div style="font:500 11px Inter,sans-serif;color:#cfe2f3;margin-top:6px;padding-top:6px;border-top:1px solid #3a3550;line-height:1.35;white-space:pre-wrap;">${esc(u.note)}</div>`:''}
+    ${(u.name||'').toUpperCase()==='FUUKA'&&u.companion?`<div style="font:600 11px Inter,sans-serif;color:${C.blue};margin-top:2px;">Backup: ${esc(u.companion)}</div>`:''}
+    ${(u.note && !_hn.char)?`<div style="font:500 11px Inter,sans-serif;color:${C.soft};margin-top:6px;padding-top:6px;border-top:1px solid ${C.border};line-height:1.35;white-space:pre-wrap;">${esc(u.note)}</div>`:''}
   </div>`;
   };
-  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), tc(u.name))).join('')+card(state.elucidator,'ELUCIDATOR','#5b9bd5');
+  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), cardStrip(u.name, C))).join('')+card(state.elucidator,'ELUCIDATOR',C.elu);
   const persona=state.personas.filter(p=>(p.name||'').trim());
-  const tnText=(state.teamNotes||'').trim();
+  const tnText=(!_hn.team ? (state.teamNotes||'').trim() : '');
   let personaLine='', tnLine='';
   if(withImages){
     const pCard=p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
-      return `<div style="${M?'box-sizing:border-box;min-width:0;':'width:174px;box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;">
+      return `<div style="${M?'box-sizing:border-box;min-width:0;':'width:174px;box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
         ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
-        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
-        ${sig?`<div style="font:500 10px Inter,sans-serif;color:#9d97b3;margin-top:3px;line-height:1.5;">${esc(sig)}</div>`:''}
-        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:#9fc5e8;margin-top:3px;line-height:1.5;">${sk.map(esc).join('<br>')}</div>`:''}</div>
+        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(personaLabel(p.name))}</div>
+        ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillDisplay(sig))}</div>`:''}
+        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillDisplay(s))).join('<br>')}</div>`:''}</div>
       </div>`; };
     const personaCards=persona.map(pCard).join('');
     const _wEx=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
     const _dgEx=_wEx?(_wEx.gear||''):''; const _dgImgEx=dImgs[_dgEx];
     const hasDagger=!!(_dgEx&&_dgImgEx);
-    const daggerCard=hasDagger?`<div style="${M?'width:100%;min-height:96px;':'width:140px;height:106px;'}box-sizing:border-box;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+    const daggerCard=hasDagger?`<div style="${M?'width:100%;min-height:96px;':'width:140px;height:106px;'}box-sizing:border-box;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
         <img src="${_dgImgEx}" style="max-height:54px;width:auto;display:block;border-radius:5px;"/>
-        <div style="font:700 12px Oswald,sans-serif;color:#9fc5e8;text-align:center;line-height:1.15;">${esc(_dgEx)}</div></div>`:'';
-    const _hdr=t=>`<div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">${t}</div>`;
+        <div style="font:700 12px Oswald,sans-serif;color:${C.blue};text-align:center;line-height:1.15;">${esc(_dgEx)}</div></div>`:'';
+    const _hdr=t=>`<div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;">${t}</div>`;
     if(M){
       let gridInner='';
       if(hasDagger&&persona.length){
         gridInner=`<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:8px;width:100%;box-sizing:border-box;">${_hdr('DAGGER')}${_hdr('PERSONAS')}${daggerCard}${personaCards}</div>`;
       } else if(persona.length){
-        gridInner=`<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:8px;width:100%;box-sizing:border-box;"><div style="grid-column:1 / -1;font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;">PERSONAS</div>${personaCards}</div>`;
+        gridInner=`<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:10px;row-gap:8px;width:100%;box-sizing:border-box;"><div style="grid-column:1 / -1;font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;">PERSONAS</div>${personaCards}</div>`;
       } else if(hasDagger){
         gridInner=`<div style="width:100%;box-sizing:border-box;">${_hdr('DAGGER')}<div style="margin-top:6px;">${daggerCard}</div></div>`;
       }
       const notesMobile=tnText?`<div style="width:100%;box-sizing:border-box;margin-top:14px;display:flex;flex-direction:column;">
-        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
-        <div style="background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+        <div style="background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
       if(gridInner||tnText){
         personaLine=`<div style="width:100%;box-sizing:border-box;margin-top:14px;">${gridInner}${notesMobile}</div>`;
       }
     } else {
       const personaBlock=persona.length?`<div style="flex:0 0 auto;">
-        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
       const daggerBlock=hasDagger?`<div style="flex:0 0 auto;">
-        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">DAGGER</div>
+        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">DAGGER</div>
         ${daggerCard}</div>`:'';
       const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
-        <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
-        <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+        <div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
       if(persona.length||tnText||hasDagger){
         personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
       }
     }
   } else {
     const personaBlock=persona.length?`<div style="flex:0 1 auto;min-width:0;display:flex;flex-direction:column;">
-      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
-      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;line-height:1.6;">
-        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:#9fc5e8;">(${sk.map(esc).join(', ')})</span>`:''}</div>`; }).join('')}
+      <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+      <div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;line-height:1.6;">
+        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(personaLabel(p.name))}</span>${sk.length?` <span style="color:${C.blue};">(${sk.map(s=>esc(skillDisplay(s))).join(', ')})</span>`:''}</div>`; }).join('')}
       </div></div>`:'';
     const notesBlock=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
-      <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
-      <div style="flex:1 1 auto;background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+      <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
+      <div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
     if(persona.length||tnText){
       personaLine=`<div style="display:flex;gap:12px;${M?'flex-direction:column;width:100%;':'align-items:stretch;width:'+teamRowW+'px;'}box-sizing:border-box;margin-top:14px;">${personaBlock}${notesBlock}</div>`;
     }
   }
-  const notesLine=(s.notes||'').trim()?`<div style="margin-top:16px;">
-    <div style="font:700 11px Inter,sans-serif;color:#9d97b3;letter-spacing:.1em;margin-bottom:6px;">ROTATION NOTES</div>
-    <div style="background:#23202f;border:1px solid #3a3550;border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:#cfe2f3;line-height:1.5;white-space:pre-wrap;">${esc(s.notes)}</div></div>`:'';
+  const notesLine=((s.notes||'').trim() && !_hn.rota)?`<div style="margin-top:16px;">
+    <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">ROTATION NOTES</div>
+    <div style="background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(s.notes)}</div></div>`:'';
   const v=document.createElement('div'); v.id='exportView';
-  v.style.cssText=`position:fixed;left:-99999px;top:0;${M?'width:100%;max-width:100%;':'width:'+(inner+2*PAD)+'px;'}background:#14121c;padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
+  v.style.cssText=`position:fixed;left:-99999px;top:0;${M?'width:100%;max-width:100%;':'width:'+(inner+2*PAD)+'px;'}background:${C.bg};padding:${PAD}px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;`;
   v.innerHTML=`
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" alt=""/>
-    <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:#e0445e;line-height:1.15;margin-bottom:14px;${noBrand?'display:none;':''}">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:#9d97b3;">ROTATION PLANNER</span></div>
-    <div style="font:700 30px Oswald,sans-serif;color:#f3f1f7;letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
-    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:#cfe2f3;">
+    <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:${C.red};line-height:1.15;margin-bottom:14px;${noBrand?'display:none;':''}">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:${C.muted};">ROTATION PLANNER</span></div>
+    <div style="font:700 30px Oswald,sans-serif;color:${C.text};letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:${C.soft};">
       ${s.type?`<span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type)}</span>`:''}
-      ${s.patch?`<span><span style="color:#9d97b3;">Patch</span> ${esc(s.patch)}</span>`:''}
-      ${s.boss?`<span><span style="color:#9d97b3;">Boss</span> ${esc(s.boss)}</span>`:''}
-      ${s.score?`<span><span style="color:#9d97b3;">Score</span> ${esc(s.score)}</span>`:''}
-      ${s.credits?`<span><span style="color:#9d97b3;">Credits</span> ${esc(s.credits)}</span>`:''}
+      ${s.patch?`<span><span style="color:${C.muted};">Patch</span> ${esc(s.patch)}</span>`:''}
+      ${s.boss?`<span><span style="color:${C.muted};">Boss</span> ${esc(s.boss)}</span>`:''}
+      ${s.score?`<span><span style="color:${C.muted};">Score</span> ${esc(s.score)}</span>`:''}
+      ${s.credits?`<span><span style="color:${C.muted};">Credits</span> ${esc(s.credits)}</span>`:''}
     </div>
     ${rotationOnly?'':`<div style="display:flex;gap:${GAP}px;flex-wrap:wrap;margin-top:14px;">${teamCards}</div>
     ${personaLine}${tnLine}`}
     ${notesLine}
-    <div style="margin-top:16px;">${exportTurnsBlock(M)}</div>`;
+    <div style="margin-top:16px;">${exportTurnsBlock(M, C)}</div>`;
   document.body.appendChild(v); return v;
 }
 function loadImg(src){ return new Promise((res,rej)=>{
@@ -2768,6 +2732,7 @@ function enterViewMode(){
   document.body.classList.add('view-mode');
   let root=document.getElementById('viewRoot');
   if(!root){ root=document.createElement('div'); root.id='viewRoot'; document.body.appendChild(root); }
+  try{ const _vt=document.querySelector('.version-tag'); if(_vt) document.body.appendChild(_vt); }catch(e){}
   root.innerHTML=`
     <div id="viewHeader">
       <div id="viewBrandWrap">
@@ -2780,16 +2745,18 @@ function enterViewMode(){
       </div>
     </div>
     <div id="viewStage"><div class="view-loading">Loading view\u2026</div></div>
-    <div id="viewFooter">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div>`;
+    <div id="viewFooter"><div id="viewFooterText">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div><button type="button" class="btn" id="viewThemeToggle" title="Switch theme"></button></div>`;
   const stage=document.getElementById('viewStage');
   document.getElementById('viewDownload').onclick=()=>{ try{ exportViewPNG(); }catch(e){ _settleExport(); } };
   document.getElementById('viewEdit').onclick=async()=>{ try{ location.hash='r='+(await encodeShare()); location.reload(); }catch(e){} };
+  const _setViewThemeBtn=()=>{ const b=document.getElementById('viewThemeToggle'); if(b) b.textContent=(_effTheme==='light'?'Switch to dark mode':'Switch to light mode'); };
+  { const tb=document.getElementById('viewThemeToggle'); if(tb) tb.onclick=()=>{ settings.theme=(_effTheme==='light'?'dark':'light'); applyTheme(); _setViewThemeBtn(); }; _setViewThemeBtn(); }
   const isMobileView=()=>window.matchMedia('(max-width: 600px)').matches;
   _viewMobile=isMobileView();
   const renderViewBody=()=>{
     const mob=isMobileView();
     const withImgs=!!_viewImgMaps; const m=_viewImgMaps||{portraits:{},pImgs:{},dImgs:{},deImgs:{}};
-    const v=buildExportView(withImgs, m.portraits, m.pImgs, false, m.dImgs, m.deImgs, true, mob);
+    const v=buildExportView(withImgs, m.portraits, m.pImgs, false, m.dImgs, m.deImgs, true, mob, {char:!settings.showCharNotes, team:!settings.showTeamNotes, rota:!settings.showRotaNotes}, _effTheme);
     v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0';
     stage.innerHTML=''; stage.appendChild(v);
     if(mob){ v.style.transform='none'; stage.style.width='100%'; stage.style.height='auto'; }
@@ -2825,7 +2792,7 @@ window.addEventListener('resize', ()=>{
 })();
 
 const CHAR_ALIASES = {"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·S":["Marian","Minami","Summer","SMarian","SMinami"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
-const PERSONA_ALIASES = {"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy","Worm"]};
+const PERSONA_ALIASES = {"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy Worm"]};
 /* ---------- combobox (Boss / Personas) + discrepancy banner dismiss ---------- */
 (function(){
   const panel=document.getElementById('comboPanel');
@@ -2908,7 +2875,7 @@ const PERSONA_ALIASES = {"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten
   const bx=document.querySelector('#discBanner .disc-x'); if(bx) bx.onclick=()=>hideDiscBanner();
 })();
 
-state=load(); _loadShortCache(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
@@ -2922,6 +2889,10 @@ state=load(); _loadShortCache(); renderAll();
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260618h</div>
+<!-- Rotation text-import parser, kept in a separate file so it can be improved and
+     re-uploaded on its own (no rebuild of the tool needed). Classic relative script
+     so it also works locally via file:// when both files sit in the same folder. -->
+<script src="vf-parser.js"></script>
+<div class="version-tag">260618z</div>
 </body>
 </html>
