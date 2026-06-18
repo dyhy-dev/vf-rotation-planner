@@ -1,5 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
+   Version: A069   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -150,15 +151,27 @@ function splitMidActor(seg){
   out.push(toks.slice(start).join(' '));
   return out;
 }
+// split on top-level separators only; a separator inside (...) or [...] does not split,
+// so a parenthetical note with commas ("Violet S3 (kill with S1, do it)") stays one unit.
+function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
+  for(let i=0;i<s.length;i++){ const ch=s[i];
+    if(ch==='('||ch==='[') depth++; else if(ch===')'||ch===']'){ if(depth>0)depth--; }
+    if(depth===0 && sepChars.indexOf(ch)>=0){ out.push(buf); buf=''; } else buf+=ch; }
+  out.push(buf); return out; }
 function parseTurnContent(content,warn){
   const actions=[];
-  for(const unit of content.split(/[,|>\u203a\u2192]/).map(u=>u.trim()).filter(Boolean)){
-    let cur=null;
+  for(const unit of splitTop(content,',|>\u203a\u2192').map(u=>u.trim()).filter(Boolean)){
+    let cur=null, pendingLead=[];
     const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
     for(const seg of segs){
       const toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
       // "Guard All" / "All Guard": every non-elucidator team unit guards; expanded after the team is known.
       if(/^(guard\s+all|all\s+guard)$/i.test(seg)){ actions.push({guardAll:true}); cur=null; continue; }
+      // a lone "Guard" (no actor) -> resolved after the team is known, to the next due actor idle this turn.
+      if(/^guards?$/i.test(seg)){ actions.push({guardSolo:true}); cur=null; continue; }
+      // a leading bare button with no actor yet ("Alt + Turbo S2") belongs to the *next* actor in the unit.
+      if(!cur && toks.length===1){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
+        if(c1 && !(a1&&!a1.fuzzy) && _n(toks[0])!=='wonder'){ pendingLead.push(c1.btn); continue; } }
       const segHl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
       // Twins HL dual-element action: "Fire Ice HL", "F/I HL", "FI HL", "Twins HL Fire Ice", "Twins Fire Ice HL"...
       // fires on HL + a dual, unless an *exact, non-Twins* actor leads the segment.
@@ -179,6 +192,9 @@ function parseTurnContent(content,warn){
         if(sk0 && !(a0 && !a0.fuzzy)){ actor={type:'char',name:'WONDER'}; rest=toks; }  // leading known skill, no exact actor -> Wonder persona action ("Maraku", "Suku Twins")
         else if(a0 && !(a0.fuzzy && cur)){actor=a0;rest=toks.slice(1);} }
       if(actor)cur=actor; else{actor=cur;rest=toks;}
+      // flush any leading bare buttons ("Alt + ...") onto this actor, in order
+      if(pendingLead.length && actor){ const tgt=actor.type==='persona'?{char:'WONDER',persona:actor.name}:{char:actor.name};
+        pendingLead.forEach(b=>actions.push(Object.assign({},tgt,{btn:b,text:''}))); pendingLead=[]; }
       // Twins non-HL dual-element action ("Twins Fire Ice", "Twins S2 Fire Ice", "Twins FI") -> normalise dual, keep any button
       if(actor && actor.type==='char' && actor.name==='TWINS'){ const fd=_findDual(rest);
         if(fd){ let btn=''; rest.forEach((t,k)=>{ if(k>=fd.start&&k<fd.start+fd.len)return; const c=codeOf(t); if(c) btn=btn||c.btn; });
@@ -390,7 +406,7 @@ function parseRotationText(text, opts){
         if(!tl||/^(all|a[0-6]|dgr|r[0-6x]|weak|strong|side)$/i.test(tl)) return false;
         if(matchBoss(tl)) return false; const a=resolveActor(tl); return !(a && !a.fuzzy); });
         if(unknown.length===1){ setup.credits=unknown[0]; got.credit=1; } }
-      rn=rn.replace(/[-–]/g,' ').replace(/\s+/g,' ').trim().replace(/[.\-–\s]+$/,'').trim();
+      rn=rn.replace(/[-–]/g,' ').replace(/\s+/g,' ').trim().replace(/[.\-–?!\s]+$/,'').trim();
       if(rn) setup.rotationName=rn;
       continue;
     }
@@ -444,7 +460,13 @@ function parseRotationText(text, opts){
     const info={}; if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky;
     addChar(a.name,info); got.cards=1; return true;
   }
-  function matchBoss(line){ for(const b of DATA.bossNames){ const w=b.split(' ')[0]; if(new RegExp('\\b'+w+'\\b','i').test(line)) return b; } return ''; }
+  function matchBoss(line){ const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    // 1) prefer a boss name whose every word is present in the line, longest wins (so "Baal Zebul" beats "Baal")
+    let best='',bestLen=0; for(const b of DATA.bossNames){ const re=new RegExp('\\b'+b.split(/\s+/).map(esc).join('\\s+')+'\\b','i');
+      if(re.test(line) && b.length>bestLen){ best=b; bestLen=b.length; } }
+    if(best) return best;
+    // 2) fallback: a boss referenced by only its leading word (first match in list order)
+    for(const b of DATA.bossNames){ if(new RegExp('\\b'+esc(b.split(' ')[0])+'\\b','i').test(line)) return b; } return ''; }
   function boggWord(line,boss){ return boss.split(' ')[0]; }
 
   // turns (parse first, so we can fill the team from turn actors if the header is sparse)
@@ -479,10 +501,17 @@ function parseRotationText(text, opts){
     turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER'||!a.persona||a.hl) return;
       const body=String(a.text||'').trim(); if(!body){ a.skill=a.skill||''; return; }
       const words=body.split(/\s+/); const set=skillSetFor(a.persona); let best='',bestLen=0;
+      // a slashed first token ("Reb/Mataru") is a choice, not a separator: resolve the part before
+      // the slash as the skill, the rest goes to the note.
+      let noteSuffix='';
+      if(words[0] && /[^/]\/[^/]/.test(words[0])){ const parts=words[0].split('/');
+        const ln=norm(parts[0]); let leftCanon=SKILL_ALIAS_MAP[ln]||SKILL_ALIAS_MAP[_n(parts[0])]||(set.has(_n(parts[0]))?set.get(_n(parts[0])):'');
+        if(!leftCanon){ for(const [lc,canon] of set){ if(lc.indexOf(' ')<0 && norm(lc)===ln){ leftCanon=canon; break; } } }
+        if(leftCanon){ noteSuffix=parts.slice(1).join('/'); words[0]=leftCanon; } }
       for(const [lc,canon] of set){ const cw=lc.split(/\s+/); if(cw.length>words.length||cw.length<=bestLen) continue;
         let ok=true; for(let i=0;i<cw.length;i++){ if(norm(words[i])!==norm(cw[i])){ ok=false; break; } }
         if(ok){ best=canon; bestLen=cw.length; } }
-      if(best){ a.skill=best; a.text=words.slice(bestLen).join(' ').trim(); } })); }
+      if(best){ a.skill=best; a.text=(words.slice(bestLen).join(' ')+(noteSuffix?(' '+noteSuffix):'')).trim(); } })); }
   // a Wonder action with no explicit persona whose leading skill belongs to a known Wonder persona
   // (its signature or a header-listed skill) -> select that persona and put the skill in the dropdown.
   { const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9\u00b7]/g,'');
@@ -578,6 +607,22 @@ function parseRotationText(text, opts){
       explicit.forEach(a=>{ if(!a.char||!slotNames.includes(a.char)) rebuilt.push(a); });
       t.actions=rebuilt; });
   }
+  // a lone "Guard" -> the next due team member with no action this turn. Order is the team-slot order
+  // normally; for DOD it is taken (as a fallback when the slot order is ambiguous) from the order actors
+  // first act in the post-break phases, where Guards are rare so the true turn order shows. Slot members
+  // not seen in the breaks keep their slot order at the end.
+  { const slotNames=units.filter(u=>u&&u.name).map(u=>u.name);
+    const eluName=(elucidator&&elucidator.name)||'';
+    let dueOrder=slotNames;
+    if((setup.type||'').toUpperCase()==='DOD'){ const seen=[];
+      turns.forEach(t=>{ if(!/break/i.test(t.name))return; (t.actions||[]).forEach(a=>{ if(a&&a.char&&!seen.includes(a.char))seen.push(a.char); }); });
+      if(seen.length) dueOrder=seen.filter(n=>slotNames.includes(n)).concat(slotNames.filter(n=>!seen.includes(n))); }
+    turns.forEach(t=>{ const acts=t.actions||[]; if(!acts.some(a=>a&&a.guardSolo))return;
+      const acting=new Set(acts.filter(a=>a&&a.char&&!a.guardSolo).map(a=>a.char));
+      const idle=dueOrder.filter(nm=>nm!==eluName && !acting.has(nm)); let gi=0;
+      t.actions=acts.map(a=>{ if(!a||!a.guardSolo)return a; const nm=idle[gi++]; return nm?{char:nm,btn:'Gd',text:''}:a; })
+        .filter(a=>!(a&&a.guardSolo)); });
+  }
 
   if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
   const teamNotes=noteLines.join('\n');
@@ -606,5 +651,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = '260618';
+  _g.VF_PARSER_VERSION = 'A069';
 })();
