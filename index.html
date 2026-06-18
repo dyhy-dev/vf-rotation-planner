@@ -254,6 +254,11 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .io-hint{min-height:16px; margin:8px 2px 0; font:600 12px Inter,sans-serif; color:var(--blue)}
 .io-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
 .io-keep{display:flex; align-items:center; gap:8px; margin-top:10px; font:500 12px Inter,sans-serif; color:var(--muted); cursor:pointer; user-select:none}
+.io-caption{font:600 11px Inter,sans-serif; color:var(--muted); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.05em}
+.io-line{display:block; width:100%; box-sizing:border-box; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--text); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.4}
+.io-line:focus{outline:none; border-color:var(--blue-strong)}
+.io-discord-btn{display:inline-flex; align-items:center; gap:6px}
+.dc-ico{width:16px; height:16px; fill:currentColor; flex:0 0 auto}
 .io-keep[hidden]{display:none}
 .io-keep input{cursor:pointer; margin:0}
 .imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
@@ -411,7 +416,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <li><b>Import</b> — load a rotation:
           <ul>
             <li><b>Import JSON</b> — from a <code>.json</code> file (e.g. one a teammate shared).</li>
-            <li><b>Import Code</b> — from a share code or link pasted into the box.</li>
+            <li><b>Import Code</b> — from a share code, full link or short link pasted into the box.</li>
             <li><b>Import Text</b> — paste a rotation written in plain text (like a post from Discord) and the planner fills in what it recognizes: boss, mode and patch from the title, the team with awareness/cards, personas, the dagger, and every turn. Anything left empty (or anything it could not read) is <span style="color:#f1c232;font-weight:700;">highlighted in yellow</span> so you can see at a glance what still needs your attention, and a summary lists whatever could not be imported. If a rotation is already open, it asks before replacing it. Tick <b>Keep the pasted text in a movable window</b> to keep the original text in a small draggable panel afterwards, so you can refer to it while you tidy up the turns.</li>
           </ul>
         </li>
@@ -468,7 +473,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       <h3>Saving &amp; sharing</h3>
       <p>Your work is saved automatically in this browser (autosave). For a permanent backup, use <b>Export → JSON</b> and re-import the file later. For a picture to post, use one of the PNG exports.</p>
-      <p>To send a rotation to a teammate without a file, use <b>Export → Share Editor Link</b> or <b>Copy Code</b>. Both open a box showing the link/code with a <b>Copy</b> button. Opening a <b>Share Editor Link</b> loads the rotation automatically; a <b>Code</b> is loaded via <b>Import → Import Code</b> (which also accepts a full link). The whole rotation is packed into the link/code itself — nothing is uploaded to a server.</p>
+      <p>To send a rotation to a teammate without a file, use <b>Export → Share Editor Link</b> or <b>Copy Code</b>. Both open a box showing the link/code with a <b>Copy</b> button. The two share-link boxes (<b>Share Editor Link</b> and <b>Share View Link</b>) automatically turn the link into a short one (via a small Cloudflare service) the moment they open. The same rotation always reuses the same short link — a new one is only created when the rotation actually changes. They also show an editable <b>Discord title</b> line, pre-filled with the rotation name, mode, patch and credits. Adjust the title however you like, then press the Discord button to copy a <b>masked link</b> (your title as a single clickable label, with the link hidden behind it) ready to paste into Discord. Opening a <b>Share Editor Link</b> loads the rotation automatically; a <b>Code</b> is loaded via <b>Import → Import Code</b> (which also accepts a full link or a short link). The whole rotation is packed into the link/code itself — nothing is uploaded to a server.</p>
     </div>
   </div>
 </div>
@@ -485,8 +490,16 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
       <div class="io-actions">
         <button class="btn primary" id="ioPrimary">Copy</button>
+        <button class="btn" id="ioShorten" hidden>Create short link</button>
         <button class="btn" id="ioOpen" hidden>Open</button>
         <button class="btn" id="ioCloseBtn">Close</button>
+      </div>
+      <div id="ioDiscordWrap" hidden>
+        <div class="io-caption">Discord Masked Link (Editable)</div>
+        <input id="ioDiscordText" class="io-line" type="text" spellcheck="false" autocomplete="off"/>
+        <div class="io-actions" style="margin-top:8px">
+          <button class="btn io-discord-btn" id="ioDiscord" title="Copy a masked Discord link using this title">Copy for <svg class="dc-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg></button>
+        </div>
       </div>
     </div>
   </div>
@@ -1931,6 +1944,19 @@ document.getElementById('importFile').onchange=e=>{
 /* ---------- share code / link (self-contained, no server) ---------- */
 function b64urlEncode(s){ const bytes=new TextEncoder().encode(s); let bin=''; for(const b of bytes) bin+=String.fromCharCode(b); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function b64urlDecode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; const bin=atob(s); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
+function _bytesToB64url(bytes){ let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function _b64urlToBytes(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; const bin=atob(s); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+/* native deflate (CompressionStream) — 0-byte dependency, ~25% shorter than LZString */
+async function _deflateRaw(str){
+  const cs=new CompressionStream('deflate-raw');
+  const w=cs.writable.getWriter(); w.write(new TextEncoder().encode(str)); w.close();
+  const buf=await new Response(cs.readable).arrayBuffer(); return new Uint8Array(buf);
+}
+async function _inflateRaw(bytes){
+  const ds=new DecompressionStream('deflate-raw');
+  const w=ds.writable.getWriter(); w.write(bytes); w.close();
+  const buf=await new Response(ds.readable).arrayBuffer(); return new TextDecoder().decode(buf);
+}
 /* compact codec (scheme C): positional arrays + enum indices, then LZString */
 function _roster(){ return DATA.characterNames.concat(DATA.elucidatorNames.filter(n=>!DATA.characterNames.includes(n))); }
 function _io(v,list){ const i=list.indexOf(v); return i>=0?i:(v==null?'':v); }
@@ -1978,18 +2004,23 @@ function compactDecode(arr){
     turns:(arr[6]||[]).map(t=>({ name:t[0]||'', actions:(t[1]||[]).map(act), note:t[2]||'' }))
   };
 }
-function encodeShare(){
+async function encodeShare(){
+  const compactJson=JSON.stringify(compactEncode(state));
+  if(typeof CompressionStream!=='undefined'){
+    try{ const bytes=await _deflateRaw(compactJson); return 'D'+_bytesToB64url(bytes); }catch(e){}
+  }
   if(typeof LZString!=='undefined'){
-    try{ return 'C'+LZString.compressToEncodedURIComponent(JSON.stringify(compactEncode(state))); }catch(e){}
+    try{ return 'C'+LZString.compressToEncodedURIComponent(compactJson); }catch(e){}
     return 'A'+LZString.compressToEncodedURIComponent(JSON.stringify(state));
   }
   return 'B'+b64urlEncode(JSON.stringify(state));
 }
-function decodeShare(input){
+async function decodeShare(input){
   let code=(input||'').trim();
-  const m=code.match(/[#?&]r=([^#?&\s]+)/); if(m) code=m[1];
+  const m=code.match(/[#?&][rv]=([^#?&\s]+)/); if(m) code=m[1];
   code=code.replace(/^#/,'').trim();
   const marker=code[0], rest=code.slice(1);
+  if(marker==='D'){ if(typeof DecompressionStream==='undefined') throw new Error('lib'); const j=await _inflateRaw(_b64urlToBytes(rest)); if(!j) throw new Error('decode'); return compactDecode(JSON.parse(j)); }
   if(marker==='C'){ if(typeof LZString==='undefined') throw new Error('lib'); const j=LZString.decompressFromEncodedURIComponent(rest); if(!j) throw new Error('decode'); return compactDecode(JSON.parse(j)); }
   let json=null;
   if(marker==='A'){ if(typeof LZString==='undefined') throw new Error('lib'); json=LZString.decompressFromEncodedURIComponent(rest); }
@@ -1998,21 +2029,69 @@ function decodeShare(input){
   if(!json) throw new Error('decode');
   return JSON.parse(json);
 }
-function shareLinkURL(){ return location.origin+location.pathname+'#r='+encodeShare(); }
+async function shareLinkURL(){ return location.origin+location.pathname+'#r='+(await encodeShare()); }
 let _ioPrimary=null;
 function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
+const SHORTENER='https://vfrp.dyhy.workers.dev';   /* Cloudflare Worker short-link service */
+const _SHORT_KEY='vf-shortlinks-v1';
+let _shareUrl='';                                   /* current full URL shown in the share modal (updated when shortened) */
+let _shortCache={};                                 /* fragment -> short URL, so an unchanged rotation reuses the same link */
+function _loadShortCache(){ try{ (JSON.parse(localStorage.getItem(_SHORT_KEY))||[]).forEach(e=>{ if(e&&e.f&&e.u) _shortCache[e.f]=e.u; }); }catch(e){} }
+function _saveShortCache(fragment,url){
+  _shortCache[fragment]=url;
+  try{ let arr=[]; try{ arr=JSON.parse(localStorage.getItem(_SHORT_KEY))||[]; }catch(e){}
+    arr=arr.filter(e=>e&&e.f!==fragment); arr.unshift({f:fragment,u:url}); arr=arr.slice(0,50);
+    localStorage.setItem(_SHORT_KEY, JSON.stringify(arr)); }catch(e){}
+}
+async function shortenLink(fragment){
+  const hint=document.getElementById('ioHint'), btn=document.getElementById('ioShorten'), t=document.getElementById('ioText');
+  if(_shortCache[fragment]){                         /* same rotation as before -> reuse the existing short link, no new link */
+    _shareUrl=_shortCache[fragment];
+    if(t){ t.value=_shareUrl; try{ t.focus(); t.select(); }catch(e){} }
+    if(btn) btn.hidden=true;
+    if(hint) hint.textContent='Short link ready. Use Copy or Copy for Discord below.';
+    return;
+  }
+  if(btn) btn.disabled=true; if(hint) hint.textContent='Creating short link…';
+  try{
+    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({f:fragment})});
+    if(!res.ok) throw new Error('http '+res.status);
+    const data=await res.json();
+    if(!data||!data.url) throw new Error('no url');
+    _shareUrl=data.url; _saveShortCache(fragment, data.url);
+    if(t){ t.value=data.url; try{ t.focus(); t.select(); }catch(e){} }
+    if(btn) btn.hidden=true;                          /* one short link per rotation is enough */
+    if(hint) hint.textContent='Short link created. Use Copy or Copy for Discord below.';
+  }catch(e){
+    if(hint) hint.textContent='Short-link service unavailable — using the full link. Tap “Create short link” to retry.';
+    if(btn){ btn.hidden=false; btn.disabled=false; }
+  }
+}
 function openShareModal(opts){
   const modal=document.getElementById('ioModal'); if(!modal) return;
   document.getElementById('ioTitle').textContent=opts.title;
   const t=document.getElementById('ioText'); t.value=opts.text||''; t.readOnly=!!opts.readonly; t.placeholder=opts.placeholder||'';
+  _shareUrl=opts.text||'';
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
   { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; }
   document.getElementById('ioHint').textContent=opts.hint||'';
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
+  const shBtn=document.getElementById('ioShorten');
+  if(shBtn){ shBtn.hidden=true; if(opts.shortenFragment){ shBtn.disabled=false; shBtn.onclick=()=>shortenLink(opts.shortenFragment); } else { shBtn.onclick=null; } }
+  const dWrap=document.getElementById('ioDiscordWrap'), dText=document.getElementById('ioDiscordText'), dBtn=document.getElementById('ioDiscord');
+  if(opts.discordUrl){
+    if(dWrap) dWrap.hidden=false; if(dText) dText.value=opts.discordLabel||'';
+    if(dBtn) dBtn.onclick=()=>{ const hint=document.getElementById('ioHint'); const masked=maskedDiscordLink(dText.value, _shareUrl); const done=()=>{ hint.textContent='Masked Discord link copied to clipboard.'; };
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(masked).then(done,()=>{ hint.textContent='Could not copy automatically — copy it manually.'; });
+      else hint.textContent='Copying is not supported in this browser.'; };
+  } else {
+    if(dWrap) dWrap.hidden=true; if(dText) dText.value=''; if(dBtn) dBtn.onclick=null;
+  }
   _ioPrimary=opts.onPrimary||null;
   modal.hidden=false;
+  if(opts.shortenFragment) shortenLink(opts.shortenFragment);   /* create + show the short link right away */
   if(opts.autoHeight){ t.style.height='auto'; t.style.height=Math.min(Math.round((window.innerHeight||800)*0.6), t.scrollHeight+8)+'px'; }
   else { t.style.height=''; }
   setTimeout(()=>{ try{ t.focus(); if(opts.readonly && !opts.noSelect) t.select(); }catch(_){} },30);
@@ -2023,8 +2102,17 @@ function copyShareText(t, hint){
   if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t.value).then(done, fallback); }
   else fallback();
 }
-function openShareLink(){ let url; try{ url=shareLinkURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
-  openShareModal({title:'Share Editor Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText}); }
+function discordLabel(){
+  const s=state.setup||{};
+  const name=(s.rotationName||'').trim()||'Rotation';
+  const meta=[(s.type||'').trim(),(s.patch||'').trim()].filter(Boolean).join(' ');
+  const credit=(s.credit||s.credits||'').trim();
+  const parts=[name]; if(meta) parts.push(meta); if(credit) parts.push('by '+credit);
+  return parts.join(' · ');
+}
+function maskedDiscordLink(label,url){ return '['+String(label||'').replace(/[\[\]]/g,'').trim()+']('+url+')'; }
+async function openShareLink(){ let url; try{ url=await shareLinkURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
+  openShareModal({title:'Share Editor Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, discordUrl:url, discordLabel:discordLabel(), shortenFragment:(url.split('#')[1]||'')});  }
 function titleCase(s){ return String(s||'').toLowerCase().replace(/(^|[\s·.\-/'])([a-z])/g,(m,p,c)=>p+c.toUpperCase()); }
 function textAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
@@ -2079,11 +2167,24 @@ function buildTextExport(){
 function openTextExport(){
   openShareModal({title:'Text Export', text:buildTextExport(), readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, autoHeight:true});
 }
-function openCopyCode(){ let code; try{ code=encodeShare(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
+async function openCopyCode(){ let code; try{ code=await encodeShare(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
   openShareModal({title:'Copy Code', text:code, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText}); }
-function openImportCode(){ openShareModal({title:'Import Code', text:'', readonly:false, placeholder:'Paste a rotation code or share link…', primaryLabel:'Import', onPrimary:(t,hint,close)=>{
+async function importAnyShare(input){
+  const v=(input||'').trim();
+  if(v.startsWith(SHORTENER+'/') && v.indexOf('#')===-1){          /* a short link -> ask the worker for the raw code */
+    const sep=v.indexOf('?')>=0?'&':'?';
+    const res=await fetch(v+sep+'raw=1');
+    if(!res.ok) throw new Error('decode');
+    const data=await res.json();
+    if(!data||!data.f) throw new Error('decode');
+    return await decodeShare('#'+data.f);
+  }
+  return await decodeShare(v);
+}
+function openImportCode(){ openShareModal({title:'Import Code', text:'', readonly:false, placeholder:'Paste a rotation code, share link or short link…', primaryLabel:'Import', onPrimary:async (t,hint,close)=>{
   const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a code or link first.'; return; }
-  let st; try{ st=decodeShare(v); }catch(e){ hint.textContent=(e&&e.message==='lib')?'Decoding needs the compression library (connect to the internet and retry).':'That code/link could not be read.'; return; }
+  hint.textContent='Reading…';
+  let st; try{ st=await importAnyShare(v); }catch(e){ hint.textContent=(e&&e.message==='lib')?'Decoding needs a newer browser (built-in compression).':'That code/link could not be read.'; return; }
   try{ state=migrate(st); save(); renderAll(); close(); }catch(e){ hint.textContent='That code/link is not a valid rotation.'; }
 }}); }
 (function(){
@@ -2634,9 +2735,9 @@ function exportImage(withImages, rotationOnly){
   });
 }
 /* ---------- read-only shareable Webview (#v=<code>) ---------- */
-function shareViewURL(){ return location.origin+location.pathname+'#v='+encodeShare(); }
-function openShareViewLink(){ let url; try{ url=shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
-  openShareModal({title:'Share View Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:'Opens a read-only view that looks like the image export.'}); }
+async function shareViewURL(){ return location.origin+location.pathname+'#v='+(await encodeShare()); }
+async function openShareViewLink(){ let url; try{ url=await shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
+  openShareModal({title:'Share View Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:'Opens a read-only view that looks like the image export.', discordUrl:url, discordLabel:discordLabel(), shortenFragment:(url.split('#')[1]||'')});  }
 function exportViewPNG(){
   const body=document.body;
   const wasView=body.classList.contains('view-mode');
@@ -2682,7 +2783,7 @@ function enterViewMode(){
     <div id="viewFooter">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div>`;
   const stage=document.getElementById('viewStage');
   document.getElementById('viewDownload').onclick=()=>{ try{ exportViewPNG(); }catch(e){ _settleExport(); } };
-  document.getElementById('viewEdit').onclick=()=>{ try{ location.hash='r='+encodeShare(); location.reload(); }catch(e){} };
+  document.getElementById('viewEdit').onclick=async()=>{ try{ location.hash='r='+(await encodeShare()); location.reload(); }catch(e){} };
   const isMobileView=()=>window.matchMedia('(max-width: 600px)').matches;
   _viewMobile=isMobileView();
   const renderViewBody=()=>{
@@ -2807,20 +2908,20 @@ const PERSONA_ALIASES = {"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten
   const bx=document.querySelector('#discBanner .disc-x'); if(bx) bx.onclick=()=>hideDiscBanner();
 })();
 
-state=load(); renderAll();
-(function(){
+state=load(); _loadShortCache(); renderAll();
+(async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
     let ok=false;
-    try{ const st=decodeShare(vm[1]); state=migrate(st); ok=true; }catch(e){ /* unreadable view link */ }
+    try{ const st=await decodeShare(vm[1]); state=migrate(st); ok=true; }catch(e){ /* unreadable view link */ }
     if(ok){ enterViewMode(); return; }   /* read-only view; do NOT save() or clear the hash */
   }
   const m=(location.hash||'').match(/[#&]r=([^&]+)/);
   if(!m) return;
-  try{ const st=decodeShare(m[1]); state=migrate(st); save(); renderAll(); }catch(e){ /* ignore an unreadable link */ }
+  try{ const st=await decodeShare(m[1]); state=migrate(st); save(); renderAll(); }catch(e){ /* ignore an unreadable link */ }
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
-<div class="version-tag">260617Z</div>
+<div class="version-tag">260618B</div>
 </body>
 </html>
