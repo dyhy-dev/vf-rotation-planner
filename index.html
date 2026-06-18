@@ -2105,9 +2105,9 @@ function copyShareText(t, hint){
 function discordLabel(){
   const s=state.setup||{};
   const name=(s.rotationName||'').trim()||'Rotation';
-  const meta=[(s.type||'').trim(),(s.patch||'').trim()].filter(Boolean).join(' ');
+  const meta=[(s.patch||'').trim(),(s.type||'').trim()].filter(Boolean).join(' ');
   const credit=(s.credit||s.credits||'').trim();
-  const parts=[name]; if(meta) parts.push(meta); if(credit) parts.push('by '+credit);
+  const parts=[]; if(meta) parts.push(meta); parts.push(name); if(credit) parts.push('by '+credit);
   return parts.join(' · ');
 }
 function maskedDiscordLink(label,url){ return '['+String(label||'').replace(/[\[\]]/g,'').trim()+']('+url+')'; }
