@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A079   (bumped +1 on every change; A199 -> B001)
+   Version: A080   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -173,6 +173,9 @@ function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
   out.push(buf); return out; }
 function parseTurnContent(content,warn){
   const actions=[];
+  // a Twins dual element written with a "+" joiner ("F+I", "Elec+Wind") must not be split into two actions
+  // by the "+" separator below — normalise it to a slash so the dual detector sees "F/I" / "Elec/Wind".
+  content=String(content||'').replace(/\b(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\s*\+\s*(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\b/ig,'$1/$2');
   // a leading separator dash/colon left over from the turn label ("T2 - Yurl ..." -> content "- Yurl ...")
   // or written before a unit; strip it so the first action isn't lost as an unrecognised "- Actor".
   let lastActor=null;
@@ -206,7 +209,8 @@ function parseTurnContent(content,warn){
           if(!exactOther){ actions.push({char:'TWINS',btn:'HL',text:fd.dual,_twinsHL:fd.dual}); cur={type:'char',name:'TWINS'}; lastActor=cur; continue; } } }
       if(!((_n(toks[0])==='wonder')||resolveActor(toks[0]))){
         const t0=_n(toks[0]).replace(/[().]/g,'');
-        if(toks.length===1 && /^(mas|masq|msq|masquerade)$/.test(t0)){ actions.push({char:'VIOLET',btn:'ALT',text:''}); continue; }
+        // Violet's Masquerade button (her ALT). Any trailing words ("Masquerade (Kasumi Start)") become its note.
+        if(/^(mas|masq|msq|masquerade)$/.test(t0)){ const tail=toks.slice(1).join(' ').trim(); actions.push({char:'VIOLET',btn:'ALT',text:tail}); cur={type:'char',name:'VIOLET'}; lastActor=cur; continue; }
       }
       let actor=null,rest=toks;
       if(_n(toks[0])==='wonder'){ const pa=toks[1]?resolveActor(toks[1]):null;
@@ -725,5 +729,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A079';
+  _g.VF_PARSER_VERSION = 'A080';
 })();
