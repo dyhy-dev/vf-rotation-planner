@@ -288,8 +288,9 @@ body.persona-img-left .pcol-body{flex-direction:row-reverse}
 body.hide-rota-notes .notes-row{display:none}
 body.hide-team-notes .team-notes{display:none}
 body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{display:none}
+body.hide-persona-notes .persona-col .persona-note{display:none}
 .set-body{padding:4px 20px 20px}
-.set-group-title{font:600 11px Inter,sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:6px 0 2px}
+.set-group-title{font:600 11px Inter,sans-serif; color:var(--blue-strong); text-transform:uppercase; letter-spacing:.05em; margin:6px 0 2px}
 .abbr-list{max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px 8px; margin-top:4px}
 .abbr-cols{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px}
 .abbr-col .set-label{margin:0}
@@ -633,6 +634,10 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <label class="toggle"><input type="checkbox" id="setTeamNotes"><span class="track"></span><span class="thumb"></span></label>
       </div>
       <div class="set-row">
+        <div><div class="set-label">Persona notes</div><div class="set-sub">The note field on each Wonder persona (for passives, unknown skills, etc.)</div></div>
+        <label class="toggle"><input type="checkbox" id="setPersonaNotes"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-row">
         <div><div class="set-label">Rotation notes</div><div class="set-sub">The Rotation Notes box above the turns</div></div>
         <label class="toggle"><input type="checkbox" id="setRotaNotes"><span class="track"></span><span class="thumb"></span></label>
       </div>
@@ -961,7 +966,7 @@ function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
-const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false };
+const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
 function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} }
@@ -977,6 +982,7 @@ function applySettings(){ const b=document.body;
   b.classList.toggle('hide-char-notes', !settings.showCharNotes);
   b.classList.toggle('hide-team-notes', !settings.showTeamNotes);
   b.classList.toggle('hide-rota-notes', !settings.showRotaNotes);
+  b.classList.toggle('hide-persona-notes', !settings.showPersonaNotes);
   b.classList.toggle('persona-img-left', !!settings.personaImgLeft);
   applyTheme();
 }
@@ -2197,6 +2203,7 @@ function syncSettingsModal(){
   document.getElementById('setCharNotes').checked=!!settings.showCharNotes;
   document.getElementById('setTeamNotes').checked=!!settings.showTeamNotes;
   document.getElementById('setRotaNotes').checked=!!settings.showRotaNotes;
+  document.getElementById('setPersonaNotes').checked=!!settings.showPersonaNotes;
   document.getElementById('setPersonaImgLeft').checked=!!settings.personaImgLeft;
   document.getElementById('setImportPopup').checked=!!settings.importNotePopup;
   document.getElementById('setPreviewOpen').checked=!!settings.previewExpanded;
@@ -2225,7 +2232,7 @@ document.getElementById('settingsModal').addEventListener('click', e=>{
   if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody();
 });
 (function(){ const t=(id,key)=>{ const el=document.getElementById(id); if(el) el.onchange=()=>{ settings[key]=el.checked; saveSettings(); applySettings(); }; };
-  t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaImgLeft','personaImgLeft'); t('setImportPopup','importNotePopup'); })();
+  t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaNotes','showPersonaNotes'); t('setPersonaImgLeft','personaImgLeft'); t('setImportPopup','importNotePopup'); })();
 document.getElementById('setPreviewOpen').onchange=function(){ settings.previewExpanded=this.checked; saveSettings(); rotationPreviewOpen=this.checked; renderRotationPreview(); };
 (function(){ function rr(){ renderRotationPreview(); if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody(); }
   const a=document.getElementById('setSigAsSig'); if(a) a.onchange=function(){ settings.sigAsSig=this.checked; saveSettings(); rr(); };
@@ -2969,6 +2976,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619f</div>
+<div class="version-tag">260619g</div>
 </body>
 </html>
