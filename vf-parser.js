@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A078   (bumped +1 on every change; A199 -> B001)
+   Version: A079   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -447,6 +447,10 @@ function parseRotationText(text, opts){
       { const cm0=t2.match(/\bcredits?\s*:\s*(.+?)\s*(?=\s[-–—]\s|$)/i);
         if(cm0 && cm0[1].trim()){ setup.credits=cm0[1].trim(); got.credit=1;
           t2=t2.replace(/\s*[-–—]?\s*\bcredits?\s*:\s*.+?(?=\s[-–—]\s|$)/i,' '); } }
+      // possessive author ("Kimmy's rot", "Misu's rotation") -> that name is the credit. Left in the title
+      // (removing it would leave a dangling "'s rot"), only the Credits field is filled.
+      if(!setup.credits){ const cm1=t2.match(/\b([A-Z][\w.]*)['’]s\s+rot(?:ation)?s?\b/);
+        if(cm1){ setup.credits=cm1[1]; got.credit=1; } }
       // expected score: a number followed by a magnitude — a bare letter (2.4B) or spelled out
       // (2.4bil / 600 mil / 2.8 trillion). The score field holds one number, so when several are
       // listed ("2.4bil with A1, 2.8bil with A2") only the FIRST is copied into the field. It is NOT
@@ -721,5 +725,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A078';
+  _g.VF_PARSER_VERSION = 'A079';
 })();
