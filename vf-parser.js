@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A092   (bumped +1 on every change; A199 -> B001)
+   Version: A093   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -57,7 +57,7 @@ function _matchDualAt(toks,i){ const t=toks[i]; if(t==null) return null;
   if(toks[i+1]!=null){ d=_dual2(t,toks[i+1]); if(d) return {dual:d,len:2}; }         // Fire Ice, Wind Elec, F I
   return null; }
 function _findDual(toks){ for(let i=0;i<toks.length;i++){ const m=_matchDualAt(toks,i); if(m) return {dual:m.dual,start:i,len:m.len}; } return null; }
-const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT'};
+const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT'};
 function codeOf(token){
   const t=_n(token).replace(/[().]/g,'');
   if(CODE[t]) return {btn:CODE[t],extra:''};
@@ -79,7 +79,9 @@ function cardPair(str){
     else if(sp&&ss){ if(!space)space=sp; else if(!sunsky)sunsky=ss; } }
   return {space,sunsky};
 }
+const DAGGER_ALIAS={cyber:'Cyclotron'};   // common short forms that fuzzy-matching misses
 function matchDagger(str){ const t=_n(str);
+  if(DAGGER_ALIAS[t]) return DAGGER_ALIAS[t];
   let h=DATA.daggerNames.find(d=>d.toLowerCase()===t)||DATA.daggerNames.find(d=>d.toLowerCase().startsWith(t)&&t.length>=3);
   // input is the significant word(s) of a dagger name, ignoring filler ("Compass" -> "Starry Compass")
   if(!h && t.length>=3){ const stop=new Set(['of','the','a','an','and','de','la']);
@@ -192,12 +194,12 @@ function parseTurnContent(content,warn){
     for(const seg of segs){
       const toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
       // "Guard All" / "All Guard": every non-elucidator team unit guards; expanded after the team is known.
-      if(/^(guard\s+all|all\s+guard)$/i.test(seg)){ actions.push({guardAll:true}); cur=null; continue; }
+      if(/^(g(?:ua|au)rd\s+all|all\s+g(?:ua|au)rd)$/i.test(seg)){ actions.push({guardAll:true}); cur=null; continue; }
       // a lone "Guard" (no actor) -> resolved after the team is known, to the next due actor idle this turn.
       // BUT a "+Guard" chained onto an actor whose only action so far is a (free) HL belongs to that actor
       // ("Haru HL+Guard" = Haru pops HL and guards), mirroring how "+Gun" attaches. After a full action
       // (S1/S2/S3/Atk/Gn) the "+Guard" stays a floating guard for an idle team-mate ("Futaba S2+Guard").
-      if(/^guards?$/i.test(seg)){
+      if(/^g(?:ua|au)rds?$/i.test(seg)){
         const tgtName=cur?(cur.type==='persona'?'WONDER':cur.name):null;
         const curActs=tgtName?actions.slice(unitStart).filter(a=>a.char===tgtName&&!a.guardAll&&!a.guardSolo):[];
         if(cur && curActs.length && curActs.every(a=>a.btn==='HL')){
@@ -650,6 +652,10 @@ function parseRotationText(text, opts){
   } else {
     turnEntries.sort((a,b)=>a.num-b.num);
     turnEntries.forEach(te=>turns.push(mkTurn(te,'TURN '+te.num)));
+    // DOD inference without an explicit Break/Weak marker: a very short (<=5) or very long (>=9) turn
+    // count strongly implies a DOD rotation. Only the mode is set (no auto break-split) and only when the
+    // type wasn't stated in the title, so a stated MLD/NOD/SOS is never overridden.
+    if(!got.mode && turnEntries.length && (turnEntries.length<=5 || turnEntries.length>=9)){ setup.type='DOD'; }
   }
   // a bare "Wonder HL" (HL only, no persona/skill/text) inherits the most recently used Wonder persona
   { let lastP=''; turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER') return;
@@ -833,5 +839,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A092';
+  _g.VF_PARSER_VERSION = 'A093';
 })();
