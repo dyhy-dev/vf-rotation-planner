@@ -494,6 +494,29 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
   .play-act.block{width:170px} .play-act.block .play-actor{font-size:18px} .play-act.block .play-actdetail{font-size:16px}
   .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px}
 }
+/* horizontal mode on phones: the tile row fills the available height; tiles stretch and center their content */
+#playRoot.play-touch.is-horiz .play-actions{flex:1 1 auto; min-height:0; align-items:stretch}
+#playRoot.play-touch.is-horiz .play-act.block{justify-content:center}
+/* desktop / wide screens: horizontal mode is not width-capped and the tiles are bigger */
+#playRoot:not(.play-touch).is-horiz .play-actions{max-width:100%}
+#playRoot:not(.play-touch).is-horiz .play-act.block{width:300px}
+#playRoot:not(.play-touch).is-horiz .play-act.block .play-actor{font-size:28px}
+#playRoot:not(.play-touch).is-horiz .play-act.block .play-actdetail{font-size:24px}
+/* narrow screens (portrait phones): the Turn/Action switch wraps to its own row so the top bar can't overlap */
+@media (max-width:560px){
+  .play-head{flex-wrap:wrap}
+  .play-title{flex:1 1 auto}
+  .play-right{flex:0 0 auto}
+  .play-segs{order:3; flex:1 1 100%; justify-content:center; margin-top:8px}
+}
+/* iPhone-Safari landscape full-page notice (Add to Home Screen) */
+#iosRotate{position:fixed; inset:0; z-index:9000; background:var(--ink); color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,sans-serif}
+#iosRotate[hidden]{display:none}
+.ios-rotate-box{max-width:520px}
+.ios-rotate-title{font:700 20px Oswald,sans-serif; color:var(--blue); letter-spacing:.04em; margin-bottom:12px}
+.ios-rotate-box p{color:var(--text); font-size:15px; line-height:1.5; margin:0 0 10px}
+.ios-rotate-box ol{color:var(--muted); font-size:14px; line-height:1.55; padding-left:20px; margin:0}
+.ios-rotate-box b{color:var(--text)}
 .ac-body{padding:16px 22px; color:#cdd3e3; font:14px/1.5 Inter,sans-serif; max-height:60vh; overflow:auto}
 .ac-body h3{font:700 11px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:18px 0 8px}
 .ac-body h3:first-child{margin-top:0}
@@ -797,6 +820,17 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </div>
 <div id="acUndo" class="ac-undo" hidden><span class="ac-undo-msg">Auto Correct applied.</span><button type="button" class="btn" id="acUndoBtn">Undo</button><button type="button" class="ac-undo-x" id="acUndoX" aria-label="Dismiss">&times;</button></div>
 <div id="comboPanel" class="combo-panel" hidden></div>
+<div id="iosRotate" hidden>
+  <div class="ios-rotate-box">
+    <div class="ios-rotate-title">Landscape isn't supported in Safari on iPhone</div>
+    <p>Rotate back to portrait to keep using the planner. For the full-screen, landscape Play mode, add this page to your Home Screen and open it from there:</p>
+    <ol>
+      <li>Tap the <b>Share</b> button in Safari (the square with an up-arrow).</li>
+      <li>Choose <b>“Add to Home Screen”</b>.</li>
+      <li>Open the planner from the new Home-Screen icon — it then runs full-screen in any orientation.</li>
+    </ol>
+  </div>
+</div>
 
 <script>
 const DATA = {"characterImages": {"MIKU": "images/HATSUNE-MIKU.webp", "TWINS": "images/TWINS.webp", "SOY·P": "images/SOY-P.webp", "LUCE·N": "images/LUCE-N.webp", "FUKA": "images/FUKA.webp", "MITSURU": "images/KIRIJO.webp", "BUI·P": "images/BUI-P.webp", "BLITZ": "images/BLITZ.webp", "PUPPET·S": "images/PUPPET-S.webp", "MARIAN·S": "images/MARIAN-S.webp", "BERRY": "images/BERRY.webp", "AKIHIKO": "images/AKIHIKO.webp", "YUKARI": "images/YUKARI.webp", "MAKOTO": "images/MAKOTO.webp", "ANGE": "images/ANGE.webp", "LUCE": "images/LUCE.webp", "TURBO": "images/TURBO.webp", "CROW": "images/CROW.webp", "MATOI": "images/MATOI.webp", "RIN·L D": "images/RIN-L-D.webp", "TEMPEST": "images/TEMPEST.webp", "VIOLET": "images/VIOLET.webp", "HOWLER": "images/HOWLER.webp", "MONT·S": "images/MONT-S.webp", "NOIR": "images/NOIR.webp", "CHERISH": "images/CHERISH.webp", "NAVI": "images/NAVI.webp", "MESSA": "images/MESSA.webp", "MOKO·S": "images/MOKO-S.webp", "CLOSER·T": "images/CLOSER-T.webp", "CHORD": "images/CHORD.webp", "WIND": "images/WIND.webp", "PHOEBE": "images/PHOEBE.webp", "QUEEN": "images/QUEEN.webp", "VINO": "images/VINO.webp", "FOX": "images/FOX.webp", "BUI": "images/BUI.webp", "MARIAN": "images/MARIAN.webp", "JOKER": "images/JOKER.webp", "SKULL": "images/SKULL.webp", "MONA": "images/MONA.webp", "PANTHER": "images/PANTHER.webp", "RIN": "images/RIN.webp", "RIDDLE": "images/RIDDLE.webp", "CATTLE": "images/CATTLE.webp", "LEON": "images/LEON.webp", "CLOSER": "images/CLOSER.webp", "MONT": "images/MONT.webp", "SOY": "images/SOY.webp", "FLEURET": "images/FLEURET.webp", "YUKI": "images/YUKI.webp", "KEY": "images/KEY.webp", "MOKO": "images/MOKO.webp", "SEPIA": "images/SEPIA.webp", "PUPPET": "images/PUPPET.webp", "OKYANN": "images/OKYANN.webp", "WONDER": "images/WONDER.webp", "MONA·S": "images/MONA-S.webp", "JOKER·S": "images/JOKER-S.webp", "AIGIS": "images/AIGIS.webp", "CLOSER·R": "images/CLOSER-R.webp", "ANRI": "images/ANRI.webp", "KOROMARU": "images/KOROMARU.webp", "PINKY": "images/PINKY.webp", "JUNPEI": "images/JUNPEI.webp", "FUUKA": "images/FUKA.webp", "RIN·F": "images/RIN-L-D.webp", "WIND·T": "images/TEMPEST.webp", "MONT·F": "images/MONT-S.webp", "ORACLE": "images/NAVI.webp"}, "characterNames": ["AIGIS", "AKIHIKO", "ANGE", "ANRI", "BERRY", "BLITZ", "BUI", "BUI·P", "CATTLE", "CHERISH", "CHORD", "CLOSER", "CLOSER·R", "CLOSER·T", "CROW", "FLEURET", "FOX", "FUUKA", "HOWLER", "JOKER", "JOKER·S", "JUNPEI", "KEY", "KOROMARU", "LEON", "LUCE", "LUCE·N", "MAKOTO", "MARIAN", "MARIAN·S", "MATOI", "MESSA", "MITSURU", "MOKO", "MOKO·S", "MONA", "MONA·S", "MONT", "MONT·F", "NOIR", "OKYANN", "ORACLE", "PANTHER", "PHOEBE", "PINKY", "PUPPET", "PUPPET·S", "QUEEN", "RIDDLE", "RIN", "RIN·F", "SEPIA", "SKULL", "SOY", "SOY·P", "TURBO", "TWINS", "VINO", "VIOLET", "WIND", "WIND·T", "WONDER", "YUKARI", "YUKI", "MIKU"], "personaNames": ["Alice", "Ame-no-Uzume", "Anubis", "Apsaras", "Arahabaki", "Baphomet", "Belphegor", "Bishamonten", "Chernobog", "Cu Chulainn", "Dionysus", "Dominion", "Girimehkala", "Isis", "Janosik", "Jatayu", "Jikokuten", "King Frost", "Kohryu", "Koumokuten", "Kushinada", "Lakshmi", "Lamia", "Lilith", "Macabre", "Melchizedek", "Mithras", "Narcissus", "Neko Shogun", "Nian Shou", "Norn", "Okuninushi", "Orobas", "Parvati", "Pazuzu", "Sahimochi-no-kami", "Sandalphon", "Sarasvati", "Setanta", "Shiva", "Siegfried", "Sraosha", "Succubus", "Surt", "Thor", "Throne", "Titania", "Trumpeter", "Vasuki", "Vishnu", "Yamata-no-Orochi", "Yatagarasu", "Yoshitsune", "Yurlungur", "Zaou-Gongen"], "daggerNames": ["Abyss Fang", "All In", "Arc Knife", "Chaos Hex", "Curse of the Phantom", "Cyclotron", "Entropy Zero", "Ex Machina", "Eye of Obsequies", "Glacial Eternity", "Glimmer", "Pheromone Sting", "Plasma Blade", "Purgatory", "Sennight Inferno", "Starry Compass"], "revSets": ["Departure & Control", "Departure & Prosperity", "Departure & Hindrance", "Awareness & Truth", "Awareness & Control", "Awareness & Hindrance", "Growth & Opulence", "Growth & Renewal", "Growth & Power", "Wisdom & Oppression", "Wisdom & Pleasure", "Wisdom & Virtue", "Meditation & Opulence", "Meditation & Courage", "Meditation & Love", "Faith & Peace", "Faith & Love", "Trust & Renewal", "Trust & Power", "Trust & Prosperity", "Harmony & Victory", "Harmony & Power", "Harmony & Truth", "Resolve & Virtue", "Resolve & Labor", "Acceptance & Peace", "Acceptance & Strife", "Acceptance & Love", "Integrity & Pleause", "Integrity & Labor"], "bossNames": ["ATAVAKA", "BAAL", "BAAL ZEBUL", "DOMINION", "FAFNIR", "KARTIKEYA", "KOHRYU", "MARA", "NIDHOGGR", "OUMITSUNU", "SLAUGHTER DRIVE", "SURT", "VISHNU", "YATSUFUSA"], "awarenessOpts": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "DGR"], "revOpts": ["RX", "R0", "R1", "R2", "R3", "R4", "R5", "R6"], "typeOpts": ["MLD", "DOD", "NOD", "SOS"], "tierOpts": ["DOLPHIN", "F2P", "MINNOW", "WHALE"], "elucidatorOpts": ["ANGE", "FUUKA", "MIKU", "OKYANN", "ORACLE", "PHOEBE", "PUPPET", "WIND"], "initial": {"rotationName": "Rotation Name", "tier": "WHALE", "boss": "FAFNIR", "type": "MLD", "patch": "4.3", "score": "1.0E9", "team": ["WONDER", "CHORD", "YUKARI", "VIOLET"], "elucidator": "ORACLE", "awareness": ["A6", "DGR", "A1", "A6", "A6"], "rev": ["R6", "R5", "R0", "R6", "R6"], "persona": ["Dionysus", "Sraosha", "Kohryu"], "skills": ["TARUKAJA", "RAKUNDA"], "gear": ["Glimmer", "Trust & Prosperity", "Creation & Reconciliation", "Wisdom & Virtue", "Resolve & Labor"], "notes": "Includes DPS & Navi", "turns": [{"name": "TURN 1", "actions": [{"char": "ANGE", "action": "S3 if A1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 2", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 3", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S1 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "CHORD", "action": "HL"}, {"char": "CHORD", "action": "S3 Violet"}, {"char": "VIOLET", "action": "HL HL S3"}]}, {"name": "TURN 4", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1 if A0, S2 if A1+"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 5", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2 if A0, S1 if A1+"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 6", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S2 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "ANGE", "action": "HL Chord"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "CHORD", "action": "S3 Violet x2"}, {"char": "ANGE", "action": "S3"}, {"char": "VIOLET", "action": "HL HL S3"}]}]}, "sunSkyCards": ["Change", "Control", "Courage", "Defeat", "Depravity", "Determination", "Disappointment", "Flourishing", "Futility", "Hindrance", "Labor", "Love", "Obtain", "Oppression", "Opulence", "Peace", "Pleasure", "Power", "Prosperity", "Prudence", "Reconciliation", "Renewal", "Ruin", "Satiety", "Sorrow", "Strife", "Tenacity", "Triumph", "Truth", "Victory", "Virtue", "Worry"], "spaceCards": ["Acceptance", "Agility", "Awareness", "Creation", "Departure", "Faith", "Freedom", "Growth", "Harmony", "Hope", "Integrity", "Meditation", "Nativity", "Perseverance", "Purity", "Resolve", "Trust", "Wisdom"], "spacePartners": {"Nativity": ["Power"], "Perseverance": ["Change", "Obtain", "Sorrow"], "Hope": ["Change", "Labor", "Ruin"], "Creation": ["Reconciliation", "Tenacity", "Worry"], "Integrity": ["Labor", "Pleasure", "Ruin"], "Resolve": ["Labor", "Prudence", "Virtue"], "Awareness": ["Control", "Hindrance", "Truth"], "Departure": ["Control", "Hindrance", "Prosperity"], "Growth": ["Opulence", "Power", "Renewal"], "Wisdom": ["Oppression", "Pleasure", "Virtue"], "Meditation": ["Courage", "Love", "Opulence"], "Faith": ["Futility", "Love", "Peace"], "Trust": ["Power", "Prosperity", "Renewal"], "Harmony": ["Power", "Truth", "Victory"], "Acceptance": ["Love", "Peace", "Strife"], "Freedom": ["Defeat", "Disappointment", "Triumph"], "Purity": ["Change", "Depravity", "Flourishing"], "Agility": ["Flourishing", "Hindrance", "Satiety"]}, "charColors": {"MIKU": "#3a6dfa", "MONA·S": "#82ec2c", "JOKER·S": "#ff0036", "AIGIS": "#fe9e01", "CLOSER·R": "#fcff37", "ANRI": "#ff0036", "KOROMARU": "#ff0036", "PINKY": "#ff66ff", "JUNPEI": "#ff391d", "TWINS": "#ffffff", "SOY·P": "#fe9e01", "LUCE·N": "#ffffa2", "FUUKA": "#3a6dfa", "MITSURU": "#00afff", "BUI·P": "#00fcff", "BLITZ": "#fcff37", "PUPPET·S": "#00afff", "MARIAN·S": "#ffffa2", "BERRY": "#ff0036", "AKIHIKO": "#fcff37", "YUKARI": "#82ec2c", "MAKOTO": "#ff391d", "ANGE": "#3a6dfa", "LUCE": "#ffffa2", "TURBO": "#ff9d00", "CROW": "#ffffff", "MATOI": "#00afff", "RIN·F": "#ff391d", "WIND·T": "#82ec2c", "VIOLET": "#ffffa2", "HOWLER": "#ff391d", "MONT·F": "#82ec2c", "NOIR": "#ff66ff", "CHERISH": "#00afff", "ORACLE": "#3a6dfa", "MESSA": "#ff9d00", "MOKO·S": "#ff66ff", "CLOSER·T": "#ffffa2", "CHORD": "#fcff37", "WIND": "#3a6dfa", "PHOEBE": "#3a6dfa", "QUEEN": "#00fcff", "VINO": "#00fcff", "FOX": "#00afff", "BUI": "#fcff37", "MARIAN": "#ffffa2", "JOKER": "#ff0036", "SKULL": "#ff9d00", "MONA": "#82ec2c", "PANTHER": "#ff391d", "RIN": "#ff0036", "RIDDLE": "#ff66ff", "CATTLE": "#ff391d", "LEON": "#00fcff", "CLOSER": "#fcff37", "MONT": "#00afff", "SOY": "#00afff", "FLEURET": "#82ec2c", "YUKI": "#ffffa2", "KEY": "#ff391d", "MOKO": "#ff66ff", "SEPIA": "#ff0036", "PUPPET": "#3a6dfa", "OKYANN": "#3a6dfa"}, "elucidatorNames": ["ANGE", "FUUKA", "ORACLE", "WIND", "PHOEBE", "PUPPET", "OKYANN", "MIKU"]};
@@ -2991,6 +3025,10 @@ window.addEventListener('resize', ()=>{
 let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical';
 const _playTouch = (function(){ try{ return (window.matchMedia&&window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window); }catch(e){ return false; } })();
 function _playLandscape(){ return (window.innerWidth||0) > (window.innerHeight||0); }   /* direct dimensions are more reliable than the orientation media query on iOS Safari */
+const _isIphone = /iPhone|iPod/.test(navigator.userAgent||'');
+function _isStandalone(){ return !!(window.navigator&&window.navigator.standalone) || (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches); }
+function _iosSafariLandscape(){ return _isIphone && !_isStandalone() && _playLandscape(); }
+function _playWantsHorizontal(){ return _playLandscape() && !(_isIphone && !_isStandalone()); }   /* iPhone Safari can't run the horizontal player well -> stay vertical */
 const _fsSupported=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 function _fsEl(){ return document.fullscreenElement||document.webkitFullscreenElement; }
 function _playEnterFs(){ const r=document.getElementById('playRoot'); if(!r||!_fsSupported||_fsEl()) return; try{ (r.requestFullscreen||r.webkitRequestFullscreen).call(r); }catch(e){} }
@@ -3030,7 +3068,7 @@ function openPlayMode(){
     if(_playTouch) root.classList.add('play-touch');
   }
   _playMode='turn'; _playTurn=0; _playAct=0;
-  _playLayout = _playTouch ? (_playLandscape()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
+  _playLayout = _playTouch ? (_playWantsHorizontal()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
   root.hidden=false; document.body.classList.add('play-open');
   renderPlay();
   if(_playTouch && _fsSupported) _playEnterFs();   /* the Play tap is a user gesture, so fullscreen is allowed (iPad/Android; iPhone Safari has no element fullscreen) */
@@ -3060,7 +3098,7 @@ function renderPlay(){
   if(_playMode==='action'){
     const flat=_playFlat();
     if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; r.querySelector('#playHint').textContent=''; mkDots(-1); return; }
-    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, accent=charColor(a.char);
+    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, accent=uiAccent(a.char);
     r.querySelector('#playPos').textContent=(_playAct+1)+' / '+flat.length;
     const inTurn=flat.filter(x=>x.ti===it.ti), posInTurn=inTurn.indexOf(it)+1, leftInTurn=inTurn.length-posInTurn;
     const sub='Action '+posInTurn+' / '+inTurn.length+' in this turn'+(leftInTurn>0?(' · '+leftInTurn+' to go'):' · last action');
@@ -3074,7 +3112,7 @@ function renderPlay(){
   const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const t=turns[i]||{actions:[]}, isBreak=dod&&n>=DOD_BREAKS&&i>=n-DOD_BREAKS, horiz=_playLayout==='horizontal';
   r.querySelector('#playPos').textContent=(i+1)+' / '+n;
   const acts=(t.actions||[]).filter(a=>a&&a.char);
-  const rows=acts.length?acts.map((a,k)=>{ const accent=charColor(a.char);
+  const rows=acts.length?acts.map((a,k)=>{ const accent=uiAccent(a.char);
     if(horiz) return '<div class="play-act block" style="border-top-color:'+esc(accent)+'"><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
     return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
   }).join(''):'<div class="play-empty">No actions in this turn.</div>';
@@ -3089,11 +3127,16 @@ document.addEventListener('keydown',e=>{ const r=document.getElementById('playRo
   if(e.key==='ArrowLeft'){ e.preventDefault(); playStep(-1); }
   else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); playStep(1); }
   else if(e.key==='Escape'){ e.preventDefault(); closePlayMode(); } });
-function _playOrient(){ const r=document.getElementById('playRoot'); if(!r||r.hidden||!_playTouch) return;
-  const want=_playLandscape()?'horizontal':'vertical'; if(want!==_playLayout){ _playLayout=want; renderPlay(); } }
+function _playOrient(){ const r=document.getElementById('playRoot'); if(r&&!r.hidden&&_playTouch){
+    const want=_playWantsHorizontal()?'horizontal':'vertical'; if(want!==_playLayout){ _playLayout=want; renderPlay(); } }
+  _updateIosRotate(); }
+// full-page notice on iPhone Safari (not the Home-Screen web app) in landscape: the horizontal player needs
+// real fullscreen, which Safari on iPhone doesn't allow — point the user to "Add to Home Screen".
+function _updateIosRotate(){ const o=document.getElementById('iosRotate'); if(!o) return; o.hidden=!_iosSafariLandscape(); }
 window.addEventListener('resize', _playOrient);
 // iOS Safari updates the window dimensions late after a rotation, so re-check a couple of times
 window.addEventListener('orientationchange', ()=>{ _playOrient(); setTimeout(_playOrient,250); setTimeout(_playOrient,600); });
+_updateIosRotate();
 // block iOS Safari pinch-zoom while the player is open
 document.addEventListener('gesturestart', e=>{ const r=document.getElementById('playRoot'); if(r&&!r.hidden) e.preventDefault(); }, {passive:false});
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ const r=document.getElementById('playRoot'); if(r) r.classList.toggle('is-fs', !!_fsEl()); }));
@@ -3225,6 +3268,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619b2</div>
+<div class="version-tag">260619c2</div>
 </body>
 </html>
