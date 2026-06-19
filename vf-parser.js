@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A076   (bumped +1 on every change; A199 -> B001)
+   Version: A077   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -449,9 +449,11 @@ function parseRotationText(text, opts){
           t2=t2.replace(/\s*[-–—]?\s*\bcredits?\s*:\s*.+?(?=\s[-–—]\s|$)/i,' '); } }
       // expected score: a number followed by a magnitude — a bare letter (2.4B) or spelled out
       // (2.4bil / 600 mil / 2.8 trillion). The score field holds one number, so when several are
-      // listed ("2.4bil with A1, 2.8bil with A2") only the FIRST is taken; the rest stays in the name.
+      // listed ("2.4bil with A1, 2.8bil with A2") only the FIRST is copied into the field. It is NOT
+      // cut from the title — the score usually sits inside prose ("2.4bil with A1"), so removing it
+      // would leave the rotation name unreadable; it simply stays in the name as written.
       const sm=t2.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
-      if(sm){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; t2=t2.replace(sm[0],' '); }
+      if(sm){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; }
       // patch: an x.y version number (major 1-19). The export always writes it first
       // ("4.1 DOD ..."), so prefer one at the start of the (score-stripped) title.
       { const at=t2.trim().match(/^(\d{1,2}\.\d+)\b/);
@@ -716,5 +718,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A076';
+  _g.VF_PARSER_VERSION = 'A077';
 })();
