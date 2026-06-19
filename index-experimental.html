@@ -399,7 +399,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:1000; pointer-events:none; user-select:none}
-.combo-panel{position:fixed; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
+.combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
 .combo-item{padding:6px 10px; border-radius:5px; font:600 13px Inter,sans-serif; color:var(--text); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .combo-item:hover{background:#2a2740}
 .combo-item.active{background:var(--blue-strong); color:#fff}
@@ -466,7 +466,7 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-seg button+button{border-left:1px solid var(--line)}
 .play-seg button.on{background:var(--blue-strong); color:#0b1626}
 /* horizontal turn layout: actions in a swipeable row, centered when they fit */
-.play-actions.horiz{flex-direction:row; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; width:auto; max-width:100%; padding-bottom:10px; -webkit-overflow-scrolling:touch}
+.play-actions.horiz{flex-direction:row; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; width:100%; max-width:100%; justify-content:safe center; padding-bottom:10px; -webkit-overflow-scrolling:touch}
 .play-act.block{flex:0 0 auto; width:230px; flex-direction:column; align-items:flex-start; gap:8px; border-left:1px solid var(--line); border-top:6px solid var(--line)}
 .play-act.block .play-actor{flex:none; font-size:22px}
 .play-act.block .play-actdetail{flex:none}
@@ -3176,7 +3176,9 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
     if(k==='char') return input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
     return [];
   }
-  function position(){ if(!active) return; const r=active.getBoundingClientRect(); panel.style.left=r.left+'px'; panel.style.top=(r.bottom+3)+'px'; panel.style.minWidth=r.width+'px'; }
+  function position(){ if(!active) return; const r=active.getBoundingClientRect();
+    const sx=window.scrollX||window.pageXOffset||0, sy=window.scrollY||window.pageYOffset||0;   // document coords so the panel scrolls with the page (fixes iOS Safari freezing fixed elements mid-scroll)
+    panel.style.left=(r.left+sx)+'px'; panel.style.top=(r.bottom+sy+3)+'px'; panel.style.minWidth=r.width+'px'; }
   function render(){
     panel.innerHTML = items.length
       ? items.map((o,i)=>`<div class="combo-item${i===idx?' active':''}" data-i="${i}">${esc(o)}</div>`).join('')
@@ -3273,6 +3275,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619f2</div>
+<div class="version-tag">260619g2</div>
 </body>
 </html>
