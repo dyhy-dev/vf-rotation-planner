@@ -736,6 +736,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="theme-opt" data-theme="dark">Dark</button>
         </div>
       </div>
+      <div class="set-group-title" style="margin-top:18px">Default credit</div>
+      <div class="set-row" style="display:block">
+        <div><div class="set-label">Default credit</div><div class="set-sub">Filled into the Credits field for a new rotation, and after a text import when no credit was recognized</div></div>
+        <input type="text" id="setDefaultCredit" placeholder="e.g. your name" autocomplete="off" style="margin-top:8px; width:100%; box-sizing:border-box; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; color:var(--text); font-family:inherit; font-size:14px"/>
+      </div>
       <div class="set-group-title" style="margin-top:18px">Notes fields</div>
       <div class="set-row">
         <div><div class="set-label">Character notes</div><div class="set-sub">Per-character note field on each unit card</div></div>
@@ -1049,8 +1054,9 @@ function defaultState(){
 }
 function blankState(){
   const u=()=>({name:'',awareness:'A0',rev:'RX',gear:'',space:'',sunsky:'',role:'',companion:''});
+  const _dc=(typeof settings!=='undefined' && settings && settings.defaultCredit||'').trim();
   return {
-    setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''},
+    setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:_dc},
     units:[{name:'WONDER',awareness:'DGR',rev:'R0',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
     elucidator:u(),
     personas:[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}],
@@ -1102,7 +1108,7 @@ function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
-const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false };
+const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false, defaultCredit:'' };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
 function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} }
@@ -1205,6 +1211,8 @@ function openImportText(){
       const clean=JSON.parse(JSON.stringify(res.state));
       (clean.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ delete a._fuzzy; delete a._uncertain; delete a._twinsHL; }));
       let st; try{ st=migrate(clean); }catch(e){ hint.textContent='Sorry, that text could not be applied.'; return; }
+      // no credit recognized in the import -> fall back to the user's default credit from Settings
+      if(st.setup && !String(st.setup.credits||'').trim() && (settings.defaultCredit||'').trim()) st.setup.credits=settings.defaultCredit.trim();
       state=st; save(); renderAll();
       IMP_MISS=computeImportMiss(state);
       paintImp();
@@ -2372,6 +2380,7 @@ function syncSettingsModal(){
   document.getElementById('setImportPopup').checked=!!settings.importNotePopup;
   document.getElementById('setTextTurnOrder').checked=!!settings.textTurnOrder;
   document.getElementById('setPreviewOpen').checked=!!settings.previewExpanded;
+  { const dc=document.getElementById('setDefaultCredit'); if(dc) dc.value=settings.defaultCredit||''; }
   document.querySelectorAll('#themeSwitch .theme-opt').forEach(x=>x.classList.toggle('on', x.dataset.theme===(settings.theme||'dark')));
   document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical')));
   document.getElementById('setAbbrHL').checked=!!settings.abbrHighlight;
@@ -2399,6 +2408,7 @@ document.getElementById('settingsModal').addEventListener('click', e=>{
 });
 (function(){ const t=(id,key)=>{ const el=document.getElementById(id); if(el) el.onchange=()=>{ settings[key]=el.checked; saveSettings(); applySettings(); }; };
   t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaNotes','showPersonaNotes'); t('setPersonaImgLeft','personaImgLeft'); t('setImportPopup','importNotePopup'); t('setTextTurnOrder','textTurnOrder'); })();
+{ const dc=document.getElementById('setDefaultCredit'); if(dc) dc.oninput=()=>{ settings.defaultCredit=dc.value; saveSettings(); }; }
 document.getElementById('setPreviewOpen').onchange=function(){ settings.previewExpanded=this.checked; saveSettings(); rotationPreviewOpen=this.checked; renderRotationPreview(); };
 (function(){ function rr(){ renderRotationPreview(); if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody(); }
   const hl=document.getElementById('setAbbrHL'); if(hl) hl.onchange=function(){ settings.abbrHighlight=this.checked; saveSettings(); rr(); };
@@ -3278,6 +3288,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619L</div>
+<div class="version-tag">260619M</div>
 </body>
 </html>
