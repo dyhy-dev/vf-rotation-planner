@@ -1474,6 +1474,9 @@ function backupCharName(){
   for(const u of all){ if(u && (u.name||'').toUpperCase()==='FUUKA' && (u.companion||'').trim()) return u.companion.trim(); }
   return '';
 }
+/* The backup as a full unit object (build from state.backup + name mirrored from the companion),
+   or null when no backup is chosen. Used by every export so the off-team backup shows up. */
+function backupUnit(){ const nm=backupCharName(); return nm ? Object.assign({}, state.backup, {name:nm}) : null; }
 function teamChars(){
   const all=[...state.units, state.elucidator];
   const comp=all.filter(u=>u && (u.name||'').toUpperCase()==='FUUKA').map(u=>u.companion);
@@ -2243,6 +2246,15 @@ function buildTextExport(){
     if((u.note||'').trim()) line+=' ('+u.note.trim()+')';
     team.push(line);
   });
+  // Fuuka's off-team Backup, tagged so the parser restores its build into state.backup
+  { const _bk=backupUnit();
+    if(_bk){
+      const prefix=((_bk.awareness||'').trim()+(_bk.rev||'').trim());
+      const cards=[_bk.space,_bk.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
+      let line='Backup: '+(prefix?prefix+' ':'')+((_bk.name||'').toUpperCase()===MIKU_NAME?'Miku':titleCase(_bk.name))+(cards?': '+cards:'');
+      if((_bk.note||'').trim()) line+=' ('+_bk.note.trim()+')';
+      team.push(line);
+    } }
   if(team.length){ L.push(''); L.push(...team);
     if(settings.textTurnOrder){ const ord=(state.units||[]).map(u=>(u.name||'').trim()).filter(Boolean)
         .map(nm=>nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm));
@@ -2601,6 +2613,8 @@ function buildCSV(){
   const e=state.elucidator;
   const ee=(e.name||'').toUpperCase()==='FUUKA' && e.companion ? 'Backup: '+e.companion : '';
   rows.push(['Elucidator', e.name, e.awareness, e.rev, gearText(e), ee]);
+  const _bk=backupUnit();
+  if(_bk) rows.push(['Backup', _bk.name, _bk.awareness, _bk.rev, gearText(_bk), '']);
   rows.push([]); rows.push(['PERSONAS']); rows.push(['#','Persona','Skill 1','Skill 2','Skill 3']);
   state.personas.forEach((p,i)=>rows.push([i+1, p.name, p.skills[0]||'', p.skills[1]||'', p.skills[2]||'']));
   if((state.teamNotes||'').trim()){ rows.push([]); rows.push(['Team Notes', state.teamNotes]); }
@@ -2652,7 +2666,8 @@ async function exportSheet(){
   // TEAM
   sectionHeader('TEAM');
   headerCell(row,1,'Slot'); headerCell(row,2,'Character'); headerCell(row,3,'Awareness'); headerCell(row,4,'Rev'); merge(row,5,6); headerCell(row,5,'Gear'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box; merge(row,7,8); headerCell(row,7,'Role / Backup'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box; row++;
-  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]);
+  const _bkRow=backupUnit();
+  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]).concat(_bkRow?[{u:_bkRow,label:'Backup'}]:[]);
   teamRows.forEach(({u,label})=>{
     set(row,1,label,{bold:true,color:MUTED,fill:PANEL});
     const nm=u.name||''; const col=nm?charColor(nm):null;
@@ -2792,7 +2807,8 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     ${(u.note && !_hn.char)?`<div style="font:500 11px Inter,sans-serif;color:${C.soft};margin-top:6px;padding-top:6px;border-top:1px solid ${C.border};line-height:1.35;white-space:pre-wrap;">${esc(u.note)}</div>`:''}
   </div>`;
   };
-  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), cardStrip(u.name, C))).join('')+card(state.elucidator,'ELUCIDATOR',C.elu);
+  const _bkCard=backupUnit();
+  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), cardStrip(u.name, C))).join('')+card(state.elucidator,'ELUCIDATOR',C.elu)+(_bkCard?card(_bkCard,'BACKUP',cardStrip(_bkCard.name, C)):'');
   const persona=state.personas.filter(p=>(p.name||'').trim());
   const tnText=(!_hn.team ? (state.teamNotes||'').trim() : '');
   let personaLine='', tnLine='';
@@ -2949,15 +2965,17 @@ function renderExport(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs)
 }
 function collectExportImages(){
   const portraits={}, pImgs={}, dImgs={}, deImgs={}, seen={}, tasks=[];
-  [...state.units, state.elucidator].forEach(u=>{
+  const _bk=backupUnit();
+  const exUnits=[...state.units, state.elucidator].concat(_bk?[_bk]:[]);
+  exUnits.forEach(u=>{
     const src=imgFor(u.name); if(!src || seen['c:'+u.name]) return; seen['c:'+u.name]=1;
     tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
   });
-  [...state.units, state.elucidator].forEach(u=>{
+  exUnits.forEach(u=>{
     const dn=u.gear, src=daggerImg(dn); if(!src || seen['d:'+dn]) return; seen['d:'+dn]=1;
     tasks.push(loadImg(src).then(img=>{ dImgs[dn]=fullDataURL(img); }).catch(()=>{}));
   });
-  [...state.units, state.elucidator].forEach(u=>{
+  exUnits.forEach(u=>{
     if((u.name||'').toUpperCase()!=='TWINS') return; const td=TWINS_ROLE_DUALS[u.role]; if(!td) return;
     td.forEach(dn=>{ const src=dualElemImg(dn); if(!src||seen['de:'+dn])return; seen['de:'+dn]=1;
       tasks.push(loadImg(src).then(img=>{ deImgs[dn]=fullDataURL(img); }).catch(()=>{})); });
@@ -3307,6 +3325,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620f</div>
+<div class="version-tag">260620g</div>
 </body>
 </html>

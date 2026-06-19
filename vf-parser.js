@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A091   (bumped +1 on every change; A199 -> B001)
+   Version: A092   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -296,6 +296,7 @@ function parseRotationText(text, opts){
   const charData={}; // name -> {awareness,rev,space,sunsky,note}
   const charOrder=[];
   let dagger='', personas=[], twinsRole=''; const headerDuals=[];
+  let backupName='';   // Fuuka's off-team backup character, from an explicit "Backup:" line
   const noteLines=[];
   const got={}; // track which info recognized
   const titleBuilds={}; // builds stated in the title (name -> {awareness,rev}); applied only to real units at the end
@@ -390,6 +391,23 @@ function parseRotationText(text, opts){
     // a "Turn order: A > B > C > D" line (an optional text-export summary) is derived from the unit order — ignore it
     if(/^turn\s*order\s*[:–—-]/i.test(line)) continue;
     if(line==='\u0000') continue;
+
+    // Fuuka's off-team backup: "Backup: [A#R#] Name [: space + sunsky] [(note)]" -> build into charData, name remembered
+    { const bkm=line.match(/^back-?up\b\s*[:\-–—]?\s*(.+)$/i);
+      if(bkm){ let s2=bkm[1].trim(), info={};
+        const am2=s2.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\s+/i);
+        if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
+        let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/); if(nm2){ note=nm2[1].trim(); s2=s2.slice(0,nm2.index).trim(); }
+        let namePart=s2, cardsPart=''; const cm2=s2.match(/^([^:]+):\s*(.+)$/)||s2.match(/^(.+?)\s+[-–—]\s+(.+)$/); if(cm2){ namePart=cm2[1].trim(); cardsPart=cm2[2].trim(); }
+        if(!info.awareness){ const am3=namePart.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i); if(am3){ info.awareness=am3[1].toUpperCase(); if(am3[2])info.rev=_rev(am3[2]); namePart=namePart.replace(am3[0],' ').replace(/\s+/g,' ').trim(); } }
+        const a2=resolveActor((namePart.split(/\s+/)[0]||''));
+        if(a2 && a2.type==='char'){ let cp2=cardPair(cardsPart);
+          if(!cp2.space && !cp2.sunsky){ const restToks=namePart.split(/\s+/).slice(1).join(' '); if(restToks) cp2=cardPair(restToks); }
+          const ci={}; if(info.awareness)ci.awareness=info.awareness; if(info.rev)ci.rev=info.rev; if(cp2.space)ci.space=cp2.space; if(cp2.sunsky)ci.sunsky=cp2.sunsky; if(note)ci.note=note;
+          addChar(a2.name, ci); backupName=a2.name; got.team=1;
+          continue;
+        }
+      } }
 
     // "<Boss>: <persona> (skills), <persona> (skills), …" -> boss + Wonder personas
     { const lm0=line.match(/^([^:]+):\s*(.+)$/);
@@ -707,6 +725,10 @@ function parseRotationText(text, opts){
   if(charOrder.includes('TURBO')||turnChars.includes('TURBO')||actionOrder.includes('TURBO')) addOrd('TURBO');
   actionOrder.forEach(addOrd); if(hasWonder) addOrd('WONDER'); charOrder.forEach(addOrd); turnChars.forEach(addOrd);
 
+  // Fuuka's explicit backup (from a "Backup:" line) is off-team: keep it out of the 4 team slots
+  let backup=blankUnit();
+  if(backupName){ const bi=ordered.indexOf(backupName); if(bi>=0) ordered.splice(bi,1); }
+
   const units=[blankUnit(),blankUnit(),blankUnit(),blankUnit()];
   let elucidator=blankUnit();
   let ui=0; const placed=new Set();
@@ -717,7 +739,7 @@ function parseRotationText(text, opts){
   // place every character (incl. Wonder, at its action-order position) into units; a 5th extra char becomes Fuuka's backup
   for(const nm of ordered){ if(placed.has(nm))continue;
     if(ui>3){ const fuuka=[...units,elucidator].find(u=>(u.name||'').toUpperCase()==='FUUKA');
-      if(fuuka && !fuuka.companion){ fuuka.companion=nm; placed.add(nm); } else warn.push(nm+' (no free team slot)'); continue; }
+      if(fuuka && !fuuka.companion){ fuuka.companion=nm; if(!backupName) backup=Object.assign(blankUnit(),pick(charData[nm])); placed.add(nm); } else warn.push(nm+' (no free team slot)'); continue; }
     if(nm==='WONDER'){ units[ui]=Object.assign(blankUnit(),{name:'WONDER',awareness:'DGR',rev:(charData['WONDER']&&charData['WONDER'].rev)||'',gear:dagger||''}); }
     else units[ui]=Object.assign(blankUnit(),{name:nm},pick(charData[nm]));
     placed.add(nm); ui++; }
@@ -738,6 +760,10 @@ function parseRotationText(text, opts){
   // default card set per character: fill space/sun-sky only when the text gave none (an explicit set in the import wins)
   [...units,elucidator].forEach(u=>{ if(!u.name)return;
     if(!u.space && !u.sunsky){ const def=CHAR_CARD_DEFAULTS[(u.name||'').toUpperCase()]; if(def){ u.space=def.space; u.sunsky=def.sunsky; } } });
+  // explicit "Backup:" line -> hang it on Fuuka's companion + restore the off-team build (name lives in the companion)
+  if(backupName){ const fuuka=[...units,elucidator].find(u=>(u.name||'').toUpperCase()==='FUUKA');
+    if(fuuka){ fuuka.companion=backupName; } else warn.push(backupName+' (Backup needs Fuuka on the team)');
+    backup=Object.assign(blankUnit(),pick(charData[backupName])); }
   function pick(d){ d=d||{}; return {awareness:d.awareness||'',rev:d.rev||'',space:d.space||'',sunsky:d.sunsky||'',role:d.role||'',companion:d.companion||'',note:d.note||''}; }
 
   // merge in Wonder-action personas not already listed (more sources -> more reliable), header order first, up to 3
@@ -783,7 +809,7 @@ function parseRotationText(text, opts){
   if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
   const teamNotes=noteLines.join('\n');
 
-  return { state:{setup,units,elucidator,personas:pslots,teamNotes,turns}, warnings:warn, got };
+  return { state:{setup,units,elucidator,backup,personas:pslots,teamNotes,turns}, warnings:warn, got };
 }
 
   /* ---- expose to the tool (and to tests). assignments, so re-loading is safe ---- */
@@ -807,5 +833,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A091';
+  _g.VF_PARSER_VERSION = 'A092';
 })();
