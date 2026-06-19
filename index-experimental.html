@@ -1385,6 +1385,7 @@ function renderTeam(){
       const u=getByPath(el.dataset.uname);
       u.name=el.value;
       if((u.name||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; u.rev='R6'; }
+      else u.gear='';   // dropped Wonder -> clear the dagger (non-Wonder units use revelation cards, not a dagger)
       const _def=CHAR_CARD_DEFAULTS[(u.name||'').toUpperCase()];
       u.space=_def?_def.space:''; u.sunsky=_def?_def.sunsky:'';
       save(); renderTeam(); renderTurns();
@@ -2513,7 +2514,10 @@ function exportBaseName(){
   name=name.replace(/[\\/:*?"<>|\r\n\t]+/g,'-').replace(/\s+/g,' ').trim();
   return name||'rotation';
 }
-function gearText(u){ return u.gear || [u.space,u.sunsky].filter(Boolean).join(' & '); }
+function gearText(u){ // Wonder shows its dagger (in gear); everyone else shows their revelation cards — never a stale dagger
+  if((u.name||'').toUpperCase()==='WONDER') return u.gear||'';
+  const cards=[u.space,u.sunsky].filter(Boolean).join(' & ');
+  return cards || (u.gear && u.gear.indexOf(' & ')>-1 ? u.gear : ''); }
 
 function buildCSV(){
   const s=state.setup, rows=[];
@@ -3221,6 +3225,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619a2</div>
+<div class="version-tag">260619b2</div>
 </body>
 </html>
