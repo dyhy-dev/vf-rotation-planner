@@ -304,6 +304,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .abbr-check{display:flex; gap:8px; align-items:flex-start; font:500 12px Inter,sans-serif; color:var(--muted); margin:6px 0 2px; cursor:pointer; line-height:1.4}
 .abbr-check input{margin:2px 0 0; flex:0 0 auto}
 .set-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line)}
+/* narrow screens: rows with a wide segmented switch (Theme, Orientation) wrap the switch onto its own line so it isn't clipped */
+@media (max-width:560px){ .set-row-seg{flex-wrap:wrap} .set-row-seg>div:first-child{flex:1 1 100%} }
 .set-row:last-of-type{border-bottom:none}
 .set-row .set-label{font:600 13px Inter,sans-serif; color:var(--text)}
 .set-row .set-sub{font:400 12px Inter,sans-serif; color:var(--muted); margin-top:2px}
@@ -723,7 +725,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
     <div class="set-body">
       <div class="set-group-title">Appearance</div>
-      <div class="set-row">
+      <div class="set-row set-row-seg">
         <div><div class="set-label">Theme</div><div class="set-sub">Light or dark mode, or follow your system setting. The image export always stays dark.</div></div>
         <div class="theme-switch" id="themeSwitch" title="Choose the colour theme">
           <button class="theme-opt" data-theme="system">System</button>
@@ -758,7 +760,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <label class="toggle"><input type="checkbox" id="setImportPopup"><span class="track"></span><span class="thumb"></span></label>
       </div>
       <div class="set-group-title" style="margin-top:18px">Rotation layout</div>
-      <div class="set-row">
+      <div class="set-row set-row-seg">
         <div><div class="set-label">Orientation</div><div class="set-sub">Vertical or horizontal layout (linked with the switch in the editor)</div></div>
         <div class="view-switch" id="viewSwitchSettings" title="Switch between vertical and horizontal layout">
           <button class="view-opt" data-view="vertical">Vertical</button>
@@ -3268,6 +3270,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619c2</div>
+<div class="version-tag">260619d2</div>
 </body>
 </html>
