@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A090   (bumped +1 on every change; A199 -> B001)
+   Version: A091   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -302,6 +302,10 @@ function parseRotationText(text, opts){
 
   function addChar(name,info){ if(!charData[name]){charData[name]={};charOrder.push(name);} Object.assign(charData[name],info); }
 
+  // inline "Score 175m" — the word "Score" directly followed by a number+magnitude, even mid-sentence
+  for(let i=0;i<headerLines.length && !setup.score;i++){
+    const im=headerLines[i].match(/\bscores?\b\s*[:\-–—]?\s*(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
+    if(im){ setup.score=im[1]+im[2][0].toUpperCase(); got.score=1; } }
   // a standalone "Score" / "Expected Score" section header: the score sits on the next non-empty line
   // ("Score\n86M with A1R0 …") — grab the first number+magnitude (the field holds one number)
   for(let i=0;i<headerLines.length && !setup.score;i++){
@@ -769,7 +773,8 @@ function parseRotationText(text, opts){
       turns.forEach(t=>{ if(!/break/i.test(t.name))return; (t.actions||[]).forEach(a=>{ if(a&&a.char&&!seen.includes(a.char))seen.push(a.char); }); });
       if(seen.length) dueOrder=seen.filter(n=>slotNames.includes(n)).concat(slotNames.filter(n=>!seen.includes(n))); }
     turns.forEach(t=>{ const acts=t.actions||[]; if(!acts.some(a=>a&&a.guardSolo))return;
-      const acting=new Set(acts.filter(a=>a&&a.char&&!a.guardSolo).map(a=>a.char));
+      // a unit whose only actions are free (HL / Assist) hasn't used its main action yet, so it's still idle and can take a lone Guard
+      const acting=new Set(acts.filter(a=>a&&a.char&&!a.guardSolo&&!['HL','Ast'].includes(a.btn)).map(a=>a.char));
       const idle=dueOrder.filter(nm=>nm!==eluName && !acting.has(nm)); let gi=0;
       t.actions=acts.map(a=>{ if(!a||!a.guardSolo)return a; const nm=idle[gi++]; return nm?{char:nm,btn:'Gd',text:''}:a; })
         .filter(a=>!(a&&a.guardSolo)); });
@@ -802,5 +807,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A090';
+  _g.VF_PARSER_VERSION = 'A091';
 })();
