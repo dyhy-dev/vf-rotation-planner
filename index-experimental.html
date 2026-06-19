@@ -1387,9 +1387,15 @@ function autoCorrectPlan(){
     if(!teamUp.includes(cn.toUpperCase()) && !missing.includes(cn)) missing.push(cn); }));
   const acting=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char) acting.add(a.char.toUpperCase()); }));
   const free=[]; (state.units||[]).forEach(u=>{ const nm=u.name; if(nm && nm.toUpperCase()!=='WONDER' && !acting.has(nm.toUpperCase()) && !free.includes(nm)) free.push(nm); });
-  const charReplacements=[]; { const n=Math.min(missing.length, free.length);
-    for(let i=0;i<n;i++) charReplacements.push({from:missing[i], to:free[i]}); }
-  const unmatchedChars=missing.slice(charReplacements.length);
+  // the elucidator slot can also receive a replacement: when it was swapped in the team, the OLD elucidator
+  // name still appears in the actions and should map to the current elucidator (which now acts nowhere).
+  const eluNm=(state.elucidator&&state.elucidator.name)||'';
+  let eluFree = !!eluNm && !acting.has(eluNm.toUpperCase());
+  const isElu=n=>(DATA.elucidatorNames||[]).includes((n||'').toUpperCase());
+  const charReplacements=[]; const restMiss=[];
+  missing.forEach(m=>{ if(eluFree && isElu(m)){ charReplacements.push({from:m, to:eluNm}); eluFree=false; } else restMiss.push(m); });
+  { const n=Math.min(restMiss.length, free.length); for(let i=0;i<n;i++) charReplacements.push({from:restMiss[i], to:free[i]}); }
+  const unmatchedChars=restMiss.slice(Math.min(restMiss.length, free.length));
 
   // ---- persona replacements: Wonder persona used in turns but not in a slot ----
   const slotPersUp=state.personas.map(p=>(p.name||'').trim().toUpperCase()).filter(Boolean);
@@ -2991,6 +2997,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619l</div>
+<div class="version-tag">260619m</div>
 </body>
 </html>
