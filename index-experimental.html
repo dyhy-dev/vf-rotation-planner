@@ -349,11 +349,22 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .dc-ico{width:16px; height:16px; fill:currentColor; flex:0 0 auto}
 .io-keep[hidden]{display:none}
 .io-keep input{cursor:pointer; margin:0}
-.imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; min-width:240px; min-height:120px; resize:both; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
+.imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; min-width:240px; min-height:120px; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
 .imp-note[hidden]{display:none}
-.imp-note.collapsed{max-height:none; min-height:0; resize:none}
+.imp-note.collapsed{max-height:none; min-height:0}
 .imp-note.collapsed .imp-note-body{display:none}
-.imp-note-btns{display:flex; align-items:center; gap:2px}
+.imp-note.collapsed .imp-rz{display:none}
+/* drag handles on every edge + corner so the window resizes from all sides (CSS `resize` only offers SE) */
+.imp-rz{position:absolute; z-index:2; touch-action:none}
+.imp-rz-n{top:0; left:0; right:0; height:6px; cursor:ns-resize}
+.imp-rz-s{bottom:0; left:0; right:0; height:6px; cursor:ns-resize}
+.imp-rz-w{top:0; bottom:0; left:0; width:6px; cursor:ew-resize}
+.imp-rz-e{top:0; bottom:0; right:0; width:6px; cursor:ew-resize}
+.imp-rz-nw{top:0; left:0; width:12px; height:12px; cursor:nwse-resize; z-index:3}
+.imp-rz-ne{top:0; right:0; width:12px; height:12px; cursor:nesw-resize; z-index:3}
+.imp-rz-sw{bottom:0; left:0; width:12px; height:12px; cursor:nesw-resize; z-index:3}
+.imp-rz-se{bottom:0; right:0; width:12px; height:12px; cursor:nwse-resize; z-index:3}
+.imp-note-btns{display:flex; align-items:center; gap:2px; position:relative; z-index:5}
 .imp-note-eye,.imp-note-pop{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:2px 4px; border-radius:6px; display:inline-flex; align-items:center}
 .imp-note-eye:hover,.imp-note-pop:hover{color:var(--text)}
 .imp-note-eye .eye-off{display:none}
@@ -671,6 +682,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <div id="importNote" class="imp-note" hidden>
   <div class="imp-note-head" id="impNoteHead"><span>Imported text</span><span class="imp-note-btns"><button type="button" class="imp-note-eye" id="impNoteEye" aria-label="Collapse" title="Collapse"><svg class="eye-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button><button type="button" class="imp-note-pop" id="impNotePop" aria-label="Open in a separate browser window" title="Open in a separate browser window"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M21 3l-9 9"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></button><button type="button" class="imp-note-x" id="impNoteX" aria-label="Close" title="Close">&times;</button></span></div>
   <pre class="imp-note-body" id="impNoteBody"></pre>
+  <div class="imp-rz imp-rz-n" data-dir="n"></div><div class="imp-rz imp-rz-s" data-dir="s"></div><div class="imp-rz imp-rz-w" data-dir="w"></div><div class="imp-rz imp-rz-e" data-dir="e"></div><div class="imp-rz imp-rz-nw" data-dir="nw"></div><div class="imp-rz imp-rz-ne" data-dir="ne"></div><div class="imp-rz imp-rz-sw" data-dir="sw"></div><div class="imp-rz imp-rz-se" data-dir="se"></div>
 </div>
 <div id="discBanner" class="disc-banner" hidden><span class="disc-msg"></span><button type="button" class="disc-x" aria-label="Dismiss">&times;</button></div>
 
@@ -2096,9 +2108,11 @@ function _showImportNotePanel(text){
   document.getElementById('impNoteBody').textContent=text||'';
   p.classList.remove('collapsed');
   p.style.transform='none'; p.hidden=false;
-  p.style.left='12px';
-  p.style.top='72px';
   p.style.width=''; p.style.height=''; delete p.dataset.h;   // back to the default content-fit size (still user-resizable)
+  p.style.top='72px';
+  // appear on the RIGHT side of the window
+  const w0=p.offsetWidth||340;
+  p.style.left=Math.max(8, (window.innerWidth||800)-w0-12)+'px';
 }
 // open the imported text in its own browser window (pop-up). Called from the panel's pop-out button
 // (reads the current text) or directly on import when the pop-up preference is on.
@@ -2113,11 +2127,14 @@ function popOutImportNote(text){
   const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   w.document.open();
   w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-    +'<title>Imported text — VFRP</title><style>html,body{margin:0;height:100%}'
+    +'<title>Imported text - VFRP</title><style>html,body{margin:0;height:100%}'
     +'body{background:#14121c;color:#f3f1f7;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace}'
     +'pre{margin:0;padding:14px;white-space:pre-wrap;word-break:break-word}</style></head>'
     +'<body><pre>'+esc(t)+'</pre></body></html>');
-  w.document.close(); try{ w.focus(); }catch(e){}
+  w.document.close();
+  // about:blank pop-ups show the URL as the title until it is set explicitly
+  try{ w.document.title='Imported text - VFRP'; }catch(e){}
+  try{ w.focus(); }catch(e){}
   const p=document.getElementById('importNote'); if(p) p.hidden=true;   // the in-tool panel is redundant now
 }
 (function(){
@@ -2140,10 +2157,24 @@ function popOutImportNote(text){
     head.addEventListener('mousedown', e=>{ if(onBtn(e.target)) return; start(e.clientX,e.clientY); e.preventDefault(); });
     head.addEventListener('touchstart', e=>{ if(onBtn(e.target)) return; const tt=e.touches[0]; start(tt.clientX,tt.clientY); }, {passive:true});
   }
-  document.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
-  document.addEventListener('mouseup', end);
-  document.addEventListener('touchmove', e=>{ if(!dragging) return; const tt=e.touches[0]; move(tt.clientX,tt.clientY); }, {passive:true});
-  document.addEventListener('touchend', end);
+  // resize from any edge/corner (the data-dir handles); keeps the opposite edge fixed
+  const MINW=240, MINH=120; let rz=null;
+  const rzStart=(dir,cx,cy)=>{ const r=p.getBoundingClientRect(); rz={dir,sx:cx,sy:cy,sl:r.left,st:r.top,sw:r.width,sh:r.height}; p.style.transform='none'; document.body.style.userSelect='none'; };
+  const rzMove=(cx,cy)=>{ if(!rz) return; const d=rz.dir, dx=cx-rz.sx, dy=cy-rz.sy, vw=window.innerWidth||800, vh=window.innerHeight||600;
+    let l=rz.sl, t=rz.st, w=rz.sw, h=rz.sh;
+    if(d.indexOf('e')>=0) w=Math.max(MINW, Math.min(rz.sw+dx, vw-rz.sl));
+    if(d.indexOf('s')>=0) h=Math.max(MINH, Math.min(rz.sh+dy, vh-rz.st));
+    if(d.indexOf('w')>=0){ w=Math.min(Math.max(MINW, rz.sw-dx), rz.sl+rz.sw); l=rz.sl+rz.sw-w; }
+    if(d.indexOf('n')>=0){ h=Math.min(Math.max(MINH, rz.sh-dy), rz.st+rz.sh); t=rz.st+rz.sh-h; }
+    p.style.width=w+'px'; p.style.height=h+'px'; p.style.left=l+'px'; p.style.top=t+'px'; };
+  const rzEnd=()=>{ if(rz){ rz=null; document.body.style.userSelect=''; } };
+  p.querySelectorAll('.imp-rz').forEach(hd=>{ const dir=hd.dataset.dir;
+    hd.addEventListener('mousedown', e=>{ e.preventDefault(); e.stopPropagation(); rzStart(dir,e.clientX,e.clientY); });
+    hd.addEventListener('touchstart', e=>{ e.stopPropagation(); const tt=e.touches[0]; rzStart(dir,tt.clientX,tt.clientY); }, {passive:true}); });
+  document.addEventListener('mousemove', e=>{ move(e.clientX,e.clientY); rzMove(e.clientX,e.clientY); });
+  document.addEventListener('mouseup', ()=>{ end(); rzEnd(); });
+  document.addEventListener('touchmove', e=>{ const tt=e.touches[0]; if(dragging) move(tt.clientX,tt.clientY); else if(rz) rzMove(tt.clientX,tt.clientY); }, {passive:true});
+  document.addEventListener('touchend', ()=>{ end(); rzEnd(); });
 })();
 document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
 function _abbrRows(map, aliasData, kind){
@@ -2935,6 +2966,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619d</div>
+<div class="version-tag">260619e</div>
 </body>
 </html>
