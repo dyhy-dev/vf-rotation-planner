@@ -342,6 +342,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .io-body{padding:18px 22px 22px}
 .io-text{display:block; width:100%; box-sizing:border-box; min-height:120px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--text); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.5; resize:vertical}
 .io-hint{min-height:16px; margin:8px 2px 0; font:600 12px Inter,sans-serif; color:var(--blue)}
+.io-disclaimer{margin:10px 0 0; padding:9px 12px; border:1px solid #e0445e; border-radius:8px; background:rgba(224,68,94,.12); color:#e0445e; font:600 12px Inter,sans-serif; line-height:1.4}
+.io-disclaimer[hidden]{display:none}
 .io-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
 .io-keep{display:flex; align-items:center; gap:8px; margin-top:10px; font:500 14px Inter,sans-serif; color:var(--muted); cursor:pointer; user-select:none}
 .io-caption{font:600 11px Inter,sans-serif; color:var(--muted); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.05em}
@@ -637,6 +639,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
     <div class="io-body">
       <textarea id="ioText" class="io-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
+      <div class="io-disclaimer" id="ioDisclaimer" hidden></div>
       <div class="io-hint" id="ioHint"></div>
       <label class="io-keep" id="ioDodRow" hidden><input type="checkbox" id="ioDod"> DOD rotation</label>
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
@@ -1114,7 +1117,8 @@ function showImportFeedback(res){
   let txt='Text import complete.\n\n'+L.join('\n');
   if(P.length) txt+='\n\nNot imported / please check:\n'+P.join('\n');
   txt+='\n\nEmpty fields that still need attention are highlighted in yellow in the editor.';
-  openShareModal({title:'Import Summary', text:txt, readonly:true, primaryLabel:'Close', onPrimary:(t,h,close)=>close(), autoHeight:true, noSelect:true, hidePrimary:true});
+  openShareModal({title:'Import Summary', text:txt, readonly:true, primaryLabel:'Close', onPrimary:(t,h,close)=>close(), autoHeight:true, noSelect:true, hidePrimary:true,
+    disclaimer:'The text import can misread or miss things. Always double-check the imported rotation (team, personas, cards and every turn) before you use or share it.'});
 }
 function openImportText(){
   openShareModal({title:'Import Text', text:'', readonly:false, showKeepText:true, showDodToggle:true,
@@ -2062,6 +2066,7 @@ function openShareModal(opts){
   { const dr=document.getElementById('ioDodRow'); if(dr){ dr.hidden=!opts.showDodToggle; const cb=document.getElementById('ioDod'); if(cb) cb.checked=false; } }
   { const pv=document.getElementById('ioParserVer'); if(pv){ pv.hidden=!opts.showDodToggle; pv.textContent=(window.VF_PARSER_VERSION||''); } }
   document.getElementById('ioHint').textContent=opts.hint||'';
+  { const dc=document.getElementById('ioDisclaimer'); if(dc){ dc.textContent=opts.disclaimer||''; dc.hidden=!opts.disclaimer; } }
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
   const shBtn=document.getElementById('ioShorten');
@@ -3164,6 +3169,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619u</div>
+<div class="version-tag">260619v</div>
 </body>
 </html>
