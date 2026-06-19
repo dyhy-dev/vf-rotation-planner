@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A088   (bumped +1 on every change; A199 -> B001)
+   Version: A089   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -300,6 +300,15 @@ function parseRotationText(text, opts){
   const got={}; // track which info recognized
 
   function addChar(name,info){ if(!charData[name]){charData[name]={};charOrder.push(name);} Object.assign(charData[name],info); }
+
+  // a standalone "Score" / "Expected Score" section header: the score sits on the next non-empty line
+  // ("Score\n86M with A1R0 …") — grab the first number+magnitude (the field holds one number)
+  for(let i=0;i<headerLines.length && !setup.score;i++){
+    if(!/^(?:expected\s+)?scores?\s*:?\s*$/i.test(headerLines[i])) continue;
+    for(let k=i+1;k<headerLines.length;k++){ const v=headerLines[k]; if(!v||v===' ') continue;
+      const sm=v.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
+      if(sm){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; } break; }
+  }
 
   // title (first header line) -> boss/mode/patch
   let titleConsumed=false;
@@ -778,5 +787,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A088';
+  _g.VF_PARSER_VERSION = 'A089';
 })();
