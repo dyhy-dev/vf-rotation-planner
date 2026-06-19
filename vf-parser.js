@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A082   (bumped +1 on every change; A199 -> B001)
+   Version: A083   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -511,15 +511,17 @@ function parseRotationText(text, opts){
     }
   }
 
-  function parsePersonaList(str){ if(!str)return; str.split(/,(?![^(]*\))/).forEach(chunk=>parsePersonaLine(chunk)); }
+  function parsePersonaList(str){ if(!str)return; str.split(/,(?![^(\[]*[)\]])/).forEach(chunk=>parsePersonaLine(chunk)); }
   function parsePersonaLine(line){
     line=String(line||'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'').trim();
     if(!line) return false;
-    let nameStr=line, skillStr='', noteStr='';
+    // a bracketed [note] (how the text export writes a persona note) -> note, removed from the line
+    let bnote=''; { const bm=line.match(/\[([^\]]*)\]/); if(bm){ bnote=bm[1].trim(); line=line.replace(/\s*\[[^\]]*\]\s*/,' ').trim(); } }
+    let nameStr=line, skillStr='', noteStr=bnote;
     // 1) Name <dash/colon> skills  — separator wins; a parenthetical here is a note on the skill, not the skill
     let dm=line.match(/^(.*?)\s*[:\u2013\u2014]\s*(.+)$/) || line.match(/^(.*?)\s+-\s+(.+)$/);
     if(dm){ nameStr=dm[1].trim(); let rhs=dm[2].trim();
-      const pn=rhs.match(/\(([^)]*)\)/); if(pn){ noteStr=pn[1].trim(); rhs=rhs.replace(/\s*\([^)]*\)/g,'').trim(); }
+      const pn=rhs.match(/\(([^)]*)\)/); if(pn){ noteStr=[noteStr,pn[1].trim()].filter(Boolean).join(', '); rhs=rhs.replace(/\s*\([^)]*\)/g,'').trim(); }
       skillStr=rhs; }
     else {
       // 2) Name (skills) — here the parenthetical IS the skill list (e.g. boss line "Vishnu (Wind of Nirvana)")
@@ -750,5 +752,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A082';
+  _g.VF_PARSER_VERSION = 'A083';
 })();
