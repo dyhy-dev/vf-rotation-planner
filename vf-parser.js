@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A073   (bumped +1 on every change; A199 -> B001)
+   Version: A074   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -117,8 +117,11 @@ function expandSkillText(text, persona){
 }
 function buildActions(actor,toks,raw,warn){
   if(!actor){ if(raw&&raw.trim())warn.push(raw.trim()); return []; }
-  // collapse the two-word button name "Da Capo"/"De Capo" into the DC token (Ange's ALT)
-  { const t2=[]; for(let i=0;i<toks.length;i++){ if(i+1<toks.length && /^(da|de)$/i.test(toks[i]) && /^capo$/i.test(toks[i+1].replace(/[().]/g,''))){ t2.push('DC'); i++; } else t2.push(toks[i]); } toks=t2; }
+  // collapse the two-word button name "Da Capo"/"De Capo" into the DC token (Ange's ALT), and a spaced
+  // repeat count "x 2" into "x2" so the lone "2" isn't mistaken for an S2 action ("Da Capo x 2" = DC twice).
+  { const t2=[]; for(let i=0;i<toks.length;i++){ if(i+1<toks.length && /^(da|de)$/i.test(toks[i]) && /^capo$/i.test(toks[i+1].replace(/[().]/g,''))){ t2.push('DC'); i++; }
+      else if(i+1<toks.length && /^x$/i.test(toks[i]) && /^\d+$/.test(toks[i+1])){ t2.push('x'+toks[i+1]); i++; }
+      else t2.push(toks[i]); } toks=t2; }
   const isW=actor.type==='persona'||actor.name==='WONDER';
   if(isW){ const hl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
     const pname=actor.type==='persona'?actor.name:'';
@@ -384,6 +387,11 @@ function parseRotationText(text, opts){
     // "<name> - <space> <sun/sky>" revelation line (dash separator), e.g. "Chord - Trust Prosperity".
     // Cards may be written without the "&" ("Trust Prosperity") — cardPair handles that.
     { const dm=line.match(/^(.+?)\s+[-\u2013\u2014]\s+(.+)$/);
+      // dagger + persona list with a dash separator ("Purgatory - Dion (Taru), Dominion"), the dash-form
+      // twin of the "Dagger: persona, persona" line above \u2014 only when the dagger maps and the first
+      // right-hand token is a known persona (so "Makoto - Hope + Ruin" stays a card line).
+      if(dm){ const dgd=matchDagger(dm[1].trim()), p0=resolveActor((dm[2].trim().split(/[\s,(]+/)[0])||'');
+        if(dgd && p0 && p0.type==='persona'){ dagger=dgd; got.dagger=1; parsePersonaList(dm[2].trim()); continue; } }
       if(dm){ const a=resolveActor(dm[1].trim().split(/\s+/)[0]);
         if(a && a.type==='char'){ const cp=cardPair(dm[2].trim());
           if(cp.space||cp.sunsky){ const info={}; if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky; addChar(a.name,info); got.cards=1; continue; } } } }
@@ -699,5 +707,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A073';
+  _g.VF_PARSER_VERSION = 'A074';
 })();
