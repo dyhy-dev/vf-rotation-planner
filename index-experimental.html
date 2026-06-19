@@ -762,6 +762,7 @@ const DUAL_ELEM_IMG = {
   'Bless/Curse':'elements/Bless_Curse.png'
 };
 const ACT_SPECIAL = ['MAKOTO','YUKARI','AKIHIKO','MITSURU','JUNPEI','KOROMARU','AIGIS','FUUKA']; // the "SEES" characters (THEURGY/ASSIST); FUUKA is SEES but Elucidator rules take priority
+const MIKU_NAME='HATSUNE MIKU'; const MIKU_SONGS=['Heaven','Spring Storm','Play-With-Fire']; // Miku's elucidator songs (action-row dropdown)
 const SOS_BOSSES = ["ASURA","BAPHOMET","BISHAMONTEN","CU CHULAINN","LILITH AOE","LILITH ST","MELCHIZEDEK","POWER","QUETZALCOATL","SEIRYU","SETH","SRAOSHA","TITANIA","VISHNU","ZAOU-GONGEN"];
 function bossListFor(type){ return type==='SOS' ? SOS_BOSSES : DATA.bossNames; }
 const ACT_CODES = ['S1','S2','S3','HL','Atk','Gn','Gd','Ast'];
@@ -796,7 +797,8 @@ function actionLabel(a, name, abbr){
   }
   const special=ACT_SPECIAL.includes((name||'').toUpperCase());
   const lbl=c=>!c?'':(c==='ALT'?altExportLabel(name):(c==='HL'?(special?'Theurgy':'Highlight'):(BTN_LABEL[c]||c)));
-  return [lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+  const song=((name||'').toUpperCase()===MIKU_NAME)?(a.song||''):'';
+  return [song, lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
 }
 function migrateAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
@@ -1600,7 +1602,11 @@ function actRow(a, ti, ai){
     const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
     const lab=c=>(c==='HL'&&special)?'TG':btnLabel(c);
     const rows=actButtonRows(a.char).map(group=>`<div class="act-actions">${group.map(c=>`<button type="button" class="actbtn ${a.btn===c?'on':''}" data-actset="${ti}.${ai}" data-code="${esc(c)}">${esc(lab(c))}</button>`).join('')}</div>`).join('');
-    midBody=`${rows}<input data-taction="${ti}.${ai}" value="${esc(a.text||'')}"/>`;
+    // Hatsune Miku's song selector (sits under her name, above the S1/S2/S3 buttons)
+    let songSel='';
+    if((a.char||'').toUpperCase()===MIKU_NAME){ const cur=a.song||''; const extra=(cur && !MIKU_SONGS.includes(cur))?[cur]:[];
+      songSel=`<select data-msong="${ti}.${ai}"><option value=""${cur?'':' selected'}>Song…</option>${extra.concat(MIKU_SONGS).map(s=>`<option${cur===s?' selected':''}>${esc(s)}</option>`).join('')}</select>`; }
+    midBody=`${songSel}${rows}<input data-taction="${ti}.${ai}" value="${esc(a.text||'')}"/>`;
   }
   const altHtml = hasAlt(a.char) ? `<button type="button" class="actbtn altbtn ${a.btn==='ALT'?'on':''}" data-actset="${ti}.${ai}" data-code="ALT">${esc(altBtnLabel(a.char))}</button>` : '';
   return `<div class="act${actionDiscrepant(a)?' discrepant':''}" style="--ax:${col}" data-ti="${ti}" data-ai="${ai}">
@@ -1693,6 +1699,7 @@ function renderTurns(){
   wrap.querySelectorAll('[data-tname]').forEach(el=>el.oninput=e=>{state.turns[+el.dataset.tname].name=e.target.value; save(); renderRotationPreview();});
   wrap.querySelectorAll('[data-tnote]').forEach(el=>el.oninput=e=>{state.turns[+el.dataset.tnote].note=e.target.value; save(); renderRotationPreview();});
   wrap.querySelectorAll('[data-taction]').forEach(el=>el.oninput=e=>{const[t,a]=el.dataset.taction.split('.');state.turns[t].actions[a].text=e.target.value; save(); renderRotationPreview(); refreshDiscHints();});
+  wrap.querySelectorAll('[data-msong]').forEach(el=>el.onchange=e=>{const[t,a]=el.dataset.msong.split('.');state.turns[t].actions[a].song=e.target.value; save(); renderRotationPreview();});
   wrap.querySelectorAll('[data-tchar]').forEach(el=>el.onchange=e=>{
     const[t,a]=el.dataset.tchar.split('.'); const o=state.turns[t].actions[a]; o.char=e.target.value;
     if((o.char||'').toUpperCase()!=='WONDER' && o.btn && !(actCodesFor(o.char).includes(o.btn) || (o.btn==='ALT'&&hasAlt(o.char)))) o.btn='';
@@ -1876,7 +1883,9 @@ function compactEncode(st){
       const pi=a.persona?pnames.indexOf(a.persona):-1;
       return [ _io(a.char,R), pi>=0?pi:(a.persona||''), a.hl?1:0, a.text||'', a.skill||'', _io(a.btn||'',AC) ];
     }
-    return [ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
+    const e=[ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
+    if((a.char||'').toUpperCase()===MIKU_NAME && (a.song||'')) e.push(a.song);
+    return e;
   };
   return [1,
     [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
@@ -1898,7 +1907,9 @@ function compactDecode(arr){
     if((charName||'').toUpperCase()==='WONDER'){
       return { char:'WONDER', persona:typeof a[1]==='number'?(pnames[a[1]]||''):(a[1]||''), hl:!!a[2], text:a[3]||'', skill:a[4]||'', btn:_oi(a[5],AC)||'' };
     }
-    return { char:charName, btn:_oi(a[1],AC), text:a[2]||'' };
+    const o={ char:charName, btn:_oi(a[1],AC), text:a[2]||'' };
+    if((charName||'').toUpperCase()===MIKU_NAME && a[3]) o.song=a[3];
+    return o;
   };
   return {
     setup:{ rotationName:su[0]||'', tier:su[1]||'', boss:su[2]||'', type:_oi(su[3],TY), patch:su[4]||'', score:su[5]||'', notes:su[6]||'', credits:su[7]||'' },
@@ -2021,6 +2032,8 @@ function maskedDiscordLink(label,url){ return '['+String(label||'').replace(/[\[
 async function openShareLink(){ let url; try{ url=await shareLinkURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
   openShareModal({title:'Share Editor Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, discordUrl:url, discordLabel:discordLabel(), shortenFragment:(url.split('#')[1]||'')});  }
 function titleCase(s){ return String(s||'').toLowerCase().replace(/(^|[\s·.\-/'])([a-z])/g,(m,p,c)=>p+c.toUpperCase()); }
+/* display name in the preview/exports: Hatsune Miku is always shown short as "Miku" */
+function charDisp(name){ return (name||'').toUpperCase()===MIKU_NAME ? 'Miku' : (name||''); }
 function textAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
   if(isW){
@@ -2030,8 +2043,10 @@ function textAction(a){
   }
   const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
   const lbl=c=>!c?'':(c==='ALT'?altBtnLabel(a.char):(c==='HL'?(special?'TG':'HL'):(BTN_LABEL[c]||c)));
-  const rest=[lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
-  return [titleCase(a.char||''), rest].filter(Boolean).join(' ');
+  const isMiku=(a.char||'').toUpperCase()===MIKU_NAME;
+  const rest=[isMiku?(a.song||''):'', lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+  // Miku uses the short single-token label so "Miku Heaven" round-trips cleanly (the full two-word name would not)
+  return [isMiku?'Miku':titleCase(a.char||''), rest].filter(Boolean).join(' ');
 }
 function buildTextExport(){
   const s=state.setup, L=[];
@@ -2051,7 +2066,7 @@ function buildTextExport(){
     } else {
       const prefix=((u.awareness||'').trim()+(u.rev||'').trim());
       const cards=[u.space,u.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
-      line=(prefix?prefix+' ':'')+titleCase(nm)+(cards?': '+cards:'');
+      line=(prefix?prefix+' ':'')+(nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm))+(cards?': '+cards:'');
     }
     if((u.note||'').trim()) line+=' ('+u.note.trim()+')';
     team.push(line);
@@ -2504,7 +2519,7 @@ async function exportSheet(){
     const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
     for(let ai=0;ai<maxA;ai++){
       band.forEach(({t,j})=>{ const c1=2*j+1; const a=(t.actions||[])[ai];
-        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,a.char||'',{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char,true)||'',{}); }
+        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,charDisp(a.char),{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char,true)||'',{}); }
         else { set(row,c1,'',{}); set(row,c1+1,'',{}); }
       });
       row++;
@@ -2532,7 +2547,7 @@ function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
       ${t.note?`<span style="font:500 11px Inter,sans-serif;color:${C.soft};text-align:right;flex:1;min-width:0;">${esc(t.note)}</span>`:''}</div>
     ${(t.actions||[]).map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${cardStrip(a.char, C)};margin-bottom:3px;background:${actionDiscrepant(a)?C.disc:C.panel};border-radius:4px;">
       <span style="font:700 11px Oswald,sans-serif;color:${C.muted};min-width:12px;">${i+1}</span>
-      <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
+      <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(charDisp(a.char))}</span>
       <span style="font:500 11px Inter,sans-serif;color:${C.text};flex:1;">${esc(actionLabel(a, a.char, true))}</span></div>`).join('')}
   </div>`; };
   const perRow=mobile?1:(function(n){ if(n<=4) return Math.max(1,n); if(n%4===0) return 4; if(n%3===0) return 3; return n===5?3:4; })(nT);
@@ -2547,7 +2562,7 @@ function turnsBlockHorizontal(mobile, C){ C=C||EX_DARK;
   const dodX=s.type==='DOD', nT=state.turns.length;
   const block=(a,i)=>`<div style="position:relative;flex:0 0 100px;width:100px;min-height:44px;box-sizing:border-box;background:${actionDiscrepant(a)?C.disc:C.panel};border:1px solid ${C.border};border-top:3px solid ${cardStrip(a.char, C)};border-radius:5px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;align-items:center;">
       <span style="position:absolute;top:2px;left:4px;font:700 9px Oswald,sans-serif;color:#6f6a85;line-height:1;">${i+1}</span>
-      <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(a.char||'')}</div>
+      <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(charDisp(a.char))}</div>
       <div style="font:600 11px Inter,sans-serif;color:${C.text};text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char, true))}</div></div>`;
   const turnRow=(t,ti)=>{ const isBreak=dodX&&nT>=DOD_BREAKS&&ti>=nT-DOD_BREAKS;
     const acts=(t.actions||[]).map(block).join('');
@@ -2579,7 +2594,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     return `<div style="${M?'flex:1 1 148px;min-width:148px;max-width:calc(50% - 6px);':'width:'+TEAMW+'px;'}background:${C.panel};border:1px solid ${C.border};border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
     ${art}
     <div style="font:700 10px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;">${esc(label)}</div>
-    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(u.name||'—')}</div>
+    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(charDisp(u.name)||'—')}</div>
     <div style="font:600 12px Inter,sans-serif;color:${C.soft};">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
     <div style="font:500 11px Inter,sans-serif;color:${C.muted};margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
     ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:${C.gold};margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
@@ -2870,7 +2885,7 @@ window.addEventListener('resize', ()=>{
   }; });
 })();
 
-const CHAR_ALIASES = {"HATSUNE MIKU":["Hatsune","Miku"],"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·S":["Marian","Minami","Summer","SMarian","SMinami"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
+const CHAR_ALIASES = {"HATSUNE MIKU":["Hatsune","Miku","HM"],"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·S":["Marian","Minami","Summer","SMarian","SMinami"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
 const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy Worm"]};
 /* ---------- combobox (Boss / Personas) + discrepancy banner dismiss ---------- */
 (function(){
@@ -2976,6 +2991,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619j</div>
+<div class="version-tag">260619l</div>
 </body>
 </html>
