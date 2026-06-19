@@ -157,7 +157,7 @@ button{cursor:pointer}
 .twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:var(--field); border:1px solid var(--line); border-radius:5px; padding:2px 6px}
 .twins-dual .td-lab{font:700 11px "Oswald",sans-serif; color:var(--blue-soft)}
 .twins-dual img{height:18px; width:auto; display:block; margin-left:auto}
-body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version-tag){ display:none !important; }
+body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version-tag):not(#playRoot){ display:none !important; }
 #viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:16px 16px 12px; overflow-x:auto; }
 #viewHeader{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; max-width:1024px; margin:0 auto 16px; }
 #viewBrandWrap{ display:flex; align-items:center; gap:16px; }
@@ -216,6 +216,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .persona-col .skills{display:flex; flex-direction:column; gap:6px; margin-top:8px}
 .persona-col .skills input{width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
 .persona-col .skills .sig-skill{opacity:.7; cursor:default; border-style:dashed; color:var(--blue-strong)}
+.persona-col .skills .persona-note{font-weight:400; font-style:italic; color:var(--muted)}
 .persona-col .skills .combo-wrap{width:100%}
 .persona-col select:focus,.persona-col input.persona-name:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
 .pcol-body{display:flex; gap:8px; align-items:stretch; margin-top:6px}
@@ -287,8 +288,9 @@ body.persona-img-left .pcol-body{flex-direction:row-reverse}
 body.hide-rota-notes .notes-row{display:none}
 body.hide-team-notes .team-notes{display:none}
 body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{display:none}
+body.hide-persona-notes .persona-col .persona-note{display:none}
 .set-body{padding:4px 20px 20px}
-.set-group-title{font:600 11px Inter,sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:6px 0 2px}
+.set-group-title{font:600 11px Inter,sans-serif; color:var(--blue-strong); text-transform:uppercase; letter-spacing:.05em; margin:6px 0 2px}
 .abbr-list{max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:6px 8px; margin-top:4px}
 .abbr-cols{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px}
 .abbr-col .set-label{margin:0}
@@ -302,6 +304,8 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .abbr-check{display:flex; gap:8px; align-items:flex-start; font:500 12px Inter,sans-serif; color:var(--muted); margin:6px 0 2px; cursor:pointer; line-height:1.4}
 .abbr-check input{margin:2px 0 0; flex:0 0 auto}
 .set-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line)}
+/* narrow screens: rows with a wide segmented switch (Theme, Orientation) wrap the switch onto its own line so it isn't clipped */
+@media (max-width:560px){ .set-row-seg{flex-wrap:wrap} .set-row-seg>div:first-child{flex:1 1 100%} }
 .set-row:last-of-type{border-bottom:none}
 .set-row .set-label{font:600 13px Inter,sans-serif; color:var(--text)}
 .set-row .set-sub{font:400 12px Inter,sans-serif; color:var(--muted); margin-top:2px}
@@ -340,6 +344,8 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .io-body{padding:18px 22px 22px}
 .io-text{display:block; width:100%; box-sizing:border-box; min-height:120px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--text); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.5; resize:vertical}
 .io-hint{min-height:16px; margin:8px 2px 0; font:600 12px Inter,sans-serif; color:var(--blue)}
+.io-disclaimer{margin:10px 0 0; padding:9px 12px; border:1px solid #e0445e; border-radius:8px; background:rgba(224,68,94,.12); color:#e0445e; font:600 12px Inter,sans-serif; line-height:1.4}
+.io-disclaimer[hidden]{display:none}
 .io-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
 .io-keep{display:flex; align-items:center; gap:8px; margin-top:10px; font:500 14px Inter,sans-serif; color:var(--muted); cursor:pointer; user-select:none}
 .io-caption{font:600 11px Inter,sans-serif; color:var(--muted); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.05em}
@@ -349,13 +355,24 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .dc-ico{width:16px; height:16px; fill:currentColor; flex:0 0 auto}
 .io-keep[hidden]{display:none}
 .io-keep input{cursor:pointer; margin:0}
-.imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
+.imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; min-width:240px; min-height:120px; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
 .imp-note[hidden]{display:none}
-.imp-note.collapsed{max-height:none}
+.imp-note.collapsed{max-height:none; min-height:0}
 .imp-note.collapsed .imp-note-body{display:none}
-.imp-note-btns{display:flex; align-items:center; gap:2px}
-.imp-note-eye{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:2px 4px; border-radius:6px; display:inline-flex; align-items:center}
-.imp-note-eye:hover{color:var(--text)}
+.imp-note.collapsed .imp-rz{display:none}
+/* drag handles on every edge + corner so the window resizes from all sides (CSS `resize` only offers SE) */
+.imp-rz{position:absolute; z-index:2; touch-action:none}
+.imp-rz-n{top:0; left:0; right:0; height:6px; cursor:ns-resize}
+.imp-rz-s{bottom:0; left:0; right:0; height:6px; cursor:ns-resize}
+.imp-rz-w{top:0; bottom:0; left:0; width:6px; cursor:ew-resize}
+.imp-rz-e{top:0; bottom:0; right:0; width:6px; cursor:ew-resize}
+.imp-rz-nw{top:0; left:0; width:12px; height:12px; cursor:nwse-resize; z-index:3}
+.imp-rz-ne{top:0; right:0; width:12px; height:12px; cursor:nesw-resize; z-index:3}
+.imp-rz-sw{bottom:0; left:0; width:12px; height:12px; cursor:nesw-resize; z-index:3}
+.imp-rz-se{bottom:0; right:0; width:12px; height:12px; cursor:nwse-resize; z-index:3}
+.imp-note-btns{display:flex; align-items:center; gap:2px; position:relative; z-index:5}
+.imp-note-eye,.imp-note-pop{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:2px 4px; border-radius:6px; display:inline-flex; align-items:center}
+.imp-note-eye:hover,.imp-note-pop:hover{color:var(--text)}
 .imp-note-eye .eye-off{display:none}
 .imp-note.collapsed .imp-note-eye .eye-on{display:none}
 .imp-note.collapsed .imp-note-eye .eye-off{display:inline-flex}
@@ -382,7 +399,7 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:1000; pointer-events:none; user-select:none}
-.combo-panel{position:fixed; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
+.combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
 .combo-item{padding:6px 10px; border-radius:5px; font:600 13px Inter,sans-serif; color:var(--text); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .combo-item:hover{background:#2a2740}
 .combo-item.active{background:var(--blue-strong); color:#fff}
@@ -397,8 +414,113 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .disc-banner{position:fixed; top:0; left:0; right:0; z-index:1500; display:flex; align-items:center; gap:12px; padding:10px 16px; background:#5a1d28; border-bottom:1px solid #e0445e; color:#ffd9df; font:600 13px Inter,sans-serif; box-shadow:0 2px 10px #0007}
 .disc-banner[hidden]{display:none}
 .disc-banner .disc-msg{flex:1; min-width:0}
+.disc-banner .disc-ac{flex:0 0 auto; background:#e0445e; border:1px solid #e0445e; color:#2c0710; font:700 12px Inter,sans-serif; padding:5px 12px; border-radius:6px; cursor:pointer}
+.disc-banner .disc-ac:hover{background:#ec6076; border-color:#ec6076}
+.disc-banner .disc-ac[hidden]{display:none}
 .disc-banner .disc-x{flex:0 0 auto; background:transparent; border:none; color:#ffd9df; font-size:20px; line-height:1; cursor:pointer; padding:0 4px}
 .disc-banner .disc-x:hover{color:#fff}
+/* Play mode (full-screen player) */
+body.play-open{overflow:hidden}
+#playRoot{position:fixed; inset:0; z-index:4000; background:radial-gradient(1200px 600px at 70% -10%, #241f38 0%, var(--ink) 60%), var(--ink); color:var(--text); display:flex; flex-direction:column; font-family:Inter,sans-serif}
+#playRoot, #playRoot *{ touch-action:pan-x pan-y }   /* allow scroll/swipe but block pinch- and double-tap-zoom */
+body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%, #f0edf8 0%, var(--ink) 60%), var(--ink) }
+#playRoot[hidden]{display:none}
+.play-head{display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); flex:0 0 auto}
+.play-title{font:700 17px Oswald,sans-serif; color:var(--blue); letter-spacing:.04em; flex:1 1 0; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase}
+.play-segs{flex:0 0 auto; display:flex; align-items:center; gap:10px}
+.play-right{flex:1 1 0; display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0}
+.play-pos{font:700 15px Oswald,sans-serif; color:var(--muted); letter-spacing:.08em; flex:0 0 auto}
+.play-close{background:transparent; border:none; color:var(--muted); font-size:32px; line-height:1; cursor:pointer; padding:0 6px; flex:0 0 auto}
+.play-close:hover{color:var(--text)}
+.play-fs{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:4px 8px; flex:0 0 auto; display:inline-flex; align-items:center}
+.play-fs:hover{color:var(--text)}
+.play-fs .fs-exit{display:none}
+#playRoot.is-fs .play-fs .fs-enter{display:none}
+#playRoot.is-fs .play-fs .fs-exit{display:inline-flex}
+.play-body{flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:safe center; padding:28px 18px; gap:22px}
+.play-turn-name{font:700 34px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
+.play-turn-name.brk{color:#e0445e}
+.play-turn-sub{font:600 15px Inter,sans-serif; color:var(--muted); margin-top:-14px}
+.play-actions{display:flex; flex-direction:column; gap:14px; width:100%; max-width:880px; flex:0 0 auto}
+.play-act{display:flex; align-items:baseline; gap:16px; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--line); border-radius:12px; padding:18px 24px}
+.play-actn{font:700 15px Oswald,sans-serif; color:var(--muted); flex:0 0 20px}
+.play-actor{font:700 24px Oswald,sans-serif; letter-spacing:.03em; flex:0 0 168px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.play-actdetail{font:600 22px Inter,sans-serif; color:var(--text); flex:1; min-width:0}
+.play-empty{color:var(--muted); font-size:16px}
+.play-note{color:var(--muted); font-size:14px; max-width:880px; text-align:center}
+.play-hint{flex:0 0 auto; text-align:center; color:var(--muted); font-size:12px; padding:2px 0 8px}
+.play-nav{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 24px 18px; border-top:1px solid var(--line)}
+.play-navbtn{background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:12px 22px; font:700 15px Inter,sans-serif; cursor:pointer; min-width:112px}
+.play-navbtn:hover:not(:disabled){border-color:var(--blue-strong)}
+.play-navbtn:disabled{opacity:.4; cursor:default}
+.play-dots{display:flex; gap:9px; flex-wrap:wrap; justify-content:center; flex:1 1 auto}
+.play-dot{width:11px; height:11px; border-radius:50%; background:var(--line); cursor:pointer; border:none; padding:0; box-sizing:border-box}
+.play-dot.on{background:var(--blue-strong)}
+.play-dot.brk{background:transparent; box-shadow:inset 0 0 0 2px #e0445e}
+.play-dot.brk.on{background:#e0445e; box-shadow:none}
+#playRoot.play-touch .play-navbtn{min-width:120px; padding:14px 22px}
+/* play controls (Turn/Action + Vertical/Horizontal segmented switches) */
+.play-controls{flex:0 0 auto; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; padding:12px 16px 2px}
+.play-seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.play-seg button{background:var(--panel2); border:none; color:var(--muted); font:700 13px Inter,sans-serif; padding:8px 16px; cursor:pointer}
+.play-seg button+button{border-left:1px solid var(--line)}
+.play-seg button.on{background:var(--blue-strong); color:#0b1626}
+/* horizontal turn layout: actions in a swipeable row, centered when they fit */
+.play-actions.horiz{flex-direction:row; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; width:100%; max-width:100%; justify-content:safe center; padding-bottom:10px; -webkit-overflow-scrolling:touch}
+.play-act.block{flex:0 0 auto; width:230px; flex-direction:column; align-items:flex-start; gap:8px; border-left:1px solid var(--line); border-top:6px solid var(--line)}
+.play-act.block .play-actor{flex:none; font-size:22px}
+.play-act.block .play-actdetail{flex:none}
+/* action mode: one action, big and centered */
+.play-solo{flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:10px 16px; min-height:0}
+.play-solo-actor{font:700 46px Oswald,sans-serif; letter-spacing:.04em}
+.play-solo-detail{font:600 34px Inter,sans-serif; color:var(--text); max-width:900px}
+/* desktop has more room — scale everything up */
+#playRoot:not(.play-touch) .play-turn-name{font-size:40px}
+#playRoot:not(.play-touch) .play-actor{font-size:27px; flex-basis:184px}
+#playRoot:not(.play-touch) .play-actdetail{font-size:25px}
+#playRoot:not(.play-touch) .play-act{padding:20px 28px}
+#playRoot:not(.play-touch) .play-actions{max-width:1040px}
+#playRoot:not(.play-touch) .play-act.block{width:264px}
+#playRoot:not(.play-touch) .play-act.block .play-actor{font-size:25px}
+#playRoot:not(.play-touch) .play-solo-actor{font-size:60px}
+#playRoot:not(.play-touch) .play-solo-detail{font-size:42px}
+@media (max-width:600px){ .play-turn-name{font-size:24px} .play-actor{flex-basis:108px; font-size:18px} .play-actdetail{font-size:17px} .play-navbtn{min-width:80px; padding:13px 14px} .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px} .play-act{padding:14px 16px} .play-act.block{width:174px} .play-act.block .play-actor{font-size:18px} }
+/* horizontal layout: the turn name is just a label above the tile row — keep it small so the tiles get the room */
+#playRoot.is-horiz .play-turn-name{font-size:20px}
+#playRoot.is-horiz .play-body{justify-content:flex-start; gap:12px}
+/* desktop: the tile row is content-height, so center the turn-name + row vertically in the body */
+#playRoot:not(.play-touch).is-horiz .play-body{justify-content:safe center}
+/* landscape phones / short viewports: compress the chrome so the action tiles fit fully */
+@media (max-height:520px){
+  .play-head{padding:8px 16px} .play-body{padding:12px 14px; gap:10px}
+  .play-turn-name{font-size:20px} #playRoot.is-horiz .play-turn-name{font-size:16px}
+  .play-hint{display:none} .play-nav{padding:8px 16px 10px}
+  .play-act.block{width:170px} .play-act.block .play-actor{font-size:18px} .play-act.block .play-actdetail{font-size:16px}
+  .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px}
+}
+/* horizontal mode on phones: the tile row fills the available height; tiles stretch and center their content */
+#playRoot.play-touch.is-horiz .play-actions{flex:1 1 auto; min-height:0; align-items:stretch}
+#playRoot.play-touch.is-horiz .play-act.block{justify-content:center}
+/* desktop / wide screens: horizontal mode is not width-capped and the tiles are bigger */
+#playRoot:not(.play-touch).is-horiz .play-actions{max-width:100%}
+#playRoot:not(.play-touch).is-horiz .play-act.block{width:300px}
+#playRoot:not(.play-touch).is-horiz .play-act.block .play-actor{font-size:28px}
+#playRoot:not(.play-touch).is-horiz .play-act.block .play-actdetail{font-size:24px}
+/* narrow screens (portrait phones): the Turn/Action switch wraps to its own row so the top bar can't overlap */
+@media (max-width:560px){
+  .play-head{flex-wrap:wrap}
+  .play-title{flex:1 1 auto}
+  .play-right{flex:0 0 auto}
+  .play-segs{order:3; flex:1 1 100%; justify-content:center; margin-top:8px}
+}
+/* iPhone-Safari landscape full-page notice (Add to Home Screen) */
+#iosRotate{position:fixed; inset:0; z-index:9000; background:var(--ink); color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,sans-serif}
+#iosRotate[hidden]{display:none}
+.ios-rotate-box{max-width:520px}
+.ios-rotate-title{font:700 20px Oswald,sans-serif; color:var(--blue); letter-spacing:.04em; margin-bottom:12px}
+.ios-rotate-box p{color:var(--text); font-size:15px; line-height:1.5; margin:0 0 10px}
+.ios-rotate-box ol{color:var(--muted); font-size:14px; line-height:1.55; padding-left:20px; margin:0}
+.ios-rotate-box b{color:var(--text)}
 .ac-body{padding:16px 22px; color:#cdd3e3; font:14px/1.5 Inter,sans-serif; max-height:60vh; overflow:auto}
 .ac-body h3{font:700 11px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:18px 0 8px}
 .ac-body h3:first-child{margin-top:0}
@@ -460,6 +582,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       </div>
       <button class="btn" id="settingsBtn" title="Open settings (local display options)">Settings</button>
       <button class="btn" id="resetBtn">Reset</button>
+      <button class="btn" id="playBtn" title="Play the rotation turn by turn">Play</button>
       <input type="file" id="importFile" accept="application/json" hidden/>
     </div>
   </div>
@@ -575,6 +698,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
     <div class="io-body">
       <textarea id="ioText" class="io-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
+      <div class="io-disclaimer" id="ioDisclaimer" hidden></div>
       <div class="io-hint" id="ioHint"></div>
       <label class="io-keep" id="ioDodRow" hidden><input type="checkbox" id="ioDod"> DOD rotation</label>
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
@@ -603,7 +727,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
     <div class="set-body">
       <div class="set-group-title">Appearance</div>
-      <div class="set-row">
+      <div class="set-row set-row-seg">
         <div><div class="set-label">Theme</div><div class="set-sub">Light or dark mode, or follow your system setting. The image export always stays dark.</div></div>
         <div class="theme-switch" id="themeSwitch" title="Choose the colour theme">
           <button class="theme-opt" data-theme="system">System</button>
@@ -621,6 +745,10 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <label class="toggle"><input type="checkbox" id="setTeamNotes"><span class="track"></span><span class="thumb"></span></label>
       </div>
       <div class="set-row">
+        <div><div class="set-label">Persona notes</div><div class="set-sub">The note field on each Wonder persona</div></div>
+        <label class="toggle"><input type="checkbox" id="setPersonaNotes"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-row">
         <div><div class="set-label">Rotation notes</div><div class="set-sub">The Rotation Notes box above the turns</div></div>
         <label class="toggle"><input type="checkbox" id="setRotaNotes"><span class="track"></span><span class="thumb"></span></label>
       </div>
@@ -629,8 +757,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Persona images on the left</div><div class="set-sub">Show each persona's image on the left and its fields on the right</div></div>
         <label class="toggle"><input type="checkbox" id="setPersonaImgLeft"><span class="track"></span><span class="thumb"></span></label>
       </div>
-      <div class="set-group-title" style="margin-top:18px">Rotation layout</div>
       <div class="set-row">
+        <div><div class="set-label">Imported text in a separate window</div><div class="set-sub">When you keep the pasted text after an import, open it as a pop-up browser window instead of a movable panel inside the tool</div></div>
+        <label class="toggle"><input type="checkbox" id="setImportPopup"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+      <div class="set-group-title" style="margin-top:18px">Rotation layout</div>
+      <div class="set-row set-row-seg">
         <div><div class="set-label">Orientation</div><div class="set-sub">Vertical or horizontal layout (linked with the switch in the editor)</div></div>
         <div class="view-switch" id="viewSwitchSettings" title="Switch between vertical and horizontal layout">
           <button class="view-opt" data-view="vertical">Vertical</button>
@@ -641,8 +773,17 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Open the rotation preview by default</div><div class="set-sub">Start with the live preview expanded (you can always collapse it with its own button)</div></div>
         <label class="toggle"><input type="checkbox" id="setPreviewOpen"><span class="track"></span><span class="thumb"></span></label>
       </div>
+      <div class="set-group-title" style="margin-top:18px">Text export</div>
+      <div class="set-row">
+        <div><div class="set-label">Include turn order</div><div class="set-sub">Add a "Turn order: A &gt; B &gt; C &gt; D" line under the team in the text export</div></div>
+        <label class="toggle"><input type="checkbox" id="setTextTurnOrder"><span class="track"></span><span class="thumb"></span></label>
+      </div>
       <div class="set-group-title" style="margin-top:18px">Skill &amp; persona abbreviations</div>
       <div class="set-note" style="margin:2px 0 6px">Pick a short form for any skill or persona. The chosen abbreviation replaces the full name in the live preview, the shared webview, the image export and text export. Leaving it on the full name keeps the original.</div>
+      <div class="set-row">
+        <div><div class="set-label">Abbreviate Highlight to "HL"</div><div class="set-sub">Show Highlight as "HL" (and Theurgy as "TG") in the preview, webview and image export</div></div>
+        <label class="toggle"><input type="checkbox" id="setAbbrHL"><span class="track"></span><span class="thumb"></span></label>
+      </div>
       <div class="set-row" style="margin-top:2px;border-bottom:none">
         <div><div class="set-label">Show signature skills as "Sig"</div><div class="set-sub">Replace every persona's signature skill with "Sig" in all outputs</div></div>
         <label class="toggle"><input type="checkbox" id="setSigAsSig"><span class="track"></span><span class="thumb"></span></label>
@@ -665,10 +806,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </div>
 
 <div id="importNote" class="imp-note" hidden>
-  <div class="imp-note-head" id="impNoteHead"><span>Imported text</span><span class="imp-note-btns"><button type="button" class="imp-note-eye" id="impNoteEye" aria-label="Collapse" title="Collapse"><svg class="eye-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button><button type="button" class="imp-note-x" id="impNoteX" aria-label="Close" title="Close">&times;</button></span></div>
+  <div class="imp-note-head" id="impNoteHead"><span>Imported text</span><span class="imp-note-btns"><button type="button" class="imp-note-eye" id="impNoteEye" aria-label="Collapse" title="Collapse"><svg class="eye-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button><button type="button" class="imp-note-pop" id="impNotePop" aria-label="Open in a separate browser window" title="Open in a separate browser window"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M21 3l-9 9"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></button><button type="button" class="imp-note-x" id="impNoteX" aria-label="Close" title="Close">&times;</button></span></div>
   <pre class="imp-note-body" id="impNoteBody"></pre>
+  <div class="imp-rz imp-rz-n" data-dir="n"></div><div class="imp-rz imp-rz-s" data-dir="s"></div><div class="imp-rz imp-rz-w" data-dir="w"></div><div class="imp-rz imp-rz-e" data-dir="e"></div><div class="imp-rz imp-rz-nw" data-dir="nw"></div><div class="imp-rz imp-rz-ne" data-dir="ne"></div><div class="imp-rz imp-rz-sw" data-dir="sw"></div><div class="imp-rz imp-rz-se" data-dir="se"></div>
 </div>
-<div id="discBanner" class="disc-banner" hidden><span class="disc-msg"></span><button type="button" class="disc-x" aria-label="Dismiss">&times;</button></div>
+<div id="discBanner" class="disc-banner" hidden><span class="disc-msg"></span><button type="button" class="disc-ac" id="discAutoCorrect">Auto Correct</button><button type="button" class="disc-x" aria-label="Dismiss">&times;</button></div>
 
 <div class="modal" id="acModal" hidden>
   <div class="modal-card" style="max-width:560px;">
@@ -682,14 +824,25 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </div>
 <div id="acUndo" class="ac-undo" hidden><span class="ac-undo-msg">Auto Correct applied.</span><button type="button" class="btn" id="acUndoBtn">Undo</button><button type="button" class="ac-undo-x" id="acUndoX" aria-label="Dismiss">&times;</button></div>
 <div id="comboPanel" class="combo-panel" hidden></div>
+<div id="iosRotate" hidden>
+  <div class="ios-rotate-box">
+    <div class="ios-rotate-title">Landscape isn't supported in Safari on iPhone</div>
+    <p>Rotate back to portrait to keep using the planner. For the full-screen, landscape Play mode, add this page to your Home Screen and open it from there:</p>
+    <ol>
+      <li>Tap the <b>Share</b> button in Safari (the square with an up-arrow).</li>
+      <li>Choose <b>“Add to Home Screen”</b>.</li>
+      <li>Open the planner from the new Home-Screen icon — it then runs full-screen in any orientation.</li>
+    </ol>
+  </div>
+</div>
 
 <script>
-const DATA = {"characterImages": {"TWINS": "images/TWINS.webp", "SOY·P": "images/SOY-P.webp", "LUCE·N": "images/LUCE-N.webp", "FUKA": "images/FUKA.webp", "MITSURU": "images/KIRIJO.webp", "BUI·P": "images/BUI-P.webp", "BLITZ": "images/BLITZ.webp", "PUPPET·S": "images/PUPPET-S.webp", "MARIAN·S": "images/MARIAN-S.webp", "BERRY": "images/BERRY.webp", "AKIHIKO": "images/AKIHIKO.webp", "YUKARI": "images/YUKARI.webp", "MAKOTO": "images/MAKOTO.webp", "ANGE": "images/ANGE.webp", "LUCE": "images/LUCE.webp", "TURBO": "images/TURBO.webp", "CROW": "images/CROW.webp", "MATOI": "images/MATOI.webp", "RIN·L D": "images/RIN-L-D.webp", "TEMPEST": "images/TEMPEST.webp", "VIOLET": "images/VIOLET.webp", "HOWLER": "images/HOWLER.webp", "MONT·S": "images/MONT-S.webp", "NOIR": "images/NOIR.webp", "CHERISH": "images/CHERISH.webp", "NAVI": "images/NAVI.webp", "MESSA": "images/MESSA.webp", "MOKO·S": "images/MOKO-S.webp", "CLOSER·T": "images/CLOSER-T.webp", "CHORD": "images/CHORD.webp", "WIND": "images/WIND.webp", "PHOEBE": "images/PHOEBE.webp", "QUEEN": "images/QUEEN.webp", "VINO": "images/VINO.webp", "FOX": "images/FOX.webp", "BUI": "images/BUI.webp", "MARIAN": "images/MARIAN.webp", "JOKER": "images/JOKER.webp", "SKULL": "images/SKULL.webp", "MONA": "images/MONA.webp", "PANTHER": "images/PANTHER.webp", "RIN": "images/RIN.webp", "RIDDLE": "images/RIDDLE.webp", "CATTLE": "images/CATTLE.webp", "LEON": "images/LEON.webp", "CLOSER": "images/CLOSER.webp", "MONT": "images/MONT.webp", "SOY": "images/SOY.webp", "FLEURET": "images/FLEURET.webp", "YUKI": "images/YUKI.webp", "KEY": "images/KEY.webp", "MOKO": "images/MOKO.webp", "SEPIA": "images/SEPIA.webp", "PUPPET": "images/PUPPET.webp", "OKYANN": "images/OKYANN.webp", "WONDER": "images/WONDER.webp", "MONA·S": "images/MONA-S.webp", "JOKER·S": "images/JOKER-S.webp", "AIGIS": "images/AIGIS.webp", "CLOSER·R": "images/CLOSER-R.webp", "ANRI": "images/ANRI.webp", "KOROMARU": "images/KOROMARU.webp", "PINKY": "images/PINKY.webp", "JUNPEI": "images/JUNPEI.webp", "FUUKA": "images/FUKA.webp", "RIN·F": "images/RIN-L-D.webp", "WIND·T": "images/TEMPEST.webp", "MONT·F": "images/MONT-S.webp", "ORACLE": "images/NAVI.webp"}, "characterNames": ["AIGIS", "AKIHIKO", "ANGE", "ANRI", "BERRY", "BLITZ", "BUI", "BUI·P", "CATTLE", "CHERISH", "CHORD", "CLOSER", "CLOSER·R", "CLOSER·T", "CROW", "FLEURET", "FOX", "FUUKA", "HOWLER", "JOKER", "JOKER·S", "JUNPEI", "KEY", "KOROMARU", "LEON", "LUCE", "LUCE·N", "MAKOTO", "MARIAN", "MARIAN·S", "MATOI", "MESSA", "MITSURU", "MOKO", "MOKO·S", "MONA", "MONA·S", "MONT", "MONT·F", "NOIR", "OKYANN", "ORACLE", "PANTHER", "PHOEBE", "PINKY", "PUPPET", "PUPPET·S", "QUEEN", "RIDDLE", "RIN", "RIN·F", "SEPIA", "SKULL", "SOY", "SOY·P", "TURBO", "TWINS", "VINO", "VIOLET", "WIND", "WIND·T", "WONDER", "YUKARI", "YUKI"], "personaNames": ["Alice", "Ame-no-Uzume", "Anubis", "Apsaras", "Arahabaki", "Baphomet", "Belphegor", "Bishamonten", "Chernobog", "Cu Chulainn", "Dionysus", "Dominion", "Girimehkala", "Isis", "Janosik", "Jatayu", "Jikokuten", "King Frost", "Kohryu", "Koumokuten", "Kushinada", "Lakshmi", "Lamia", "Lilith", "Macabre", "Melchizedek", "Mithras", "Narcissus", "Neko Shogun", "Nian", "Norn", "Okuninushi", "Orobas", "Parvati", "Pazuzu", "Sahimochi-no-kami", "Sandalphon", "Sarasvati", "Setanta", "Shiva", "Siegfried", "Sraosha", "Succubus", "Surt", "Thor", "Throne", "Titania", "Trumpeter", "Vasuki", "Vishnu", "Yamata-no-Orochi", "Yatagarasu", "Yoshitsune", "Yurlungur", "Zaou-Gongen"], "daggerNames": ["Abyss Fang", "All In", "Arc Knife", "Chaos Hex", "Curse of the Phantom", "Cyclotron", "Entropy Zero", "Ex Machina", "Eye of Obsequies", "Glacial Eternity", "Glimmer", "Pheromone Sting", "Plasma Blade", "Purgatory", "Sennight Inferno", "Starry Compass"], "revSets": ["Departure & Control", "Departure & Prosperity", "Departure & Hindrance", "Awareness & Truth", "Awareness & Control", "Awareness & Hindrance", "Growth & Opulence", "Growth & Renewal", "Growth & Power", "Wisdom & Oppression", "Wisdom & Pleasure", "Wisdom & Virtue", "Meditation & Opulence", "Meditation & Courage", "Meditation & Love", "Faith & Peace", "Faith & Love", "Trust & Renewal", "Trust & Power", "Trust & Prosperity", "Harmony & Victory", "Harmony & Power", "Harmony & Truth", "Resolve & Virtue", "Resolve & Labor", "Acceptance & Peace", "Acceptance & Strife", "Acceptance & Love", "Integrity & Pleause", "Integrity & Labor"], "bossNames": ["ATAVAKA", "BAAL", "BAAL ZEBUL", "DOMINION", "FAFNIR", "KARTIKEYA", "KOHRYU", "MARA", "NIDHOGGR", "OUMITSUNU", "SLAUGHTER DRIVE", "SURT", "VISHNU", "YATSUFUSA"], "awarenessOpts": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "DGR"], "revOpts": ["RX", "R0", "R1", "R2", "R3", "R4", "R5", "R6"], "typeOpts": ["MLD", "DOD", "NOD", "SOS"], "tierOpts": ["DOLPHIN", "F2P", "MINNOW", "WHALE"], "elucidatorOpts": ["ANGE", "FUUKA", "OKYANN", "ORACLE", "PHOEBE", "PUPPET", "WIND"], "initial": {"rotationName": "Rotation Name", "tier": "WHALE", "boss": "FAFNIR", "type": "MLD", "patch": "4.3", "score": "1.0E9", "team": ["WONDER", "CHORD", "YUKARI", "VIOLET"], "elucidator": "ORACLE", "awareness": ["A6", "DGR", "A1", "A6", "A6"], "rev": ["R6", "R5", "R0", "R6", "R6"], "persona": ["Dionysus", "Sraosha", "Kohryu"], "skills": ["TARUKAJA", "RAKUNDA"], "gear": ["Glimmer", "Trust & Prosperity", "Creation & Reconciliation", "Wisdom & Virtue", "Resolve & Labor"], "notes": "Includes DPS & Navi", "turns": [{"name": "TURN 1", "actions": [{"char": "ANGE", "action": "S3 if A1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 2", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 3", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S1 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "CHORD", "action": "HL"}, {"char": "CHORD", "action": "S3 Violet"}, {"char": "VIOLET", "action": "HL HL S3"}]}, {"name": "TURN 4", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1 if A0, S2 if A1+"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 5", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2 if A0, S1 if A1+"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 6", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S2 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "ANGE", "action": "HL Chord"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "CHORD", "action": "S3 Violet x2"}, {"char": "ANGE", "action": "S3"}, {"char": "VIOLET", "action": "HL HL S3"}]}]}, "sunSkyCards": ["Change", "Control", "Courage", "Defeat", "Depravity", "Determination", "Disappointment", "Flourishing", "Futility", "Hindrance", "Labor", "Love", "Obtain", "Oppression", "Opulence", "Peace", "Pleasure", "Power", "Prosperity", "Prudence", "Reconciliation", "Renewal", "Ruin", "Satiety", "Sorrow", "Strife", "Tenacity", "Triumph", "Truth", "Victory", "Virtue", "Worry"], "spaceCards": ["Acceptance", "Agility", "Awareness", "Creation", "Departure", "Faith", "Freedom", "Growth", "Harmony", "Hope", "Integrity", "Meditation", "Nativity", "Perseverance", "Purity", "Resolve", "Trust", "Wisdom"], "spacePartners": {"Nativity": ["Power"], "Perseverance": ["Change", "Obtain", "Sorrow"], "Hope": ["Change", "Labor", "Ruin"], "Creation": ["Reconciliation", "Tenacity", "Worry"], "Integrity": ["Labor", "Pleasure", "Ruin"], "Resolve": ["Labor", "Prudence", "Virtue"], "Awareness": ["Control", "Hindrance", "Truth"], "Departure": ["Control", "Hindrance", "Prosperity"], "Growth": ["Opulence", "Power", "Renewal"], "Wisdom": ["Oppression", "Pleasure", "Virtue"], "Meditation": ["Courage", "Love", "Opulence"], "Faith": ["Futility", "Love", "Peace"], "Trust": ["Power", "Prosperity", "Renewal"], "Harmony": ["Power", "Truth", "Victory"], "Acceptance": ["Love", "Peace", "Strife"], "Freedom": ["Defeat", "Disappointment", "Triumph"], "Purity": ["Change", "Depravity", "Flourishing"], "Agility": ["Flourishing", "Hindrance", "Satiety"]}, "charColors": {"MONA·S": "#82ec2c", "JOKER·S": "#ff0036", "AIGIS": "#fe9e01", "CLOSER·R": "#fcff37", "ANRI": "#ff0036", "KOROMARU": "#ff0036", "PINKY": "#ff66ff", "JUNPEI": "#ff391d", "TWINS": "#ffffff", "SOY·P": "#fe9e01", "LUCE·N": "#ffffa2", "FUUKA": "#3a6dfa", "MITSURU": "#00afff", "BUI·P": "#00fcff", "BLITZ": "#fcff37", "PUPPET·S": "#00afff", "MARIAN·S": "#ffffa2", "BERRY": "#ff0036", "AKIHIKO": "#fcff37", "YUKARI": "#82ec2c", "MAKOTO": "#ff391d", "ANGE": "#3a6dfa", "LUCE": "#ffffa2", "TURBO": "#ff9d00", "CROW": "#ffffff", "MATOI": "#00afff", "RIN·F": "#ff391d", "WIND·T": "#82ec2c", "VIOLET": "#ffffa2", "HOWLER": "#ff391d", "MONT·F": "#82ec2c", "NOIR": "#ff66ff", "CHERISH": "#00afff", "ORACLE": "#3a6dfa", "MESSA": "#ff9d00", "MOKO·S": "#ff66ff", "CLOSER·T": "#ffffa2", "CHORD": "#fcff37", "WIND": "#3a6dfa", "PHOEBE": "#3a6dfa", "QUEEN": "#00fcff", "VINO": "#00fcff", "FOX": "#00afff", "BUI": "#fcff37", "MARIAN": "#ffffa2", "JOKER": "#ff0036", "SKULL": "#ff9d00", "MONA": "#82ec2c", "PANTHER": "#ff391d", "RIN": "#ff0036", "RIDDLE": "#ff66ff", "CATTLE": "#ff391d", "LEON": "#00fcff", "CLOSER": "#fcff37", "MONT": "#00afff", "SOY": "#00afff", "FLEURET": "#82ec2c", "YUKI": "#ffffa2", "KEY": "#ff391d", "MOKO": "#ff66ff", "SEPIA": "#ff0036", "PUPPET": "#3a6dfa", "OKYANN": "#3a6dfa"}, "elucidatorNames": ["ANGE", "FUUKA", "ORACLE", "WIND", "PHOEBE", "PUPPET", "OKYANN"]};
+const DATA = {"characterImages": {"MIKU": "images/HATSUNE-MIKU.webp", "TWINS": "images/TWINS.webp", "SOY·P": "images/SOY-P.webp", "LUCE·N": "images/LUCE-N.webp", "FUKA": "images/FUKA.webp", "MITSURU": "images/KIRIJO.webp", "BUI·P": "images/BUI-P.webp", "BLITZ": "images/BLITZ.webp", "PUPPET·S": "images/PUPPET-S.webp", "MARIAN·S": "images/MARIAN-S.webp", "BERRY": "images/BERRY.webp", "AKIHIKO": "images/AKIHIKO.webp", "YUKARI": "images/YUKARI.webp", "MAKOTO": "images/MAKOTO.webp", "ANGE": "images/ANGE.webp", "LUCE": "images/LUCE.webp", "TURBO": "images/TURBO.webp", "CROW": "images/CROW.webp", "MATOI": "images/MATOI.webp", "RIN·L D": "images/RIN-L-D.webp", "TEMPEST": "images/TEMPEST.webp", "VIOLET": "images/VIOLET.webp", "HOWLER": "images/HOWLER.webp", "MONT·S": "images/MONT-S.webp", "NOIR": "images/NOIR.webp", "CHERISH": "images/CHERISH.webp", "NAVI": "images/NAVI.webp", "MESSA": "images/MESSA.webp", "MOKO·S": "images/MOKO-S.webp", "CLOSER·T": "images/CLOSER-T.webp", "CHORD": "images/CHORD.webp", "WIND": "images/WIND.webp", "PHOEBE": "images/PHOEBE.webp", "QUEEN": "images/QUEEN.webp", "VINO": "images/VINO.webp", "FOX": "images/FOX.webp", "BUI": "images/BUI.webp", "MARIAN": "images/MARIAN.webp", "JOKER": "images/JOKER.webp", "SKULL": "images/SKULL.webp", "MONA": "images/MONA.webp", "PANTHER": "images/PANTHER.webp", "RIN": "images/RIN.webp", "RIDDLE": "images/RIDDLE.webp", "CATTLE": "images/CATTLE.webp", "LEON": "images/LEON.webp", "CLOSER": "images/CLOSER.webp", "MONT": "images/MONT.webp", "SOY": "images/SOY.webp", "FLEURET": "images/FLEURET.webp", "YUKI": "images/YUKI.webp", "KEY": "images/KEY.webp", "MOKO": "images/MOKO.webp", "SEPIA": "images/SEPIA.webp", "PUPPET": "images/PUPPET.webp", "OKYANN": "images/OKYANN.webp", "WONDER": "images/WONDER.webp", "MONA·S": "images/MONA-S.webp", "JOKER·S": "images/JOKER-S.webp", "AIGIS": "images/AIGIS.webp", "CLOSER·R": "images/CLOSER-R.webp", "ANRI": "images/ANRI.webp", "KOROMARU": "images/KOROMARU.webp", "PINKY": "images/PINKY.webp", "JUNPEI": "images/JUNPEI.webp", "FUUKA": "images/FUKA.webp", "RIN·F": "images/RIN-L-D.webp", "WIND·T": "images/TEMPEST.webp", "MONT·F": "images/MONT-S.webp", "ORACLE": "images/NAVI.webp"}, "characterNames": ["AIGIS", "AKIHIKO", "ANGE", "ANRI", "BERRY", "BLITZ", "BUI", "BUI·P", "CATTLE", "CHERISH", "CHORD", "CLOSER", "CLOSER·R", "CLOSER·T", "CROW", "FLEURET", "FOX", "FUUKA", "HOWLER", "JOKER", "JOKER·S", "JUNPEI", "KEY", "KOROMARU", "LEON", "LUCE", "LUCE·N", "MAKOTO", "MARIAN", "MARIAN·S", "MATOI", "MESSA", "MITSURU", "MOKO", "MOKO·S", "MONA", "MONA·S", "MONT", "MONT·F", "NOIR", "OKYANN", "ORACLE", "PANTHER", "PHOEBE", "PINKY", "PUPPET", "PUPPET·S", "QUEEN", "RIDDLE", "RIN", "RIN·F", "SEPIA", "SKULL", "SOY", "SOY·P", "TURBO", "TWINS", "VINO", "VIOLET", "WIND", "WIND·T", "WONDER", "YUKARI", "YUKI", "MIKU"], "personaNames": ["Alice", "Ame-no-Uzume", "Anubis", "Apsaras", "Arahabaki", "Baphomet", "Belphegor", "Bishamonten", "Chernobog", "Cu Chulainn", "Dionysus", "Dominion", "Girimehkala", "Isis", "Janosik", "Jatayu", "Jikokuten", "King Frost", "Kohryu", "Koumokuten", "Kushinada", "Lakshmi", "Lamia", "Lilith", "Macabre", "Melchizedek", "Mithras", "Narcissus", "Neko Shogun", "Nian Shou", "Norn", "Okuninushi", "Orobas", "Parvati", "Pazuzu", "Sahimochi-no-kami", "Sandalphon", "Sarasvati", "Setanta", "Shiva", "Siegfried", "Sraosha", "Succubus", "Surt", "Thor", "Throne", "Titania", "Trumpeter", "Vasuki", "Vishnu", "Yamata-no-Orochi", "Yatagarasu", "Yoshitsune", "Yurlungur", "Zaou-Gongen"], "daggerNames": ["Abyss Fang", "All In", "Arc Knife", "Chaos Hex", "Curse of the Phantom", "Cyclotron", "Entropy Zero", "Ex Machina", "Eye of Obsequies", "Glacial Eternity", "Glimmer", "Pheromone Sting", "Plasma Blade", "Purgatory", "Sennight Inferno", "Starry Compass"], "revSets": ["Departure & Control", "Departure & Prosperity", "Departure & Hindrance", "Awareness & Truth", "Awareness & Control", "Awareness & Hindrance", "Growth & Opulence", "Growth & Renewal", "Growth & Power", "Wisdom & Oppression", "Wisdom & Pleasure", "Wisdom & Virtue", "Meditation & Opulence", "Meditation & Courage", "Meditation & Love", "Faith & Peace", "Faith & Love", "Trust & Renewal", "Trust & Power", "Trust & Prosperity", "Harmony & Victory", "Harmony & Power", "Harmony & Truth", "Resolve & Virtue", "Resolve & Labor", "Acceptance & Peace", "Acceptance & Strife", "Acceptance & Love", "Integrity & Pleause", "Integrity & Labor"], "bossNames": ["ATAVAKA", "BAAL", "BAAL ZEBUL", "DOMINION", "FAFNIR", "KARTIKEYA", "KOHRYU", "MARA", "NIDHOGGR", "OUMITSUNU", "SLAUGHTER DRIVE", "SURT", "VISHNU", "YATSUFUSA"], "awarenessOpts": ["A0", "A1", "A2", "A3", "A4", "A5", "A6", "DGR"], "revOpts": ["RX", "R0", "R1", "R2", "R3", "R4", "R5", "R6"], "typeOpts": ["MLD", "DOD", "NOD", "SOS"], "tierOpts": ["DOLPHIN", "F2P", "MINNOW", "WHALE"], "elucidatorOpts": ["ANGE", "FUUKA", "MIKU", "OKYANN", "ORACLE", "PHOEBE", "PUPPET", "WIND"], "initial": {"rotationName": "Rotation Name", "tier": "WHALE", "boss": "FAFNIR", "type": "MLD", "patch": "4.3", "score": "1.0E9", "team": ["WONDER", "CHORD", "YUKARI", "VIOLET"], "elucidator": "ORACLE", "awareness": ["A6", "DGR", "A1", "A6", "A6"], "rev": ["R6", "R5", "R0", "R6", "R6"], "persona": ["Dionysus", "Sraosha", "Kohryu"], "skills": ["TARUKAJA", "RAKUNDA"], "gear": ["Glimmer", "Trust & Prosperity", "Creation & Reconciliation", "Wisdom & Virtue", "Resolve & Labor"], "notes": "Includes DPS & Navi", "turns": [{"name": "TURN 1", "actions": [{"char": "ANGE", "action": "S3 if A1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 2", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 3", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S1 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "CHORD", "action": "HL"}, {"char": "CHORD", "action": "S3 Violet"}, {"char": "VIOLET", "action": "HL HL S3"}]}, {"name": "TURN 4", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Nian Rakunda"}, {"char": "TWINS", "action": "S1 if A0, S2 if A1+"}, {"char": "CHORD", "action": "S2 Violet"}, {"char": "VIOLET", "action": "S2 Twins"}]}, {"name": "TURN 5", "actions": [{"char": "ANGE", "action": "S3"}, {"char": "WONDER", "action": "Sraosha HL"}, {"char": "WONDER", "action": "Vishnu S1"}, {"char": "TWINS", "action": "S2 if A0, S1 if A1+"}, {"char": "CHORD", "action": "S1"}, {"char": "VIOLET", "action": "S1"}]}, {"name": "TURN 6", "actions": [{"char": "ANGE", "action": "S1"}, {"char": "WONDER", "action": "Sraosha S1"}, {"char": "TWINS", "action": "S3 if A0, S2 if A1+"}, {"char": "VIOLET", "action": "Activate"}, {"char": "ANGE", "action": "HL Chord"}, {"char": "TWINS", "action": "Fire/Ice HL"}, {"char": "CHORD", "action": "S3 Violet x2"}, {"char": "ANGE", "action": "S3"}, {"char": "VIOLET", "action": "HL HL S3"}]}]}, "sunSkyCards": ["Change", "Control", "Courage", "Defeat", "Depravity", "Determination", "Disappointment", "Flourishing", "Futility", "Hindrance", "Labor", "Love", "Obtain", "Oppression", "Opulence", "Peace", "Pleasure", "Power", "Prosperity", "Prudence", "Reconciliation", "Renewal", "Ruin", "Satiety", "Sorrow", "Strife", "Tenacity", "Triumph", "Truth", "Victory", "Virtue", "Worry"], "spaceCards": ["Acceptance", "Agility", "Awareness", "Creation", "Departure", "Faith", "Freedom", "Growth", "Harmony", "Hope", "Integrity", "Meditation", "Nativity", "Perseverance", "Purity", "Resolve", "Trust", "Wisdom"], "spacePartners": {"Nativity": ["Power"], "Perseverance": ["Change", "Obtain", "Sorrow"], "Hope": ["Change", "Labor", "Ruin"], "Creation": ["Reconciliation", "Tenacity", "Worry"], "Integrity": ["Labor", "Pleasure", "Ruin"], "Resolve": ["Labor", "Prudence", "Virtue"], "Awareness": ["Control", "Hindrance", "Truth"], "Departure": ["Control", "Hindrance", "Prosperity"], "Growth": ["Opulence", "Power", "Renewal"], "Wisdom": ["Oppression", "Pleasure", "Virtue"], "Meditation": ["Courage", "Love", "Opulence"], "Faith": ["Futility", "Love", "Peace"], "Trust": ["Power", "Prosperity", "Renewal"], "Harmony": ["Power", "Truth", "Victory"], "Acceptance": ["Love", "Peace", "Strife"], "Freedom": ["Defeat", "Disappointment", "Triumph"], "Purity": ["Change", "Depravity", "Flourishing"], "Agility": ["Flourishing", "Hindrance", "Satiety"]}, "charColors": {"MIKU": "#3a6dfa", "MONA·S": "#82ec2c", "JOKER·S": "#ff0036", "AIGIS": "#fe9e01", "CLOSER·R": "#fcff37", "ANRI": "#ff0036", "KOROMARU": "#ff0036", "PINKY": "#ff66ff", "JUNPEI": "#ff391d", "TWINS": "#ffffff", "SOY·P": "#fe9e01", "LUCE·N": "#ffffa2", "FUUKA": "#3a6dfa", "MITSURU": "#00afff", "BUI·P": "#00fcff", "BLITZ": "#fcff37", "PUPPET·S": "#00afff", "MARIAN·S": "#ffffa2", "BERRY": "#ff0036", "AKIHIKO": "#fcff37", "YUKARI": "#82ec2c", "MAKOTO": "#ff391d", "ANGE": "#3a6dfa", "LUCE": "#ffffa2", "TURBO": "#ff9d00", "CROW": "#ffffff", "MATOI": "#00afff", "RIN·F": "#ff391d", "WIND·T": "#82ec2c", "VIOLET": "#ffffa2", "HOWLER": "#ff391d", "MONT·F": "#82ec2c", "NOIR": "#ff66ff", "CHERISH": "#00afff", "ORACLE": "#3a6dfa", "MESSA": "#ff9d00", "MOKO·S": "#ff66ff", "CLOSER·T": "#ffffa2", "CHORD": "#fcff37", "WIND": "#3a6dfa", "PHOEBE": "#3a6dfa", "QUEEN": "#00fcff", "VINO": "#00fcff", "FOX": "#00afff", "BUI": "#fcff37", "MARIAN": "#ffffa2", "JOKER": "#ff0036", "SKULL": "#ff9d00", "MONA": "#82ec2c", "PANTHER": "#ff391d", "RIN": "#ff0036", "RIDDLE": "#ff66ff", "CATTLE": "#ff391d", "LEON": "#00fcff", "CLOSER": "#fcff37", "MONT": "#00afff", "SOY": "#00afff", "FLEURET": "#82ec2c", "YUKI": "#ffffa2", "KEY": "#ff391d", "MOKO": "#ff66ff", "SEPIA": "#ff0036", "PUPPET": "#3a6dfa", "OKYANN": "#3a6dfa"}, "elucidatorNames": ["ANGE", "FUUKA", "ORACLE", "WIND", "PHOEBE", "PUPPET", "OKYANN", "MIKU"]};
 /* Default Revelation card set (space + sun/sky) per character — auto-applied on selection; overridable, and overridden by an explicit set in a text import. */
 const CHAR_CARD_DEFAULTS = {"AIGIS":{space:"Creation",sunsky:"Tenacity"}, "AKIHIKO":{space:"Perseverance",sunsky:"Change"}, "BERRY":{space:"Perseverance",sunsky:"Sorrow"}, "BUI":{space:"Growth",sunsky:"Renewal"}, "BUI·P":{space:"Agility",sunsky:"Satiety"}, "CATTLE":{space:"Acceptance",sunsky:"Love"}, "CLOSER":{space:"Trust",sunsky:"Renewal"}, "CLOSER·R":{space:"Purity",sunsky:"Change"}, "CLOSER·T":{space:"Resolve",sunsky:"Virtue"}, "FLEURET":{space:"Harmony",sunsky:"Victory"}, "FOX":{space:"Meditation",sunsky:"Opulence"}, "JOKER":{space:"Departure",sunsky:"Hindrance"}, "LUCE·N":{space:"Perseverance",sunsky:"Obtain"}, "MAKOTO":{space:"Hope",sunsky:"Ruin"}, "MATOI":{space:"Faith",sunsky:"Futility"}, "MESSA":{space:"Wisdom",sunsky:"Oppression"}, "MONA":{space:"Meditation",sunsky:"Love"}, "MONT":{space:"Meditation",sunsky:"Opulence"}, "MONT·F":{space:"Meditation",sunsky:"Opulence"}, "NOIR":{space:"Wisdom",sunsky:"Pleasure"}, "PANTHER":{space:"Acceptance",sunsky:"Strife"}, "PINKY":{space:"Purity",sunsky:"Depravity"}, "PUPPET·S":{space:"Meditation",sunsky:"Opulence"}, "QUEEN":{space:"Awareness",sunsky:"Truth"}, "RIN·F":{space:"Acceptance",sunsky:"Strife"}, "SKULL":{space:"Meditation",sunsky:"Courage"}, "TURBO":{space:"Creation",sunsky:"Reconciliation"}, "VIOLET":{space:"Wisdom",sunsky:"Virtue"}, "WIND·T":{space:"Creation",sunsky:"Worry"}};
 
 /* ---------- skill data (signatures per persona, teachable skill list + abbreviations) ---------- */
-const PERSONA_SIGNATURES = {"Alice":"Die For Me!","Ame-no-Uzume":"Electric Dance","Anubis":"Underworld Judgment","Apsaras":"Rebellion","Arahabaki":"Tarunda","Baphomet":"Red-Hot","Belphegor":"Rakunda","Bishamonten":"Imperial Purge","Chernobog":"Verdict of Agony","Cu Chulainn":"Gae Bolg","Dionysus":"Revolution","Dominion":"Cohesion","Girimehkala":"Matarunda","Isis":"Diarama","Janosik":"Tatra Shot","Jatayu":"Wind Break","Jikokuten":"Matarukaja","King Frost":"Snow King's Protection","Kohryu":"Spirit Strike","Koumokuten":"Revolution","Kushinada":"Matarukaja","Lakshmi":"Flowers of the Pure Land","Lamia":"Bonfire Festival","Lilith":"Killer Allure","Macabre":"Death's Mercy","Melchizedek":"Shining Salvation","Mithras":"Marakukaja","Narcissus":"Spike","Neko Shogun":"Hunter's Instincts","Nian":"Disaster Ward","Norn":"Wind Barrier","Okuninushi":"Spirit Wave","Orobas":"Fire Break","Parvati":"Diarama","Pazuzu":"Maeigaon","Sahimochi-no-kami":"Chilling Depth","Sandalphon":"Devoted Guard","Sarasvati":"Mother Goddess' Chant","Setanta":"Spirit Binding","Shiva":"Dance of Destruction","Siegfried":"Dragonslayer's Sword","Sraosha":"Absolute Obedience","Succubus":"Rebellion","Surt":"Marakunda","Thor":"Thunder Caller","Throne":"Purifying Flames","Titania":"Reassuring Embrace","Trumpeter":"Bewitching Sound","Vasuki":"Endless Bind","Vishnu":"Wind of Nirvana","Yamata-no-Orochi":"Raging Blizzard","Yatagarasu":"Maragidyne","Yoshitsune":"Hassou Tobi","Yurlungur":"Elec Break","Zaou-Gongen":"Exorcising Flames"};
+const PERSONA_SIGNATURES = {"Alice":"Die For Me!","Ame-no-Uzume":"Electric Dance","Anubis":"Underworld Judgment","Apsaras":"Rebellion","Arahabaki":"Tarunda","Baphomet":"Red-Hot","Belphegor":"Rakunda","Bishamonten":"Imperial Purge","Chernobog":"Verdict of Agony","Cu Chulainn":"Gae Bolg","Dionysus":"Revolution","Dominion":"Cohesion","Girimehkala":"Matarunda","Isis":"Diarama","Janosik":"Tatra Shot","Jatayu":"Wind Break","Jikokuten":"Matarukaja","King Frost":"Snow King's Protection","Kohryu":"Spirit Strike","Koumokuten":"Revolution","Kushinada":"Matarukaja","Lakshmi":"Flowers of the Pure Land","Lamia":"Bonfire Festival","Lilith":"Killer Allure","Macabre":"Death's Mercy","Melchizedek":"Shining Salvation","Mithras":"Marakukaja","Narcissus":"Spike","Neko Shogun":"Hunter's Instincts","Nian Shou":"Disaster Ward","Norn":"Wind Barrier","Okuninushi":"Spirit Wave","Orobas":"Fire Break","Parvati":"Diarama","Pazuzu":"Maeigaon","Sahimochi-no-kami":"Chilling Depth","Sandalphon":"Devoted Guard","Sarasvati":"Mother Goddess' Chant","Setanta":"Spirit Binding","Shiva":"Dance of Destruction","Siegfried":"Dragonslayer's Sword","Sraosha":"Absolute Obedience","Succubus":"Rebellion","Surt":"Marakunda","Thor":"Thunder Caller","Throne":"Purifying Flames","Titania":"Reassuring Embrace","Trumpeter":"Bewitching Sound","Vasuki":"Endless Bind","Vishnu":"Wind of Nirvana","Yamata-no-Orochi":"Raging Blizzard","Yatagarasu":"Maragidyne","Yoshitsune":"Hassou Tobi","Yurlungur":"Elec Break","Zaou-Gongen":"Exorcising Flames"};
 const SKILL_LIST = ["Abyssal Field","Accuracy Boost","Accuracy Boost III","Accuracy Boost IV","Adverse Resolve II","Adverse Resolve III","Adverse Resolve IV","Agidyne","Agilao","Agility Master","Agility Master II","Agility Master III","Agility Master IV","Almighty Boost","Ambient Aid","Apt Pupil","Apt Pupil II","Apt Pupil IV","Assault Dive","Attack Boost","Attack Boost I","Attack Boost III","Attack Master","Attack Master II","Attack Master III","Auto-Maraku","Auto-Maraku I","Auto-Maraku II","Auto-Maraku III","Auto-Maraku IV","Auto-Mataru","Auto-Mataru III","Baisudi","Battle Acumen","Battle Acumen III","Battle Acumen IV","Bless Boost","Bless Boost II","Bless Reduction III","Bloodbath","Brave Blade","Bufu","Bufudyne","Bufula","Bullet Time","Burn Boost","Burn Boost III","Call of the Abyss IV","Charge","Cohesion","Concentrate","Cosmic Flare","Curse Boost","Curse Boost I","Curse Boost II","Curse Boost III","Curse Reduction III","Curse Reduction IV","Dazzler","Deadly Fury","Defense Master","Defense Master II","Defense Master III","Defense Master IV","Dekunda","Demonic Decree","Diamond Dust","Diarama","Divine Grace III","Divine Guidance III","Divine Judgment","Dizzy Boost III","Dormina","Eiga","Eigaon","Elec Boost","Elec Boost III","Elec Boost IV","Electric Reduction IV","Fire Boost","Fire Boost II","Fire Boost III","Fire Boost IV","Fire Reduction II","Fire Reduction III","Fortified Moxy III","Fortified Moxy IV","Freeze Boost IV","Freila","Garudyne","Garula","Gun Boost III","Gun Reduction III","Hamaon","Healing Boost","Healing Boost II","Healing Boost III","Healing Boost IV","HP Boost III","Ice Boost","Ice Boost IV","Ice Reduction III","Ice Reduction IV","Infinite Algorithm","Ironclad Resolve I","Ironclad Resolve II","Ironclad Resolve III","Ironclad Resolve IV","Kouga","Kougaon","Life Aid I","Life Aid IV","Mabufu","Mabufudyne","Mabufula","Maeigaon","Magarudyne","Magarula","Mahamaon","Makougaon","Mapsiodyne","Maragidyne","Maragion","Marakunda","Masukukaja","Matarukaja","Maziodyne","Mazionga","Media","Mediarahan","Mediarama","Megaton Raid","Megidolaon","Memory Blow","Mudo","Mudoon","Nuclear Reduction IV","Nuke Boost III","Nuke Boost IV","Nurture II","Nurture III","Nurture IV","One-shot Kill","Phys Boost","Phys Boost IV","Physical Reduction III","Pinpoint","Pinpoint IV","Power Surge","Protect Boost","Protect Boost II","Psio","Psiodyne","Psy Boost","Psy Boost II","Psy Boost III","Psy Boost IV","Psy Reduction III","Psycho Blast","Psycho Force","Rakukaja","Rakunda","Rebellion","Reduction Boost","Reduction Boost II","Reduction Boost IV","Regenerate","Regenerate III","Resist Forget II","Resist Sleep IV","Resistance Boost III","Seize the Day","Sharp Student III","Sharp Student IV","Shield Boost","Shield Boost IV","Shock Boost","Shock Boost II","Shock Boost III","Shock Boost IV","Sleep Boost II","Sonic Interference","Spell Master I","Spell Master IV","Spirit Harmony","Sukukaja","Sword Dance","Tarukaja","Tarunda","Tempest Slash","Wild Thunder","Wind Boost","Wind Boost II","Wind Boost III","Wind Reduction I","Wind Reduction III","Windsweep Boost III","Windswept Boost","Year End Calamity","Yggdrasil Evolution","Ziodyne","Zionga"];
 const SKILL_ALIASES = {"Abyssal Field":["AF","Abyssal"],"Agidyne":["Agi"],"Agilao":["Agi"],"Agility Master":["Agi Master 1"],"Agility Master II":["Agi Master 2"],"Agility Master III":["Agi Master 3"],"Agility Master IV":["Agi Master 4"],"Chilling Depth":["Chilling","CD"],"Cohesion":["Coh"],"Cosmic Flare":["Cosmic"],"Dance of Destruction":["Dance"],"Dekunda":["Dek"],"Die For Me!":["DFM"],"Electric Dance":["ED"],"Garudyne":["Garu"],"Garula":["Garu"],"Hassou Tobi":["HT"],"Imperial Purge":["IP"],"Infinite Algorithm":["IA","Infinite"],"Mabufu":["Mabu"],"Mabufudyne":["Mabu"],"Mabufula":["Mabu"],"Magarudyne":["Magaru"],"Magarula":["Magaru"],"Mapsiodyne":["Mapsi"],"Maragidyne":["Maragi"],"Maragion":["Maragi"],"Marakunda":["Marak","Maraku"],"Sukukaja":["Suku"],"Masukukaja":["Masu"],"Matarukaja":["Mataru"],"Maziodyne":["Mazio"],"Mazionga":["Mazio"],"Mediarahan":["Media"],"Mediarama":["Media"],"Megidolaon":["Megido"],"Rakunda":["Rak"],"Rebellion":["Reb","Rebel","Rebell"],"Revolution":["Rev","Revo"],"Sonic Interference":["SI","Sonic"],"Tarukaja":["Taru"],"Wild Thunder":["WT","Wild"],"Ziodyne":["Zio"],"Zionga":["Zio"]};
 const SKILL_ALIAS_MAP = {"absolute obedience":"Absolute Obedience","abyssal field":"Abyssal Field","accuracy boost":"Accuracy Boost","accuracy boost iii":"Accuracy Boost III","accuracy boost iv":"Accuracy Boost IV","adverse resolve ii":"Adverse Resolve II","adverse resolve iii":"Adverse Resolve III","adverse resolve iv":"Adverse Resolve IV","agidyne":"Agidyne","agilao":"Agilao","agility master":"Agility Master","agility master ii":"Agility Master II","agility master iii":"Agility Master III","agility master iv":"Agility Master IV","almighty boost":"Almighty Boost","ambient aid":"Ambient Aid","apt pupil":"Apt Pupil","apt pupil ii":"Apt Pupil II","apt pupil iv":"Apt Pupil IV","assault dive":"Assault Dive","attack boost":"Attack Boost","attack boost i":"Attack Boost I","attack boost iii":"Attack Boost III","attack master":"Attack Master","attack master ii":"Attack Master II","attack master iii":"Attack Master III","auto-maraku":"Auto-Maraku","auto-maraku i":"Auto-Maraku I","auto-maraku ii":"Auto-Maraku II","auto-maraku iii":"Auto-Maraku III","auto-maraku iv":"Auto-Maraku IV","auto-mataru":"Auto-Mataru","auto-mataru iii":"Auto-Mataru III","baisudi":"Baisudi","battle acumen":"Battle Acumen","battle acumen iii":"Battle Acumen III","battle acumen iv":"Battle Acumen IV","bewitching sound":"Bewitching Sound","bless boost":"Bless Boost","bless boost ii":"Bless Boost II","bless reduction iii":"Bless Reduction III","bloodbath":"Bloodbath","bonfire festival":"Bonfire Festival","brave blade":"Brave Blade","bufu":"Bufu","bufudyne":"Bufudyne","bufula":"Bufula","bullet time":"Bullet Time","burn boost":"Burn Boost","burn boost iii":"Burn Boost III","call of the abyss iv":"Call of the Abyss IV","charge":"Charge","chilling depth":"Chilling Depth","cohesion":"Cohesion","concentrate":"Concentrate","cosmic flare":"Cosmic Flare","curse boost":"Curse Boost","curse boost i":"Curse Boost I","curse boost ii":"Curse Boost II","curse boost iii":"Curse Boost III","curse reduction iii":"Curse Reduction III","curse reduction iv":"Curse Reduction IV","dance of destruction":"Dance of Destruction","dazzler":"Dazzler","deadly fury":"Deadly Fury","death's mercy":"Death's Mercy","defense master":"Defense Master","defense master ii":"Defense Master II","defense master iii":"Defense Master III","defense master iv":"Defense Master IV","dekunda":"Dekunda","demonic decree":"Demonic Decree","devoted guard":"Devoted Guard","diamond dust":"Diamond Dust","diarama":"Diarama","die for me!":"Die For Me!","disaster ward":"Disaster Ward","divine grace iii":"Divine Grace III","divine guidance iii":"Divine Guidance III","divine judgment":"Divine Judgment","dizzy boost iii":"Dizzy Boost III","dormina":"Dormina","dragonslayer's sword":"Dragonslayer's Sword","eiga":"Eiga","eigaon":"Eigaon","elec boost":"Elec Boost","elec boost iii":"Elec Boost III","elec boost iv":"Elec Boost IV","elec break":"Elec Break","electric dance":"Electric Dance","electric reduction iv":"Electric Reduction IV","endless bind":"Endless Bind","exorcising flames":"Exorcising Flames","fire boost":"Fire Boost","fire boost ii":"Fire Boost II","fire boost iii":"Fire Boost III","fire boost iv":"Fire Boost IV","fire break":"Fire Break","fire reduction ii":"Fire Reduction II","fire reduction iii":"Fire Reduction III","flowers of the pure land":"Flowers of the Pure Land","fortified moxy iii":"Fortified Moxy III","fortified moxy iv":"Fortified Moxy IV","freeze boost iv":"Freeze Boost IV","freila":"Freila","gae bolg":"Gae Bolg","garudyne":"Garudyne","garula":"Garula","gun boost iii":"Gun Boost III","gun reduction iii":"Gun Reduction III","hamaon":"Hamaon","hassou tobi":"Hassou Tobi","healing boost":"Healing Boost","healing boost ii":"Healing Boost II","healing boost iii":"Healing Boost III","healing boost iv":"Healing Boost IV","hp boost iii":"HP Boost III","hunter's instincts":"Hunter's Instincts","ice boost":"Ice Boost","ice boost iv":"Ice Boost IV","ice reduction iii":"Ice Reduction III","ice reduction iv":"Ice Reduction IV","imperial purge":"Imperial Purge","infinite algorithm":"Infinite Algorithm","ironclad resolve i":"Ironclad Resolve I","ironclad resolve ii":"Ironclad Resolve II","ironclad resolve iii":"Ironclad Resolve III","ironclad resolve iv":"Ironclad Resolve IV","killer allure":"Killer Allure","kouga":"Kouga","kougaon":"Kougaon","life aid i":"Life Aid I","life aid iv":"Life Aid IV","mabufu":"Mabufu","mabufudyne":"Mabufudyne","mabufula":"Mabufula","maeigaon":"Maeigaon","magarudyne":"Magarudyne","magarula":"Magarula","mahamaon":"Mahamaon","makougaon":"Makougaon","mapsiodyne":"Mapsiodyne","maragidyne":"Maragidyne","maragion":"Maragion","marakukaja":"Marakukaja","marakunda":"Marakunda","maraku":"Marakunda","masukukaja":"Masukukaja","matarukaja":"Matarukaja","matarunda":"Matarunda","maziodyne":"Maziodyne","mazionga":"Mazionga","media":"Media","mediarahan":"Mediarahan","mediarama":"Mediarama","megaton raid":"Megaton Raid","megidolaon":"Megidolaon","memory blow":"Memory Blow","mother goddess' chant":"Mother Goddess' Chant","mudo":"Mudo","mudoon":"Mudoon","nuclear reduction iv":"Nuclear Reduction IV","nuke boost iii":"Nuke Boost III","nuke boost iv":"Nuke Boost IV","nurture ii":"Nurture II","nurture iii":"Nurture III","nurture iv":"Nurture IV","one-shot kill":"One-shot Kill","phys boost":"Phys Boost","phys boost iv":"Phys Boost IV","physical reduction iii":"Physical Reduction III","pinpoint":"Pinpoint","pinpoint iv":"Pinpoint IV","power surge":"Power Surge","protect boost":"Protect Boost","protect boost ii":"Protect Boost II","psio":"Psio","psiodyne":"Psiodyne","psy boost":"Psy Boost","psy boost ii":"Psy Boost II","psy boost iii":"Psy Boost III","psy boost iv":"Psy Boost IV","psy reduction iii":"Psy Reduction III","psycho blast":"Psycho Blast","psycho force":"Psycho Force","purifying flames":"Purifying Flames","raging blizzard":"Raging Blizzard","rakukaja":"Rakukaja","rakunda":"Rakunda","reassuring embrace":"Reassuring Embrace","rebellion":"Rebellion","red-hot":"Red-Hot","reduction boost":"Reduction Boost","reduction boost ii":"Reduction Boost II","reduction boost iv":"Reduction Boost IV","regenerate":"Regenerate","regenerate iii":"Regenerate III","resist forget ii":"Resist Forget II","resist sleep iv":"Resist Sleep IV","resistance boost iii":"Resistance Boost III","revolution":"Revolution","seize the day":"Seize the Day","sharp student iii":"Sharp Student III","sharp student iv":"Sharp Student IV","shield boost":"Shield Boost","shield boost iv":"Shield Boost IV","shining salvation":"Shining Salvation","shock boost":"Shock Boost","shock boost ii":"Shock Boost II","shock boost iii":"Shock Boost III","shock boost iv":"Shock Boost IV","sleep boost ii":"Sleep Boost II","snow king's protection":"Snow King's Protection","sonic interference":"Sonic Interference","spell master i":"Spell Master I","spell master iv":"Spell Master IV","spike":"Spike","spirit binding":"Spirit Binding","spirit harmony":"Spirit Harmony","spirit strike":"Spirit Strike","spirit wave":"Spirit Wave","sukukaja":"Sukukaja","suku":"Sukukaja","sword dance":"Sword Dance","tarukaja":"Tarukaja","tarunda":"Tarunda","tatra shot":"Tatra Shot","tempest slash":"Tempest Slash","thunder caller":"Thunder Caller","underworld judgment":"Underworld Judgment","verdict of agony":"Verdict of Agony","wild thunder":"Wild Thunder","wind barrier":"Wind Barrier","wind boost":"Wind Boost","wind boost ii":"Wind Boost II","wind boost iii":"Wind Boost III","wind break":"Wind Break","wind of nirvana":"Wind of Nirvana","wind reduction i":"Wind Reduction I","wind reduction iii":"Wind Reduction III","windsweep boost iii":"Windsweep Boost III","windswept boost":"Windswept Boost","year end calamity":"Year End Calamity","yggdrasil evolution":"Yggdrasil Evolution","ziodyne":"Ziodyne","zionga":"Zionga","af":"Abyssal Field","abyssal":"Abyssal Field","agi master 1":"Agility Master","agi master 2":"Agility Master II","agi master 3":"Agility Master III","agi master 4":"Agility Master IV","chilling":"Chilling Depth","cd":"Chilling Depth","coh":"Cohesion","cosmic":"Cosmic Flare","flare":"Cosmic Flare","dance":"Dance of Destruction","dek":"Dekunda","dfm":"Die For Me!","ed":"Electric Dance","ht":"Hassou Tobi","ip":"Imperial Purge","ia":"Infinite Algorithm","infinite":"Infinite Algorithm","mapsi":"Mapsiodyne","marak":"Marakunda","masu":"Masukukaja","mataru":"Matarukaja","megido":"Megidolaon","rak":"Rakunda","reb":"Rebellion","rebel":"Rebellion","rebell":"Rebellion","rev":"Revolution","revo":"Revolution","si":"Sonic Interference","sonic":"Sonic Interference","taru":"Tarukaja","wt":"Wild Thunder","wild":"Wild Thunder"};
@@ -740,6 +893,7 @@ const DUAL_ELEM_IMG = {
   'Bless/Curse':'elements/Bless_Curse.png'
 };
 const ACT_SPECIAL = ['MAKOTO','YUKARI','AKIHIKO','MITSURU','JUNPEI','KOROMARU','AIGIS','FUUKA']; // the "SEES" characters (THEURGY/ASSIST); FUUKA is SEES but Elucidator rules take priority
+const MIKU_NAME='MIKU'; const MIKU_SONGS=['Heaven','Spring Storm','Play-With-Fire']; // Miku's elucidator songs (action-row dropdown)
 const SOS_BOSSES = ["ASURA","BAPHOMET","BISHAMONTEN","CU CHULAINN","LILITH AOE","LILITH ST","MELCHIZEDEK","POWER","QUETZALCOATL","SEIRYU","SETH","SRAOSHA","TITANIA","VISHNU","ZAOU-GONGEN"];
 function bossListFor(type){ return type==='SOS' ? SOS_BOSSES : DATA.bossNames; }
 const ACT_CODES = ['S1','S2','S3','HL','Atk','Gn','Gd','Ast'];
@@ -762,6 +916,8 @@ function actCodesFor(name){ return actButtonRows(name).reduce((acc,g)=>acc.conca
 function actButtons(name){ return actCodesFor(name); } /* kept for compatibility */
 /* combined "what Wonder does" (skill + basic action + free text); HL is tracked separately */
 function skillLabel(n){ if(!n) return n; const m=settings.skillAbbr||{}; const a=m[n]; return (a && SKILL_ALIASES[n] && SKILL_ALIASES[n].indexOf(a)>=0) ? a : n; }
+/* Highlight / Theurgy display label — abbreviated to HL / TG when the setting is on (preview, webview, image, CSV) */
+function hlLabel(special){ return settings.abbrHighlight ? (special?'TG':'HL') : (special?'Theurgy':'Highlight'); }
 /* signature skills: any skill that is a persona signature. SIG_EXCLUDE = signatures that are also Recommended/Innate on lufel and keep their real name when the exclude box is on. */
 const _SIG_SET = new Set(Object.values(PERSONA_SIGNATURES));
 const SIG_EXCLUDE = new Set(['Cohesion','Revolution','Rebellion','Tarunda','Rakunda','Matarunda','Matarukaja','Marakunda']);
@@ -770,11 +926,12 @@ function personaLabel(n){ if(!n) return n; const m=settings.personaAbbr||{}; con
 function wonderBody(a, abbr){ return [(abbr?skillDisplay(a.skill||''):(a.skill||'')), a.btn?btnLabel(a.btn):'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' '); }
 function actionLabel(a, name, abbr){
   if((name||'').toUpperCase()==='WONDER'){
-    return [(abbr?personaLabel(a.persona||''):(a.persona||'')), a.hl?'HL':'', wonderBody(a, abbr)].map(s=>String(s).trim()).filter(Boolean).join(' ');
+    return [(abbr?personaLabel(a.persona||''):(a.persona||'')), a.hl?hlLabel(false):'', wonderBody(a, abbr)].map(s=>String(s).trim()).filter(Boolean).join(' ');
   }
   const special=ACT_SPECIAL.includes((name||'').toUpperCase());
-  const lbl=c=>!c?'':(c==='ALT'?altExportLabel(name):(c==='HL'?(special?'Theurgy':'Highlight'):(BTN_LABEL[c]||c)));
-  return [lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+  const lbl=c=>!c?'':(c==='ALT'?altExportLabel(name):(c==='HL'?hlLabel(special):(BTN_LABEL[c]||c)));
+  const song=((name||'').toUpperCase()===MIKU_NAME)?(a.song||''):'';
+  return [song, lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
 }
 function migrateAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
@@ -882,7 +1039,7 @@ function defaultState(){
     setup:{rotationName:i.rotationName,tier:i.tier,boss:i.boss,type:i.type,patch:i.patch,score:i.score,notes:i.notes,credits:i.credits||''},
     units,
     elucidator:mk(i.elucidator,i.awareness[4]||'A6',i.rev[4]||'R6',i.gear[4]||''),
-    personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '' ]})),
+    personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '' ], note:''})),
     teamNotes:'',
     turns:JSON.parse(JSON.stringify(i.turns)),
   };
@@ -895,7 +1052,7 @@ function blankState(){
     setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''},
     units:[{name:'WONDER',awareness:'DGR',rev:'R0',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
     elucidator:u(),
-    personas:[{name:'',skills:['','']},{name:'',skills:['','']},{name:'',skills:['','']}],
+    personas:[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}],
     teamNotes:'',
     rotationView:'vertical',
     turns:Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',btn:'',text:''}]})),
@@ -906,9 +1063,9 @@ function migrate(st){
   if(!st.personas){
     const names=st.persona||DATA.initial.persona;
     const old=st.skills||[];
-    st.personas=names.map((n,k)=>({name:n,skills:[old[k]||'','']}));
+    st.personas=names.map((n,k)=>({name:n,skills:[old[k]||''],note:''}));
   }
-  st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<2)p.skills.push(''); p.skills=p.skills.slice(0,2); });
+  st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<2)p.skills.push(''); p.skills=p.skills.slice(0,2); if(typeof p.note!=='string')p.note=''; });
   [].concat(st.units||[], st.elucidator?[st.elucidator]:[]).forEach(u=>{
     if(!u) return;
     if(u.space===undefined)u.space='';
@@ -944,7 +1101,7 @@ function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
-const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true };
+const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
 function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} }
@@ -960,6 +1117,7 @@ function applySettings(){ const b=document.body;
   b.classList.toggle('hide-char-notes', !settings.showCharNotes);
   b.classList.toggle('hide-team-notes', !settings.showTeamNotes);
   b.classList.toggle('hide-rota-notes', !settings.showRotaNotes);
+  b.classList.toggle('hide-persona-notes', !settings.showPersonaNotes);
   b.classList.toggle('persona-img-left', !!settings.personaImgLeft);
   applyTheme();
 }
@@ -1029,7 +1187,8 @@ function showImportFeedback(res){
   let txt='Text import complete.\n\n'+L.join('\n');
   if(P.length) txt+='\n\nNot imported / please check:\n'+P.join('\n');
   txt+='\n\nEmpty fields that still need attention are highlighted in yellow in the editor.';
-  openShareModal({title:'Import Summary', text:txt, readonly:true, primaryLabel:'Close', onPrimary:(t,h,close)=>close(), autoHeight:true, noSelect:true, hidePrimary:true});
+  openShareModal({title:'Import Summary', text:txt, readonly:true, primaryLabel:'Close', onPrimary:(t,h,close)=>close(), autoHeight:true, noSelect:true, hidePrimary:true,
+    disclaimer:'The text import can misread or miss things. Always double-check the imported rotation (team, personas, cards and every turn) before you use or share it.'});
 }
 function openImportText(){
   openShareModal({title:'Import Text', text:'', readonly:false, showKeepText:true, showDodToggle:true,
@@ -1204,6 +1363,7 @@ function renderTeam(){
           <div class="skills">
             <input class="sig-skill" value="${esc(p.name?(PERSONA_SIGNATURES[p.name]||''):'')}" placeholder="Signature Skill" readonly tabindex="-1" title="Signature skill — set automatically by the persona, can't be edited"/>
             ${p.skills.slice(0,2).map((s,si)=>`<span class="combo-wrap"><input class="skill-combo combo" data-combo="skill" data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Teachable Skill ${si+1}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`).join('')}
+            <input class="persona-note" data-path="personas.${k}.note" value="${esc(p.note||'')}" placeholder="Notes..." autocomplete="off"/>
           </div>
         </div>
         <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
@@ -1263,6 +1423,7 @@ function renderTeam(){
       const u=getByPath(el.dataset.uname);
       u.name=el.value;
       if((u.name||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; u.rev='R6'; }
+      else u.gear='';   // dropped Wonder -> clear the dagger (non-Wonder units use revelation cards, not a dagger)
       const _def=CHAR_CARD_DEFAULTS[(u.name||'').toUpperCase()];
       u.space=_def?_def.space:''; u.sunsky=_def?_def.sunsky:'';
       save(); renderTeam(); renderTurns();
@@ -1361,9 +1522,15 @@ function autoCorrectPlan(){
     if(!teamUp.includes(cn.toUpperCase()) && !missing.includes(cn)) missing.push(cn); }));
   const acting=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char) acting.add(a.char.toUpperCase()); }));
   const free=[]; (state.units||[]).forEach(u=>{ const nm=u.name; if(nm && nm.toUpperCase()!=='WONDER' && !acting.has(nm.toUpperCase()) && !free.includes(nm)) free.push(nm); });
-  const charReplacements=[]; { const n=Math.min(missing.length, free.length);
-    for(let i=0;i<n;i++) charReplacements.push({from:missing[i], to:free[i]}); }
-  const unmatchedChars=missing.slice(charReplacements.length);
+  // the elucidator slot can also receive a replacement: when it was swapped in the team, the OLD elucidator
+  // name still appears in the actions and should map to the current elucidator (which now acts nowhere).
+  const eluNm=(state.elucidator&&state.elucidator.name)||'';
+  let eluFree = !!eluNm && !acting.has(eluNm.toUpperCase());
+  const isElu=n=>(DATA.elucidatorNames||[]).includes((n||'').toUpperCase());
+  const charReplacements=[]; const restMiss=[];
+  missing.forEach(m=>{ if(eluFree && isElu(m)){ charReplacements.push({from:m, to:eluNm}); eluFree=false; } else restMiss.push(m); });
+  { const n=Math.min(restMiss.length, free.length); for(let i=0;i<n;i++) charReplacements.push({from:restMiss[i], to:free[i]}); }
+  const unmatchedChars=restMiss.slice(Math.min(restMiss.length, free.length));
 
   // ---- persona replacements: Wonder persona used in turns but not in a slot ----
   const slotPersUp=state.personas.map(p=>(p.name||'').trim().toUpperCase()).filter(Boolean);
@@ -1451,6 +1618,8 @@ function showDiscBanner(nChar,nOrd){
   if(nChar) parts.push((nChar===1?'1 action references':nChar+' actions reference')+' a character or persona that is no longer on the team');
   if(nOrd) parts.push((nOrd===1?'1 turn has':nOrd+' turns have')+' characters acting out of team order');
   msg.textContent=parts.join('; ')+'. Fix the highlighted items to re-enable export.';
+  // surface Auto Correct right in the banner when it has something it can fix
+  { const acBtn=b.querySelector('#discAutoCorrect'); if(acBtn){ let act=false; try{ act=!!autoCorrectPlan().actionable; }catch(e){} acBtn.hidden=!act; } }
   b.hidden=false;
   clearTimeout(_discBannerTimer);
   _discBannerTimer=setTimeout(()=>{ b.hidden=true; }, 10000);
@@ -1576,7 +1745,11 @@ function actRow(a, ti, ai){
     const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
     const lab=c=>(c==='HL'&&special)?'TG':btnLabel(c);
     const rows=actButtonRows(a.char).map(group=>`<div class="act-actions">${group.map(c=>`<button type="button" class="actbtn ${a.btn===c?'on':''}" data-actset="${ti}.${ai}" data-code="${esc(c)}">${esc(lab(c))}</button>`).join('')}</div>`).join('');
-    midBody=`${rows}<input data-taction="${ti}.${ai}" value="${esc(a.text||'')}"/>`;
+    // Hatsune Miku's song selector (sits under her name, above the S1/S2/S3 buttons)
+    let songSel='';
+    if((a.char||'').toUpperCase()===MIKU_NAME){ const cur=a.song||''; const extra=(cur && !MIKU_SONGS.includes(cur))?[cur]:[];
+      songSel=`<select data-msong="${ti}.${ai}"><option value=""${cur?'':' selected'}>Song…</option>${extra.concat(MIKU_SONGS).map(s=>`<option${cur===s?' selected':''}>${esc(s)}</option>`).join('')}</select>`; }
+    midBody=`${songSel}${rows}<input data-taction="${ti}.${ai}" value="${esc(a.text||'')}"/>`;
   }
   const altHtml = hasAlt(a.char) ? `<button type="button" class="actbtn altbtn ${a.btn==='ALT'?'on':''}" data-actset="${ti}.${ai}" data-code="ALT">${esc(altBtnLabel(a.char))}</button>` : '';
   return `<div class="act${actionDiscrepant(a)?' discrepant':''}" style="--ax:${col}" data-ti="${ti}" data-ai="${ai}">
@@ -1669,6 +1842,7 @@ function renderTurns(){
   wrap.querySelectorAll('[data-tname]').forEach(el=>el.oninput=e=>{state.turns[+el.dataset.tname].name=e.target.value; save(); renderRotationPreview();});
   wrap.querySelectorAll('[data-tnote]').forEach(el=>el.oninput=e=>{state.turns[+el.dataset.tnote].note=e.target.value; save(); renderRotationPreview();});
   wrap.querySelectorAll('[data-taction]').forEach(el=>el.oninput=e=>{const[t,a]=el.dataset.taction.split('.');state.turns[t].actions[a].text=e.target.value; save(); renderRotationPreview(); refreshDiscHints();});
+  wrap.querySelectorAll('[data-msong]').forEach(el=>el.onchange=e=>{const[t,a]=el.dataset.msong.split('.');state.turns[t].actions[a].song=e.target.value; save(); renderRotationPreview();});
   wrap.querySelectorAll('[data-tchar]').forEach(el=>el.onchange=e=>{
     const[t,a]=el.dataset.tchar.split('.'); const o=state.turns[t].actions[a]; o.char=e.target.value;
     if((o.char||'').toUpperCase()!=='WONDER' && o.btn && !(actCodesFor(o.char).includes(o.btn) || (o.btn==='ALT'&&hasAlt(o.char)))) o.btn='';
@@ -1852,13 +2026,15 @@ function compactEncode(st){
       const pi=a.persona?pnames.indexOf(a.persona):-1;
       return [ _io(a.char,R), pi>=0?pi:(a.persona||''), a.hl?1:0, a.text||'', a.skill||'', _io(a.btn||'',AC) ];
     }
-    return [ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
+    const e=[ _io(a.char,R), _io(a.btn,AC), a.text||'' ];
+    if((a.char||'').toUpperCase()===MIKU_NAME && (a.song||'')) e.push(a.song);
+    return e;
   };
   return [1,
     [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
     (st.units||[]).map(unit),
     unit(st.elucidator||{}),
-    (st.personas||[]).map(p=>[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]),
+    (st.personas||[]).map(p=>{ const e=[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]; if((p.note||'').trim()) e.push(p.note.trim()); return e; }),
     st.teamNotes||'',
     (st.turns||[]).map(t=>[ t.name||'', (t.actions||[]).map(act), t.note||'' ]),
     st.rotationView||'vertical' ];
@@ -1867,14 +2043,16 @@ function compactDecode(arr){
   const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
   const su=arr[1]||[];
   const unit=a=>({ name:_oi(a[0],R), awareness:_oi(a[1],AW), rev:_oi(a[2],RV), gear:a[3]||'', space:_oi(a[4],SP), sunsky:_oi(a[5],SS), role:a[6]||'', companion:a[7]||'', note:a[8]||'' });
-  const personas=(arr[4]||[]).map(p=>({ name:_oi(p[0],PN), skills:(p[1]||['','']).slice(0,2) }));
+  const personas=(arr[4]||[]).map(p=>({ name:_oi(p[0],PN), skills:(p[1]||['','']).slice(0,2), note:p[2]||'' }));
   const pnames=personas.map(p=>p.name);
   const act=a=>{
     const charName=_oi(a[0],R);
     if((charName||'').toUpperCase()==='WONDER'){
       return { char:'WONDER', persona:typeof a[1]==='number'?(pnames[a[1]]||''):(a[1]||''), hl:!!a[2], text:a[3]||'', skill:a[4]||'', btn:_oi(a[5],AC)||'' };
     }
-    return { char:charName, btn:_oi(a[1],AC), text:a[2]||'' };
+    const o={ char:charName, btn:_oi(a[1],AC), text:a[2]||'' };
+    if((charName||'').toUpperCase()===MIKU_NAME && a[3]) o.song=a[3];
+    return o;
   };
   return {
     setup:{ rotationName:su[0]||'', tier:su[1]||'', boss:su[2]||'', type:_oi(su[3],TY), patch:su[4]||'', score:su[5]||'', notes:su[6]||'', credits:su[7]||'' },
@@ -1955,10 +2133,11 @@ function openShareModal(opts){
   _shareUrl=opts.text||'';
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
-  { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; }
+  { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; const kc=document.getElementById('ioKeep'); if(kc && opts.showKeepText) kc.checked=true; }
   { const dr=document.getElementById('ioDodRow'); if(dr){ dr.hidden=!opts.showDodToggle; const cb=document.getElementById('ioDod'); if(cb) cb.checked=false; } }
   { const pv=document.getElementById('ioParserVer'); if(pv){ pv.hidden=!opts.showDodToggle; pv.textContent=(window.VF_PARSER_VERSION||''); } }
   document.getElementById('ioHint').textContent=opts.hint||'';
+  { const dc=document.getElementById('ioDisclaimer'); if(dc){ dc.textContent=opts.disclaimer||''; dc.hidden=!opts.disclaimer; } }
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
   const shBtn=document.getElementById('ioShorten');
@@ -1997,6 +2176,8 @@ function maskedDiscordLink(label,url){ return '['+String(label||'').replace(/[\[
 async function openShareLink(){ let url; try{ url=await shareLinkURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
   openShareModal({title:'Share Editor Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, discordUrl:url, discordLabel:discordLabel(), shortenFragment:(url.split('#')[1]||'')});  }
 function titleCase(s){ return String(s||'').toLowerCase().replace(/(^|[\s·.\-/'])([a-z])/g,(m,p,c)=>p+c.toUpperCase()); }
+/* display name in the preview/exports: Hatsune Miku is always shown short as "Miku" */
+function charDisp(name){ return (name||'').toUpperCase()===MIKU_NAME ? 'Miku' : (name||''); }
 function textAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
   if(isW){
@@ -2006,8 +2187,10 @@ function textAction(a){
   }
   const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
   const lbl=c=>!c?'':(c==='ALT'?altBtnLabel(a.char):(c==='HL'?(special?'TG':'HL'):(BTN_LABEL[c]||c)));
-  const rest=[lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
-  return [titleCase(a.char||''), rest].filter(Boolean).join(' ');
+  const isMiku=(a.char||'').toUpperCase()===MIKU_NAME;
+  const rest=[isMiku?(a.song||''):'', lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
+  // Miku uses the short single-token label so "Miku Heaven" round-trips cleanly (the full two-word name would not)
+  return [isMiku?'Miku':titleCase(a.char||''), rest].filter(Boolean).join(' ');
 }
 function buildTextExport(){
   const s=state.setup, L=[];
@@ -2027,17 +2210,21 @@ function buildTextExport(){
     } else {
       const prefix=((u.awareness||'').trim()+(u.rev||'').trim());
       const cards=[u.space,u.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
-      line=(prefix?prefix+' ':'')+titleCase(nm)+(cards?': '+cards:'');
+      line=(prefix?prefix+' ':'')+(nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm))+(cards?': '+cards:'');
     }
     if((u.note||'').trim()) line+=' ('+u.note.trim()+')';
     team.push(line);
   });
-  if(team.length){ L.push(''); L.push(...team); }
+  if(team.length){ L.push(''); L.push(...team);
+    if(settings.textTurnOrder){ const ord=(state.units||[]).map(u=>(u.name||'').trim()).filter(Boolean)
+        .map(nm=>nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm));
+      if(ord.length){ L.push(''); L.push('Turn order: '+ord.join(' > ')); } } }
   // Wonder personas as a bare comma list (the boss is already in the title)
   const pers=state.personas.map(p=>{
     const nm=(p.name||'').trim(); if(!nm) return null;
     const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean).map(skillDisplay);
-    return sk.length?`${personaLabel(nm)} (${sk.join(' + ')})`:personaLabel(nm);
+    const note=(p.note||'').trim();
+    return personaLabel(nm)+(sk.length?` (${sk.join(' + ')})`:'')+(note?` [${note}]`:'');
   }).filter(Boolean);
   if(pers.length){ L.push(''); L.push(pers.join(', ')); }
   const tn=(state.teamNotes||'').trim();
@@ -2083,18 +2270,52 @@ function openImportCode(){ openShareModal({title:'Import Code', text:'', readonl
   document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && !m.hidden) closeShareModal(); });
 })();
 function showImportNote(text){
+  // per-device preference: keep the imported text as a separate browser window, or as the in-tool panel
+  if(settings.importNotePopup){ popOutImportNote(text); return; }
+  _showImportNotePanel(text);
+}
+function _showImportNotePanel(text){
   const p=document.getElementById('importNote'); if(!p) return;
   document.getElementById('impNoteBody').textContent=text||'';
   p.classList.remove('collapsed');
   p.style.transform='none'; p.hidden=false;
-  p.style.left='12px';
+  p.style.width=''; p.style.height=''; delete p.dataset.h;   // back to the default content-fit size (still user-resizable)
   p.style.top='72px';
+  // appear on the RIGHT side of the window
+  const w0=p.offsetWidth||340;
+  p.style.left=Math.max(8, (window.innerWidth||800)-w0-12)+'px';
+}
+// open the imported text in its own browser window (pop-up). Called from the panel's pop-out button
+// (reads the current text) or directly on import when the pop-up preference is on.
+function popOutImportNote(text){
+  const src=document.getElementById('impNoteBody');
+  const t=(text!=null?text:(src?src.textContent:''))||'';
+  const w=window.open('','vfImportedText','width=460,height=560');
+  if(!w){ // pop-up blocked -> fall back to the in-tool panel so the text is never lost
+    _showImportNotePanel(t);
+    const h=document.getElementById('ioHint'); if(h) h.textContent='Pop-up blocked by the browser — showing the imported text inside the tool instead.';
+    return; }
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  w.document.open();
+  w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<title>Imported text - VFRP</title><style>html,body{margin:0;height:100%}'
+    +'body{background:#14121c;color:#f3f1f7;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace}'
+    +'pre{margin:0;padding:14px;white-space:pre-wrap;word-break:break-word}</style></head>'
+    +'<body><pre>'+esc(t)+'</pre></body></html>');
+  w.document.close();
+  // about:blank pop-ups show the URL as the title until it is set explicitly
+  try{ w.document.title='Imported text - VFRP'; }catch(e){}
+  try{ w.focus(); }catch(e){}
+  const p=document.getElementById('importNote'); if(p) p.hidden=true;   // the in-tool panel is redundant now
 }
 (function(){
   const p=document.getElementById('importNote'); if(!p) return;
-  const head=document.getElementById('impNoteHead'), x=document.getElementById('impNoteX'), eye=document.getElementById('impNoteEye');
+  const head=document.getElementById('impNoteHead'), x=document.getElementById('impNoteX'), eye=document.getElementById('impNoteEye'), pop=document.getElementById('impNotePop');
   if(x) x.onclick=()=>{ p.hidden=true; };
-  if(eye) eye.onclick=()=>{ const c=p.classList.toggle('collapsed'); eye.setAttribute('aria-label', c?'Expand':'Collapse'); eye.title=c?'Expand':'Collapse'; };
+  if(pop) pop.onclick=()=>popOutImportNote();
+  // collapse hides the body; stash any manual height so the collapsed panel shrinks to just the header, restore on expand
+  if(eye) eye.onclick=()=>{ const c=p.classList.toggle('collapsed'); eye.setAttribute('aria-label', c?'Expand':'Collapse'); eye.title=c?'Expand':'Collapse';
+    if(c){ p.dataset.h=p.style.height||''; p.style.height=''; } else { p.style.height=p.dataset.h||''; } };
   let dragging=false, ox=0, oy=0;
   const onBtn=t=>t&&t.closest&&t.closest('button');
   const start=(cx,cy)=>{ const r=p.getBoundingClientRect(); dragging=true; ox=cx-r.left; oy=cy-r.top; p.style.transform='none'; document.body.style.userSelect='none'; };
@@ -2107,12 +2328,27 @@ function showImportNote(text){
     head.addEventListener('mousedown', e=>{ if(onBtn(e.target)) return; start(e.clientX,e.clientY); e.preventDefault(); });
     head.addEventListener('touchstart', e=>{ if(onBtn(e.target)) return; const tt=e.touches[0]; start(tt.clientX,tt.clientY); }, {passive:true});
   }
-  document.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
-  document.addEventListener('mouseup', end);
-  document.addEventListener('touchmove', e=>{ if(!dragging) return; const tt=e.touches[0]; move(tt.clientX,tt.clientY); }, {passive:true});
-  document.addEventListener('touchend', end);
+  // resize from any edge/corner (the data-dir handles); keeps the opposite edge fixed
+  const MINW=240, MINH=120; let rz=null;
+  const rzStart=(dir,cx,cy)=>{ const r=p.getBoundingClientRect(); rz={dir,sx:cx,sy:cy,sl:r.left,st:r.top,sw:r.width,sh:r.height}; p.style.transform='none'; document.body.style.userSelect='none'; };
+  const rzMove=(cx,cy)=>{ if(!rz) return; const d=rz.dir, dx=cx-rz.sx, dy=cy-rz.sy, vw=window.innerWidth||800, vh=window.innerHeight||600;
+    let l=rz.sl, t=rz.st, w=rz.sw, h=rz.sh;
+    if(d.indexOf('e')>=0) w=Math.max(MINW, Math.min(rz.sw+dx, vw-rz.sl));
+    if(d.indexOf('s')>=0) h=Math.max(MINH, Math.min(rz.sh+dy, vh-rz.st));
+    if(d.indexOf('w')>=0){ w=Math.min(Math.max(MINW, rz.sw-dx), rz.sl+rz.sw); l=rz.sl+rz.sw-w; }
+    if(d.indexOf('n')>=0){ h=Math.min(Math.max(MINH, rz.sh-dy), rz.st+rz.sh); t=rz.st+rz.sh-h; }
+    p.style.width=w+'px'; p.style.height=h+'px'; p.style.left=l+'px'; p.style.top=t+'px'; };
+  const rzEnd=()=>{ if(rz){ rz=null; document.body.style.userSelect=''; } };
+  p.querySelectorAll('.imp-rz').forEach(hd=>{ const dir=hd.dataset.dir;
+    hd.addEventListener('mousedown', e=>{ e.preventDefault(); e.stopPropagation(); rzStart(dir,e.clientX,e.clientY); });
+    hd.addEventListener('touchstart', e=>{ e.stopPropagation(); const tt=e.touches[0]; rzStart(dir,tt.clientX,tt.clientY); }, {passive:true}); });
+  document.addEventListener('mousemove', e=>{ move(e.clientX,e.clientY); rzMove(e.clientX,e.clientY); });
+  document.addEventListener('mouseup', ()=>{ end(); rzEnd(); });
+  document.addEventListener('touchmove', e=>{ const tt=e.touches[0]; if(dragging) move(tt.clientX,tt.clientY); else if(rz) rzMove(tt.clientX,tt.clientY); }, {passive:true});
+  document.addEventListener('touchend', ()=>{ end(); rzEnd(); });
 })();
 document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
+{ const pb=document.getElementById('playBtn'); if(pb) pb.onclick=openPlayMode; }
 function _abbrRows(map, aliasData, kind){
   const m=map||{};
   return Object.keys(aliasData).sort((a,b)=>a.localeCompare(b)).map(name=>{
@@ -2130,10 +2366,14 @@ function syncSettingsModal(){
   document.getElementById('setCharNotes').checked=!!settings.showCharNotes;
   document.getElementById('setTeamNotes').checked=!!settings.showTeamNotes;
   document.getElementById('setRotaNotes').checked=!!settings.showRotaNotes;
+  document.getElementById('setPersonaNotes').checked=!!settings.showPersonaNotes;
   document.getElementById('setPersonaImgLeft').checked=!!settings.personaImgLeft;
+  document.getElementById('setImportPopup').checked=!!settings.importNotePopup;
+  document.getElementById('setTextTurnOrder').checked=!!settings.textTurnOrder;
   document.getElementById('setPreviewOpen').checked=!!settings.previewExpanded;
   document.querySelectorAll('#themeSwitch .theme-opt').forEach(x=>x.classList.toggle('on', x.dataset.theme===(settings.theme||'dark')));
   document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical')));
+  document.getElementById('setAbbrHL').checked=!!settings.abbrHighlight;
   document.getElementById('setSigAsSig').checked=!!settings.sigAsSig;
   document.getElementById('setSigExclude').checked=settings.sigExclude!==false;
   { const el=document.getElementById('sigExcludeLabel'); if(el) el.textContent='Don\'t show "Sig" for '+[...SIG_EXCLUDE].join(', '); }
@@ -2157,9 +2397,10 @@ document.getElementById('settingsModal').addEventListener('click', e=>{
   if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody();
 });
 (function(){ const t=(id,key)=>{ const el=document.getElementById(id); if(el) el.onchange=()=>{ settings[key]=el.checked; saveSettings(); applySettings(); }; };
-  t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaImgLeft','personaImgLeft'); })();
+  t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaNotes','showPersonaNotes'); t('setPersonaImgLeft','personaImgLeft'); t('setImportPopup','importNotePopup'); t('setTextTurnOrder','textTurnOrder'); })();
 document.getElementById('setPreviewOpen').onchange=function(){ settings.previewExpanded=this.checked; saveSettings(); rotationPreviewOpen=this.checked; renderRotationPreview(); };
 (function(){ function rr(){ renderRotationPreview(); if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody(); }
+  const hl=document.getElementById('setAbbrHL'); if(hl) hl.onchange=function(){ settings.abbrHighlight=this.checked; saveSettings(); rr(); };
   const a=document.getElementById('setSigAsSig'); if(a) a.onchange=function(){ settings.sigAsSig=this.checked; saveSettings(); rr(); };
   const x=document.getElementById('setSigExclude'); if(x) x.onchange=function(){ settings.sigExclude=this.checked; saveSettings(); rr(); }; })();
 document.querySelectorAll('#themeSwitch .theme-opt').forEach(b=>b.onclick=()=>{ settings.theme=b.dataset.theme; saveSettings(); applyTheme(); if(!document.body.classList.contains('view-mode')) renderAll(); document.querySelectorAll('#themeSwitch .theme-opt').forEach(x=>x.classList.toggle('on', x.dataset.theme===settings.theme)); });
@@ -2311,7 +2552,10 @@ function exportBaseName(){
   name=name.replace(/[\\/:*?"<>|\r\n\t]+/g,'-').replace(/\s+/g,' ').trim();
   return name||'rotation';
 }
-function gearText(u){ return u.gear || [u.space,u.sunsky].filter(Boolean).join(' & '); }
+function gearText(u){ // Wonder shows its dagger (in gear); everyone else shows their revelation cards — never a stale dagger
+  if((u.name||'').toUpperCase()==='WONDER') return u.gear||'';
+  const cards=[u.space,u.sunsky].filter(Boolean).join(' & ');
+  return cards || (u.gear && u.gear.indexOf(' & ')>-1 ? u.gear : ''); }
 
 function buildCSV(){
   const s=state.setup, rows=[];
@@ -2429,7 +2673,7 @@ async function exportSheet(){
     const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
     for(let ai=0;ai<maxA;ai++){
       band.forEach(({t,j})=>{ const c1=2*j+1; const a=(t.actions||[])[ai];
-        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,a.char||'',{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char,true)||'',{}); }
+        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,charDisp(a.char),{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char,true)||'',{}); }
         else { set(row,c1,'',{}); set(row,c1+1,'',{}); }
       });
       row++;
@@ -2457,7 +2701,7 @@ function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
       ${t.note?`<span style="font:500 11px Inter,sans-serif;color:${C.soft};text-align:right;flex:1;min-width:0;">${esc(t.note)}</span>`:''}</div>
     ${(t.actions||[]).map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${cardStrip(a.char, C)};margin-bottom:3px;background:${actionDiscrepant(a)?C.disc:C.panel};border-radius:4px;">
       <span style="font:700 11px Oswald,sans-serif;color:${C.muted};min-width:12px;">${i+1}</span>
-      <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(a.char||'')}</span>
+      <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(charDisp(a.char))}</span>
       <span style="font:500 11px Inter,sans-serif;color:${C.text};flex:1;">${esc(actionLabel(a, a.char, true))}</span></div>`).join('')}
   </div>`; };
   const perRow=mobile?1:(function(n){ if(n<=4) return Math.max(1,n); if(n%4===0) return 4; if(n%3===0) return 3; return n===5?3:4; })(nT);
@@ -2472,7 +2716,7 @@ function turnsBlockHorizontal(mobile, C){ C=C||EX_DARK;
   const dodX=s.type==='DOD', nT=state.turns.length;
   const block=(a,i)=>`<div style="position:relative;flex:0 0 100px;width:100px;min-height:44px;box-sizing:border-box;background:${actionDiscrepant(a)?C.disc:C.panel};border:1px solid ${C.border};border-top:3px solid ${cardStrip(a.char, C)};border-radius:5px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;align-items:center;">
       <span style="position:absolute;top:2px;left:4px;font:700 9px Oswald,sans-serif;color:#6f6a85;line-height:1;">${i+1}</span>
-      <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(a.char||'')}</div>
+      <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(charDisp(a.char))}</div>
       <div style="font:600 11px Inter,sans-serif;color:${C.text};text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char, true))}</div></div>`;
   const turnRow=(t,ti)=>{ const isBreak=dodX&&nT>=DOD_BREAKS&&ti>=nT-DOD_BREAKS;
     const acts=(t.actions||[]).map(block).join('');
@@ -2504,7 +2748,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     return `<div style="${M?'flex:1 1 148px;min-width:148px;max-width:calc(50% - 6px);':'width:'+TEAMW+'px;'}background:${C.panel};border:1px solid ${C.border};border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
     ${art}
     <div style="font:700 10px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;">${esc(label)}</div>
-    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(u.name||'—')}</div>
+    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(charDisp(u.name)||'—')}</div>
     <div style="font:600 12px Inter,sans-serif;color:${C.soft};">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
     <div style="font:500 11px Inter,sans-serif;color:${C.muted};margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
     ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:${C.gold};margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
@@ -2746,12 +2990,14 @@ function enterViewMode(){
         <a class="btn" id="viewDiscord" href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer" title="Join our Discord"><svg viewBox="0 0 24 24" aria-hidden="true" style="fill:#5865F2"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.291.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>Discord</a>
         <button class="btn" id="viewEdit" title="Open this rotation in the Editor">Open in Editor</button>
         <button class="btn" id="viewDownload" title="Download the PNG of this view">Download</button>
+        <button class="btn" id="viewPlay" title="Play the rotation turn by turn">Play</button>
       </div>
     </div>
     <div id="viewStage"><div class="view-loading">Loading view\u2026</div></div>
     <div id="viewFooter"><div id="viewFooterText">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div><button type="button" class="btn" id="viewThemeToggle" title="Switch theme"></button></div>`;
   const stage=document.getElementById('viewStage');
   document.getElementById('viewDownload').onclick=()=>{ try{ exportViewPNG(); }catch(e){ _settleExport(); } };
+  { const vp=document.getElementById('viewPlay'); if(vp) vp.onclick=openPlayMode; }
   document.getElementById('viewEdit').onclick=async()=>{ try{ location.hash='r='+(await encodeShare()); location.reload(); }catch(e){} };
   const _setViewThemeBtn=()=>{ const b=document.getElementById('viewThemeToggle'); if(b) b.textContent=(_effTheme==='light'?'Switch to dark mode':'Switch to light mode'); };
   { const tb=document.getElementById('viewThemeToggle'); if(tb) tb.onclick=()=>{ settings.theme=(_effTheme==='light'?'dark':'light'); applyTheme(); _setViewThemeBtn(); }; _setViewThemeBtn(); }
@@ -2778,6 +3024,129 @@ window.addEventListener('resize', ()=>{
   if(mob!==_viewMobile){ _viewMobile=mob; if(_renderViewBody) _renderViewBody(); }   /* crossed the mobile breakpoint -> reflow */
   else if(!mob){ fitView(); }                                                          /* desktop/landscape -> just refit */
 });
+
+/* ---------- Play mode: full-screen player (turn-by-turn or action-by-action; vertical or horizontal) ---------- */
+let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical';
+const _playTouch = (function(){ try{ return (window.matchMedia&&window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window); }catch(e){ return false; } })();
+function _playLandscape(){ return (window.innerWidth||0) > (window.innerHeight||0); }   /* direct dimensions are more reliable than the orientation media query on iOS Safari */
+const _isIphone = /iPhone|iPod/.test(navigator.userAgent||'');
+function _isStandalone(){ return !!(window.navigator&&window.navigator.standalone) || (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches); }
+function _iosSafariLandscape(){ return _isIphone && !_isStandalone() && _playLandscape(); }
+function _playWantsHorizontal(){ return _playLandscape() && !(_isIphone && !_isStandalone()); }   /* iPhone Safari can't run the horizontal player well -> stay vertical */
+const _fsSupported=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
+function _fsEl(){ return document.fullscreenElement||document.webkitFullscreenElement; }
+function _playEnterFs(){ const r=document.getElementById('playRoot'); if(!r||!_fsSupported||_fsEl()) return; try{ (r.requestFullscreen||r.webkitRequestFullscreen).call(r); }catch(e){} }
+function _playExitFs(){ try{ if(_fsEl()) (document.exitFullscreen||document.webkitExitFullscreen).call(document); }catch(e){} }
+function playToggleFs(){ if(_fsEl()) _playExitFs(); else _playEnterFs(); }
+function _playFlat(){ const f=[], turns=state.turns||[], n=turns.length, dod=(state.setup.type||'').toUpperCase()==='DOD';
+  turns.forEach((t,ti)=>{ const brk=dod&&n>=DOD_BREAKS&&ti>=n-DOD_BREAKS; (t.actions||[]).filter(a=>a&&a.char).forEach(a=>f.push({ti:ti,a:a,turnName:t.name||('Turn '+(ti+1)),brk:brk})); }); return f; }
+function openPlayMode(){
+  const turns=(state.turns||[]); if(!turns.length){ alert('There are no turns to play yet.'); return; }
+  let root=document.getElementById('playRoot');
+  if(!root){
+    root=document.createElement('div'); root.id='playRoot'; root.hidden=true;
+    root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div>'
+      +'<div class="play-segs"><div class="play-seg" id="playModeSeg"><button data-pmode="turn">Turn</button><button data-pmode="action">Action</button></div>'
+      +'<div class="play-seg" id="playLayoutSeg"><button data-playlayout="vertical">Vertical</button><button data-playlayout="horizontal">Horizontal</button></div></div>'
+      +'<div class="play-right"><div class="play-pos" id="playPos"></div><button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div></div>'
+      +'<div class="play-body" id="playBody"></div>'
+      +'<div class="play-hint" id="playHint"></div>'
+      +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dots" id="playDots"></div><button class="play-navbtn" id="playNext">Next ›</button></div>';
+    document.body.appendChild(root);
+    root.querySelector('#playClose').onclick=closePlayMode;
+    root.querySelector('#playPrev').onclick=()=>playStep(-1);
+    root.querySelector('#playNext').onclick=()=>playStep(1);
+    root.querySelectorAll('#playModeSeg button').forEach(b=>b.onclick=()=>playSetMode(b.dataset.pmode));
+    root.querySelectorAll('#playLayoutSeg button').forEach(b=>b.onclick=()=>{ _playLayout=b.dataset.playlayout; renderPlay(); });
+    // touch swipe. In horizontal turn mode the actions strip scrolls natively; we only change turn when the
+    // swipe starts already at the strip's edge (i.e. you drag past the end / start of the turn).
+    let sx=0,sy=0,stime=0,swStart=true,swEnd=true;
+    // swipe nav lives on the body only, so taps on the header (close / switches) and nav are never swallowed
+    const _pbody=root.querySelector('#playBody');
+    _pbody.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; stime=Date.now();
+      const strip=root.querySelector('.play-actions.horiz');
+      if(strip){ const max=strip.scrollWidth-strip.clientWidth; swStart=strip.scrollLeft<=14; swEnd=strip.scrollLeft>=max-14; } else { swStart=true; swEnd=true; } },{passive:true});
+    _pbody.addEventListener('touchend',e=>{ const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+      if(!(Date.now()-stime<700 && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3)) return;
+      if(_playMode==='turn' && _playLayout==='horizontal'){ if(dx<0){ if(swEnd) playStep(1); } else if(swStart) playStep(-1); }
+      else playStep(dx<0?1:-1); },{passive:true});
+    root.querySelector('#playFs').onclick=playToggleFs;
+    if(_isIphone){ const fb=root.querySelector('#playFs'); if(fb) fb.style.display='none'; }   /* iPhone Safari has no element fullscreen and the Home-Screen web app is already full-screen */
+    if(_playTouch) root.classList.add('play-touch');
+  }
+  _playMode='turn'; _playTurn=0; _playAct=0;
+  _playLayout = _playTouch ? (_playWantsHorizontal()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
+  root.hidden=false; document.body.classList.add('play-open');
+  renderPlay();
+  if(_playTouch && _fsSupported) _playEnterFs();   /* the Play tap is a user gesture, so fullscreen is allowed (iPad/Android; iPhone Safari has no element fullscreen) */
+}
+function closePlayMode(){ const r=document.getElementById('playRoot'); if(r) r.hidden=true; document.body.classList.remove('play-open'); _playExitFs(); }
+function playSetMode(m){ if(m===_playMode){ renderPlay(); return; } const flat=_playFlat();
+  if(m==='action'){ const idx=flat.findIndex(x=>x.ti===_playTurn); _playAct=idx<0?0:idx; }
+  else { _playTurn=(flat[_playAct]||{}).ti||0; }
+  _playMode=m; renderPlay(); }
+function playStep(dir){
+  if(_playMode==='action'){ const len=_playFlat().length; _playAct=Math.max(0,Math.min(_playAct+dir,len-1)); }
+  else { const n=(state.turns||[]).length; _playTurn=Math.max(0,Math.min(_playTurn+dir,n-1)); }
+  renderPlay(); }
+function playGoTurn(i){ _playTurn=Math.max(0,Math.min(i,(state.turns||[]).length-1));
+  if(_playMode==='action'){ const idx=_playFlat().findIndex(x=>x.ti===_playTurn); if(idx>=0) _playAct=idx; }
+  renderPlay(); }
+function renderPlay(){
+  const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  const turns=state.turns||[], n=turns.length, s=state.setup||{}, dod=(s.type||'').toUpperCase()==='DOD';
+  r.querySelector('#playTitle').textContent=[(s.boss||'').trim(),(s.type||'').trim()].filter(Boolean).join(' · ')||((s.rotationName||'').trim()||'Rotation');
+  r.querySelectorAll('#playModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pmode===_playMode));
+  r.querySelector('#playLayoutSeg').style.display=(!_playTouch && _playMode==='turn')?'':'none';
+  r.classList.toggle('is-horiz', _playMode==='turn' && _playLayout==='horizontal');
+  r.querySelectorAll('#playLayoutSeg button').forEach(b=>b.classList.toggle('on',b.dataset.playlayout===_playLayout));
+  const mkDots=(curTi)=>{ const dots=turns.map((tt,k)=>{ const brk=dod&&n>=DOD_BREAKS&&k>=n-DOD_BREAKS; return '<button class="play-dot'+(k===curTi?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
+    const dw=r.querySelector('#playDots'); dw.innerHTML=dots; dw.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGoTurn(+d.dataset.pi)); };
+  if(_playMode==='action'){
+    const flat=_playFlat();
+    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; r.querySelector('#playHint').textContent=''; mkDots(-1); return; }
+    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, accent=cardAccent(a.char, exPalette(_effTheme==='light'));
+    r.querySelector('#playPos').textContent=(_playAct+1)+' / '+flat.length;
+    const inTurn=flat.filter(x=>x.ti===it.ti), posInTurn=inTurn.indexOf(it)+1, leftInTurn=inTurn.length-posInTurn;
+    const sub='Action '+posInTurn+' / '+inTurn.length+' in this turn'+(leftInTurn>0?(' · '+leftInTurn+' to go'):' · last action');
+    r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+'">'+esc(it.turnName)+'</div>'
+      +'<div class="play-turn-sub">'+esc(sub)+'</div>'
+      +'<div class="play-solo"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div></div>';
+    r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
+    r.querySelector('#playHint').textContent=_playTouch?'Swipe to step through the actions':'← → step through the actions · Esc to close';
+    mkDots(it.ti); return;
+  }
+  const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const t=turns[i]||{actions:[]}, isBreak=dod&&n>=DOD_BREAKS&&i>=n-DOD_BREAKS, horiz=_playLayout==='horizontal';
+  r.querySelector('#playPos').textContent=(i+1)+' / '+n;
+  const acts=(t.actions||[]).filter(a=>a&&a.char);
+  const rows=acts.length?acts.map((a,k)=>{ const accent=cardAccent(a.char, exPalette(_effTheme==='light'));
+    if(horiz) return '<div class="play-act block" style="border-top-color:'+esc(accent)+'"><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+    return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+  }).join(''):'<div class="play-empty">No actions in this turn.</div>';
+  r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(isBreak?' brk':'')+'">'+esc(t.name||('Turn '+(i+1)))+'</div>'
+    +'<div class="play-actions'+(horiz?' horiz':'')+'">'+rows+'</div>'
+    +((t.note||'').trim()?'<div class="play-note">'+esc(t.note.trim())+'</div>':'');
+  r.querySelector('#playPrev').disabled=(i<=0); r.querySelector('#playNext').disabled=(i>=n-1);
+  r.querySelector('#playHint').textContent=_playTouch?(horiz?'Swipe through the turn — past the end goes to the next turn':'Swipe left / right to change turn'):'← → arrow keys to change turn · Esc to close';
+  mkDots(i);
+}
+document.addEventListener('keydown',e=>{ const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  if(e.key==='ArrowLeft'){ e.preventDefault(); playStep(-1); }
+  else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); playStep(1); }
+  else if(e.key==='Escape'){ e.preventDefault(); closePlayMode(); } });
+function _playOrient(){ const r=document.getElementById('playRoot'); if(r&&!r.hidden&&_playTouch){
+    const want=_playWantsHorizontal()?'horizontal':'vertical'; if(want!==_playLayout){ _playLayout=want; renderPlay(); } }
+  _updateIosRotate(); }
+// full-page notice on iPhone Safari (not the Home-Screen web app) in landscape: the horizontal player needs
+// real fullscreen, which Safari on iPhone doesn't allow — point the user to "Add to Home Screen".
+function _updateIosRotate(){ const o=document.getElementById('iosRotate'); if(!o) return; o.hidden=!_iosSafariLandscape(); }
+window.addEventListener('resize', _playOrient);
+// iOS Safari updates the window dimensions late after a rotation, so re-check a couple of times
+window.addEventListener('orientationchange', ()=>{ _playOrient(); setTimeout(_playOrient,250); setTimeout(_playOrient,600); });
+_updateIosRotate();
+// block iOS Safari pinch-zoom while the player is open
+document.addEventListener('gesturestart', e=>{ const r=document.getElementById('playRoot'); if(r&&!r.hidden) e.preventDefault(); }, {passive:false});
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ const r=document.getElementById('playRoot'); if(r) r.classList.toggle('is-fs', !!_fsEl()); }));
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
@@ -2795,8 +3164,8 @@ window.addEventListener('resize', ()=>{
   }; });
 })();
 
-const CHAR_ALIASES = {"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·S":["Marian","Minami","Summer","SMarian","SMinami"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
-const PERSONA_ALIASES = {"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy Worm"]};
+const CHAR_ALIASES = {"MIKU":["Hatsune Miku","Hatsune","HM"],"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·S":["Marian","Minami","Summer","SMarian","SMinami"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
+const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy Worm"]};
 /* ---------- combobox (Boss / Personas) + discrepancy banner dismiss ---------- */
 (function(){
   const panel=document.getElementById('comboPanel');
@@ -2809,7 +3178,9 @@ const PERSONA_ALIASES = {"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten
     if(k==='char') return input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
     return [];
   }
-  function position(){ if(!active) return; const r=active.getBoundingClientRect(); panel.style.left=r.left+'px'; panel.style.top=(r.bottom+3)+'px'; panel.style.minWidth=r.width+'px'; }
+  function position(){ if(!active) return; const r=active.getBoundingClientRect();
+    const sx=window.scrollX||window.pageXOffset||0, sy=window.scrollY||window.pageYOffset||0;   // document coords so the panel scrolls with the page (fixes iOS Safari freezing fixed elements mid-scroll)
+    panel.style.left=(r.left+sx)+'px'; panel.style.top=(r.bottom+sy+3)+'px'; panel.style.minWidth=r.width+'px'; }
   function render(){
     panel.innerHTML = items.length
       ? items.map((o,i)=>`<div class="combo-item${i===idx?' active':''}" data-i="${i}">${esc(o)}</div>`).join('')
@@ -2876,7 +3247,12 @@ const PERSONA_ALIASES = {"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten
   panel.addEventListener('mousedown', e=>{ const it=e.target.closest('.combo-item'); if(it){ e.preventDefault(); commit(items[+it.dataset.i]); } });
   window.addEventListener('scroll', ()=>{ if(active&&!panel.hidden) position(); }, true);
   window.addEventListener('resize', ()=>{ if(active&&!panel.hidden) position(); });
+  // mobile: the on-screen keyboard changes the visual viewport (no window scroll/resize), so the panel
+  // detaches from the field — track visualViewport changes too and re-anchor under the input.
+  if(window.visualViewport){ const _vp=window.visualViewport, _onVp=()=>{ if(active&&!panel.hidden) position(); };
+    _vp.addEventListener('resize', _onVp); _vp.addEventListener('scroll', _onVp); }
   const bx=document.querySelector('#discBanner .disc-x'); if(bx) bx.onclick=()=>hideDiscBanner();
+  const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
 state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
@@ -2901,6 +3277,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619H</div>
+<div class="version-tag">260619L</div>
 </body>
 </html>
