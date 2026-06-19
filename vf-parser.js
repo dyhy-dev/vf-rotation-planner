@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A077   (bumped +1 on every change; A199 -> B001)
+   Version: A078   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -623,6 +623,9 @@ function parseRotationText(text, opts){
     if(a.char==='WONDER'){ if(((a.text||'').trim()||(a.skill||'').trim()||['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn)) && !actionOrder.includes('WONDER')) actionOrder.push('WONDER'); }
     else if(a.char && ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) && !actionOrder.includes(a.char)) actionOrder.push(a.char); }));
   const ordered=[]; const addOrd=c=>{ if(c&&!ordered.includes(c)) ordered.push(c); };
+  // TURBO's kit makes her the fastest unit on the field, so wherever she appears she always acts first —
+  // pin her to the front of the order regardless of when her first scripted skill happens to show up.
+  if(charOrder.includes('TURBO')||turnChars.includes('TURBO')||actionOrder.includes('TURBO')) addOrd('TURBO');
   actionOrder.forEach(addOrd); if(hasWonder) addOrd('WONDER'); charOrder.forEach(addOrd); turnChars.forEach(addOrd);
 
   const units=[blankUnit(),blankUnit(),blankUnit(),blankUnit()];
@@ -718,5 +721,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A077';
+  _g.VF_PARSER_VERSION = 'A078';
 })();
