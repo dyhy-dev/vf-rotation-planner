@@ -428,8 +428,11 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-pos{font:700 15px Oswald,sans-serif; color:var(--muted); letter-spacing:.08em; flex:0 0 auto}
 .play-close{background:transparent; border:none; color:var(--muted); font-size:32px; line-height:1; cursor:pointer; padding:0 6px; flex:0 0 auto}
 .play-close:hover{color:var(--text)}
-.play-fs{background:transparent; border:none; color:var(--muted); font-size:22px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
+.play-fs{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:4px 8px; flex:0 0 auto; display:inline-flex; align-items:center}
 .play-fs:hover{color:var(--text)}
+.play-fs .fs-exit{display:none}
+#playRoot.is-fs .play-fs .fs-enter{display:none}
+#playRoot.is-fs .play-fs .fs-exit{display:inline-flex}
 .play-body{flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:safe center; padding:28px 18px; gap:22px}
 .play-turn-name{font:700 34px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
 .play-turn-name.brk{color:#e0445e}
@@ -2983,7 +2986,7 @@ function openPlayMode(){
   let root=document.getElementById('playRoot');
   if(!root){
     root=document.createElement('div'); root.id='playRoot'; root.hidden=true;
-    root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-pos" id="playPos"></div><button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen">⤢</button><button class="play-close" id="playClose" aria-label="Close">×</button></div>'
+    root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-pos" id="playPos"></div><button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div>'
       +'<div class="play-controls">'
       +'<div class="play-seg" id="playModeSeg"><button data-pmode="turn">Turn</button><button data-pmode="action">Action</button></div>'
       +'<div class="play-seg" id="playLayoutSeg"><button data-playlayout="vertical">Vertical</button><button data-playlayout="horizontal">Horizontal</button></div>'
@@ -3007,7 +3010,7 @@ function openPlayMode(){
       if(!(Date.now()-stime<700 && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3)) return;
       if(_playMode==='turn' && _playLayout==='horizontal'){ if(dx<0){ if(swEnd) playStep(1); } else if(swStart) playStep(-1); }
       else playStep(dx<0?1:-1); },{passive:true});
-    root.querySelector('#playFs').onclick=playToggleFs; if(!_fsSupported){ const fb=root.querySelector('#playFs'); if(fb) fb.style.display='none'; }
+    root.querySelector('#playFs').onclick=playToggleFs;
     if(_playTouch) root.classList.add('play-touch');
   }
   _playMode='turn'; _playTurn=0; _playAct=0;
@@ -3076,6 +3079,7 @@ window.addEventListener('resize', _playOrient);
 window.addEventListener('orientationchange', ()=>{ _playOrient(); setTimeout(_playOrient,250); setTimeout(_playOrient,600); });
 // block iOS Safari pinch-zoom while the player is open
 document.addEventListener('gesturestart', e=>{ const r=document.getElementById('playRoot'); if(r&&!r.hidden) e.preventDefault(); }, {passive:false});
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ const r=document.getElementById('playRoot'); if(r) r.classList.toggle('is-fs', !!_fsEl()); }));
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
@@ -3200,6 +3204,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619x</div>
+<div class="version-tag">260619y</div>
 </body>
 </html>
