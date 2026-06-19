@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A087   (bumped +1 on every change; A199 -> B001)
+   Version: A088   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -57,7 +57,7 @@ function _matchDualAt(toks,i){ const t=toks[i]; if(t==null) return null;
   if(toks[i+1]!=null){ d=_dual2(t,toks[i+1]); if(d) return {dual:d,len:2}; }         // Fire Ice, Wind Elec, F I
   return null; }
 function _findDual(toks){ for(let i=0;i<toks.length;i++){ const m=_matchDualAt(toks,i); if(m) return {dual:m.dual,start:i,len:m.len}; } return null; }
-const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gd:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT'};
+const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT'};
 function codeOf(token){
   const t=_n(token).replace(/[().]/g,'');
   if(CODE[t]) return {btn:CODE[t],extra:''};
@@ -68,7 +68,9 @@ function codeOf(token){
   return null;
 }
 function cardPair(str){
-  const parts=String(str).split(/[\/+\s]+/).map(s=>s.trim()).filter(Boolean);
+  // when several card options are listed (comma- or "or"-separated), only the first pair counts
+  str=String(str==null?'':str).split(/\s*,\s*|\s+or\s+/i)[0]||'';
+  const parts=str.split(/[\/+\s]+/).map(s=>s.trim()).filter(Boolean);
   let space='',sunsky='';
   const findSp=p=>{ const t=_n(p); if(t.length<3)return ''; return DATA.spaceCards.find(c=>c.toLowerCase()===t)||DATA.spaceCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.spaceCards.find(c=>lev(c,t)<=2))||''; };
   const findSs=p=>{ const t=_n(p); if(t.length<3)return ''; return DATA.sunSkyCards.find(c=>c.toLowerCase()===t)||DATA.sunSkyCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.sunSkyCards.find(c=>lev(c,t)<=2))||''; };
@@ -349,10 +351,13 @@ function parseRotationText(text, opts){
         if(foundRole||duals.length){ duals.forEach(d=>{ if(!headerDuals.includes(d))headerDuals.push(d); }); if(foundRole)twinsRole=foundRole; got.team=1; continue; }
       } }
     if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1); const dg=matchDagger(stripReforge(val))||findDaggerIn(stripReforge(val)); if(dg){dagger=dg;got.dagger=1;} continue; }
-    { const pInline=line.match(/^personas?\s*:\s*(.+)$/i); if(pInline){ parsePersonaList(pInline[1]); continue; } }
-    if(/^personas?\s*:?\s*$/i.test(line)){ // following lines are personas until blank/block
+    { const pInline=line.match(/^person(?:a|ae|as)\s*:\s*(.+)$/i); if(pInline){ parsePersonaList(pInline[1]); continue; } }
+    if(/^person(?:a|ae|as)\s*:?\s*$/i.test(line)){ // following lines are personas until a blank-separated block / colon-header
       let j=hi+1; while(j<headerLines.length && !/^(cards?|knife|dagger)\s*:/i.test(headerLines[j]) && !/[:]/.test(headerLines[j].split(' ')[0]||'')){ 
-        if(!parsePersonaLine(headerLines[j])) break; headerLines[j]='\u0000'; j++; }
+        const pl=headerLines[j]; let ok;
+        if(/ [-–—] |:/.test(pl)) ok=parsePersonaLine(pl);   // "Name - skills" / "Name: skills" -> one persona's skill line (commas separate skills)
+        else { const before=personas.length; parsePersonaList(pl); ok=personas.length>before; }   // otherwise a comma list of persona names
+        if(!ok) break; headerLines[j]='\u0000'; j++; }
       continue;
     }
     if(/^cards?\s*:?\s*$/i.test(line)){ let j=hi+1; while(j<headerLines.length){ if(!parseCardLine(headerLines[j])) break; headerLines[j]='\u0000'; j++; } continue; }
@@ -562,7 +567,11 @@ function parseRotationText(text, opts){
         const isSkill=!!SKILL_ALIAS_MAP[s.toLowerCase()] || s.split(/\s+/).length<=1;
         if(isSkill && skills.length<2) skills.push(canon); else noteParts.push(s);
       });
-      personas.push({name:a.name,skills:[skills[0]||'',skills[1]||''],note:noteParts.join(', ')}); got.personas=1; return true; }
+      const exist=personas.find(p=>(p.name||'').toLowerCase()===a.name.toLowerCase());   // merge into an already-listed persona (e.g. a names line then a per-persona skill line) instead of duplicating
+      if(exist){ if(skills.length) exist.skills=[skills[0]||exist.skills[0]||'',skills[1]||exist.skills[1]||''];
+        if(noteParts.length) exist.note=[exist.note,noteParts.join(', ')].filter(Boolean).join(', '); }
+      else personas.push({name:a.name,skills:[skills[0]||'',skills[1]||''],note:noteParts.join(', ')});
+      got.personas=1; return true; }
     return false;
   }
   function parseCardLine(line){
@@ -769,5 +778,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A087';
+  _g.VF_PARSER_VERSION = 'A088';
 })();
