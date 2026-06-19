@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A070   (bumped +1 on every change; A199 -> B001)
+   Version: A071   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -15,6 +15,8 @@
    ============================================================================ */
 (function(){
 const _n = s => String(s||'').trim().toLowerCase();
+/* reforge rank: "F" is an accepted alternate spelling of "R" (e.g. "A6F6" == "A6 R6"). Normalise to R. */
+const _rev = s => String(s||'').toUpperCase().replace(/^F/,'R');
 function lev(a,b){ a=_n(a);b=_n(b);const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
   const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);for(let j=0;j<=n;j++)d[0][j]=j;
   for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);}return d[m][n]; }
@@ -88,7 +90,7 @@ function matchDagger(str){ const t=_n(str);
   if(!h&&t.length>=4) h=DATA.daggerNames.find(d=>lev(d,t)<=2);
   return h||''; }
 /* strip a trailing/standalone reforge token (R5, R0X, R3 …) so "Plasma Blade R5" -> "Plasma Blade" */
-function stripReforge(s){ return String(s||'').replace(/\bR[0-6X]\b/ig,' ').replace(/\bR\d+\b/ig,' ').replace(/\s+/g,' ').trim(); }
+function stripReforge(s){ return String(s||'').replace(/\b[RF][0-6X]\b/ig,' ').replace(/\b[RF]\d+\b/ig,' ').replace(/\s+/g,' ').trim(); }
 /* find a known dagger anywhere in a short line via exact (normalized) word-window match — no fuzzy, to avoid false hits in prose */
 function findDaggerIn(base){
   base=String(base||'').trim(); if(!base) return '';
@@ -168,7 +170,9 @@ function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
   out.push(buf); return out; }
 function parseTurnContent(content,warn){
   const actions=[];
-  for(const unit of splitTop(content,',|>\u203a\u2192').map(u=>u.trim()).filter(Boolean)){
+  // a leading separator dash/colon left over from the turn label ("T2 - Yurl ..." -> content "- Yurl ...")
+  // or written before a unit; strip it so the first action isn't lost as an unrecognised "- Actor".
+  for(const unit of splitTop(content,',|>\u203a\u2192').map(u=>u.trim().replace(/^[-\u2013\u2014:]\s*/,'').trim()).filter(Boolean)){
     let cur=null, pendingLead=[];
     const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
     for(const seg of segs){
@@ -226,7 +230,9 @@ function parseRotationText(text, opts){
   const reWAlone=/^\s*(w)\s*(\d+)\s*[:.)]?\s*$/i;
   // a line that is just "BREAK" (optionally "BREAKS"/"BREAK PHASE"/"BREAK TURNS", optional colon):
   // a divider meaning every turn after it is a break turn.
-  const reBreakDiv=/^\s*breaks?(?:\s+(?:phase|turns?))?\s*:?\s*$/i;
+  // a divider meaning every following turn is a break turn. Tolerates decorative wrapping
+  // ("--BREAK--", "== BREAK ==", "** Break Phase **"), but still rejects "Break 1" (a turn).
+  const reBreakDiv=/^[\s\-=~*_#.–—]*breaks?(?:\s+(?:phase|turns?))?[\s\-=~*_#.:–—]*$/i;
   const isTurnStart=s=>reInline.test(s)||reAlone.test(s)||reWInline.test(s)||reWAlone.test(s);
   // classify lines: turn vs header  (a "Break N" line is a turn too, flagged brk)
   const turnEntries=[]; const headerLines=[]; const lineIsTurn=new Array(lines.length).fill(false);
@@ -279,7 +285,7 @@ function parseRotationText(text, opts){
     if(/^wonder\b/i.test(line)){
       let rest=line.replace(/^wonder\b/i,'').replace(/^[\s:\u2013\u2014-]+/,'').trim();
       // Wonder revelation rank (R0-R6 / RX)
-      const rv=rest.match(/\bR([0-6X])\b/i); if(rv){ addChar('WONDER',{rev:('R'+rv[1]).toUpperCase()}); got.team=1; rest=rest.replace(rv[0],' ').replace(/\s+/g,' ').trim(); }
+      const rv=rest.match(/\b[RF]([0-6X])\b/i); if(rv){ addChar('WONDER',{rev:('R'+rv[1]).toUpperCase()}); got.team=1; rest=rest.replace(rv[0],' ').replace(/\s+/g,' ').trim(); }
       // dagger = a known dagger name in the leading chunk (before the first comma/colon/paren)
       { const dgChunk=rest.split(/[,:(]/)[0].trim(); const dg=matchDagger(dgChunk)||findDaggerIn(stripReforge(dgChunk));
         if(dg){ dagger=dg; got.dagger=1; rest=rest.replace(new RegExp('\\b'+dg.split(/\s+/).join('\\s+')+'\\b','i'),' ').replace(/^[\s,:]+/,'').replace(/\s+/g,' ').trim(); } }
@@ -314,11 +320,12 @@ function parseRotationText(text, opts){
 
     // team character line with awareness prefix or "Name: cards":  "[A#R#|DGR] Name [: space + sunsky] [(note)]"
     { let s2=line, info={};
-      const am2=s2.match(/^(A[0-6]|DGR)\s*(R[0-6X])?\s+/i);
-      if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=am2[2].toUpperCase(); s2=s2.slice(am2[0].length).trim(); }
+      const am2=s2.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\s+/i);
+      if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
       let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/); if(nm2){ note=nm2[1].trim(); s2=s2.slice(0,nm2.index).trim(); }
-      let namePart=s2, cardsPart=''; const cm2=s2.match(/^([^:]+):\s*(.+)$/); if(cm2){ namePart=cm2[1].trim(); cardsPart=cm2[2].trim(); }
-      if(!info.awareness){ const am3=namePart.match(/\b(A[0-6]|DGR)\s*(R[0-6X])?\b/i); if(am3){ info.awareness=am3[1].toUpperCase(); if(am3[2])info.rev=am3[2].toUpperCase(); namePart=namePart.replace(am3[0],' ').replace(/\s+/g,' ').trim(); } }
+      // name/cards separator: a colon ("Name: space + sunsky") or a spaced dash ("Name - space/sunsky")
+      let namePart=s2, cardsPart=''; const cm2=s2.match(/^([^:]+):\s*(.+)$/)||s2.match(/^(.+?)\s+[-–—]\s+(.+)$/); if(cm2){ namePart=cm2[1].trim(); cardsPart=cm2[2].trim(); }
+      if(!info.awareness){ const am3=namePart.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i); if(am3){ info.awareness=am3[1].toUpperCase(); if(am3[2])info.rev=_rev(am3[2]); namePart=namePart.replace(am3[0],' ').replace(/\s+/g,' ').trim(); } }
       // a parenthetical card set anywhere in the line, not only at the end, e.g. "Twins A6R6 (Freedom/Dis) S2 is B/C…".
       // a single unambiguous space+sun/sky pair -> cards (trailing prose becomes the note); a multi-option "or" stays a note.
       if(!cardsPart && !note){ const pm=namePart.match(/\(([^)]*)\)/);
@@ -361,9 +368,9 @@ function parseRotationText(text, opts){
       const segs=line.split(/\s*[>\u203a\u2192]\s*/).map(s=>s.trim()).filter(Boolean);
       const parsed=[]; let clean=segs.length>=2;
       for(const seg of segs){
-        const am=seg.match(/\b(A[0-6]|DGR)\s*(R[0-6X])?\b/i);
+        const am=seg.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i);
         let nm=seg, info={};
-        if(am){ nm=seg.slice(0,seg.indexOf(am[0])).trim()||seg; info.awareness=am[1].toUpperCase(); info.rev=(am[2]||'').toUpperCase(); }
+        if(am){ nm=seg.slice(0,seg.indexOf(am[0])).trim()||seg; info.awareness=am[1].toUpperCase(); info.rev=_rev(am[2]); }
         const a=resolveActor(nm.split(/\s+/)[0]);
         if(a && a.type==='char'){ parsed.push({name:a.name,info}); }
         else { clean=false; break; }
@@ -372,7 +379,7 @@ function parseRotationText(text, opts){
     }
 
     // team character line: has awareness token AND a recognized character before it
-    const aw=line.match(/\b(A[0-6]|DGR)\s*(R[0-6X])?\b/i);
+    const aw=line.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i);
     if(aw){
       const idx=line.indexOf(aw[0]);
       const namePart=line.slice(0,idx).trim();
@@ -381,7 +388,7 @@ function parseRotationText(text, opts){
       const recog=[];
       names.forEach((nm,k)=>{ const a=resolveActor(nm.split(/\s+/)[0]); if(a&&a.type==='char') recog.push({name:a.name,last:k===names.length-1}); });
       if(recog.length){
-        recog.forEach(r=>{ const info={awareness:aw[1].toUpperCase(),rev:(aw[2]||'').toUpperCase()};
+        recog.forEach(r=>{ const info={awareness:aw[1].toUpperCase(),rev:_rev(aw[2])};
           if(r.last && afterPart){ const cp=cardPair(afterPart); if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky; }
           addChar(r.name,info); });
         got.team=1; continue;
@@ -544,8 +551,8 @@ function parseRotationText(text, opts){
   // assemble units from header chars first, then any turn-only chars (no data -> empty fields highlighted)
   // "All A6": every character is A6R6 unless stated otherwise; capture explicit overrides like "Yukari A2"
   const allA6=/\ball\s*a6\b/i.test(text);
-  if(allA6){ headerLines.forEach(hl=>{ if(!hl||hl==='\u0000')return; const re=/\b([A-Za-z\u00b7]+)\s+(A[0-6]|DGR)(?:\s*(R[0-6X]))?\b/gi; let m2;
-    while((m2=re.exec(hl))){ if(m2[1].toLowerCase()==='all')continue; const a=resolveActor(m2[1]); if(a&&a.type==='char') addChar(a.name,{awareness:m2[2].toUpperCase(),rev:(m2[3]||'').toUpperCase()}); } }); }
+  if(allA6){ headerLines.forEach(hl=>{ if(!hl||hl==='\u0000')return; const re=/\b([A-Za-z\u00b7]+)\s+(A[0-6]|DGR)(?:\s*([RF][0-6X]))?\b/gi; let m2;
+    while((m2=re.exec(hl))){ if(m2[1].toLowerCase()==='all')continue; const a=resolveActor(m2[1]); if(a&&a.type==='char') addChar(a.name,{awareness:m2[2].toUpperCase(),rev:_rev(m2[3])}); } }); }
 
   // Wind/Puppet disambiguation: WIND and PUPPET are elucidator codenames, but each also has a
   // non-elucidator unit variant (WIND·T = "Wind Tempest", PUPPET·S = "Puppet Summer"). If a
@@ -666,5 +673,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A070';
+  _g.VF_PARSER_VERSION = 'A071';
 })();
