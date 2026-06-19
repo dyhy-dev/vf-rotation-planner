@@ -150,6 +150,7 @@ button{cursor:pointer}
   padding:8px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.05em; text-align:center}
 .unit input.name{box-sizing:border-box}
 .unit input.name:focus{outline:none; border-color:var(--blue-strong)}
+.unit input.name.name-fixed{cursor:default; opacity:.85; color:var(--ux)}
 .unit .tags{display:flex; gap:6px; margin-top:6px}
 .unit .tags select{flex:1; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
 .unit select:disabled{opacity:.4; cursor:not-allowed}
@@ -1351,7 +1352,9 @@ function unitCard(u, path, elu, idx){
   return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
     ${art}
     <div class="body">
-      <span class="combo-wrap"><input class="name combo" data-combo="char"${elu?' data-elu="1"':''} data-uname="${path}" value="${esc(u.name)}" placeholder="${elu?'Elucidator':'Character'}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>
+      ${isW
+        ? `<input class="name name-fixed" value="WONDER" readonly tabindex="-1" title="Wonder is always on the team and can't be swapped out"/>`
+        : `<span class="combo-wrap"><input class="name combo" data-combo="char"${elu?' data-elu="1"':''} data-uname="${path}" value="${esc(u.name)}" placeholder="${elu?'Elucidator':'Character'}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`}
       <div class="rev-row">
         <div><div class="rev-lab">Awareness</div><select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select></div>
         <div><div class="rev-lab">Reforge</div><select data-path="${path}.rev">${opt(revFull,u.rev)}</select></div>
@@ -3288,6 +3291,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620b</div>
+<div class="version-tag">260620c</div>
 </body>
 </html>
