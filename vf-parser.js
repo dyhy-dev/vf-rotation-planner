@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A093   (bumped +1 on every change; A199 -> B001)
+   Version: A094   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -399,7 +399,12 @@ function parseRotationText(text, opts){
       if(bkm){ let s2=bkm[1].trim(), info={};
         const am2=s2.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\s+/i);
         if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
-        let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/); if(nm2){ note=nm2[1].trim(); s2=s2.slice(0,nm2.index).trim(); }
+        let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/);
+      if(nm2){ const inside=nm2[1].trim(); const awm=inside.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?$/i);
+        // a trailing "(A6R0)" is the unit's build, not a note ("Luce: Creation + Reconciliation (A6R0)")
+        if(awm && !info.awareness){ info.awareness=awm[1].toUpperCase(); if(awm[2])info.rev=_rev(awm[2]); }
+        else note=inside;
+        s2=s2.slice(0,nm2.index).trim(); }
         let namePart=s2, cardsPart=''; const cm2=s2.match(/^([^:]+):\s*(.+)$/)||s2.match(/^(.+?)\s+[-–—]\s+(.+)$/); if(cm2){ namePart=cm2[1].trim(); cardsPart=cm2[2].trim(); }
         if(!info.awareness){ const am3=namePart.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i); if(am3){ info.awareness=am3[1].toUpperCase(); if(am3[2])info.rev=_rev(am3[2]); namePart=namePart.replace(am3[0],' ').replace(/\s+/g,' ').trim(); } }
         const a2=resolveActor((namePart.split(/\s+/)[0]||''));
@@ -421,7 +426,12 @@ function parseRotationText(text, opts){
     { let s2=line, info={};
       const am2=s2.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\s+/i);
       if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
-      let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/); if(nm2){ note=nm2[1].trim(); s2=s2.slice(0,nm2.index).trim(); }
+      let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/);
+      if(nm2){ const inside=nm2[1].trim(); const awm=inside.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?$/i);
+        // a trailing "(A6R0)" is the unit's build, not a note ("Luce: Creation + Reconciliation (A6R0)")
+        if(awm && !info.awareness){ info.awareness=awm[1].toUpperCase(); if(awm[2])info.rev=_rev(awm[2]); }
+        else note=inside;
+        s2=s2.slice(0,nm2.index).trim(); }
       // name/cards separator: a colon ("Name: space + sunsky") or a spaced dash ("Name - space/sunsky")
       let namePart=s2, cardsPart=''; const cm2=s2.match(/^([^:]+):\s*(.+)$/)||s2.match(/^(.+?)\s+[-–—]\s+(.+)$/); if(cm2){ namePart=cm2[1].trim(); cardsPart=cm2[2].trim(); }
       if(!info.awareness){ const am3=namePart.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i); if(am3){ info.awareness=am3[1].toUpperCase(); if(am3[2])info.rev=_rev(am3[2]); namePart=namePart.replace(am3[0],' ').replace(/\s+/g,' ').trim(); } }
@@ -839,5 +849,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A093';
+  _g.VF_PARSER_VERSION = 'A094';
 })();
