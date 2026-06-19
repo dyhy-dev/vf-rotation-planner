@@ -634,7 +634,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <label class="toggle"><input type="checkbox" id="setTeamNotes"><span class="track"></span><span class="thumb"></span></label>
       </div>
       <div class="set-row">
-        <div><div class="set-label">Persona notes</div><div class="set-sub">The note field on each Wonder persona (for passives, unknown skills, etc.)</div></div>
+        <div><div class="set-label">Persona notes</div><div class="set-sub">The note field on each Wonder persona</div></div>
         <label class="toggle"><input type="checkbox" id="setPersonaNotes"><span class="track"></span><span class="thumb"></span></label>
       </div>
       <div class="set-row">
@@ -1979,7 +1979,7 @@ function openShareModal(opts){
   _shareUrl=opts.text||'';
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
-  { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; }
+  { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; const kc=document.getElementById('ioKeep'); if(kc && opts.showKeepText) kc.checked=true; }
   { const dr=document.getElementById('ioDodRow'); if(dr){ dr.hidden=!opts.showDodToggle; const cb=document.getElementById('ioDod'); if(cb) cb.checked=false; } }
   { const pv=document.getElementById('ioParserVer'); if(pv){ pv.hidden=!opts.showDodToggle; pv.textContent=(window.VF_PARSER_VERSION||''); } }
   document.getElementById('ioHint').textContent=opts.hint||'';
@@ -2976,6 +2976,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619h</div>
+<div class="version-tag">260619i</div>
 </body>
 </html>
