@@ -410,6 +410,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .disc-banner{position:fixed; top:0; left:0; right:0; z-index:1500; display:flex; align-items:center; gap:12px; padding:10px 16px; background:#5a1d28; border-bottom:1px solid #e0445e; color:#ffd9df; font:600 13px Inter,sans-serif; box-shadow:0 2px 10px #0007}
 .disc-banner[hidden]{display:none}
 .disc-banner .disc-msg{flex:1; min-width:0}
+.disc-banner .disc-ac{flex:0 0 auto; background:#e0445e; border:1px solid #e0445e; color:#2c0710; font:700 12px Inter,sans-serif; padding:5px 12px; border-radius:6px; cursor:pointer}
+.disc-banner .disc-ac:hover{background:#ec6076; border-color:#ec6076}
+.disc-banner .disc-ac[hidden]{display:none}
 .disc-banner .disc-x{flex:0 0 auto; background:transparent; border:none; color:#ffd9df; font-size:20px; line-height:1; cursor:pointer; padding:0 4px}
 .disc-banner .disc-x:hover{color:#fff}
 .ac-body{padding:16px 22px; color:#cdd3e3; font:14px/1.5 Inter,sans-serif; max-height:60vh; overflow:auto}
@@ -690,7 +693,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <pre class="imp-note-body" id="impNoteBody"></pre>
   <div class="imp-rz imp-rz-n" data-dir="n"></div><div class="imp-rz imp-rz-s" data-dir="s"></div><div class="imp-rz imp-rz-w" data-dir="w"></div><div class="imp-rz imp-rz-e" data-dir="e"></div><div class="imp-rz imp-rz-nw" data-dir="nw"></div><div class="imp-rz imp-rz-ne" data-dir="ne"></div><div class="imp-rz imp-rz-sw" data-dir="sw"></div><div class="imp-rz imp-rz-se" data-dir="se"></div>
 </div>
-<div id="discBanner" class="disc-banner" hidden><span class="disc-msg"></span><button type="button" class="disc-x" aria-label="Dismiss">&times;</button></div>
+<div id="discBanner" class="disc-banner" hidden><span class="disc-msg"></span><button type="button" class="disc-ac" id="discAutoCorrect">Auto Correct</button><button type="button" class="disc-x" aria-label="Dismiss">&times;</button></div>
 
 <div class="modal" id="acModal" hidden>
   <div class="modal-card" style="max-width:560px;">
@@ -1483,6 +1486,8 @@ function showDiscBanner(nChar,nOrd){
   if(nChar) parts.push((nChar===1?'1 action references':nChar+' actions reference')+' a character or persona that is no longer on the team');
   if(nOrd) parts.push((nOrd===1?'1 turn has':nOrd+' turns have')+' characters acting out of team order');
   msg.textContent=parts.join('; ')+'. Fix the highlighted items to re-enable export.';
+  // surface Auto Correct right in the banner when it has something it can fix
+  { const acBtn=b.querySelector('#discAutoCorrect'); if(acBtn){ let act=false; try{ act=!!autoCorrectPlan().actionable; }catch(e){} acBtn.hidden=!act; } }
   b.hidden=false;
   clearTimeout(_discBannerTimer);
   _discBannerTimer=setTimeout(()=>{ b.hidden=true; }, 10000);
@@ -2973,6 +2978,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   window.addEventListener('scroll', ()=>{ if(active&&!panel.hidden) position(); }, true);
   window.addEventListener('resize', ()=>{ if(active&&!panel.hidden) position(); });
   const bx=document.querySelector('#discBanner .disc-x'); if(bx) bx.onclick=()=>hideDiscBanner();
+  const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
 state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
@@ -2997,6 +3003,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619m</div>
+<div class="version-tag">260619n</div>
 </body>
 </html>
