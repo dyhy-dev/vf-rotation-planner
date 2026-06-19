@@ -697,6 +697,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Open the rotation preview by default</div><div class="set-sub">Start with the live preview expanded (you can always collapse it with its own button)</div></div>
         <label class="toggle"><input type="checkbox" id="setPreviewOpen"><span class="track"></span><span class="thumb"></span></label>
       </div>
+      <div class="set-group-title" style="margin-top:18px">Text export</div>
+      <div class="set-row">
+        <div><div class="set-label">Include turn order</div><div class="set-sub">Add a "Turn order: A &gt; B &gt; C &gt; D" line under the team in the text export</div></div>
+        <label class="toggle"><input type="checkbox" id="setTextTurnOrder"><span class="track"></span><span class="thumb"></span></label>
+      </div>
       <div class="set-group-title" style="margin-top:18px">Skill &amp; persona abbreviations</div>
       <div class="set-note" style="margin:2px 0 6px">Pick a short form for any skill or persona. The chosen abbreviation replaces the full name in the live preview, the shared webview, the image export and text export. Leaving it on the full name keeps the original.</div>
       <div class="set-row" style="margin-top:2px;border-bottom:none">
@@ -707,11 +712,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="abbr-cols">
         <div class="abbr-col"><div class="set-label">Skills</div><div class="abbr-list" id="setSkillAbbr"></div></div>
         <div class="abbr-col"><div class="set-label">Personas</div><div class="abbr-list" id="setPersonaAbbr"></div></div>
-      </div>
-      <div class="set-group-title" style="margin-top:18px">Text export</div>
-      <div class="set-row">
-        <div><div class="set-label">Include turn order</div><div class="set-sub">Add a "Turn order: A &gt; B &gt; C &gt; D" line under the team in the text export</div></div>
-        <label class="toggle"><input type="checkbox" id="setTextTurnOrder"><span class="track"></span><span class="thumb"></span></label>
       </div>
       <div class="set-group-title" style="margin-top:18px">Backup</div>
       <div class="set-row">
@@ -2122,7 +2122,7 @@ function buildTextExport(){
   if(team.length){ L.push(''); L.push(...team);
     if(settings.textTurnOrder){ const ord=(state.units||[]).map(u=>(u.name||'').trim()).filter(Boolean)
         .map(nm=>nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm));
-      if(ord.length) L.push('Turn order: '+ord.join(' > ')); } }
+      if(ord.length){ L.push(''); L.push('Turn order: '+ord.join(' > ')); } } }
   // Wonder personas as a bare comma list (the boss is already in the title)
   const pers=state.personas.map(p=>{
     const nm=(p.name||'').trim(); if(!nm) return null;
@@ -3103,6 +3103,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619r</div>
+<div class="version-tag">260619s</div>
 </body>
 </html>
