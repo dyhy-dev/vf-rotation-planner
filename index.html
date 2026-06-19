@@ -216,7 +216,8 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .persona-col .skills{display:flex; flex-direction:column; gap:6px; margin-top:8px}
 .persona-col .skills input{width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
 .persona-col .skills .sig-skill{opacity:.7; cursor:default; border-style:dashed; color:var(--blue-strong)}
-.persona-col .skills .persona-note{font-weight:400; font-style:italic; color:var(--muted)}
+.persona-col .skills .persona-note{font-weight:400}
+.persona-col .skills .persona-note::placeholder{font-style:italic; color:var(--muted)}
 .persona-col .skills .combo-wrap{width:100%}
 .persona-col select:focus,.persona-col input.persona-name:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
 .pcol-body{display:flex; gap:8px; align-items:stretch; margin-top:6px}
