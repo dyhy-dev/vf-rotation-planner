@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A074   (bumped +1 on every change; A199 -> B001)
+   Version: A075   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -441,6 +441,12 @@ function parseRotationText(text, opts){
     if(hi===0 && !titleConsumed){
       titleConsumed=true;
       let t2=line;
+      // an explicit inline "Credit: <name>" inside the title (e.g. "... rot - Credit: Misu - 2.4bil"):
+      // pull it into Credits; the value runs to the next " - " segment break or end of line. The export
+      // always writes Credit on its own line, so this only fires on hand-written titles, never round-trips.
+      { const cm0=t2.match(/\bcredits?\s*:\s*(.+?)\s*(?=\s[-–—]\s|$)/i);
+        if(cm0 && cm0[1].trim()){ setup.credits=cm0[1].trim(); got.credit=1;
+          t2=t2.replace(/\s*[-–—]?\s*\bcredits?\s*:\s*.+?(?=\s[-–—]\s|$)/i,' '); } }
       // expected score: a number directly followed by M / B / T
       const sm=t2.match(/\b(\d+(?:\.\d+)?)\s*([MBT])\b/i); if(sm){ setup.score=sm[1]+sm[2].toUpperCase(); got.score=1; t2=t2.replace(sm[0],' '); }
       // patch: an x.y version number (major 1-19). The export always writes it first
@@ -455,11 +461,11 @@ function parseRotationText(text, opts){
       // credit: an unknown name after "by" (1-2 words) or a single unknown word after "-"
       const cmBy=rn.match(/^(.*?)\bby\s+(.+)$/i); const cmDash=rn.match(/^(.*?)\s*[-–]\s*(\S+)$/);
       const _notSide=s=>!/^(side|weak|strong)$/i.test(s);
-      if(cmBy){ const r=(cmBy[2]||'').trim(); if(r && r.split(/\s+/).length<=2 && _notSide(r) && !matchBoss(r) && !_knownName(r)){ setup.credits=r; got.credit=1; rn=(cmBy[1]||'').trim(); } }
-      else if(cmDash){ const r=(cmDash[2]||'').trim(); if(r && _notSide(r) && !matchBoss(r) && !_knownName(r)){ setup.credits=r; got.credit=1; rn=(cmDash[1]||'').trim(); } }
+      if(!setup.credits && cmBy){ const r=(cmBy[2]||'').trim(); if(r && r.split(/\s+/).length<=2 && _notSide(r) && !matchBoss(r) && !_knownName(r)){ setup.credits=r; got.credit=1; rn=(cmBy[1]||'').trim(); } }
+      else if(!setup.credits && cmDash){ const r=(cmDash[2]||'').trim(); if(r && _notSide(r) && !matchBoss(r) && !_knownName(r)){ setup.credits=r; got.credit=1; rn=(cmDash[1]||'').trim(); } }
       // otherwise: a single leftover word that is not awareness / boss / character is likely the credit (name kept intact)
       if(!setup.credits){ const unknown=rn.split(/\s+/).filter(Boolean).filter(t=>{ const tl=t.replace(/[^A-Za-z0-9\u00b7]/g,'');
-        if(!tl||/^(all|a[0-6]|dgr|r[0-6x]|weak|strong|side)$/i.test(tl)) return false;
+        if(!tl||/^(all|a[0-6]|dgr|r[0-6x]|weak|strong|side|dolphin|f2p|minnow|whale)$/i.test(tl)) return false;
         if(matchBoss(tl)) return false; const a=resolveActor(tl); return !(a && !a.fuzzy); });
         if(unknown.length===1){ setup.credits=unknown[0]; got.credit=1; } }
       rn=rn.replace(/[-–]/g,' ').replace(/\s+/g,' ').trim().replace(/[.\-–?!\s]+$/,'').trim();
@@ -707,5 +713,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A074';
+  _g.VF_PARSER_VERSION = 'A075';
 })();
