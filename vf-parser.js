@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A072   (bumped +1 on every change; A199 -> B001)
+   Version: A073   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -172,6 +172,7 @@ function parseTurnContent(content,warn){
   const actions=[];
   // a leading separator dash/colon left over from the turn label ("T2 - Yurl ..." -> content "- Yurl ...")
   // or written before a unit; strip it so the first action isn't lost as an unrecognised "- Actor".
+  let lastActor=null;
   for(const unit of splitTop(content,',|>\u203a\u2192').map(u=>u.trim().replace(/^[-\u2013\u2014:]\s*/,'').trim()).filter(Boolean)){
     let cur=null, pendingLead=[]; const unitStart=actions.length;
     const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
@@ -199,7 +200,7 @@ function parseTurnContent(content,warn){
       if(segHl){ const fd=_findDual(toks);
         if(fd){ const a0e=(_n(toks[0])==='wonder')?{fuzzy:false,type:'char',name:'WONDER'}:resolveActor(toks[0]);
           const exactOther=a0e&&!a0e.fuzzy&&!(a0e.type==='char'&&a0e.name==='TWINS');
-          if(!exactOther){ actions.push({char:'TWINS',btn:'HL',text:fd.dual,_twinsHL:fd.dual}); cur={type:'char',name:'TWINS'}; continue; } } }
+          if(!exactOther){ actions.push({char:'TWINS',btn:'HL',text:fd.dual,_twinsHL:fd.dual}); cur={type:'char',name:'TWINS'}; lastActor=cur; continue; } } }
       if(!((_n(toks[0])==='wonder')||resolveActor(toks[0]))){
         const t0=_n(toks[0]).replace(/[().]/g,'');
         if(toks.length===1 && /^(mas|masq|msq|masquerade)$/.test(t0)){ actions.push({char:'VIOLET',btn:'ALT',text:''}); continue; }
@@ -213,6 +214,7 @@ function parseTurnContent(content,warn){
         if(sk0 && !(a0 && !a0.fuzzy)){ actor={type:'char',name:'WONDER'}; rest=toks; }  // leading known skill, no exact actor -> Wonder persona action ("Maraku", "Suku Twins")
         else if(a0 && !(a0.fuzzy && cur)){actor=a0;rest=toks.slice(1);} }
       if(actor)cur=actor; else{actor=cur;rest=toks;}
+      if(actor)lastActor=actor;
       // flush any leading bare buttons ("Alt + ...") onto this actor, in order
       if(pendingLead.length && actor){ const tgt=actor.type==='persona'?{char:'WONDER',persona:actor.name}:{char:actor.name};
         pendingLead.forEach(b=>actions.push(Object.assign({},tgt,{btn:b,text:''}))); pendingLead=[]; }
@@ -222,6 +224,10 @@ function parseTurnContent(content,warn){
           actions.push({char:'TWINS',btn,text:fd.dual,_twinsHL:fd.dual,_fuzzy:!!actor.fuzzy}); continue; } }
       buildActions(actor,rest,seg,warn).forEach(a=>actions.push(a));
     }
+    // a comma-unit that was only bare button(s) with no actor of its own ("…, S3, S3") continues the
+    // most recent actor in the turn — e.g. SEES theurgy follow-ups ("Makoto HL, S3, S3").
+    if(pendingLead.length && lastActor){ const tgt=lastActor.type==='persona'?{char:'WONDER',persona:lastActor.name}:{char:lastActor.name};
+      pendingLead.forEach(b=>actions.push(Object.assign({},tgt,{btn:b,text:''}))); pendingLead=[]; }
   }
   return actions;
 }
@@ -231,8 +237,10 @@ function parseRotationText(text, opts){
   const warn=[];
   const forceDod=!!(opts&&opts.dod);
   const lines=text.split(/\r?\n/).map(s=>s.replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,''));
-  const reInline=/^\s*(turn|break|t)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
-  const reAlone=/^\s*(turn|break|t)\s*(\d+)\s*[:.)]?\s*$/i;
+  // "B1"/"B2" are break turns (the common short form of "Break 1"/"Break 2"), just as "T1" is a normal
+  // turn; the brk flag below keys off the leading "b". Same false-positive risk as the accepted "t" prefix.
+  const reInline=/^\s*(turn|break|t|b)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
+  const reAlone=/^\s*(turn|break|t|b)\s*(\d+)\s*[:.)]?\s*$/i;
   // "W1"/"W2" (weak/break phase). Only honored AFTER a standalone BREAK divider, so the
   // "W1:/W2:" lines that often appear in Defense/Crit-calc notes are not mistaken for turns.
   const reWInline=/^\s*(w)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
@@ -691,5 +699,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A072';
+  _g.VF_PARSER_VERSION = 'A073';
 })();
