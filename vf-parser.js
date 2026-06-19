@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A071   (bumped +1 on every change; A199 -> B001)
+   Version: A072   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -173,14 +173,23 @@ function parseTurnContent(content,warn){
   // a leading separator dash/colon left over from the turn label ("T2 - Yurl ..." -> content "- Yurl ...")
   // or written before a unit; strip it so the first action isn't lost as an unrecognised "- Actor".
   for(const unit of splitTop(content,',|>\u203a\u2192').map(u=>u.trim().replace(/^[-\u2013\u2014:]\s*/,'').trim()).filter(Boolean)){
-    let cur=null, pendingLead=[];
+    let cur=null, pendingLead=[]; const unitStart=actions.length;
     const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
     for(const seg of segs){
       const toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
       // "Guard All" / "All Guard": every non-elucidator team unit guards; expanded after the team is known.
       if(/^(guard\s+all|all\s+guard)$/i.test(seg)){ actions.push({guardAll:true}); cur=null; continue; }
       // a lone "Guard" (no actor) -> resolved after the team is known, to the next due actor idle this turn.
-      if(/^guards?$/i.test(seg)){ actions.push({guardSolo:true}); cur=null; continue; }
+      // BUT a "+Guard" chained onto an actor whose only action so far is a (free) HL belongs to that actor
+      // ("Haru HL+Guard" = Haru pops HL and guards), mirroring how "+Gun" attaches. After a full action
+      // (S1/S2/S3/Atk/Gn) the "+Guard" stays a floating guard for an idle team-mate ("Futaba S2+Guard").
+      if(/^guards?$/i.test(seg)){
+        const tgtName=cur?(cur.type==='persona'?'WONDER':cur.name):null;
+        const curActs=tgtName?actions.slice(unitStart).filter(a=>a.char===tgtName&&!a.guardAll&&!a.guardSolo):[];
+        if(cur && curActs.length && curActs.every(a=>a.btn==='HL')){
+          const tgt=cur.type==='persona'?{char:'WONDER',persona:cur.name}:{char:cur.name};
+          actions.push(Object.assign(tgt,{btn:'Gd',text:''})); continue; }
+        actions.push({guardSolo:true}); cur=null; continue; }
       // a leading bare button with no actor yet ("Alt + Turbo S2") belongs to the *next* actor in the unit.
       if(!cur && toks.length===1){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
         if(c1 && !(a1&&!a1.fuzzy) && _n(toks[0])!=='wonder'){ pendingLead.push(c1.btn); continue; } }
@@ -288,7 +297,12 @@ function parseRotationText(text, opts){
       const rv=rest.match(/\b[RF]([0-6X])\b/i); if(rv){ addChar('WONDER',{rev:('R'+rv[1]).toUpperCase()}); got.team=1; rest=rest.replace(rv[0],' ').replace(/\s+/g,' ').trim(); }
       // dagger = a known dagger name in the leading chunk (before the first comma/colon/paren)
       { const dgChunk=rest.split(/[,:(]/)[0].trim(); const dg=matchDagger(dgChunk)||findDaggerIn(stripReforge(dgChunk));
-        if(dg){ dagger=dg; got.dagger=1; rest=rest.replace(new RegExp('\\b'+dg.split(/\s+/).join('\\s+')+'\\b','i'),' ').replace(/^[\s,:]+/,'').replace(/\s+/g,' ').trim(); } }
+        if(dg){ dagger=dg; got.dagger=1;
+          // strip the canonical dagger name if it is spelled out; otherwise the user wrote a short/alias
+          // form ("Starry" for "Starry Compass", possibly glued to the personas by ":"), so strip that chunk.
+          const before=rest; rest=rest.replace(new RegExp('\\b'+dg.split(/\s+/).join('\\s+')+'\\b','i'),' ');
+          if(rest===before) rest=rest.replace(new RegExp('^\\s*'+dgChunk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*','i'),' ');
+          rest=rest.replace(/^[\s,:]+/,'').replace(/\s+/g,' ').trim(); } }
       // personas from the remainder (comma separated)
       parsePersonaList(rest);
       continue;
@@ -334,7 +348,11 @@ function parseRotationText(text, opts){
             const after=namePart.slice(pm.index+pm[0].length).trim(); if(after) note=after;
             namePart=namePart.slice(0,pm.index).trim(); } } }
       const a2=resolveActor((namePart.split(/\s+/)[0]||''));
-      const cp2=cardPair(cardsPart);
+      let cp2=cardPair(cardsPart);
+      // inline team line with no separator ("Chord A6R6 Trust/Prosp"): awareness was pulled out of the
+      // middle, so the words left after the name are the card pair.
+      if(!cp2.space && !cp2.sunsky && info.awareness && a2 && a2.type==='char'){
+        const restToks=namePart.split(/\s+/).slice(1).join(' '); if(restToks) cp2=cardPair(restToks); }
       if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky)){
         if(a2.name==='TWINS'){ (cardsPart.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
         const ci={}; if(info.awareness)ci.awareness=info.awareness; if(info.rev)ci.rev=info.rev; if(cp2.space)ci.space=cp2.space; if(cp2.sunsky)ci.sunsky=cp2.sunsky; if(note)ci.note=note;
@@ -673,5 +691,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A071';
+  _g.VF_PARSER_VERSION = 'A072';
 })();
