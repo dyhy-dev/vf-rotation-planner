@@ -3178,6 +3178,10 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   panel.addEventListener('mousedown', e=>{ const it=e.target.closest('.combo-item'); if(it){ e.preventDefault(); commit(items[+it.dataset.i]); } });
   window.addEventListener('scroll', ()=>{ if(active&&!panel.hidden) position(); }, true);
   window.addEventListener('resize', ()=>{ if(active&&!panel.hidden) position(); });
+  // mobile: the on-screen keyboard changes the visual viewport (no window scroll/resize), so the panel
+  // detaches from the field — track visualViewport changes too and re-anchor under the input.
+  if(window.visualViewport){ const _vp=window.visualViewport, _onVp=()=>{ if(active&&!panel.hidden) position(); };
+    _vp.addEventListener('resize', _onVp); _vp.addEventListener('scroll', _onVp); }
   const bx=document.querySelector('#discBanner .disc-x'); if(bx) bx.onclick=()=>hideDiscBanner();
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
@@ -3204,6 +3208,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619y</div>
+<div class="version-tag">260619z</div>
 </body>
 </html>
