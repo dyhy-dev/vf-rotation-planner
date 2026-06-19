@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A086   (bumped +1 on every change; A199 -> B001)
+   Version: A087   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -365,6 +365,8 @@ function parseRotationText(text, opts){
     }
     // bare section headers that carry no data themselves
     if(/^(rotation|rotations|turns?|team|comp|composition|notes?|info|setup|revelations?|reves?)\s*:?\s*$/i.test(line)) continue;
+    // a "Turn order: A > B > C > D" line (an optional text-export summary) is derived from the unit order — ignore it
+    if(/^turn\s*order\s*[:–—-]/i.test(line)) continue;
     if(line==='\u0000') continue;
 
     // "<Boss>: <persona> (skills), <persona> (skills), …" -> boss + Wonder personas
@@ -767,5 +769,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A086';
+  _g.VF_PARSER_VERSION = 'A087';
 })();
