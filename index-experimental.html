@@ -334,12 +334,14 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .guide b{color:var(--text)}
 .guide code{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12px; color:var(--gold); white-space:nowrap}
 .guide .lead{color:var(--muted)}
-.io-card{max-width:560px}
+.io-card{max-width:560px; position:relative}
+.io-parser-ver{position:absolute; left:14px; bottom:10px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; pointer-events:none; user-select:none}
+.io-parser-ver[hidden]{display:none}
 .io-body{padding:18px 22px 22px}
 .io-text{display:block; width:100%; box-sizing:border-box; min-height:120px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px; color:var(--text); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.5; resize:vertical}
 .io-hint{min-height:16px; margin:8px 2px 0; font:600 12px Inter,sans-serif; color:var(--blue)}
 .io-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
-.io-keep{display:flex; align-items:center; gap:8px; margin-top:10px; font:500 12px Inter,sans-serif; color:var(--muted); cursor:pointer; user-select:none}
+.io-keep{display:flex; align-items:center; gap:8px; margin-top:10px; font:500 14px Inter,sans-serif; color:var(--muted); cursor:pointer; user-select:none}
 .io-caption{font:600 11px Inter,sans-serif; color:var(--muted); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.05em}
 .io-line{display:block; width:100%; box-sizing:border-box; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--text); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.4}
 .io-line:focus{outline:none; border-color:var(--blue-strong)}
@@ -566,6 +568,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <div class="modal" id="ioModal" hidden>
   <div class="modal-card io-card" role="dialog" aria-modal="true" aria-label="Share">
+    <div class="io-parser-ver" id="ioParserVer" hidden></div>
     <div class="modal-head">
       <h2 id="ioTitle">Share</h2>
       <button class="modal-close" id="ioClose" aria-label="Close">&times;</button>
@@ -1954,6 +1957,7 @@ function openShareModal(opts){
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
   { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; }
   { const dr=document.getElementById('ioDodRow'); if(dr){ dr.hidden=!opts.showDodToggle; const cb=document.getElementById('ioDod'); if(cb) cb.checked=false; } }
+  { const pv=document.getElementById('ioParserVer'); if(pv){ pv.hidden=!opts.showDodToggle; pv.textContent=(window.VF_PARSER_VERSION||''); } }
   document.getElementById('ioHint').textContent=opts.hint||'';
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
@@ -2893,6 +2897,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      re-uploaded on its own (no rebuild of the tool needed). Classic relative script
      so it also works locally via file:// when both files sit in the same folder. -->
 <script src="vf-parser.js"></script>
-<div class="version-tag">260618z</div>
+<div class="version-tag">260619a</div>
 </body>
 </html>
