@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A083   (bumped +1 on every change; A199 -> B001)
+   Version: A084   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -171,6 +171,11 @@ function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
     if(ch==='('||ch==='[') depth++; else if(ch===')'||ch===']'){ if(depth>0)depth--; }
     if(depth===0 && sepChars.indexOf(ch)>=0){ out.push(buf); buf=''; } else buf+=ch; }
   out.push(buf); return out; }
+/* Hatsune Miku's songs (elucidator). Recognised in turns and mapped to Miku, with abbreviations. */
+const MIKU='HATSUNE MIKU';
+const SONG_ALIAS_MAP={'heaven':'Heaven','spring storm':'Spring Storm','ss':'Spring Storm','spring':'Spring Storm','storm':'Spring Storm','play-with-fire':'Play-With-Fire','play with fire':'Play-With-Fire','playwithfire':'Play-With-Fire','play':'Play-With-Fire','pwf':'Play-With-Fire'};
+function leadingSong(toks){ for(let k=Math.min(2,toks.length);k>=1;k--){ const p=_n(toks.slice(0,k).join(' ')).replace(/[().]/g,''); if(SONG_ALIAS_MAP[p]) return {song:SONG_ALIAS_MAP[p],len:k}; } return null; }
+function _hasMiku(){ try{ return DATA.characterNames.indexOf(MIKU)>=0; }catch(e){ return false; } }
 function parseTurnContent(content,warn){
   const actions=[];
   // a Twins dual element written with a "+" joiner ("F+I", "Elec+Wind") must not be split into two actions
@@ -212,6 +217,16 @@ function parseTurnContent(content,warn){
         // Violet's Masquerade button (her ALT). Any trailing words ("Masquerade (Kasumi Start)") become its note.
         if(/^(mas|masq|msq|masquerade)$/.test(t0)){ const tail=toks.slice(1).join(' ').trim(); actions.push({char:'VIOLET',btn:'ALT',text:tail}); cur={type:'char',name:'VIOLET'}; lastActor=cur; continue; }
       }
+      // Miku song action: a song name (Heaven / Spring Storm / Play-With-Fire, incl. SS/Spring/Storm/Play/PWF),
+      // optionally led by "Miku"; even a bare song name (no actor) becomes a Hatsune Miku action with that song.
+      if(_hasMiku()){ let stoks=toks, mikuLed=false;
+        while(stoks.length){ const am=resolveActor(stoks[0]); if(am&&!am.fuzzy&&am.name===MIKU){ stoks=stoks.slice(1); mikuLed=true; } else break; }
+        const ls=leadingSong(stoks); const a0=resolveActor(toks[0]);
+        if(ls && (mikuLed || !(a0&&!a0.fuzzy))){
+          const after=stoks.slice(ls.len); let btn=''; const txt=[];
+          after.forEach(t=>{ const c=codeOf(t); if(c&&!btn) btn=c.btn; else txt.push(t); });
+          actions.push({char:MIKU,btn,song:ls.song,text:txt.join(' ').trim(),_fuzzy:false});
+          cur={type:'char',name:MIKU}; lastActor=cur; continue; } }
       let actor=null,rest=toks;
       if(_n(toks[0])==='wonder'){ const pa=toks[1]?resolveActor(toks[1]):null;
         if(pa&&pa.type==='persona'){actor={type:'persona',name:pa.name,fuzzy:pa.fuzzy};rest=toks.slice(2);}
@@ -752,5 +767,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A083';
+  _g.VF_PARSER_VERSION = 'A084';
 })();
