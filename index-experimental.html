@@ -445,7 +445,21 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-dot.on{background:var(--blue-strong)}
 .play-dot.brk.on{background:var(--red)}
 #playRoot.play-touch .play-navbtn{min-width:120px; padding:14px 22px}
-@media (max-width:600px){ .play-actor{flex-basis:96px; font-size:16px} .play-actdetail{font-size:16px} .play-turn-name{font-size:23px} .play-navbtn{min-width:80px; padding:13px 14px} }
+/* play controls (Turn/Action + Vertical/Horizontal segmented switches) */
+.play-controls{flex:0 0 auto; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; padding:10px 16px 2px}
+.play-seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.play-seg button{background:var(--panel2); border:none; color:var(--muted); font:700 12px Inter,sans-serif; padding:7px 14px; cursor:pointer}
+.play-seg button+button{border-left:1px solid var(--line)}
+.play-seg button.on{background:var(--blue-strong); color:#0b1626}
+/* horizontal turn layout: actions in a swipeable row */
+.play-actions.horiz{flex-direction:row; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; max-width:100%; padding-bottom:8px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch}
+.play-act.block{flex:0 0 auto; width:190px; flex-direction:column; align-items:flex-start; gap:6px; border-left:1px solid var(--line); border-top:5px solid var(--line); scroll-snap-align:start}
+.play-act.block .play-actor{flex:none}
+/* action mode: one action centered, big */
+.play-solo{flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:10px 16px; min-height:0}
+.play-solo-actor{font:700 34px Oswald,sans-serif; letter-spacing:.04em}
+.play-solo-detail{font:600 26px Inter,sans-serif; color:var(--text); max-width:760px}
+@media (max-width:600px){ .play-actor{flex-basis:96px; font-size:16px} .play-actdetail{font-size:16px} .play-turn-name{font-size:23px} .play-navbtn{min-width:80px; padding:13px 14px} .play-solo-actor{font-size:27px} .play-solo-detail{font-size:21px} .play-act.block{width:160px} }
 .ac-body{padding:16px 22px; color:#cdd3e3; font:14px/1.5 Inter,sans-serif; max-height:60vh; overflow:auto}
 .ac-body h3{font:700 11px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:18px 0 8px}
 .ac-body h3:first-child{margin-top:0}
@@ -2932,61 +2946,100 @@ window.addEventListener('resize', ()=>{
   else if(!mob){ fitView(); }                                                          /* desktop/landscape -> just refit */
 });
 
-/* ---------- Play mode: full-screen, turn-by-turn player (works in the editor and the webview) ---------- */
-let _playIdx=0;
+/* ---------- Play mode: full-screen player (turn-by-turn or action-by-action; vertical or horizontal) ---------- */
+let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical';
 const _playTouch = (function(){ try{ return (window.matchMedia&&window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window); }catch(e){ return false; } })();
+function _playLandscape(){ try{ return window.matchMedia('(orientation: landscape)').matches; }catch(e){ return window.innerWidth>window.innerHeight; } }
+function _playFlat(){ const f=[], turns=state.turns||[], n=turns.length, dod=(state.setup.type||'').toUpperCase()==='DOD';
+  turns.forEach((t,ti)=>{ const brk=dod&&n>=DOD_BREAKS&&ti>=n-DOD_BREAKS; (t.actions||[]).filter(a=>a&&a.char).forEach(a=>f.push({ti:ti,a:a,turnName:t.name||('Turn '+(ti+1)),brk:brk})); }); return f; }
 function openPlayMode(){
   const turns=(state.turns||[]); if(!turns.length){ alert('There are no turns to play yet.'); return; }
   let root=document.getElementById('playRoot');
   if(!root){
     root=document.createElement('div'); root.id='playRoot'; root.hidden=true;
     root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-pos" id="playPos"></div><button class="play-close" id="playClose" aria-label="Close">×</button></div>'
+      +'<div class="play-controls">'
+      +'<div class="play-seg" id="playModeSeg"><button data-pmode="turn">Turn</button><button data-pmode="action">Action</button></div>'
+      +'<div class="play-seg" id="playLayoutSeg"><button data-playlayout="vertical">Vertical</button><button data-playlayout="horizontal">Horizontal</button></div>'
+      +'</div>'
       +'<div class="play-body" id="playBody"></div>'
       +'<div class="play-hint" id="playHint"></div>'
       +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dots" id="playDots"></div><button class="play-navbtn" id="playNext">Next ›</button></div>';
     document.body.appendChild(root);
     root.querySelector('#playClose').onclick=closePlayMode;
-    root.querySelector('#playPrev').onclick=()=>playGo(_playIdx-1);
-    root.querySelector('#playNext').onclick=()=>playGo(_playIdx+1);
-    // touch: horizontal swipe to navigate (left = next, right = prev)
-    let sx=0,sy=0,stime=0;
-    root.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; stime=Date.now(); },{passive:true});
+    root.querySelector('#playPrev').onclick=()=>playStep(-1);
+    root.querySelector('#playNext').onclick=()=>playStep(1);
+    root.querySelectorAll('#playModeSeg button').forEach(b=>b.onclick=()=>playSetMode(b.dataset.pmode));
+    root.querySelectorAll('#playLayoutSeg button').forEach(b=>b.onclick=()=>{ _playLayout=b.dataset.playlayout; renderPlay(); });
+    // touch swipe. In horizontal turn mode the actions strip scrolls natively; we only change turn when the
+    // swipe starts already at the strip's edge (i.e. you drag past the end / start of the turn).
+    let sx=0,sy=0,stime=0,swStart=true,swEnd=true;
+    root.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; stime=Date.now();
+      const strip=root.querySelector('.play-actions.horiz');
+      if(strip){ const max=strip.scrollWidth-strip.clientWidth-2; swStart=strip.scrollLeft<=2; swEnd=strip.scrollLeft>=max; } else { swStart=true; swEnd=true; } },{passive:true});
     root.addEventListener('touchend',e=>{ const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
-      if(Date.now()-stime<700 && Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.4){ playGo(_playIdx+(dx<0?1:-1)); } },{passive:true});
+      if(!(Date.now()-stime<700 && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3)) return;
+      if(_playMode==='turn' && _playLayout==='horizontal'){ if(dx<0){ if(swEnd) playStep(1); } else if(swStart) playStep(-1); }
+      else playStep(dx<0?1:-1); },{passive:true});
     if(_playTouch) root.classList.add('play-touch');
   }
-  _playIdx=0; root.hidden=false; document.body.classList.add('play-open');
+  _playMode='turn'; _playTurn=0; _playAct=0;
+  _playLayout = _playTouch ? (_playLandscape()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
+  root.hidden=false; document.body.classList.add('play-open');
   renderPlay();
 }
 function closePlayMode(){ const r=document.getElementById('playRoot'); if(r) r.hidden=true; document.body.classList.remove('play-open'); }
-function playGo(i){ const n=(state.turns||[]).length; if(!n) return; _playIdx=Math.max(0,Math.min(i,n-1)); renderPlay(); }
+function playSetMode(m){ if(m===_playMode){ renderPlay(); return; } const flat=_playFlat();
+  if(m==='action'){ const idx=flat.findIndex(x=>x.ti===_playTurn); _playAct=idx<0?0:idx; }
+  else { _playTurn=(flat[_playAct]||{}).ti||0; }
+  _playMode=m; renderPlay(); }
+function playStep(dir){
+  if(_playMode==='action'){ const len=_playFlat().length; _playAct=Math.max(0,Math.min(_playAct+dir,len-1)); }
+  else { const n=(state.turns||[]).length; _playTurn=Math.max(0,Math.min(_playTurn+dir,n-1)); }
+  renderPlay(); }
+function playGoTurn(i){ _playTurn=Math.max(0,Math.min(i,(state.turns||[]).length-1));
+  if(_playMode==='action'){ const idx=_playFlat().findIndex(x=>x.ti===_playTurn); if(idx>=0) _playAct=idx; }
+  renderPlay(); }
 function renderPlay(){
   const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
-  const turns=state.turns||[], n=turns.length, i=_playIdx, t=turns[i]||{actions:[]}, s=state.setup||{};
-  const dod=(s.type||'').toUpperCase()==='DOD', isBreak=dod && n>=DOD_BREAKS && i>=n-DOD_BREAKS;
+  const turns=state.turns||[], n=turns.length, s=state.setup||{}, dod=(s.type||'').toUpperCase()==='DOD';
   r.querySelector('#playTitle').textContent=[(s.boss||'').trim(),(s.type||'').trim()].filter(Boolean).join(' · ')||((s.rotationName||'').trim()||'Rotation');
+  r.querySelectorAll('#playModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pmode===_playMode));
+  r.querySelector('#playLayoutSeg').style.display=(!_playTouch && _playMode==='turn')?'':'none';
+  r.querySelectorAll('#playLayoutSeg button').forEach(b=>b.classList.toggle('on',b.dataset.playlayout===_playLayout));
+  const mkDots=(curTi)=>{ const dots=turns.map((tt,k)=>{ const brk=dod&&n>=DOD_BREAKS&&k>=n-DOD_BREAKS; return '<button class="play-dot'+(k===curTi?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
+    const dw=r.querySelector('#playDots'); dw.innerHTML=dots; dw.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGoTurn(+d.dataset.pi)); };
+  if(_playMode==='action'){
+    const flat=_playFlat();
+    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; r.querySelector('#playHint').textContent=''; mkDots(-1); return; }
+    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, accent=charColor(a.char);
+    r.querySelector('#playPos').textContent=(_playAct+1)+' / '+flat.length;
+    r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+'">'+esc(it.turnName)+'</div>'
+      +'<div class="play-solo"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div></div>';
+    r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
+    r.querySelector('#playHint').textContent=_playTouch?'Swipe to step through the actions':'← → step through the actions · Esc to close';
+    mkDots(it.ti); return;
+  }
+  const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const t=turns[i]||{actions:[]}, isBreak=dod&&n>=DOD_BREAKS&&i>=n-DOD_BREAKS, horiz=_playLayout==='horizontal';
   r.querySelector('#playPos').textContent=(i+1)+' / '+n;
   const acts=(t.actions||[]).filter(a=>a&&a.char);
-  const rows=acts.length ? acts.map((a,k)=>{
-    const accent=a.char?charColor(a.char):'var(--line)';
-    return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span>'
-      +'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span>'
-      +'<span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
-  }).join('') : '<div class="play-empty">No actions in this turn.</div>';
-  r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(isBreak?' brk':'')+'">'+esc((t.name||('Turn '+(i+1))))+'</div>'
-    +'<div class="play-actions">'+rows+'</div>'
+  const rows=acts.length?acts.map((a,k)=>{ const accent=charColor(a.char);
+    if(horiz) return '<div class="play-act block" style="border-top-color:'+esc(accent)+'"><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+    return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+  }).join(''):'<div class="play-empty">No actions in this turn.</div>';
+  r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(isBreak?' brk':'')+'">'+esc(t.name||('Turn '+(i+1)))+'</div>'
+    +'<div class="play-actions'+(horiz?' horiz':'')+'">'+rows+'</div>'
     +((t.note||'').trim()?'<div class="play-note">'+esc(t.note.trim())+'</div>':'');
-  r.querySelector('#playPrev').disabled=(i<=0);
-  r.querySelector('#playNext').disabled=(i>=n-1);
-  r.querySelector('#playHint').textContent=_playTouch?'Swipe left / right to change turn':'← → arrow keys to change turn · Esc to close';
-  const dots=turns.map((tt,k)=>{ const brk=dod&&n>=DOD_BREAKS&&k>=n-DOD_BREAKS; return '<button class="play-dot'+(k===i?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
-  const dotWrap=r.querySelector('#playDots'); dotWrap.innerHTML=dots;
-  dotWrap.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGo(+d.dataset.pi));
+  r.querySelector('#playPrev').disabled=(i<=0); r.querySelector('#playNext').disabled=(i>=n-1);
+  r.querySelector('#playHint').textContent=_playTouch?(horiz?'Swipe through the turn — past the end goes to the next turn':'Swipe left / right to change turn'):'← → arrow keys to change turn · Esc to close';
+  mkDots(i);
 }
 document.addEventListener('keydown',e=>{ const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
-  if(e.key==='ArrowLeft'){ e.preventDefault(); playGo(_playIdx-1); }
-  else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); playGo(_playIdx+1); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); playStep(-1); }
+  else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); playStep(1); }
   else if(e.key==='Escape'){ e.preventDefault(); closePlayMode(); } });
+window.addEventListener('resize',()=>{ const r=document.getElementById('playRoot'); if(!r||r.hidden||!_playTouch) return;
+  const want=_playLandscape()?'horizontal':'vertical'; if(want!==_playLayout){ _playLayout=want; renderPlay(); } });
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
@@ -3111,6 +3164,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619t</div>
+<div class="version-tag">260619u</div>
 </body>
 </html>
