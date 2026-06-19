@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A080   (bumped +1 on every change; A199 -> B001)
+   Version: A081   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -278,7 +278,7 @@ function parseRotationText(text, opts){
   const setup={rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''};
   const charData={}; // name -> {awareness,rev,space,sunsky,note}
   const charOrder=[];
-  let dagger='', personas=[]; const headerDuals=[];
+  let dagger='', personas=[], twinsRole=''; const headerDuals=[];
   const noteLines=[];
   const got={}; // track which info recognized
 
@@ -322,6 +322,17 @@ function parseRotationText(text, opts){
       parsePersonaList(rest);
       continue;
     }
+    // Twins role / dual header: "Twins Healer: S1 Fire and Ice | S2 Elec and Wind", "Twins: Strategist", …
+    // Reads an explicit role word (Healer == Medic) and/or the two duals (which also pin the role).
+    { const tw=line.match(/^twins\b\s*[:\-–—]?\s*(.*)$/i);
+      if(tw){ const body=tw[1]||'';
+        const ROLE_ALIAS={healer:'Medic',medic:'Medic',sweeper:'Sweeper',assassin:'Assassin',strategist:'Strategist',saboteur:'Saboteur',guardian:'Guardian'};
+        let foundRole=''; body.toLowerCase().split(/[^a-z]+/).forEach(w=>{ if(!foundRole&&ROLE_ALIAS[w]) foundRole=ROLE_ALIAS[w]; });
+        // duals written with "and"/"+"/"/" joiners ("Fire and Ice", "Elec+Wind", "P/N") -> collect, normalised
+        const norm=body.replace(/\b(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\s*(?:and|\+|\/)\s*(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\b/ig,'$1/$2');
+        const duals=[]; (norm.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(t=>{ const d=normDual(t); if(d&&!duals.includes(d))duals.push(d); });
+        if(foundRole||duals.length){ duals.forEach(d=>{ if(!headerDuals.includes(d))headerDuals.push(d); }); if(foundRole)twinsRole=foundRole; got.team=1; continue; }
+      } }
     if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1); const dg=matchDagger(stripReforge(val))||findDaggerIn(stripReforge(val)); if(dg){dagger=dg;got.dagger=1;} continue; }
     { const pInline=line.match(/^personas?\s*:\s*(.+)$/i); if(pInline){ parsePersonaList(pInline[1]); continue; } }
     if(/^personas?\s*:?\s*$/i.test(line)){ // following lines are personas until blank/block
@@ -650,10 +661,12 @@ function parseRotationText(text, opts){
     if(nm==='WONDER'){ units[ui]=Object.assign(blankUnit(),{name:'WONDER',awareness:'DGR',rev:(charData['WONDER']&&charData['WONDER'].rev)||'',gear:dagger||''}); }
     else units[ui]=Object.assign(blankUnit(),{name:nm},pick(charData[nm]));
     placed.add(nm); ui++; }
-  // infer Twins role from the two Fire/Ice-style HL duals seen across the turns
+  // Twins role: an explicit role from the header ("Twins Healer") wins; otherwise infer it from the two
+  // Fire/Ice-style duals seen in the header line or the turn HLs.
   { const tw=units.find(u=>(u.name||'').toUpperCase()==='TWINS');
-    if(tw && !tw.role){ const seen=headerDuals.slice(); turns.forEach(t=>t.actions.forEach(a=>{ if(a._twinsHL && !seen.includes(a._twinsHL)) seen.push(a._twinsHL); }));
-      if(seen.length>=2){ const role=TWINS_ROLES.find(r=>{ const d=TWINS_ROLE_DUALS[r]; return d.includes(seen[0])&&d.includes(seen[1]); }); if(role) tw.role=role; } } }
+    if(tw && !tw.role){ if(twinsRole){ tw.role=twinsRole; }
+      else { const seen=headerDuals.slice(); turns.forEach(t=>t.actions.forEach(a=>{ if(a._twinsHL && !seen.includes(a._twinsHL)) seen.push(a._twinsHL); }));
+        if(seen.length>=2){ const role=TWINS_ROLES.find(r=>{ const d=TWINS_ROLE_DUALS[r]; return d.includes(seen[0])&&d.includes(seen[1]); }); if(role) tw.role=role; } } } }
   // apply All-A6 defaults (explicit per-character awareness already set above wins; bare overrides get R0)
   if(allA6){ [...units,elucidator].forEach(u=>{ if(!u.name)return;
     if((u.name||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; if(!u.rev)u.rev='R6'; return; }
@@ -729,5 +742,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A080';
+  _g.VF_PARSER_VERSION = 'A081';
 })();
