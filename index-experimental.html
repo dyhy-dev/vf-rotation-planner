@@ -349,13 +349,13 @@ body.hide-char-notes .unit .unit-note, body.hide-char-notes .unit .note-pad{disp
 .dc-ico{width:16px; height:16px; fill:currentColor; flex:0 0 auto}
 .io-keep[hidden]{display:none}
 .io-keep input{cursor:pointer; margin:0}
-.imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
+.imp-note{position:fixed; z-index:300; top:72px; left:50%; width:340px; max-width:calc(100vw - 16px); max-height:60vh; min-width:240px; min-height:120px; resize:both; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden}
 .imp-note[hidden]{display:none}
-.imp-note.collapsed{max-height:none}
+.imp-note.collapsed{max-height:none; min-height:0; resize:none}
 .imp-note.collapsed .imp-note-body{display:none}
 .imp-note-btns{display:flex; align-items:center; gap:2px}
-.imp-note-eye{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:2px 4px; border-radius:6px; display:inline-flex; align-items:center}
-.imp-note-eye:hover{color:var(--text)}
+.imp-note-eye,.imp-note-pop{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:2px 4px; border-radius:6px; display:inline-flex; align-items:center}
+.imp-note-eye:hover,.imp-note-pop:hover{color:var(--text)}
 .imp-note-eye .eye-off{display:none}
 .imp-note.collapsed .imp-note-eye .eye-on{display:none}
 .imp-note.collapsed .imp-note-eye .eye-off{display:inline-flex}
@@ -629,6 +629,10 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Persona images on the left</div><div class="set-sub">Show each persona's image on the left and its fields on the right</div></div>
         <label class="toggle"><input type="checkbox" id="setPersonaImgLeft"><span class="track"></span><span class="thumb"></span></label>
       </div>
+      <div class="set-row">
+        <div><div class="set-label">Imported text in a separate window</div><div class="set-sub">When you keep the pasted text after an import, open it as a pop-up browser window instead of a movable panel inside the tool</div></div>
+        <label class="toggle"><input type="checkbox" id="setImportPopup"><span class="track"></span><span class="thumb"></span></label>
+      </div>
       <div class="set-group-title" style="margin-top:18px">Rotation layout</div>
       <div class="set-row">
         <div><div class="set-label">Orientation</div><div class="set-sub">Vertical or horizontal layout (linked with the switch in the editor)</div></div>
@@ -665,7 +669,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </div>
 
 <div id="importNote" class="imp-note" hidden>
-  <div class="imp-note-head" id="impNoteHead"><span>Imported text</span><span class="imp-note-btns"><button type="button" class="imp-note-eye" id="impNoteEye" aria-label="Collapse" title="Collapse"><svg class="eye-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button><button type="button" class="imp-note-x" id="impNoteX" aria-label="Close" title="Close">&times;</button></span></div>
+  <div class="imp-note-head" id="impNoteHead"><span>Imported text</span><span class="imp-note-btns"><button type="button" class="imp-note-eye" id="impNoteEye" aria-label="Collapse" title="Collapse"><svg class="eye-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button><button type="button" class="imp-note-pop" id="impNotePop" aria-label="Open in a separate browser window" title="Open in a separate browser window"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M21 3l-9 9"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></button><button type="button" class="imp-note-x" id="impNoteX" aria-label="Close" title="Close">&times;</button></span></div>
   <pre class="imp-note-body" id="impNoteBody"></pre>
 </div>
 <div id="discBanner" class="disc-banner" hidden><span class="disc-msg"></span><button type="button" class="disc-x" aria-label="Dismiss">&times;</button></div>
@@ -944,7 +948,7 @@ function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
-const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true };
+const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
 function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} }
@@ -2083,18 +2087,47 @@ function openImportCode(){ openShareModal({title:'Import Code', text:'', readonl
   document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && !m.hidden) closeShareModal(); });
 })();
 function showImportNote(text){
+  // per-device preference: keep the imported text as a separate browser window, or as the in-tool panel
+  if(settings.importNotePopup){ popOutImportNote(text); return; }
+  _showImportNotePanel(text);
+}
+function _showImportNotePanel(text){
   const p=document.getElementById('importNote'); if(!p) return;
   document.getElementById('impNoteBody').textContent=text||'';
   p.classList.remove('collapsed');
   p.style.transform='none'; p.hidden=false;
   p.style.left='12px';
   p.style.top='72px';
+  p.style.width=''; p.style.height=''; delete p.dataset.h;   // back to the default content-fit size (still user-resizable)
+}
+// open the imported text in its own browser window (pop-up). Called from the panel's pop-out button
+// (reads the current text) or directly on import when the pop-up preference is on.
+function popOutImportNote(text){
+  const src=document.getElementById('impNoteBody');
+  const t=(text!=null?text:(src?src.textContent:''))||'';
+  const w=window.open('','vfImportedText','width=460,height=560');
+  if(!w){ // pop-up blocked -> fall back to the in-tool panel so the text is never lost
+    _showImportNotePanel(t);
+    const h=document.getElementById('ioHint'); if(h) h.textContent='Pop-up blocked by the browser — showing the imported text inside the tool instead.';
+    return; }
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  w.document.open();
+  w.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<title>Imported text — VFRP</title><style>html,body{margin:0;height:100%}'
+    +'body{background:#14121c;color:#f3f1f7;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace}'
+    +'pre{margin:0;padding:14px;white-space:pre-wrap;word-break:break-word}</style></head>'
+    +'<body><pre>'+esc(t)+'</pre></body></html>');
+  w.document.close(); try{ w.focus(); }catch(e){}
+  const p=document.getElementById('importNote'); if(p) p.hidden=true;   // the in-tool panel is redundant now
 }
 (function(){
   const p=document.getElementById('importNote'); if(!p) return;
-  const head=document.getElementById('impNoteHead'), x=document.getElementById('impNoteX'), eye=document.getElementById('impNoteEye');
+  const head=document.getElementById('impNoteHead'), x=document.getElementById('impNoteX'), eye=document.getElementById('impNoteEye'), pop=document.getElementById('impNotePop');
   if(x) x.onclick=()=>{ p.hidden=true; };
-  if(eye) eye.onclick=()=>{ const c=p.classList.toggle('collapsed'); eye.setAttribute('aria-label', c?'Expand':'Collapse'); eye.title=c?'Expand':'Collapse'; };
+  if(pop) pop.onclick=()=>popOutImportNote();
+  // collapse hides the body; stash any manual height so the collapsed panel shrinks to just the header, restore on expand
+  if(eye) eye.onclick=()=>{ const c=p.classList.toggle('collapsed'); eye.setAttribute('aria-label', c?'Expand':'Collapse'); eye.title=c?'Expand':'Collapse';
+    if(c){ p.dataset.h=p.style.height||''; p.style.height=''; } else { p.style.height=p.dataset.h||''; } };
   let dragging=false, ox=0, oy=0;
   const onBtn=t=>t&&t.closest&&t.closest('button');
   const start=(cx,cy)=>{ const r=p.getBoundingClientRect(); dragging=true; ox=cx-r.left; oy=cy-r.top; p.style.transform='none'; document.body.style.userSelect='none'; };
@@ -2131,6 +2164,7 @@ function syncSettingsModal(){
   document.getElementById('setTeamNotes').checked=!!settings.showTeamNotes;
   document.getElementById('setRotaNotes').checked=!!settings.showRotaNotes;
   document.getElementById('setPersonaImgLeft').checked=!!settings.personaImgLeft;
+  document.getElementById('setImportPopup').checked=!!settings.importNotePopup;
   document.getElementById('setPreviewOpen').checked=!!settings.previewExpanded;
   document.querySelectorAll('#themeSwitch .theme-opt').forEach(x=>x.classList.toggle('on', x.dataset.theme===(settings.theme||'dark')));
   document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical')));
@@ -2157,7 +2191,7 @@ document.getElementById('settingsModal').addEventListener('click', e=>{
   if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody();
 });
 (function(){ const t=(id,key)=>{ const el=document.getElementById(id); if(el) el.onchange=()=>{ settings[key]=el.checked; saveSettings(); applySettings(); }; };
-  t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaImgLeft','personaImgLeft'); })();
+  t('setCharNotes','showCharNotes'); t('setTeamNotes','showTeamNotes'); t('setRotaNotes','showRotaNotes'); t('setPersonaImgLeft','personaImgLeft'); t('setImportPopup','importNotePopup'); })();
 document.getElementById('setPreviewOpen').onchange=function(){ settings.previewExpanded=this.checked; saveSettings(); rotationPreviewOpen=this.checked; renderRotationPreview(); };
 (function(){ function rr(){ renderRotationPreview(); if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody(); }
   const a=document.getElementById('setSigAsSig'); if(a) a.onchange=function(){ settings.sigAsSig=this.checked; saveSettings(); rr(); };
@@ -2901,6 +2935,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619c</div>
+<div class="version-tag">260619d</div>
 </body>
 </html>
