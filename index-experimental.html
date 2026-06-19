@@ -417,7 +417,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .disc-banner .disc-x:hover{color:#fff}
 /* Play mode (turn-by-turn full-screen player) */
 body.play-open{overflow:hidden}
-#playRoot{position:fixed; inset:0; z-index:4000; background:var(--bg); color:var(--text); display:flex; flex-direction:column; font-family:Inter,sans-serif}
+#playRoot{position:fixed; inset:0; z-index:4000; background:radial-gradient(1200px 600px at 70% -10%, #241f38 0%, var(--ink) 60%), var(--ink); color:var(--text); display:flex; flex-direction:column; font-family:Inter,sans-serif}
+body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%, #f0edf8 0%, var(--ink) 60%), var(--ink) }
 #playRoot[hidden]{display:none}
 .play-head{display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); flex:0 0 auto}
 .play-title{font:700 15px Oswald,sans-serif; color:var(--blue); letter-spacing:.04em; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase}
@@ -3093,6 +3094,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619p</div>
+<div class="version-tag">260619q</div>
 </body>
 </html>
