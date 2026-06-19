@@ -150,7 +150,7 @@ button{cursor:pointer}
   padding:8px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.05em; text-align:center}
 .unit input.name{box-sizing:border-box}
 .unit input.name:focus{outline:none; border-color:var(--blue-strong)}
-.unit input.name.name-fixed{cursor:default; opacity:.85; color:var(--ux)}
+.unit input.name.name-fixed{cursor:default}
 .unit .tags{display:flex; gap:6px; margin-top:6px}
 .unit .tags select{flex:1; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
 .unit select:disabled{opacity:.4; cursor:not-allowed}
@@ -1340,7 +1340,7 @@ function unitCard(u, path, elu, idx){
     }
   }
   if(nm==='FUUKA'){
-    const compNames=DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
+    const compNames=DATA.characterNames.filter(n=>n!=='WONDER' && !(DATA.elucidatorNames||[]).includes(n));
     let cOpts=[''].concat(compNames);
     if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
     extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
@@ -3291,6 +3291,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620d</div>
+<div class="version-tag">260620e</div>
 </body>
 </html>
