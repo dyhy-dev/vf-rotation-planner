@@ -1033,6 +1033,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 /* ---------- state ---------- */
 const KEY='vf-rotation-storage';
 const LEGACY_KEY='paradise-rotation-v1';   /* old key name; read once so existing drafts carry over */
+function _blankBackup(){ return {name:'',awareness:'A0',rev:'RX',gear:'',space:'',sunsky:'',role:'',companion:'',note:''}; }
 function defaultState(){
   const i=DATA.initial;
   function mk(n,aw,rv,g){
@@ -1049,6 +1050,7 @@ function defaultState(){
     personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '' ], note:''})),
     teamNotes:'',
     turns:JSON.parse(JSON.stringify(i.turns)),
+    backup:_blankBackup(),
   };
   normalizeActions(st.turns);
   return st;
@@ -1064,6 +1066,7 @@ function blankState(){
     teamNotes:'',
     rotationView:'vertical',
     turns:Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',btn:'',text:''}]})),
+    backup:_blankBackup(),
   };
 }
 let state;
@@ -1074,7 +1077,8 @@ function migrate(st){
     st.personas=names.map((n,k)=>({name:n,skills:[old[k]||''],note:''}));
   }
   st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<2)p.skills.push(''); p.skills=p.skills.slice(0,2); if(typeof p.note!=='string')p.note=''; });
-  [].concat(st.units||[], st.elucidator?[st.elucidator]:[]).forEach(u=>{
+  if(!st.backup || typeof st.backup!=='object') st.backup=_blankBackup();
+  [].concat(st.units||[], st.elucidator?[st.elucidator]:[], [st.backup]).forEach(u=>{
     if(!u) return;
     if(u.space===undefined)u.space='';
     if(u.sunsky===undefined)u.sunsky='';
@@ -1298,12 +1302,12 @@ function renderHead(){
 }
 
 /* ---------- render: team ---------- */
-function unitCard(u, path, elu, idx){
+function unitCard(u, path, elu, idx, backup){
   const col=uiAccent(u.name); const img=imgFor(u.name);
   const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
   let nameOpts=[''].concat(names);
   if(u.name && !nameOpts.includes(u.name)) nameOpts=[''].concat([u.name]).concat(names);
-  const isW = !elu && (u.name||'').toUpperCase()==='WONDER';
+  const isW = !elu && !backup && (u.name||'').toUpperCase()==='WONDER';
   const awareOpts = isW ? ['DGR'] : DATA.awarenessOpts.filter(o=>o!=='DGR');
   const revFull = isW ? DATA.revOpts.filter(o=>o!=='RX') : DATA.revOpts.slice();
   if(isW){ if(u.awareness!=='DGR') u.awareness='DGR'; }
@@ -1345,15 +1349,15 @@ function unitCard(u, path, elu, idx){
     if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
     extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
   }
-  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
+  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
   const art = img
     ? `<div class="art" style="background-image:${bgURL(img)}">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
   return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
     ${art}
     <div class="body">
-      ${isW
-        ? `<input class="name name-fixed" value="WONDER" readonly tabindex="-1" title="Wonder is always on the team and can't be swapped out"/>`
+      ${(isW||backup)
+        ? `<input class="name name-fixed" value="${esc(isW?'WONDER':(u.name||''))}" readonly tabindex="-1" title="${isW?'Wonder is always on the team and can&#39;t be swapped out':'Backup character — choose it in Fuuka&#39;s Backup field'}"/>`
         : `<span class="combo-wrap"><input class="name combo" data-combo="char"${elu?' data-elu="1"':''} data-uname="${path}" value="${esc(u.name)}" placeholder="${elu?'Elucidator':'Character'}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`}
       <div class="rev-row">
         <div><div class="rev-lab">Awareness</div><select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select></div>
@@ -1365,7 +1369,10 @@ function unitCard(u, path, elu, idx){
     </div></div>`;
 }
 function renderTeam(){
-  const unitsHtml = state.units.map((u,k)=>unitCard(u,`units.${k}`,false,k)).join('') + unitCard(state.elucidator,'elucidator',true,null);
+  const _bkName=backupCharName();
+  const unitsHtml = state.units.map((u,k)=>unitCard(u,`units.${k}`,false,k)).join('')
+    + unitCard(state.elucidator,'elucidator',true,null)
+    + (_bkName ? unitCard(Object.assign({},state.backup,{name:_bkName}),'backup',false,null,true) : '');
   const personaHtml = state.personas.map((p,k)=>`
     <div class="persona-col minicard" data-pidx="${k}">
       <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">\u283f</span></div>
@@ -1401,7 +1408,7 @@ function renderTeam(){
   const whaleBtn=document.getElementById('whaleBtn');
   if(whaleBtn) whaleBtn.onclick=()=>{
     const apply=u=>{ if(!u) return; if((u.name||'').toUpperCase()==='WONDER') u.rev='R6'; else { u.awareness='A6'; u.rev='R6'; } };
-    (state.units||[]).forEach(apply); apply(state.elucidator);
+    (state.units||[]).forEach(apply); apply(state.elucidator); if(backupCharName()) apply(state.backup);
     save(); renderTeam();
   };
   bindPaths(tp, ()=>{ renderTeam(); renderTurns(); });
@@ -1460,6 +1467,13 @@ function renderTeam(){
 }
 
 /* ---------- render: turns ---------- */
+/* The Fuuka Backup character's name (single source of truth = Fuuka's companion field).
+   Picks the first Fuuka with a chosen backup, team slots before the elucidator. */
+function backupCharName(){
+  const all=[...(state.units||[]), state.elucidator];
+  for(const u of all){ if(u && (u.name||'').toUpperCase()==='FUUKA' && (u.companion||'').trim()) return u.companion.trim(); }
+  return '';
+}
 function teamChars(){
   const all=[...state.units, state.elucidator];
   const comp=all.filter(u=>u && (u.name||'').toUpperCase()==='FUUKA').map(u=>u.companion);
@@ -2049,7 +2063,8 @@ function compactEncode(st){
     (st.personas||[]).map(p=>{ const e=[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]; if((p.note||'').trim()) e.push(p.note.trim()); return e; }),
     st.teamNotes||'',
     (st.turns||[]).map(t=>[ t.name||'', (t.actions||[]).map(act), t.note||'' ]),
-    st.rotationView||'vertical' ];
+    st.rotationView||'vertical',
+    unit(st.backup||{}) ];
 }
 function compactDecode(arr){
   const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
@@ -2072,7 +2087,8 @@ function compactDecode(arr){
     elucidator:unit(arr[3]||[]),
     personas, teamNotes:arr[5]||'',
     rotationView:(arr[7]==='horizontal'?'horizontal':'vertical'),
-    turns:(arr[6]||[]).map(t=>({ name:t[0]||'', actions:(t[1]||[]).map(act), note:t[2]||'' }))
+    turns:(arr[6]||[]).map(t=>({ name:t[0]||'', actions:(t[1]||[]).map(act), note:t[2]||'' })),
+    backup:unit(arr[8]||[])
   };
 }
 async function encodeShare(){
@@ -3291,6 +3307,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620e</div>
+<div class="version-tag">260620f</div>
 </body>
 </html>
