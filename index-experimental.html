@@ -216,6 +216,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .persona-col .skills{display:flex; flex-direction:column; gap:6px; margin-top:8px}
 .persona-col .skills input{width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:6px; font-size:12px; font-weight:600}
 .persona-col .skills .sig-skill{opacity:.7; cursor:default; border-style:dashed; color:var(--blue-strong)}
+.persona-col .skills .persona-note{font-weight:400; font-style:italic; color:var(--muted)}
 .persona-col .skills .combo-wrap{width:100%}
 .persona-col select:focus,.persona-col input.persona-name:focus,.persona-col .skills input:focus{outline:none; border-color:var(--blue-strong)}
 .pcol-body{display:flex; gap:8px; align-items:stretch; margin-top:6px}
@@ -898,7 +899,7 @@ function defaultState(){
     setup:{rotationName:i.rotationName,tier:i.tier,boss:i.boss,type:i.type,patch:i.patch,score:i.score,notes:i.notes,credits:i.credits||''},
     units,
     elucidator:mk(i.elucidator,i.awareness[4]||'A6',i.rev[4]||'R6',i.gear[4]||''),
-    personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '' ]})),
+    personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '' ], note:''})),
     teamNotes:'',
     turns:JSON.parse(JSON.stringify(i.turns)),
   };
@@ -911,7 +912,7 @@ function blankState(){
     setup:{rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''},
     units:[{name:'WONDER',awareness:'DGR',rev:'R0',gear:'',space:'',sunsky:'',role:'',companion:''},u(),u(),u()],
     elucidator:u(),
-    personas:[{name:'',skills:['','']},{name:'',skills:['','']},{name:'',skills:['','']}],
+    personas:[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}],
     teamNotes:'',
     rotationView:'vertical',
     turns:Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',btn:'',text:''}]})),
@@ -922,9 +923,9 @@ function migrate(st){
   if(!st.personas){
     const names=st.persona||DATA.initial.persona;
     const old=st.skills||[];
-    st.personas=names.map((n,k)=>({name:n,skills:[old[k]||'','']}));
+    st.personas=names.map((n,k)=>({name:n,skills:[old[k]||''],note:''}));
   }
-  st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<2)p.skills.push(''); p.skills=p.skills.slice(0,2); });
+  st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<2)p.skills.push(''); p.skills=p.skills.slice(0,2); if(typeof p.note!=='string')p.note=''; });
   [].concat(st.units||[], st.elucidator?[st.elucidator]:[]).forEach(u=>{
     if(!u) return;
     if(u.space===undefined)u.space='';
@@ -1220,6 +1221,7 @@ function renderTeam(){
           <div class="skills">
             <input class="sig-skill" value="${esc(p.name?(PERSONA_SIGNATURES[p.name]||''):'')}" placeholder="Signature Skill" readonly tabindex="-1" title="Signature skill — set automatically by the persona, can't be edited"/>
             ${p.skills.slice(0,2).map((s,si)=>`<span class="combo-wrap"><input class="skill-combo combo" data-combo="skill" data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Teachable Skill ${si+1}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`).join('')}
+            <input class="persona-note" data-path="personas.${k}.note" value="${esc(p.note||'')}" placeholder="Note (e.g. passives, unknown skills)" autocomplete="off"/>
           </div>
         </div>
         <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
@@ -1874,7 +1876,7 @@ function compactEncode(st){
     [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
     (st.units||[]).map(unit),
     unit(st.elucidator||{}),
-    (st.personas||[]).map(p=>[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]),
+    (st.personas||[]).map(p=>{ const e=[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]; if((p.note||'').trim()) e.push(p.note.trim()); return e; }),
     st.teamNotes||'',
     (st.turns||[]).map(t=>[ t.name||'', (t.actions||[]).map(act), t.note||'' ]),
     st.rotationView||'vertical' ];
@@ -1883,7 +1885,7 @@ function compactDecode(arr){
   const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
   const su=arr[1]||[];
   const unit=a=>({ name:_oi(a[0],R), awareness:_oi(a[1],AW), rev:_oi(a[2],RV), gear:a[3]||'', space:_oi(a[4],SP), sunsky:_oi(a[5],SS), role:a[6]||'', companion:a[7]||'', note:a[8]||'' });
-  const personas=(arr[4]||[]).map(p=>({ name:_oi(p[0],PN), skills:(p[1]||['','']).slice(0,2) }));
+  const personas=(arr[4]||[]).map(p=>({ name:_oi(p[0],PN), skills:(p[1]||['','']).slice(0,2), note:p[2]||'' }));
   const pnames=personas.map(p=>p.name);
   const act=a=>{
     const charName=_oi(a[0],R);
@@ -2053,7 +2055,8 @@ function buildTextExport(){
   const pers=state.personas.map(p=>{
     const nm=(p.name||'').trim(); if(!nm) return null;
     const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean).map(skillDisplay);
-    return sk.length?`${personaLabel(nm)} (${sk.join(' + ')})`:personaLabel(nm);
+    const note=(p.note||'').trim();
+    return personaLabel(nm)+(sk.length?` (${sk.join(' + ')})`:'')+(note?` [${note}]`:'');
   }).filter(Boolean);
   if(pers.length){ L.push(''); L.push(pers.join(', ')); }
   const tn=(state.teamNotes||'').trim();
@@ -2966,6 +2969,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619e</div>
+<div class="version-tag">260619f</div>
 </body>
 </html>
