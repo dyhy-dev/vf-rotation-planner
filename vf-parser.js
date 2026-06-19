@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A081   (bumped +1 on every change; A199 -> B001)
+   Version: A082   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -515,10 +515,12 @@ function parseRotationText(text, opts){
   function parsePersonaLine(line){
     line=String(line||'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'').trim();
     if(!line) return false;
-    let nameStr=line, skillStr='';
+    let nameStr=line, skillStr='', noteStr='';
     // 1) Name <dash/colon> skills  — separator wins; a parenthetical here is a note on the skill, not the skill
     let dm=line.match(/^(.*?)\s*[:\u2013\u2014]\s*(.+)$/) || line.match(/^(.*?)\s+-\s+(.+)$/);
-    if(dm){ nameStr=dm[1].trim(); skillStr=dm[2].trim().replace(/\s*\([^)]*\)/g,'').trim(); }
+    if(dm){ nameStr=dm[1].trim(); let rhs=dm[2].trim();
+      const pn=rhs.match(/\(([^)]*)\)/); if(pn){ noteStr=pn[1].trim(); rhs=rhs.replace(/\s*\([^)]*\)/g,'').trim(); }
+      skillStr=rhs; }
     else {
       // 2) Name (skills) — here the parenthetical IS the skill list (e.g. boss line "Vishnu (Wind of Nirvana)")
       let pm=line.match(/^(.*?)\s*\(([^)]*)\)/);
@@ -530,12 +532,18 @@ function parseRotationText(text, opts){
     const tok=nameStr.split(/\s+/)[0];
     const a=resolveActor(tok);
     if(a&&a.type==='persona'){ const sig=(PERSONA_SIGNATURES[a.name]||'').toLowerCase();
-      const skills=skillStr.split(/[\/,+]/).map(s=>s.trim()).filter(Boolean)
-        .filter(s=>!/^(sig|signature)$/i.test(s))
-        .map(s=>SKILL_ALIAS_MAP[s.toLowerCase()]||s)
-        .filter(s=>s.toLowerCase()!==sig)   // a persona's own signature is innate, not a teachable slot
-        .slice(0,2);
-      personas.push({name:a.name,skills:[skills[0]||'',skills[1]||'']}); got.personas=1; return true; }
+      // each comma/slash/plus item is a recognised skill (kept) or a non-skill -> persona note. A multi-word
+      // item that is not a known skill is prose ("can add damage passives") -> note; a single token (e.g.
+      // "Agi", not in the alias map) is still treated as a skill.
+      const skills=[], noteParts=noteStr?[noteStr]:[];
+      skillStr.split(/[\/,+]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{
+        if(/^(sig|signature)$/i.test(s)) return;
+        const canon=SKILL_ALIAS_MAP[s.toLowerCase()]||s;
+        if(canon.toLowerCase()===sig) return;   // own signature is innate
+        const isSkill=!!SKILL_ALIAS_MAP[s.toLowerCase()] || s.split(/\s+/).length<=1;
+        if(isSkill && skills.length<2) skills.push(canon); else noteParts.push(s);
+      });
+      personas.push({name:a.name,skills:[skills[0]||'',skills[1]||''],note:noteParts.join(', ')}); got.personas=1; return true; }
     return false;
   }
   function parseCardLine(line){
@@ -679,9 +687,9 @@ function parseRotationText(text, opts){
   // merge in Wonder-action personas not already listed (more sources -> more reliable), header order first, up to 3
   { const have=personas.map(p=>(p.name||'').toLowerCase());
     turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'&&a.persona){ const lc=a.persona.toLowerCase();
-      if(!have.includes(lc) && personas.length<3){ personas.push({name:a.persona,skills:['','']}); have.push(lc); } } })); }
+      if(!have.includes(lc) && personas.length<3){ personas.push({name:a.persona,skills:['',''],note:''}); have.push(lc); } } })); }
   // personas -> 3 slots
-  const pslots=[{name:'',skills:['','']},{name:'',skills:['','']},{name:'',skills:['','']}];
+  const pslots=[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}];
   personas.slice(0,3).forEach((p,i)=>pslots[i]=p);
 
   // expand "Guard All" markers now that the team is known: every non-elucidator team unit
@@ -742,5 +750,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A081';
+  _g.VF_PARSER_VERSION = 'A082';
 })();
