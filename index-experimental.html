@@ -157,7 +157,7 @@ button{cursor:pointer}
 .twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:var(--field); border:1px solid var(--line); border-radius:5px; padding:2px 6px}
 .twins-dual .td-lab{font:700 11px "Oswald",sans-serif; color:var(--blue-soft)}
 .twins-dual img{height:18px; width:auto; display:block; margin-left:auto}
-body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version-tag){ display:none !important; }
+body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version-tag):not(#playRoot){ display:none !important; }
 #viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:16px 16px 12px; overflow-x:auto; }
 #viewHeader{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; max-width:1024px; margin:0 auto 16px; }
 #viewBrandWrap{ display:flex; align-items:center; gap:16px; }
@@ -415,6 +415,36 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .disc-banner .disc-ac[hidden]{display:none}
 .disc-banner .disc-x{flex:0 0 auto; background:transparent; border:none; color:#ffd9df; font-size:20px; line-height:1; cursor:pointer; padding:0 4px}
 .disc-banner .disc-x:hover{color:#fff}
+/* Play mode (turn-by-turn full-screen player) */
+body.play-open{overflow:hidden}
+#playRoot{position:fixed; inset:0; z-index:4000; background:var(--bg); color:var(--text); display:flex; flex-direction:column; font-family:Inter,sans-serif}
+#playRoot[hidden]{display:none}
+.play-head{display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); flex:0 0 auto}
+.play-title{font:700 15px Oswald,sans-serif; color:var(--blue); letter-spacing:.04em; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase}
+.play-pos{font:700 14px Oswald,sans-serif; color:var(--muted); letter-spacing:.08em; flex:0 0 auto}
+.play-close{background:transparent; border:none; color:var(--muted); font-size:30px; line-height:1; cursor:pointer; padding:0 6px; flex:0 0 auto}
+.play-close:hover{color:var(--text)}
+.play-body{flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; padding:26px 16px; gap:18px}
+.play-turn-name{font:700 28px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
+.play-turn-name.brk{color:var(--red)}
+.play-actions{display:flex; flex-direction:column; gap:10px; width:100%; max-width:680px}
+.play-act{display:flex; align-items:baseline; gap:14px; background:var(--panel); border:1px solid var(--line); border-left:5px solid var(--line); border-radius:10px; padding:14px 18px}
+.play-actn{font:700 13px Oswald,sans-serif; color:var(--muted); flex:0 0 18px}
+.play-actor{font:700 19px Oswald,sans-serif; letter-spacing:.03em; flex:0 0 132px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.play-actdetail{font:600 18px Inter,sans-serif; color:var(--text); flex:1; min-width:0}
+.play-empty{color:var(--muted); font-size:15px}
+.play-note{color:var(--muted); font-size:13px; max-width:680px; text-align:center}
+.play-hint{flex:0 0 auto; text-align:center; color:var(--muted); font-size:12px; padding:2px 0 8px}
+.play-nav{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 20px 18px; border-top:1px solid var(--line)}
+.play-navbtn{background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:11px 20px; font:700 14px Inter,sans-serif; cursor:pointer; min-width:104px}
+.play-navbtn:hover:not(:disabled){border-color:var(--blue-strong)}
+.play-navbtn:disabled{opacity:.4; cursor:default}
+.play-dots{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; flex:1 1 auto}
+.play-dot{width:10px; height:10px; border-radius:50%; background:var(--line); cursor:pointer; border:none; padding:0}
+.play-dot.on{background:var(--blue-strong)}
+.play-dot.brk.on{background:var(--red)}
+#playRoot.play-touch .play-navbtn{min-width:120px; padding:14px 22px}
+@media (max-width:600px){ .play-actor{flex-basis:96px; font-size:16px} .play-actdetail{font-size:16px} .play-turn-name{font-size:23px} .play-navbtn{min-width:80px; padding:13px 14px} }
 .ac-body{padding:16px 22px; color:#cdd3e3; font:14px/1.5 Inter,sans-serif; max-height:60vh; overflow:auto}
 .ac-body h3{font:700 11px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:18px 0 8px}
 .ac-body h3:first-child{margin-top:0}
@@ -476,6 +506,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       </div>
       <button class="btn" id="settingsBtn" title="Open settings (local display options)">Settings</button>
       <button class="btn" id="resetBtn">Reset</button>
+      <button class="btn" id="playBtn" title="Play the rotation turn by turn">Play</button>
       <input type="file" id="importFile" accept="application/json" hidden/>
     </div>
   </div>
@@ -2212,6 +2243,7 @@ function popOutImportNote(text){
   document.addEventListener('touchend', ()=>{ end(); rzEnd(); });
 })();
 document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
+{ const pb=document.getElementById('playBtn'); if(pb) pb.onclick=openPlayMode; }
 function _abbrRows(map, aliasData, kind){
   const m=map||{};
   return Object.keys(aliasData).sort((a,b)=>a.localeCompare(b)).map(name=>{
@@ -2847,12 +2879,14 @@ function enterViewMode(){
         <a class="btn" id="viewDiscord" href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer" title="Join our Discord"><svg viewBox="0 0 24 24" aria-hidden="true" style="fill:#5865F2"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.291.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>Discord</a>
         <button class="btn" id="viewEdit" title="Open this rotation in the Editor">Open in Editor</button>
         <button class="btn" id="viewDownload" title="Download the PNG of this view">Download</button>
+        <button class="btn" id="viewPlay" title="Play the rotation turn by turn">Play</button>
       </div>
     </div>
     <div id="viewStage"><div class="view-loading">Loading view\u2026</div></div>
     <div id="viewFooter"><div id="viewFooterText">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div><button type="button" class="btn" id="viewThemeToggle" title="Switch theme"></button></div>`;
   const stage=document.getElementById('viewStage');
   document.getElementById('viewDownload').onclick=()=>{ try{ exportViewPNG(); }catch(e){ _settleExport(); } };
+  { const vp=document.getElementById('viewPlay'); if(vp) vp.onclick=openPlayMode; }
   document.getElementById('viewEdit').onclick=async()=>{ try{ location.hash='r='+(await encodeShare()); location.reload(); }catch(e){} };
   const _setViewThemeBtn=()=>{ const b=document.getElementById('viewThemeToggle'); if(b) b.textContent=(_effTheme==='light'?'Switch to dark mode':'Switch to light mode'); };
   { const tb=document.getElementById('viewThemeToggle'); if(tb) tb.onclick=()=>{ settings.theme=(_effTheme==='light'?'dark':'light'); applyTheme(); _setViewThemeBtn(); }; _setViewThemeBtn(); }
@@ -2879,6 +2913,62 @@ window.addEventListener('resize', ()=>{
   if(mob!==_viewMobile){ _viewMobile=mob; if(_renderViewBody) _renderViewBody(); }   /* crossed the mobile breakpoint -> reflow */
   else if(!mob){ fitView(); }                                                          /* desktop/landscape -> just refit */
 });
+
+/* ---------- Play mode: full-screen, turn-by-turn player (works in the editor and the webview) ---------- */
+let _playIdx=0;
+const _playTouch = (function(){ try{ return (window.matchMedia&&window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window); }catch(e){ return false; } })();
+function openPlayMode(){
+  const turns=(state.turns||[]); if(!turns.length){ alert('There are no turns to play yet.'); return; }
+  let root=document.getElementById('playRoot');
+  if(!root){
+    root=document.createElement('div'); root.id='playRoot'; root.hidden=true;
+    root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-pos" id="playPos"></div><button class="play-close" id="playClose" aria-label="Close">×</button></div>'
+      +'<div class="play-body" id="playBody"></div>'
+      +'<div class="play-hint" id="playHint"></div>'
+      +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dots" id="playDots"></div><button class="play-navbtn" id="playNext">Next ›</button></div>';
+    document.body.appendChild(root);
+    root.querySelector('#playClose').onclick=closePlayMode;
+    root.querySelector('#playPrev').onclick=()=>playGo(_playIdx-1);
+    root.querySelector('#playNext').onclick=()=>playGo(_playIdx+1);
+    // touch: horizontal swipe to navigate (left = next, right = prev)
+    let sx=0,sy=0,stime=0;
+    root.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; stime=Date.now(); },{passive:true});
+    root.addEventListener('touchend',e=>{ const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+      if(Date.now()-stime<700 && Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.4){ playGo(_playIdx+(dx<0?1:-1)); } },{passive:true});
+    if(_playTouch) root.classList.add('play-touch');
+  }
+  _playIdx=0; root.hidden=false; document.body.classList.add('play-open');
+  renderPlay();
+}
+function closePlayMode(){ const r=document.getElementById('playRoot'); if(r) r.hidden=true; document.body.classList.remove('play-open'); }
+function playGo(i){ const n=(state.turns||[]).length; if(!n) return; _playIdx=Math.max(0,Math.min(i,n-1)); renderPlay(); }
+function renderPlay(){
+  const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  const turns=state.turns||[], n=turns.length, i=_playIdx, t=turns[i]||{actions:[]}, s=state.setup||{};
+  const dod=(s.type||'').toUpperCase()==='DOD', isBreak=dod && n>=DOD_BREAKS && i>=n-DOD_BREAKS;
+  r.querySelector('#playTitle').textContent=[(s.boss||'').trim(),(s.type||'').trim()].filter(Boolean).join(' · ')||((s.rotationName||'').trim()||'Rotation');
+  r.querySelector('#playPos').textContent=(i+1)+' / '+n;
+  const acts=(t.actions||[]).filter(a=>a&&a.char);
+  const rows=acts.length ? acts.map((a,k)=>{
+    const accent=a.char?charColor(a.char):'var(--line)';
+    return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span>'
+      +'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span>'
+      +'<span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+  }).join('') : '<div class="play-empty">No actions in this turn.</div>';
+  r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(isBreak?' brk':'')+'">'+esc((t.name||('Turn '+(i+1))))+'</div>'
+    +'<div class="play-actions">'+rows+'</div>'
+    +((t.note||'').trim()?'<div class="play-note">'+esc(t.note.trim())+'</div>':'');
+  r.querySelector('#playPrev').disabled=(i<=0);
+  r.querySelector('#playNext').disabled=(i>=n-1);
+  r.querySelector('#playHint').textContent=_playTouch?'Swipe left / right to change turn':'← → arrow keys to change turn · Esc to close';
+  const dots=turns.map((tt,k)=>{ const brk=dod&&n>=DOD_BREAKS&&k>=n-DOD_BREAKS; return '<button class="play-dot'+(k===i?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
+  const dotWrap=r.querySelector('#playDots'); dotWrap.innerHTML=dots;
+  dotWrap.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGo(+d.dataset.pi));
+}
+document.addEventListener('keydown',e=>{ const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  if(e.key==='ArrowLeft'){ e.preventDefault(); playGo(_playIdx-1); }
+  else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); playGo(_playIdx+1); }
+  else if(e.key==='Escape'){ e.preventDefault(); closePlayMode(); } });
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
@@ -3003,6 +3093,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619o</div>
+<div class="version-tag">260619p</div>
 </body>
 </html>
