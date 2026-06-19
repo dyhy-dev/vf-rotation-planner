@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A089   (bumped +1 on every change; A199 -> B001)
+   Version: A090   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -298,6 +298,7 @@ function parseRotationText(text, opts){
   let dagger='', personas=[], twinsRole=''; const headerDuals=[];
   const noteLines=[];
   const got={}; // track which info recognized
+  const titleBuilds={}; // builds stated in the title (name -> {awareness,rev}); applied only to real units at the end
 
   function addChar(name,info){ if(!charData[name]){charData[name]={};charOrder.push(name);} Object.assign(charData[name],info); }
 
@@ -359,7 +360,9 @@ function parseRotationText(text, opts){
         const duals=[]; (norm.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(t=>{ const d=normDual(t); if(d&&!duals.includes(d))duals.push(d); });
         if(foundRole||duals.length){ duals.forEach(d=>{ if(!headerDuals.includes(d))headerDuals.push(d); }); if(foundRole)twinsRole=foundRole; got.team=1; continue; }
       } }
-    if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1); const dg=matchDagger(stripReforge(val))||findDaggerIn(stripReforge(val)); if(dg){dagger=dg;got.dagger=1;} continue; }
+    if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1);
+      const rfm=val.match(/\b[RF]([0-6X])\b/i); if(rfm) addChar('WONDER',{rev:('R'+rfm[1]).toUpperCase()});   // a lone "R5" on the dagger line is Wonder's reforge (Wonder has no awareness prefix)
+      const dg=matchDagger(stripReforge(val))||findDaggerIn(stripReforge(val)); if(dg){dagger=dg;got.dagger=1;} continue; }
     { const pInline=line.match(/^person(?:a|ae|as)\s*:\s*(.+)$/i); if(pInline){ parsePersonaList(pInline[1]); continue; } }
     if(/^person(?:a|ae|as)\s*:?\s*$/i.test(line)){ // following lines are personas until a blank-separated block / colon-header
       let j=hi+1; while(j<headerLines.length && !/^(cards?|knife|dagger)\s*:/i.test(headerLines[j]) && !/[:]/.test(headerLines[j].split(' ')[0]||'')){ 
@@ -373,6 +376,7 @@ function parseRotationText(text, opts){
     // standalone "Dagger" / "Knife" / "Weapon" header -> dagger sits on the following non-blank line ("Plasma Blade R5")
     if(/^(knife|dagger|weapon)s?\s*:?\s*$/i.test(line)){
       for(let j=hi+1;j<headerLines.length;j++){ const hl=headerLines[j]; if(!hl||hl==='\u0000') continue;
+        const rfm=hl.match(/\b[RF]([0-6X])\b/i); if(rfm) addChar('WONDER',{rev:('R'+rfm[1]).toUpperCase()});   // "Plasma Blade R5" -> Wonder reforge
         const dg=matchDagger(stripReforge(hl))||findDaggerIn(stripReforge(hl)); if(dg){ dagger=dg; got.dagger=1; headerLines[j]='\u0000'; }
         break; }
       continue;
@@ -487,6 +491,13 @@ function parseRotationText(text, opts){
     if(hi===0 && !titleConsumed){
       titleConsumed=true;
       let t2=line;
+      // builds written into the title -> remember per unit (applied at the end only to real team members, never
+      // creating one). Handles "A0R0 Haru, A0R0 Turbo" (rank before name) and "Haru A0R0" / chains (rank after).
+      { let mt; const rmem=(name,aw,rv)=>{ const o=titleBuilds[name]||(titleBuilds[name]={}); if(aw)o.awareness=aw.toUpperCase(); if(rv)o.rev=_rev(rv); };
+        const reAN=/(?:^|[\s,>(])(A[0-6]|DGR)\s*([RF][0-6X])?\s+([A-Za-z·'’.]{2,})/gi;
+        while((mt=reAN.exec(line))){ const a=resolveActor(mt[3]); if(a&&a.type==='char'&&!a.fuzzy) rmem(a.name,mt[1],mt[2]); }
+        const reNA=/(?:^|[\s,>(])([A-Za-z·'’.]{2,})\s+(A[0-6]|DGR)\s*([RF][0-6X])?(?=$|[\s,>)])/gi;
+        while((mt=reNA.exec(line))){ const a=resolveActor(mt[1]); if(a&&a.type==='char'&&!a.fuzzy) rmem(a.name,mt[2],mt[3]); } }
       // an explicit inline "Credit: <name>" inside the title (e.g. "... rot - Credit: Misu - 2.4bil"):
       // pull it into Credits; the value runs to the next " - " segment break or end of line. The export
       // always writes Credit on its own line, so this only fires on hand-written titles, never round-trips.
@@ -712,6 +723,10 @@ function parseRotationText(text, opts){
     if(tw && !tw.role){ if(twinsRole){ tw.role=twinsRole; }
       else { const seen=headerDuals.slice(); turns.forEach(t=>t.actions.forEach(a=>{ if(a._twinsHL && !seen.includes(a._twinsHL)) seen.push(a._twinsHL); }));
         if(seen.length>=2){ const role=TWINS_ROLES.find(r=>{ const d=TWINS_ROLE_DUALS[r]; return d.includes(seen[0])&&d.includes(seen[1]); }); if(role) tw.role=role; } } } }
+  // builds stated in the title fill awareness/reforge where no explicit line set them (explicit lines win)
+  [...units,elucidator].forEach(u=>{ if(!u.name||(u.name||'').toUpperCase()==='WONDER')return; const tb=titleBuilds[(u.name||'').toUpperCase()]; if(!tb)return;
+    if(!u.awareness && tb.awareness) u.awareness=tb.awareness;
+    if(!u.rev && tb.rev) u.rev=tb.rev; });
   // apply All-A6 defaults (explicit per-character awareness already set above wins; bare overrides get R0)
   if(allA6){ [...units,elucidator].forEach(u=>{ if(!u.name)return;
     if((u.name||'').toUpperCase()==='WONDER'){ u.awareness='DGR'; if(!u.rev)u.rev='R6'; return; }
@@ -787,5 +802,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A089';
+  _g.VF_PARSER_VERSION = 'A090';
 })();
