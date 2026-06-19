@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A094   (bumped +1 on every change; A199 -> B001)
+   Version: A095   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -78,6 +78,16 @@ function cardPair(str){
     if(sp&&!ss){ if(!space)space=sp; } else if(ss&&!sp){ if(!sunsky)sunsky=ss; }
     else if(sp&&ss){ if(!space)space=sp; else if(!sunsky)sunsky=ss; } }
   return {space,sunsky};
+}
+// highest score in a string -> "<n><M/B/T>". A range shares one magnitude ("23 - 30 mils" -> 30M); pick the larger.
+function scoreHigh(str){
+  const MAG={b:1e9,bn:1e9,bil:1e9,billion:1e9,t:1e12,tril:1e12,trillion:1e12,m:1e6,mil:1e6,mils:1e6,million:1e6};
+  const ms=[...String(str||'').matchAll(/(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mils?|bn|[bmt])?\b/ig)];
+  let shared=''; ms.forEach(m=>{ if(m[2]) shared=m[2]; });
+  let best=null;
+  ms.forEach(m=>{ const mag=(m[2]||shared); if(!mag) return; const v=parseFloat(m[1])*(MAG[mag.toLowerCase()]||1);
+    if(best===null||v>best.v) best={v, str:m[1]+mag[0].toUpperCase()}; });
+  return best?best.str:'';
 }
 const DAGGER_ALIAS={cyber:'Cyclotron'};   // common short forms that fuzzy-matching misses
 function matchDagger(str){ const t=_n(str);
@@ -525,6 +535,20 @@ function parseRotationText(text, opts){
     if(hi===0 && !titleConsumed){
       titleConsumed=true;
       let t2=line;
+      // inline labelled fields in the title line ("Title  credit : me  Score : 23 - 30 mils  Notes : ...")
+      // -> peel each labelled value off (it runs to the next label) so the leftover is the clean title.
+      { const labRe=/\b(credits?|score|notes?|boss|patch|tier)\s*:\s*/ig; const hits=[]; let lm;
+        while((lm=labRe.exec(t2))) hits.push({lab:lm[1].toLowerCase(), valAt:labRe.lastIndex, at:lm.index});
+        if(hits.length){
+          hits.forEach((h,k)=>{ const val=t2.slice(h.valAt, k+1<hits.length?hits[k+1].at:t2.length).trim().replace(/[-–—;,\s]+$/,'').trim();
+            if(/^credit/.test(h.lab)){ if(val && !setup.credits){ setup.credits=val; got.credit=1; } }
+            else if(h.lab==='score'){ const sc=scoreHigh(val); if(sc && !setup.score){ setup.score=sc; got.score=1; } }
+            else if(/^note/.test(h.lab)){ if(val) noteLines.push(val); }
+            else if(h.lab==='boss'){ const b=matchBoss(val); if(b && !setup.boss){ setup.boss=b; got.boss=1; } }
+            else if(h.lab==='patch'){ const pm=(val.match(/\d{1,2}\.\d+/)||[])[0]; if(pm && !setup.patch){ setup.patch=pm; got.patch=1; } } });
+          t2=t2.slice(0,hits[0].at).trim();
+        }
+      }
       // builds written into the title -> remember per unit (applied at the end only to real team members, never
       // creating one). Handles "A0R0 Haru, A0R0 Turbo" (rank before name) and "Haru A0R0" / chains (rank after).
       { let mt; const rmem=(name,aw,rv)=>{ const o=titleBuilds[name]||(titleBuilds[name]={}); if(aw)o.awareness=aw.toUpperCase(); if(rv)o.rev=_rev(rv); };
@@ -548,7 +572,7 @@ function parseRotationText(text, opts){
       // cut from the title — the score usually sits inside prose ("2.4bil with A1"), so removing it
       // would leave the rotation name unreadable; it simply stays in the name as written.
       const sm=t2.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
-      if(sm){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; }
+      if(sm && !setup.score){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; }
       // patch: an x.y version number (major 1-19). The export always writes it first
       // ("4.1 DOD ..."), so prefer one at the start of the (score-stripped) title.
       { const at=t2.trim().match(/^(\d{1,2}\.\d+)\b/);
@@ -580,8 +604,9 @@ function parseRotationText(text, opts){
   // anywhere in the leftover (non-turn) lines — daggers are usually mentioned somewhere in the header text.
   if(!got.dagger && noteLines.length){
     for(let n=0;n<noteLines.length;n++){
-      const base=stripReforge(noteLines[n]); const dg=findDaggerIn(base);
+      const raw=noteLines[n]; const base=stripReforge(raw); const dg=findDaggerIn(base);
       if(dg){ dagger=dg; got.dagger=1;
+        const rfm=raw.match(/\b[RF]([0-6X])\b/i); if(rfm) addChar('WONDER',{rev:('R'+rfm[1]).toUpperCase()});   // "Starry Compass R5" -> Wonder reforge
         if(base.split(/\s+/).filter(Boolean).length<=3) noteLines.splice(n,1); // drop a bare "Plasma Blade R5"-style line
         break; }
     }
@@ -849,5 +874,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A094';
+  _g.VF_PARSER_VERSION = 'A095';
 })();
