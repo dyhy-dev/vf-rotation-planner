@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A069   (bumped +1 on every change; A199 -> B001)
+   Version: A070   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -77,6 +77,14 @@ function cardPair(str){
 }
 function matchDagger(str){ const t=_n(str);
   let h=DATA.daggerNames.find(d=>d.toLowerCase()===t)||DATA.daggerNames.find(d=>d.toLowerCase().startsWith(t)&&t.length>=3);
+  // input is the significant word(s) of a dagger name, ignoring filler ("Compass" -> "Starry Compass")
+  if(!h && t.length>=3){ const stop=new Set(['of','the','a','an','and','de','la']);
+    const inW=t.split(/\s+/).filter(w=>w&&!stop.has(w));
+    if(inW.length){ let best='',bestLen=1e9;
+      for(const d of DATA.daggerNames){ const dW=d.toLowerCase().split(/\s+/).filter(w=>w&&!stop.has(w));
+        // every input word is a word of this dagger; prefer the dagger with the fewest extra words
+        if(inW.every(iw=>dW.includes(iw)) && dW.length<bestLen){ best=d; bestLen=dW.length; } }
+      if(best) h=best; } }
   if(!h&&t.length>=4) h=DATA.daggerNames.find(d=>lev(d,t)<=2);
   return h||''; }
 /* strip a trailing/standalone reforge token (R5, R0X, R3 …) so "Plasma Blade R5" -> "Plasma Blade" */
@@ -248,9 +256,16 @@ function parseRotationText(text, opts){
 
   // title (first header line) -> boss/mode/patch
   let titleConsumed=false;
+  // once a stats/calc section starts, every following line is a note — never a team/persona/card line,
+  // so "A1 Noir is -18", "A0R0 S.Moko: 12.1" etc. are kept verbatim instead of read as team members.
+  let inNotesSection=false;
+  const reNotesSection=/^\**\s*(stats|crit\s*rate|pierce\s*rate|(?:\w+\s+)?calcs?|alternatives?|damage)\s*:?\s*\**\s*$/i;
   for(let hi=0; hi<headerLines.length; hi++){
     const line=headerLines[hi];
     const low=line.toLowerCase();
+    if(line==='\u0000') continue;
+    if(inNotesSection){ noteLines.push(line); continue; }
+    if(reNotesSection.test(line)){ inNotesSection=true; noteLines.push(line); continue; }
 
     // Credit line ("Credit: A + B from C + D") -> Credits field (may list several people), never the title
     { const cm=line.match(/^credits?\s*[:\u2013\u2014\-]\s*(.+)$/i);
@@ -262,7 +277,7 @@ function parseRotationText(text, opts){
 
     // Wonder line: "Wonder [R#] [Dagger] [, persona (skills), …]"
     if(/^wonder\b/i.test(line)){
-      let rest=line.replace(/^wonder\b/i,'').trim();
+      let rest=line.replace(/^wonder\b/i,'').replace(/^[\s:\u2013\u2014-]+/,'').trim();
       // Wonder revelation rank (R0-R6 / RX)
       const rv=rest.match(/\bR([0-6X])\b/i); if(rv){ addChar('WONDER',{rev:('R'+rv[1]).toUpperCase()}); got.team=1; rest=rest.replace(rv[0],' ').replace(/\s+/g,' ').trim(); }
       // dagger = a known dagger name in the leading chunk (before the first comma/colon/paren)
@@ -651,5 +666,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A069';
+  _g.VF_PARSER_VERSION = 'A070';
 })();
