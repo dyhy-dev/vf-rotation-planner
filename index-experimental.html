@@ -423,8 +423,10 @@ body.play-open{overflow:hidden}
 #playRoot, #playRoot *{ touch-action:pan-x pan-y }   /* allow scroll/swipe but block pinch- and double-tap-zoom */
 body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%, #f0edf8 0%, var(--ink) 60%), var(--ink) }
 #playRoot[hidden]{display:none}
-.play-head{display:flex; align-items:center; gap:12px; padding:16px 24px; border-bottom:1px solid var(--line); flex:0 0 auto}
-.play-title{font:700 17px Oswald,sans-serif; color:var(--blue); letter-spacing:.04em; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase}
+.play-head{display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); flex:0 0 auto}
+.play-title{font:700 17px Oswald,sans-serif; color:var(--blue); letter-spacing:.04em; flex:1 1 0; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase}
+.play-segs{flex:0 0 auto; display:flex; align-items:center; gap:10px}
+.play-right{flex:1 1 0; display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0}
 .play-pos{font:700 15px Oswald,sans-serif; color:var(--muted); letter-spacing:.08em; flex:0 0 auto}
 .play-close{background:transparent; border:none; color:var(--muted); font-size:32px; line-height:1; cursor:pointer; padding:0 6px; flex:0 0 auto}
 .play-close:hover{color:var(--text)}
@@ -437,7 +439,7 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-turn-name{font:700 34px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
 .play-turn-name.brk{color:#e0445e}
 .play-turn-sub{font:600 15px Inter,sans-serif; color:var(--muted); margin-top:-14px}
-.play-actions{display:flex; flex-direction:column; gap:14px; width:100%; max-width:880px}
+.play-actions{display:flex; flex-direction:column; gap:14px; width:100%; max-width:880px; flex:0 0 auto}
 .play-act{display:flex; align-items:baseline; gap:16px; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--line); border-radius:12px; padding:18px 24px}
 .play-actn{font:700 15px Oswald,sans-serif; color:var(--muted); flex:0 0 20px}
 .play-actor{font:700 24px Oswald,sans-serif; letter-spacing:.03em; flex:0 0 168px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -481,6 +483,17 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 #playRoot:not(.play-touch) .play-solo-actor{font-size:60px}
 #playRoot:not(.play-touch) .play-solo-detail{font-size:42px}
 @media (max-width:600px){ .play-turn-name{font-size:24px} .play-actor{flex-basis:108px; font-size:18px} .play-actdetail{font-size:17px} .play-navbtn{min-width:80px; padding:13px 14px} .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px} .play-act{padding:14px 16px} .play-act.block{width:174px} .play-act.block .play-actor{font-size:18px} }
+/* horizontal layout: the turn name is just a label above the tile row — keep it small so the tiles get the room */
+#playRoot.is-horiz .play-turn-name{font-size:20px}
+#playRoot.is-horiz .play-body{justify-content:flex-start; gap:12px}
+/* landscape phones / short viewports: compress the chrome so the action tiles fit fully */
+@media (max-height:520px){
+  .play-head{padding:8px 16px} .play-body{padding:12px 14px; gap:10px}
+  .play-turn-name{font-size:20px} #playRoot.is-horiz .play-turn-name{font-size:16px}
+  .play-hint{display:none} .play-nav{padding:8px 16px 10px}
+  .play-act.block{width:170px} .play-act.block .play-actor{font-size:18px} .play-act.block .play-actdetail{font-size:16px}
+  .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px}
+}
 .ac-body{padding:16px 22px; color:#cdd3e3; font:14px/1.5 Inter,sans-serif; max-height:60vh; overflow:auto}
 .ac-body h3{font:700 11px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:18px 0 8px}
 .ac-body h3:first-child{margin-top:0}
@@ -2986,11 +2999,10 @@ function openPlayMode(){
   let root=document.getElementById('playRoot');
   if(!root){
     root=document.createElement('div'); root.id='playRoot'; root.hidden=true;
-    root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div><div class="play-pos" id="playPos"></div><button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div>'
-      +'<div class="play-controls">'
-      +'<div class="play-seg" id="playModeSeg"><button data-pmode="turn">Turn</button><button data-pmode="action">Action</button></div>'
-      +'<div class="play-seg" id="playLayoutSeg"><button data-playlayout="vertical">Vertical</button><button data-playlayout="horizontal">Horizontal</button></div>'
-      +'</div>'
+    root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div>'
+      +'<div class="play-segs"><div class="play-seg" id="playModeSeg"><button data-pmode="turn">Turn</button><button data-pmode="action">Action</button></div>'
+      +'<div class="play-seg" id="playLayoutSeg"><button data-playlayout="vertical">Vertical</button><button data-playlayout="horizontal">Horizontal</button></div></div>'
+      +'<div class="play-right"><div class="play-pos" id="playPos"></div><button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div></div>'
       +'<div class="play-body" id="playBody"></div>'
       +'<div class="play-hint" id="playHint"></div>'
       +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dots" id="playDots"></div><button class="play-navbtn" id="playNext">Next ›</button></div>';
@@ -3037,6 +3049,7 @@ function renderPlay(){
   r.querySelector('#playTitle').textContent=[(s.boss||'').trim(),(s.type||'').trim()].filter(Boolean).join(' · ')||((s.rotationName||'').trim()||'Rotation');
   r.querySelectorAll('#playModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pmode===_playMode));
   r.querySelector('#playLayoutSeg').style.display=(!_playTouch && _playMode==='turn')?'':'none';
+  r.classList.toggle('is-horiz', _playMode==='turn' && _playLayout==='horizontal');
   r.querySelectorAll('#playLayoutSeg button').forEach(b=>b.classList.toggle('on',b.dataset.playlayout===_playLayout));
   const mkDots=(curTi)=>{ const dots=turns.map((tt,k)=>{ const brk=dod&&n>=DOD_BREAKS&&k>=n-DOD_BREAKS; return '<button class="play-dot'+(k===curTi?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
     const dw=r.querySelector('#playDots'); dw.innerHTML=dots; dw.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGoTurn(+d.dataset.pi)); };
@@ -3208,6 +3221,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619z</div>
+<div class="version-tag">260619a2</div>
 </body>
 </html>
