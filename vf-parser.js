@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A098   (bumped +1 on every change; A199 -> B001)
+   Version: A099   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -772,6 +772,19 @@ function parseRotationText(text, opts){
     }
   }
 
+  // Rin variant disambiguation: a rota may name the base "Rin" (RIN) in the team and the Firecracker
+  // variant ("CrackRin" -> RIN·F) in the turns for the SAME unit. When RIN·F is present, fold the base
+  // RIN into it (its cards/build merge in), so they don't end up as two separate Rins.
+  { const present=new Set(charOrder); turns.forEach(t=>t.actions.forEach(a=>{ if(a.char)present.add(a.char); }));
+    if(present.has('RIN·F') && present.has('RIN') && DATA.characterNames.includes('RIN·F')){
+      const src='RIN', dst='RIN·F';
+      if(charData[src]){ charData[dst]=Object.assign({},charData[src],charData[dst]||{}); delete charData[src]; }
+      const oi=charOrder.indexOf(src); if(oi>=0)charOrder[oi]=dst;
+      const ti=turnChars.indexOf(src); if(ti>=0)turnChars[ti]=dst;
+      turns.forEach(t=>t.actions.forEach(a=>{ if(a.char===src)a.char=dst; }));
+    }
+  }
+
   // character order: by first Skill/Attack/Gun/Guard in the turns (HL/TG/Assist + elucidator are ignored).
   // Wonder is ordered too, via its persona-skill actions (a HL-only Wonder action is ignored like any HL).
   const hasWonder = charOrder.includes('WONDER') || dagger || personas.length || turnHasWonder;
@@ -893,5 +906,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A098';
+  _g.VF_PARSER_VERSION = 'A099';
 })();
