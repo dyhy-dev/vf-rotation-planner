@@ -2821,7 +2821,6 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
         ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillDisplay(s))).join('<br>')}</div>`:''}</div>
       </div>`; };
     const personaCards=persona.map(p=>pCard(p,false)).join('');
-    const personaCardsWide=persona.map(p=>pCard(p,true)).join('');
     const _wEx=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
     const _dgEx=_wEx?(_wEx.gear||''):''; const _dgImgEx=dImgs[_dgEx];
     const hasDagger=!!(_dgEx&&_dgImgEx);
@@ -2860,6 +2859,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
         // stacked fallback (applied after measuring when the notes turn out taller than the personas):
         // dagger + persona fill the full width (cards stretch), team notes go full-width underneath.
         if(tnText && persona.length){
+          const personaCardsWide=persona.map(p=>pCard(p,true)).join('');
           const personaBlockWide=`<div style="flex:1 1 auto;min-width:0;">
             <div style="${_hdrM}">PERSONAS</div>
             <div style="display:flex;gap:10px;">${personaCardsWide}</div></div>`;
