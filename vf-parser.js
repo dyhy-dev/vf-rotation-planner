@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A100   (bumped +1 on every change; A199 -> B001)
+   Version: A101   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -217,8 +217,9 @@ function parseTurnContent(content,warn){
           actions.push(Object.assign(tgt,{btn:'Gd',text:''})); continue; }
         actions.push({guardSolo:true}); cur=null; continue; }
       // a leading bare button with no actor yet ("Alt + Turbo S2") belongs to the *next* actor in the unit.
+      // Masquerade is excluded — it is always Violet's own ALT (handled just below), never a floating button.
       if(!cur && toks.length===1){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
-        if(c1 && !(a1&&!a1.fuzzy) && _n(toks[0])!=='wonder'){ pendingLead.push(c1.btn); continue; } }
+        if(c1 && !(a1&&!a1.fuzzy) && _n(toks[0])!=='wonder' && !/^(mas|masq|msq|masquerade)$/.test(_n(toks[0]).replace(/[().]/g,''))){ pendingLead.push(c1.btn); continue; } }
       const segHl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
       // Twins HL dual-element action: "Fire Ice HL", "F/I HL", "FI HL", "Twins HL Fire Ice", "Twins Fire Ice HL"...
       // fires on HL + a dual, unless an *exact, non-Twins* actor leads the segment.
@@ -911,5 +912,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A100';
+  _g.VF_PARSER_VERSION = 'A101';
 })();
