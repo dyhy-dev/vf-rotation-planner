@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A097   (bumped +1 on every change; A199 -> B001)
+   Version: A098   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -272,7 +272,7 @@ function parseTurnContent(content,warn){
 function parseRotationText(text, opts){
   const warn=[];
   const forceDod=!!(opts&&opts.dod);
-  const lines=text.split(/\r?\n/).map(s=>s.replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,''));
+  const lines=text.split(/\r?\n/).map(s=>s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,''));
   // "B1"/"B2" are break turns (the common short form of "Break 1"/"Break 2"), just as "T1" is a normal
   // turn; the brk flag below keys off the leading "b". Same false-positive risk as the accepted "t" prefix.
   const reInline=/^\s*(turn|break|t|b)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
@@ -893,5 +893,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A097';
+  _g.VF_PARSER_VERSION = 'A098';
 })();
