@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A096   (bumped +1 on every change; A199 -> B001)
+   Version: A097   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -327,6 +327,11 @@ function parseRotationText(text, opts){
       const sm=v.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
       if(sm){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; } break; }
   }
+  // inline "Credits to/by/from <Name>" anywhere in the text ("… Credits to Fantaa for base rot") -> Credits field.
+  // The name must be capitalised so "credits to the team" doesn't grab "the"; the line stays as a note.
+  for(let i=0;i<headerLines.length && !setup.credits;i++){
+    const cm=headerLines[i].match(/\b[Cc]redits?\s+(?:[Tt]o|[Bb]y|[Ff]rom)\s+([A-Z][\w.]*(?:\s*(?:,|&|\+|and)\s*[A-Z][\w.]*)*)/);
+    if(cm){ setup.credits=cm[1].trim(); got.credit=1; } }
 
   // title (first header line) -> boss/mode/patch
   let titleConsumed=false;
@@ -351,9 +356,10 @@ function parseRotationText(text, opts){
     { const cm=line.match(/^credits?\s*[:\u2013\u2014\-]\s*(.+)$/i);
       if(cm){ const v=cm[1].trim(); if(v){ setup.credits=v; got.credit=1; } continue; } }
 
-    // "Expected Score: 600 Mil" / "Score: ..." -> score field
-    { const sm=line.match(/^(?:expected\s+)?scores?\s*[:\u2013\u2014\-]\s*(.+)$/i);
-      if(sm){ const v=sm[1].trim(); if(v){ setup.score=v; got.score=1; } continue; } }
+    // "Expected Score: 600 Mil" / "Score: ..." / bare "Score 175m" (no colon) -> score field; line is consumed either way.
+    // The colon form keeps the verbatim value (so "600 Mil" round-trips); a bare form just defers to the pre-scanned value.
+    { const sm=line.match(/^(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])?\s*(\d.*)$/i);
+      if(sm){ const v=sm[2].trim(); if(v && (sm[1] || !setup.score)){ setup.score=v; got.score=1; } continue; } }
 
     // Wonder line: "Wonder [R#] [Dagger] [, persona (skills), …]"
     if(/^wonder\b/i.test(line)){
@@ -887,5 +893,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A096';
+  _g.VF_PARSER_VERSION = 'A097';
 })();
