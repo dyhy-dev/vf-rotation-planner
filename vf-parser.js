@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A099   (bumped +1 on every change; A199 -> B001)
+   Version: A100   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -81,8 +81,8 @@ function cardPair(str){
 }
 // highest score in a string -> "<n><M/B/T>". A range shares one magnitude ("23 - 30 mils" -> 30M); pick the larger.
 function scoreHigh(str){
-  const MAG={b:1e9,bn:1e9,bil:1e9,billion:1e9,t:1e12,tril:1e12,trillion:1e12,m:1e6,mil:1e6,mils:1e6,million:1e6};
-  const ms=[...String(str||'').matchAll(/(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mils?|bn|[bmt])?\b/ig)];
+  const MAG={b:1e9,bn:1e9,bil:1e9,billion:1e9,t:1e12,tril:1e12,trillion:1e12,m:1e6,mil:1e6,mils:1e6,mill:1e6,mills:1e6,million:1e6};
+  const ms=[...String(str||'').matchAll(/(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])?\b/ig)];
   let shared=''; ms.forEach(m=>{ if(m[2]) shared=m[2]; });
   let best=null;
   ms.forEach(m=>{ const mag=(m[2]||shared); if(!mag) return; const v=parseFloat(m[1])*(MAG[mag.toLowerCase()]||1);
@@ -317,14 +317,14 @@ function parseRotationText(text, opts){
 
   // inline "Score 175m" — the word "Score" directly followed by a number+magnitude, even mid-sentence
   for(let i=0;i<headerLines.length && !setup.score;i++){
-    const im=headerLines[i].match(/\bscores?\b\s*[:\-–—]?\s*(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
+    const im=headerLines[i].match(/\bscores?\b\s*[:\-–—]?\s*(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])\b/i);
     if(im){ setup.score=im[1]+im[2][0].toUpperCase(); got.score=1; } }
   // a standalone "Score" / "Expected Score" section header: the score sits on the next non-empty line
   // ("Score\n86M with A1R0 …") — grab the first number+magnitude (the field holds one number)
   for(let i=0;i<headerLines.length && !setup.score;i++){
     if(!/^(?:expected\s+)?scores?\s*:?\s*$/i.test(headerLines[i])) continue;
     for(let k=i+1;k<headerLines.length;k++){ const v=headerLines[k]; if(!v||v===' ') continue;
-      const sm=v.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
+      const sm=v.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])\b/i);
       if(sm){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; } break; }
   }
   // inline "Credits to/by/from <Name>" anywhere in the text ("… Credits to Fantaa for base rot") -> Credits field.
@@ -590,7 +590,7 @@ function parseRotationText(text, opts){
       // listed ("2.4bil with A1, 2.8bil with A2") only the FIRST is copied into the field. It is NOT
       // cut from the title — the score usually sits inside prose ("2.4bil with A1"), so removing it
       // would leave the rotation name unreadable; it simply stays in the name as written.
-      const sm=t2.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil|bn|[bmt])\b/i);
+      const sm=t2.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])\b/i);
       if(sm && !setup.score){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; }
       // patch: an x.y version number (major 1-19). The export always writes it first
       // ("4.1 DOD ..."), so prefer one at the start of the (score-stripped) title.
@@ -630,6 +630,11 @@ function parseRotationText(text, opts){
         break; }
     }
   }
+
+  // general score fallback: if nothing labelled gave a score, a number with a damage magnitude in the
+  // prose ("This was 465 mill for me") is almost certainly the score — crit/pierce are written as %, which
+  // carry no magnitude word, so they're skipped. scoreHigh() only returns when a magnitude is present.
+  if(!setup.score){ for(const ln of noteLines){ const sc=scoreHigh(ln); if(sc){ setup.score=sc; got.score=1; break; } } }
 
   function parsePersonaList(str){ if(!str)return; str.split(/,(?![^(\[]*[)\]])/).forEach(chunk=>parsePersonaLine(chunk)); }
   function parsePersonaLine(line){
@@ -906,5 +911,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A099';
+  _g.VF_PARSER_VERSION = 'A100';
 })();
