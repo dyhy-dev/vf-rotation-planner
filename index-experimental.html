@@ -2811,16 +2811,17 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), cardStrip(u.name, C))).join('')+card(state.elucidator,'ELUCIDATOR',C.elu)+(_bkCard?card(_bkCard,'BACKUP',cardStrip(_bkCard.name, C)):'');
   const persona=state.personas.filter(p=>(p.name||'').trim());
   const tnText=(!_hn.team ? (state.teamNotes||'').trim() : '');
-  let personaLine='', tnLine='';
+  let personaLine='', tnLine='', _pnStacked='';
   if(withImages){
-    const pCard=p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
-      return `<div style="${M?'box-sizing:border-box;min-width:0;':'width:174px;box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
+    const pCard=(p,wide)=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
+      return `<div style="${M?'box-sizing:border-box;min-width:0;':(wide?'flex:1 1 0;min-width:0;':'width:174px;')+'box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
         ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
         <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(personaLabel(p.name))}</div>
         ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillDisplay(sig))}</div>`:''}
         ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillDisplay(s))).join('<br>')}</div>`:''}</div>
       </div>`; };
-    const personaCards=persona.map(pCard).join('');
+    const personaCards=persona.map(p=>pCard(p,false)).join('');
+    const personaCardsWide=persona.map(p=>pCard(p,true)).join('');
     const _wEx=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
     const _dgEx=_wEx?(_wEx.gear||''):''; const _dgImgEx=dImgs[_dgEx];
     const hasDagger=!!(_dgEx&&_dgImgEx);
@@ -2844,17 +2845,28 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
         personaLine=`<div style="width:100%;box-sizing:border-box;margin-top:14px;">${gridInner}${notesMobile}</div>`;
       }
     } else {
-      const personaBlock=persona.length?`<div style="flex:0 0 auto;">
-        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+      const _hdrM=`font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;`;
+      const personaBlock=persona.length?`<div class="vf-pblock" style="flex:0 0 auto;">
+        <div style="${_hdrM}">PERSONAS</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
-      const daggerBlock=hasDagger?`<div style="flex:0 0 auto;">
-        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">DAGGER</div>
+      const daggerBlock=hasDagger?`<div class="vf-dblock" style="flex:0 0 auto;">
+        <div style="${_hdrM}">DAGGER</div>
         ${daggerCard}</div>`:'';
-      const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
-        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
-        <div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+      const notesInner=`<div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div>`;
+      const notesBox=tnText?`<div class="vf-tnbox" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+        <div style="${_hdrM}">TEAM NOTES</div>${notesInner}</div>`:'';
       if(persona.length||tnText||hasDagger){
-        personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
+        personaLine=`<div class="vf-pnrow" style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
+        // stacked fallback (applied after measuring when the notes turn out taller than the personas):
+        // dagger + persona fill the full width (cards stretch), team notes go full-width underneath.
+        if(tnText && persona.length){
+          const personaBlockWide=`<div style="flex:1 1 auto;min-width:0;">
+            <div style="${_hdrM}">PERSONAS</div>
+            <div style="display:flex;gap:10px;">${personaCardsWide}</div></div>`;
+          _pnStacked=`<div class="vf-pnrow" style="width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">
+            <div style="display:flex;gap:12px;align-items:stretch;width:100%;">${daggerBlock}${personaBlockWide}</div>
+            <div style="margin-top:14px;"><div style="${_hdrM}">TEAM NOTES</div>${notesInner}</div></div>`;
+        }
       }
     }
   } else {
@@ -2890,7 +2902,21 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     ${personaLine}${tnLine}`}
     ${notesLine}
     <div style="margin-top:16px;">${exportTurnsBlock(M, C)}</div>`;
-  document.body.appendChild(v); return v;
+  document.body.appendChild(v);
+  // desktop only: if the team-notes box came out taller than the personas/dagger, restack it full-width
+  // below a widened persona row. Measured with natural heights (align-items flex-start); short notes keep
+  // the current side-by-side stretched layout.
+  if(_pnStacked && !M){
+    const row=v.querySelector('.vf-pnrow');
+    if(row){
+      row.style.alignItems='flex-start';
+      const tn=row.querySelector('.vf-tnbox'), pb=row.querySelector('.vf-pblock'), db=row.querySelector('.vf-dblock');
+      const tnH=tn?tn.offsetHeight:0, pivotH=Math.max(pb?pb.offsetHeight:0, db?db.offsetHeight:0);
+      if(tn && tnH>pivotH+4){ row.outerHTML=_pnStacked; }
+      else { row.style.alignItems='stretch'; }
+    }
+  }
+  return v;
 }
 function loadImg(src){ return new Promise((res,rej)=>{
   const attempt=(url, canFallback)=>{
@@ -3325,6 +3351,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620i</div>
+<div class="version-tag">260620j</div>
 </body>
 </html>
