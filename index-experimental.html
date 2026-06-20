@@ -515,6 +515,62 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
   .play-right{flex:0 0 auto}
   .play-segs{order:3; flex:1 1 100%; justify-content:center; margin-top:8px}
 }
+/* progress bar under the header — a visual mirror of the "X / N" counter */
+.play-progress{flex:0 0 auto; height:4px; background:var(--line); position:relative; overflow:hidden}
+body.theme-light .play-progress{background:rgba(0,0,0,.08)}
+.play-progress-fill{position:absolute; left:0; top:0; bottom:0; width:0; background:var(--blue-strong); transition:width .18s ease}
+.play-progress-fill.brk{background:#e0445e}
+/* team-info toggle (header) + slide-in panel (dagger / personas / team notes) */
+.play-info-btn{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:4px 8px; flex:0 0 auto; display:inline-flex; align-items:center}
+.play-info-btn:hover, .play-info-btn.on{color:var(--blue)}
+.play-info-panel{position:absolute; inset:0; z-index:10}
+.play-info-panel[hidden]{display:none}
+.play-info-back{position:absolute; inset:0; background:rgba(8,6,18,.55)}
+.play-info-card{position:absolute; top:0; right:0; bottom:0; width:380px; max-width:88vw; background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; box-shadow:-12px 0 40px #0007; animation:playInfoIn .18s ease}
+@keyframes playInfoIn{from{transform:translateX(24px); opacity:.5} to{transform:none; opacity:1}}
+.play-info-head{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); font:700 14px Oswald,sans-serif; letter-spacing:.08em; color:var(--blue); text-transform:uppercase}
+.play-info-x{background:transparent; border:none; color:var(--muted); font-size:26px; line-height:1; cursor:pointer; padding:0 4px}
+.play-info-x:hover{color:var(--text)}
+.play-info-body{flex:1 1 auto; min-height:0; overflow:auto; padding:14px 18px; -webkit-overflow-scrolling:touch}
+.play-info-sec{margin-bottom:18px}
+.play-info-sec:last-child{margin-bottom:0}
+.play-info-lab{font:700 11px Inter,sans-serif; letter-spacing:.1em; color:var(--muted); margin-bottom:8px}
+.play-info-dagger{display:flex; align-items:center; gap:10px; font:700 16px Oswald,sans-serif; color:var(--blue)}
+.play-info-dagger img{height:46px; width:auto; border-radius:6px; display:block}
+.play-info-persona{display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line)}
+.play-info-persona:first-of-type{border-top:none; padding-top:0}
+.play-info-persona img{height:54px; width:auto; border-radius:6px; display:block; flex:0 0 auto}
+.play-info-ptext{min-width:0}
+.play-info-pname{font:700 15px Oswald,sans-serif; color:#f1c232}
+.play-info-sig{font:500 12px Inter,sans-serif; color:var(--muted); margin-top:3px; line-height:1.5}
+.play-info-sk{font:500 12px Inter,sans-serif; color:var(--blue-soft); margin-top:3px; line-height:1.5}
+.play-info-notes{font:500 13px Inter,sans-serif; color:var(--text); line-height:1.55; white-space:pre-wrap}
+.play-info-empty{color:var(--muted); font-size:14px; text-align:center; margin-top:34px}
+/* character portraits inside the player */
+.play-portrait{height:38px; width:38px; border-radius:8px; object-fit:cover; flex:0 0 auto; display:block; align-self:center}
+.play-act.block .play-portrait{height:56px; width:56px; border-radius:10px; align-self:flex-start}
+.play-solo-portrait{height:150px; width:150px; border-radius:16px; object-fit:cover; display:block; box-shadow:0 10px 30px #0006}
+#playRoot:not(.play-touch) .play-solo-portrait{height:176px; width:176px}
+/* action mode: upcoming-action preview */
+.play-next{flex:0 0 auto; display:flex; align-items:baseline; gap:10px; margin-top:10px; padding:10px 16px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; max-width:760px; box-sizing:border-box}
+.play-next-lab{font:700 11px Inter,sans-serif; letter-spacing:.12em; color:var(--muted); flex:0 0 auto}
+.play-next-actor{font:700 18px Oswald,sans-serif; flex:0 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:42%}
+.play-next-detail{font:600 16px Inter,sans-serif; color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.play-next.end{color:var(--muted); font:600 13px Inter,sans-serif; justify-content:center}
+/* phones: keep portraits + preview from crowding the action rows */
+@media (max-width:600px){
+  .play-portrait{height:30px; width:30px; border-radius:6px}
+  .play-act.block .play-portrait{height:44px; width:44px}
+  .play-solo-portrait{height:104px; width:104px; border-radius:13px}
+  .play-next-actor{font-size:16px} .play-next-detail{font-size:14px}
+}
+/* short/landscape viewports: shrink the action-mode portrait + preview so the action still fits */
+@media (max-height:520px){
+  .play-solo-portrait{height:84px; width:84px; border-radius:11px}
+  #playRoot:not(.play-touch) .play-solo-portrait{height:96px; width:96px}
+  .play-act.block .play-portrait{height:40px; width:40px}
+  .play-next{margin-top:6px; padding:7px 12px}
+}
 /* iPhone-Safari landscape full-page notice (Add to Home Screen) */
 #iosRotate{position:fixed; inset:0; z-index:9000; background:var(--ink); color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,sans-serif}
 #iosRotate[hidden]{display:none}
@@ -3129,14 +3185,21 @@ function openPlayMode(){
     root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div>'
       +'<div class="play-segs"><div class="play-seg" id="playModeSeg"><button data-pmode="turn">Turn</button><button data-pmode="action">Action</button></div>'
       +'<div class="play-seg" id="playLayoutSeg"><button data-playlayout="vertical">Vertical</button><button data-playlayout="horizontal">Horizontal</button></div></div>'
-      +'<div class="play-right"><div class="play-pos" id="playPos"></div><button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div></div>'
+      +'<div class="play-right"><div class="play-pos" id="playPos"></div>'
+      +'<button class="play-info-btn" id="playInfo" aria-label="Team info" title="Team notes, dagger & personas"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.2"/><path d="M12 7.6v.4"/></svg></button>'
+      +'<button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div></div>'
+      +'<div class="play-progress" id="playProg"><div class="play-progress-fill" id="playProgFill"></div></div>'
       +'<div class="play-body" id="playBody"></div>'
       +'<div class="play-hint" id="playHint"></div>'
-      +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dots" id="playDots"></div><button class="play-navbtn" id="playNext">Next ›</button></div>';
+      +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dots" id="playDots"></div><button class="play-navbtn" id="playNext">Next ›</button></div>'
+      +'<div class="play-info-panel" id="playInfoPanel" hidden><div class="play-info-back" id="playInfoBack"></div><div class="play-info-card"><div class="play-info-head"><span>Team Info</span><button class="play-info-x" id="playInfoX" aria-label="Close">×</button></div><div class="play-info-body" id="playInfoBody"></div></div></div>';
     document.body.appendChild(root);
     root.querySelector('#playClose').onclick=closePlayMode;
     root.querySelector('#playPrev').onclick=()=>playStep(-1);
     root.querySelector('#playNext').onclick=()=>playStep(1);
+    root.querySelector('#playInfo').onclick=playToggleInfo;
+    root.querySelector('#playInfoX').onclick=playCloseInfo;
+    root.querySelector('#playInfoBack').onclick=playCloseInfo;
     root.querySelectorAll('#playModeSeg button').forEach(b=>b.onclick=()=>playSetMode(b.dataset.pmode));
     root.querySelectorAll('#playLayoutSeg button').forEach(b=>b.onclick=()=>{ _playLayout=b.dataset.playlayout; renderPlay(); });
     // touch swipe. In horizontal turn mode the actions strip scrolls natively; we only change turn when the
@@ -3157,11 +3220,49 @@ function openPlayMode(){
   }
   _playMode='turn'; _playTurn=0; _playAct=0;
   _playLayout = _playTouch ? (_playWantsHorizontal()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
+  playCloseInfo();
   root.hidden=false; document.body.classList.add('play-open');
   renderPlay();
+  _playAcquireWake();   /* keep the screen awake while you follow the rotation live */
   if(_playTouch && _fsSupported) _playEnterFs();   /* the Play tap is a user gesture, so fullscreen is allowed (iPad/Android; iPhone Safari has no element fullscreen) */
 }
-function closePlayMode(){ const r=document.getElementById('playRoot'); if(r) r.hidden=true; document.body.classList.remove('play-open'); _playExitFs(); }
+function closePlayMode(){ const r=document.getElementById('playRoot'); if(r) r.hidden=true; document.body.classList.remove('play-open'); playCloseInfo(); _playReleaseWake(); _playExitFs(); }
+/* --- screen wake lock: hold the screen on while the player is open, re-acquire when the tab returns to the foreground --- */
+let _wakeLock=null;
+function _playAcquireWake(){ try{ if('wakeLock' in navigator && !_wakeLock){ navigator.wakeLock.request('screen').then(wl=>{ _wakeLock=wl; wl.addEventListener('release',()=>{ _wakeLock=null; }); }).catch(()=>{ _wakeLock=null; }); } }catch(e){ _wakeLock=null; } }
+function _playReleaseWake(){ try{ const wl=_wakeLock; _wakeLock=null; if(wl) wl.release().catch(()=>{}); }catch(e){ _wakeLock=null; } }
+document.addEventListener('visibilitychange',()=>{ const r=document.getElementById('playRoot'); if(r && !r.hidden && document.visibilityState==='visible') _playAcquireWake(); });
+/* --- team-info slide-in panel (dagger / personas / team notes) --- */
+let _playInfoOpen=false;
+function playToggleInfo(){ _playInfoOpen ? playCloseInfo() : playOpenInfo(); }
+function playOpenInfo(){ const r=document.getElementById('playRoot'); if(!r) return; renderPlayInfo(); const p=r.querySelector('#playInfoPanel'); if(p) p.hidden=false; const b=r.querySelector('#playInfo'); if(b) b.classList.add('on'); _playInfoOpen=true; }
+function playCloseInfo(){ const r=document.getElementById('playRoot'); if(!r){ _playInfoOpen=false; return; } const p=r.querySelector('#playInfoPanel'); if(p) p.hidden=true; const b=r.querySelector('#playInfo'); if(b) b.classList.remove('on'); _playInfoOpen=false; }
+function renderPlayInfo(){
+  const r=document.getElementById('playRoot'); if(!r) return; const body=r.querySelector('#playInfoBody'); if(!body) return;
+  const _w=(state.units||[]).find(u=>(u.name||'').toUpperCase()==='WONDER'); const dg=_w?(_w.gear||'').trim():''; const dgSrc=daggerImg(dg);
+  const pers=(state.personas||[]).filter(p=>(p.name||'').trim());
+  const tn=(state.teamNotes||'').trim();
+  let html='';
+  if(dg){ html+='<div class="play-info-sec"><div class="play-info-lab">DAGGER</div><div class="play-info-dagger">'
+    +(dgSrc?'<img src="'+esc(dgSrc)+'" alt="" onerror="this.style.display=\'none\'"/>':'')+'<span>'+esc(dg)+'</span></div></div>'; }
+  if(pers.length){ html+='<div class="play-info-sec"><div class="play-info-lab">PERSONAS</div>';
+    pers.forEach(p=>{ const nm=(p.name||'').trim(), sig=PERSONA_SIGNATURES[nm]||'', sk=(p.skills||[]).filter(Boolean), src=personaImg(nm);
+      html+='<div class="play-info-persona">'+(src?'<img src="'+esc(src)+'" alt="" onerror="this.style.display=\'none\'"/>':'')
+        +'<div class="play-info-ptext"><div class="play-info-pname">'+esc(personaLabel(nm))+'</div>'
+        +(sig?'<div class="play-info-sig">'+esc(skillDisplay(sig))+'</div>':'')
+        +(sk.length?'<div class="play-info-sk">'+sk.map(s=>esc(skillDisplay(s))).join('<br>')+'</div>':'')
+        +'</div></div>'; });
+    html+='</div>'; }
+  if(tn){ html+='<div class="play-info-sec"><div class="play-info-lab">TEAM NOTES</div><div class="play-info-notes">'+esc(tn)+'</div></div>'; }
+  body.innerHTML = html || '<div class="play-info-empty">No dagger, personas or team notes set yet.</div>';
+}
+/* jump helpers (Home / End keys) */
+function playFirst(){ if(_playMode==='action') _playAct=0; else _playTurn=0; renderPlay(); }
+function playLast(){ if(_playMode==='action') _playAct=_playFlat().length-1; else _playTurn=(state.turns||[]).length-1; renderPlay(); }
+/* portrait <img> for a character, or '' when no art is available */
+function _playPortrait(name, cls){ const src=imgFor(name); if(!src) return ''; return '<img class="'+cls+'" src="'+esc(src)+'" alt="" onerror="this.style.display=\'none\'"/>'; }
+/* update the header progress bar (mirrors the X / N counter) */
+function _playSetProgress(cur, total, brk){ const f=document.getElementById('playProgFill'); if(!f) return; f.style.width=(total>0?Math.max(0,Math.min(100,(cur/total)*100)):0)+'%'; f.classList.toggle('brk',!!brk); }
 function playSetMode(m){ if(m===_playMode){ renderPlay(); return; } const flat=_playFlat();
   if(m==='action'){ const idx=flat.findIndex(x=>x.ti===_playTurn); _playAct=idx<0?0:idx; }
   else { _playTurn=(flat[_playAct]||{}).ti||0; }
@@ -3185,36 +3286,43 @@ function renderPlay(){
     const dw=r.querySelector('#playDots'); dw.innerHTML=dots; dw.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGoTurn(+d.dataset.pi)); };
   if(_playMode==='action'){
     const flat=_playFlat();
-    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; r.querySelector('#playHint').textContent=''; mkDots(-1); return; }
-    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, accent=cardAccent(a.char, exPalette(_effTheme==='light'));
+    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; _playSetProgress(0,0); r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; r.querySelector('#playHint').textContent=''; mkDots(-1); return; }
+    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, palette=exPalette(_effTheme==='light'), accent=cardAccent(a.char, palette);
     r.querySelector('#playPos').textContent=(_playAct+1)+' / '+flat.length;
+    _playSetProgress(_playAct+1, flat.length, it.brk);
     const inTurn=flat.filter(x=>x.ti===it.ti), posInTurn=inTurn.indexOf(it)+1, leftInTurn=inTurn.length-posInTurn;
     const sub='Action '+posInTurn+' / '+inTurn.length+' in this turn'+(leftInTurn>0?(' · '+leftInTurn+' to go'):' · last action');
+    const nx=flat[_playAct+1];
+    const nextHtml=nx?('<div class="play-next"><span class="play-next-lab">NEXT</span><span class="play-next-actor" style="color:'+esc(cardAccent(nx.a.char,palette))+'">'+esc(charDisp(nx.a.char))+'</span><span class="play-next-detail">'+esc(actionLabel(nx.a,nx.a.char,true)||'—')+'</span></div>'):'<div class="play-next end">Last action of the rotation</div>';
     r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+'">'+esc(it.turnName)+'</div>'
       +'<div class="play-turn-sub">'+esc(sub)+'</div>'
-      +'<div class="play-solo"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div></div>';
+      +'<div class="play-solo">'+_playPortrait(a.char,'play-solo-portrait')+'<div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div>'+nextHtml+'</div>';
     r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
-    r.querySelector('#playHint').textContent=_playTouch?'Swipe to step through the actions':'← → step through the actions · Esc to close';
+    r.querySelector('#playHint').textContent=_playTouch?'Swipe to step through the actions':'← → step · 1–9 jump to turn · Home/End first & last · Esc close';
     mkDots(it.ti); return;
   }
   const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const t=turns[i]||{actions:[]}, isBreak=dod&&n>=DOD_BREAKS&&i>=n-DOD_BREAKS, horiz=_playLayout==='horizontal';
   r.querySelector('#playPos').textContent=(i+1)+' / '+n;
+  _playSetProgress(i+1, n, isBreak);
   const acts=(t.actions||[]).filter(a=>a&&a.char);
   const rows=acts.length?acts.map((a,k)=>{ const accent=cardAccent(a.char, exPalette(_effTheme==='light'));
-    if(horiz) return '<div class="play-act block" style="border-top-color:'+esc(accent)+'"><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
-    return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+    if(horiz) return '<div class="play-act block" style="border-top-color:'+esc(accent)+'">'+_playPortrait(a.char,'play-portrait block')+'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+    return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span>'+_playPortrait(a.char,'play-portrait')+'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
   }).join(''):'<div class="play-empty">No actions in this turn.</div>';
   r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(isBreak?' brk':'')+'">'+esc(t.name||('Turn '+(i+1)))+'</div>'
     +'<div class="play-actions'+(horiz?' horiz':'')+'">'+rows+'</div>'
     +((t.note||'').trim()?'<div class="play-note">'+esc(t.note.trim())+'</div>':'');
   r.querySelector('#playPrev').disabled=(i<=0); r.querySelector('#playNext').disabled=(i>=n-1);
-  r.querySelector('#playHint').textContent=_playTouch?(horiz?'Swipe through the turn — past the end goes to the next turn':'Swipe left / right to change turn'):'← → arrow keys to change turn · Esc to close';
+  r.querySelector('#playHint').textContent=_playTouch?(horiz?'Swipe through the turn — past the end goes to the next turn':'Swipe left / right to change turn'):'← → change turn · 1–9 jump · Home/End first & last · Esc close';
   mkDots(i);
 }
 document.addEventListener('keydown',e=>{ const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  if(e.key==='Escape'){ e.preventDefault(); if(_playInfoOpen) playCloseInfo(); else closePlayMode(); return; }
   if(e.key==='ArrowLeft'){ e.preventDefault(); playStep(-1); }
   else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); playStep(1); }
-  else if(e.key==='Escape'){ e.preventDefault(); closePlayMode(); } });
+  else if(e.key==='Home'){ e.preventDefault(); playFirst(); }
+  else if(e.key==='End'){ e.preventDefault(); playLast(); }
+  else if(/^[1-9]$/.test(e.key)){ e.preventDefault(); playGoTurn(+e.key-1); } });
 function _playOrient(){ const r=document.getElementById('playRoot'); if(r&&!r.hidden&&_playTouch){
     const want=_playWantsHorizontal()?'horizontal':'vertical'; if(want!==_playLayout){ _playLayout=want; renderPlay(); } }
   _updateIosRotate(); }
@@ -3358,6 +3466,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620k</div>
+<div class="version-tag">260620l</div>
 </body>
 </html>
