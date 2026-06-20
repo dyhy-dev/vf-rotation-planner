@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A095   (bumped +1 on every change; A199 -> B001)
+   Version: A096   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -338,7 +338,13 @@ function parseRotationText(text, opts){
     const line=headerLines[hi];
     const low=line.toLowerCase();
     if(line==='\u0000') continue;
-    if(inNotesSection){ noteLines.push(line); continue; }
+    if(inNotesSection){
+      // a redundant turn-order line ("Turbo > Wonder > Smoko > Haru" / "Turn order: …") carries no note value -> drop it
+      if(/^turn\s*order\s*[:–—-]/i.test(line)) continue;
+      if(/[>›→]/.test(line)){ const og=line.split(/\s*[>›→]\s*/).map(x=>x.trim()).filter(Boolean);
+        if(og.length>=2 && og.every(sg=>{ const a=resolveActor(sg.split(/\s+/)[0]); return a&&a.type==='char'; })) continue; }
+      noteLines.push(line); continue;
+    }
     if(reNotesSection.test(line)){ inNotesSection=true; noteLines.push(line); continue; }
 
     // Credit line ("Credit: A + B from C + D") -> Credits field (may list several people), never the title
@@ -399,10 +405,17 @@ function parseRotationText(text, opts){
       continue;
     }
     // bare section headers that carry no data themselves
-    if(/^(rotation|rotations|turns?|team|comp|composition|notes?|info|setup|revelations?|reves?)\s*:?\s*$/i.test(line)) continue;
+    if(/^(rotation|rotations|turns?|team|comp|composition|notes?|info|setup|revelations?|revs?|reves?|personae?|personas)\s*:?\s*$/i.test(line)) continue;
     // a "Turn order: A > B > C > D" line (an optional text-export summary) is derived from the unit order — ignore it
     if(/^turn\s*order\s*[:–—-]/i.test(line)) continue;
     if(line==='\u0000') continue;
+
+    // a per-persona skill line outside the Personae block ("Ame - Wild Thunder, Ail passives", "Jikokuten - Rebellion (…)")
+    // -> route to the persona parser, but only when the leading name is a persona already listed (so card lines like
+    // "Smoko - Harmony Victory" (a character) and prose are untouched).
+    { const pm=line.match(/^([^:>]{2,40}?)\s*[:\-–—]\s+\S/);
+      if(pm){ const a=resolveActor(pm[1].trim().split(/\s+/)[0]);
+        if(a && a.type==='persona' && personas.some(p=>p.name===a.name)){ parsePersonaLine(line); continue; } } }
 
     // Fuuka's off-team backup: "Backup: [A#R#] Name [: space + sunsky] [(note)]" -> build into charData, name remembered
     { const bkm=line.match(/^back-?up\b\s*[:\-–—]?\s*(.+)$/i);
@@ -874,5 +887,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A095';
+  _g.VF_PARSER_VERSION = 'A096';
 })();
