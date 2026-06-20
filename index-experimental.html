@@ -2902,21 +2902,24 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     ${personaLine}${tnLine}`}
     ${notesLine}
     <div style="margin-top:16px;">${exportTurnsBlock(M, C)}</div>`;
+  v._pnStacked = (_pnStacked && !M) ? _pnStacked : '';
   document.body.appendChild(v);
-  // desktop only: if the team-notes box came out taller than the personas/dagger, restack it full-width
-  // below a widened persona row. Measured with natural heights (align-items flex-start); short notes keep
-  // the current side-by-side stretched layout.
-  if(_pnStacked && !M){
-    const row=v.querySelector('.vf-pnrow');
-    if(row){
-      row.style.alignItems='flex-start';
-      const tn=row.querySelector('.vf-tnbox'), pb=row.querySelector('.vf-pblock'), db=row.querySelector('.vf-dblock');
-      const tnH=tn?tn.offsetHeight:0, pivotH=Math.max(pb?pb.offsetHeight:0, db?db.offsetHeight:0);
-      if(tn && tnH>pivotH+4){ row.outerHTML=_pnStacked; }
-      else { row.style.alignItems='stretch'; }
-    }
-  }
+  _restackNotes(v);
   return v;
+}
+// If the team-notes box came out taller than the personas/dagger, restack it full-width below a widened
+// persona row (measured with natural heights). Idempotent: skips when there is no stacked variant or the
+// row is already stacked. Returns true when it changed the layout. Re-run after the webview settles, since
+// the first (offscreen) pass can measure before fonts finish loading.
+function _restackNotes(v){
+  if(!v||!v._pnStacked) return false;
+  const row=v.querySelector('.vf-pnrow'); if(!row) return false;
+  const tn=row.querySelector('.vf-tnbox'); if(!tn) return false;   // no notes box -> already stacked or none
+  row.style.alignItems='flex-start';
+  const pb=row.querySelector('.vf-pblock'), db=row.querySelector('.vf-dblock');
+  const tnH=tn.offsetHeight, pivotH=Math.max(pb?pb.offsetHeight:0, db?db.offsetHeight:0);
+  if(tnH>pivotH+4){ row.outerHTML=v._pnStacked; return true; }
+  row.style.alignItems='stretch'; return false;
 }
 function loadImg(src){ return new Promise((res,rej)=>{
   const attempt=(url, canFallback)=>{
@@ -3084,7 +3087,11 @@ function enterViewMode(){
     v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0';
     stage.innerHTML=''; stage.appendChild(v);
     if(mob){ v.style.transform='none'; stage.style.width='100%'; stage.style.height='auto'; }
-    else { stage.style.width=''; stage.style.height=''; fitView(); requestAnimationFrame(fitView); setTimeout(fitView,200); }
+    else { stage.style.width=''; stage.style.height=''; fitView(); requestAnimationFrame(fitView); setTimeout(fitView,200);
+      // re-check the notes stacking once fonts/layout have settled (the offscreen pass can measure too early)
+      const recheck=()=>{ if(_restackNotes(v)) fitView(); };
+      requestAnimationFrame(recheck); setTimeout(recheck,250);
+      try{ if(document.fonts&&document.fonts.ready) document.fonts.ready.then(recheck).catch(()=>{}); }catch(e){} }
   };
   _renderViewBody=renderViewBody;
   collectExportImages()
@@ -3351,6 +3358,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620j</div>
+<div class="version-tag">260620k</div>
 </body>
 </html>
