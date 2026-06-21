@@ -451,8 +451,10 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-dotwrap{position:relative; flex:1 1 auto; display:flex; justify-content:center; align-items:center}
 .play-dots{transition:opacity .55s ease}
 .play-dots.dim{opacity:0}
-.play-finished{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font:700 22px Oswald,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue-strong); opacity:0; pointer-events:none; transition:opacity .55s ease}
+.play-finished{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; white-space:nowrap; font:700 22px Oswald,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue-strong); opacity:0; pointer-events:none; transition:opacity .55s ease}
 .play-finished.show{opacity:1}
+@media (max-width:560px){ .play-finished{font-size:17px; letter-spacing:.05em} }
+@media (max-width:380px){ .play-finished{font-size:14px; letter-spacing:.02em} }
 .play-act.block{position:relative}
 .play-act.block .play-actn{position:absolute; top:8px; left:11px; margin:0}
 .play-solo{cursor:pointer}
@@ -468,7 +470,6 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-actdetail{font:600 22px Inter,sans-serif; color:var(--text); flex:1; min-width:0}
 .play-empty{color:var(--muted); font-size:16px}
 .play-note{color:var(--muted); font-size:14px; max-width:880px; text-align:center}
-.play-hint{flex:0 0 auto; text-align:center; color:var(--muted); font-size:12px; padding:2px 0 8px}
 .play-nav{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 24px 18px; border-top:1px solid var(--line)}
 .play-navbtn{background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:12px 22px; font:700 15px Inter,sans-serif; cursor:pointer; min-width:112px}
 .play-navbtn:hover:not(:disabled){border-color:var(--blue-strong)}
@@ -514,7 +515,7 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 @media (max-height:520px){
   .play-head{padding:8px 16px} .play-body{padding:12px 14px; gap:10px}
   .play-turn-name{font-size:20px} #playRoot.is-horiz .play-turn-name{font-size:16px}
-  .play-hint{display:none} .play-nav{padding:8px 16px 10px}
+  .play-nav{padding:8px 16px 10px}
   .play-act.block{width:170px} .play-act.block .play-actor{font-size:18px} .play-act.block .play-actdetail{font-size:16px}
   .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px}
 }
@@ -570,11 +571,11 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .play-solo-portrait{height:150px; width:150px; border-radius:16px; object-fit:cover; display:block}
 #playRoot:not(.play-touch) .play-solo-portrait{height:176px; width:176px}
 /* action mode: upcoming-action preview */
-.play-next{flex:0 0 auto; display:flex; align-items:baseline; gap:10px; margin-top:10px; padding:10px 16px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; max-width:760px; box-sizing:border-box}
-.play-next-lab{font:700 11px Inter,sans-serif; letter-spacing:.12em; color:var(--muted); flex:0 0 auto}
-.play-next-actor{font:700 18px Oswald,sans-serif; flex:0 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:42%}
-.play-next-detail{font:600 16px Inter,sans-serif; color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.play-next.end{color:var(--muted); font:600 13px Inter,sans-serif; justify-content:center}
+.play-next{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:3px; margin-top:10px; padding:10px 20px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; max-width:760px; box-sizing:border-box; text-align:center}
+.play-next-lab{font:700 11px Inter,sans-serif; letter-spacing:.14em; color:var(--muted)}
+.play-next-actor{font:700 21px Oswald,sans-serif}
+.play-next-detail{font:600 16px Inter,sans-serif; color:var(--muted)}
+.play-next.end{color:var(--blue-strong); font:700 19px Oswald,sans-serif; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap}
 /* phones: keep portraits + preview from crowding the action rows */
 @media (max-width:600px){
   .play-portrait{height:30px; width:30px; border-radius:6px}
@@ -3215,7 +3216,6 @@ function openPlayMode(){
       +'<button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div></div>'
       +'<div class="play-progress" id="playProg"><div class="play-progress-fill" id="playProgFill"></div></div>'
       +'<div class="play-body" id="playBody"></div>'
-      +'<div class="play-hint" id="playHint"></div>'
       +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dotwrap"><div class="play-dots" id="playDots"></div><div class="play-finished" id="playFinished">Fight Finished</div></div><button class="play-navbtn" id="playNext">Next ›</button></div>'
       +'<div class="play-info-panel" id="playInfoPanel" hidden><div class="play-info-back" id="playInfoBack"></div><div class="play-info-card"><div class="play-info-head"><span>Team Info</span><button class="play-info-x" id="playInfoX" aria-label="Close">×</button></div><div class="play-info-body" id="playInfoBody"></div></div></div>';
     document.body.appendChild(root);
@@ -3349,19 +3349,20 @@ function renderPlay(){
     const dw=r.querySelector('#playDots'); dw.innerHTML=dots; dw.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGoTurn(+d.dataset.pi)); };
   if(_playMode==='action'){
     const flat=_playFlat();
-    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; _playSetProgress(0,0); r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; r.querySelector('#playHint').textContent=''; mkDots(-1); return; }
+    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; _playSetProgress(0,0); r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; mkDots(-1); return; }
     _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, palette=exPalette(_effTheme==='light'), accent=cardAccent(a.char, palette);
     r.querySelector('#playPos').textContent=(_playAct+1)+' / '+flat.length;
     _playSetProgress(_playAct+1, flat.length, it.brk);
     const inTurn=flat.filter(x=>x.ti===it.ti), posInTurn=inTurn.indexOf(it)+1, leftInTurn=inTurn.length-posInTurn;
     const sub='Action '+posInTurn+' / '+inTurn.length+' in this turn'+(leftInTurn>0?(' · '+leftInTurn+' to go'):' · last action');
     const nx=flat[_playAct+1];
-    const nextHtml=nx?('<div class="play-next"><span class="play-next-lab">NEXT</span><span class="play-next-actor" style="color:'+esc(cardAccent(nx.a.char,palette))+'">'+esc(charDisp(nx.a.char))+'</span><span class="play-next-detail">'+esc(actionLabel(nx.a,nx.a.char,true)||'—')+'</span></div>'):'<div class="play-next end">Last action of the rotation</div>';
-    r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+'">'+esc(it.turnName)+'</div>'
+    const nextHtml=nx?('<div class="play-next"><span class="play-next-lab">NEXT</span><span class="play-next-actor" style="color:'+esc(cardAccent(nx.a.char,palette))+'">'+esc(charDisp(nx.a.char))+'</span><span class="play-next-detail">'+esc(actionLabel(nx.a,nx.a.char,true)||'—')+'</span></div>'):'<div class="play-next end">Fight Finished</div>';
+    const _newTurnA=(it.ti!==_playLastRenderTurn);   // first action of a new turn -> gold flash on the title
+    r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+(_newTurnA?' flash':'')+'">'+esc(it.turnName)+'</div>'
       +'<div class="play-turn-sub">'+esc(sub)+'</div>'
       +'<div class="play-solo">'+_playPortrait(a.char,'play-solo-portrait')+'<div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div>'+nextHtml+'</div>';
+    _playLastRenderTurn=it.ti;
     r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
-    r.querySelector('#playHint').textContent=_playTouch?'Swipe to step through the actions':'← → step · 1–9 jump to turn · Home/End first & last · Esc close';
     mkDots(it.ti); return;
   }
   const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const t=turns[i]||{actions:[]}, isBreak=dod&&n>=DOD_BREAKS&&i>=n-DOD_BREAKS, horiz=_playLayout==='horizontal';
@@ -3384,9 +3385,9 @@ function renderPlay(){
     +'<div class="play-actions'+(horiz?' horiz':'')+'">'+rows+'</div>'
     +((t.note||'').trim()?'<div class="play-note">'+esc(t.note.trim())+'</div>':'');
   if(horiz && _sl){ const _ns=r.querySelector('.play-actions.horiz'); if(_ns) _ns.scrollLeft=_sl; }
+  else if(_newTurn && !horiz){ const _b=r.querySelector('#playBody'); if(_b) _b.scrollTop=0; }   // a new turn always scrolls the list back to the first action
   _playLastRenderTurn=i;
   r.querySelector('#playPrev').disabled=(i<=0); r.querySelector('#playNext').disabled=(i>=n-1);
-  r.querySelector('#playHint').textContent=_playTouch?(horiz?'Swipe through the turn — past the end goes to the next turn':'Swipe left / right to change turn'):'← → change turn · 1–9 jump · Home/End first & last · Esc close';
   mkDots(i);
 }
 document.addEventListener('keydown',e=>{ const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
@@ -3539,6 +3540,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620t</div>
+<div class="version-tag">260620u</div>
 </body>
 </html>
