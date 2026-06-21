@@ -65,6 +65,7 @@ body{
   background:radial-gradient(1200px 600px at 70% -10%, #241f38 0%, var(--ink) 60%) fixed, var(--ink);
   color:var(--text); font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.4;
   padding:0 0 80px;
+  min-width:360px;   /* below this the editor scrolls horizontally instead of breaking/overlapping */
 }
 .wrap{max-width:1280px; margin:0 auto; padding:18px}
 h1,h2,h3{font-family:"Oswald",sans-serif; font-weight:600; letter-spacing:.04em; margin:0}
@@ -235,6 +236,12 @@ body.touch-dragging, body.touch-dragging *{cursor:grabbing !important}
 .pcol-img{flex:0 0 auto}
 .pcol-img img{height:100%; max-height:200px; width:auto; max-width:130px; display:block; border-radius:6px; background:var(--field); object-fit:contain}
 body.persona-img-left .pcol-body{flex-direction:row-reverse}
+/* narrow widths: the persona image squeezes the fields too much — drop it below the fields instead */
+@media (max-width:1024px){
+  .pcol-body, body.persona-img-left .pcol-body{flex-direction:column; align-items:stretch}
+  .pcol-img{align-self:center; margin-top:8px}
+  .pcol-img img{height:auto; max-height:160px; width:auto; max-width:120px}
+}
 @media (max-width:640px){ .persona-grid{grid-template-columns:1fr} }
 .team-notes{margin-top:14px}
 .team-notes .tn-label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
@@ -533,6 +540,9 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
   .play-turn-name{font-size:20px} #playRoot.is-horiz .play-turn-name{font-size:16px}
   .play-turn-sub{margin-top:-4px; font-size:13px}
   .play-nav{padding:8px 16px 10px}
+  /* horizontal turn mode: drop the turn row (with the reset/restart buttons) below the progress bar so they don't touch it; the tile strip (flex) shrinks to compensate */
+  #playRoot.is-horiz .play-body{padding-top:12px}
+  #playRoot.is-horiz .play-turn-head{min-height:44px}
   .play-act.block{width:170px} .play-act.block .play-actor{font-size:18px} .play-act.block .play-actdetail{font-size:16px}
   /* action mode: a short (landscape) viewport can't stack portrait-over-text without overflowing — put the portrait left of the name/action so it fits without scrolling */
   .play-solo{flex-direction:row; gap:20px; text-align:left; padding:2px 12px; align-items:center}
@@ -3601,6 +3611,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622e</div>
+<div class="version-tag">260622f</div>
 </body>
 </html>
