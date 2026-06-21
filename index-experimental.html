@@ -501,6 +501,7 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-act.block .play-actdetail{flex:none}
 /* action mode: one action, big and centered */
 .play-solo{flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:10px 16px; min-height:0}
+.play-solo-text{display:flex; flex-direction:column; align-items:center; gap:18px; min-width:0}
 .play-solo-actor{font:700 46px Oswald,sans-serif; letter-spacing:.04em}
 .play-solo-detail{font:600 34px Inter,sans-serif; color:var(--text); max-width:900px}
 /* desktop has more room — scale everything up */
@@ -528,11 +529,15 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 #playRoot:not(.play-touch).is-horiz .play-body{justify-content:safe center}
 /* landscape phones / short viewports: compress the chrome so the action tiles fit fully */
 @media (max-height:520px){
-  .play-head{padding:8px 16px} .play-body{padding:12px 14px; gap:10px}
+  .play-head{padding:6px 16px} .play-body{padding:6px 14px; gap:5px}
   .play-turn-name{font-size:20px} #playRoot.is-horiz .play-turn-name{font-size:16px}
+  .play-turn-sub{margin-top:-4px; font-size:13px}
   .play-nav{padding:8px 16px 10px}
   .play-act.block{width:170px} .play-act.block .play-actor{font-size:18px} .play-act.block .play-actdetail{font-size:16px}
-  .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px}
+  /* action mode: a short (landscape) viewport can't stack portrait-over-text without overflowing — put the portrait left of the name/action so it fits without scrolling */
+  .play-solo{flex-direction:row; gap:20px; text-align:left; padding:2px 12px; align-items:center}
+  .play-solo-text{align-items:flex-start; gap:6px; flex:1 1 auto}
+  .play-solo-actor{font-size:28px} .play-solo-detail{font-size:21px}
 }
 /* horizontal mode on phones: the tile row fills the available height; tiles stretch and center their content */
 #playRoot.play-touch.is-horiz .play-actions{flex:1 1 auto; min-height:0; align-items:stretch}
@@ -598,12 +603,16 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
   .play-solo-portrait{height:104px; width:104px; border-radius:13px}
   .play-next-actor{font-size:16px} .play-next-detail{font-size:14px}
 }
-/* short/landscape viewports: shrink the action-mode portrait + preview so the action still fits */
+/* short/landscape viewports: shrink the action-mode portrait + preview so the action still fits without scrolling
+   (these override the taller desktop :not(.play-touch) sizes too, since the block sits late in the stylesheet) */
 @media (max-height:520px){
   .play-solo-portrait{height:84px; width:84px; border-radius:11px}
   #playRoot:not(.play-touch) .play-solo-portrait{height:96px; width:96px}
+  #playRoot:not(.play-touch) .play-turn-name{font-size:22px}
+  #playRoot:not(.play-touch) .play-solo-actor{font-size:34px}
+  #playRoot:not(.play-touch) .play-solo-detail{font-size:24px}
   .play-act.block .play-portrait{height:40px; width:40px}
-  .play-next{margin-top:6px; padding:7px 12px}
+  .play-next{margin-top:0; padding:5px 12px; gap:1px} .play-next-actor{font-size:16px} .play-next-detail{font-size:13px} .play-next-lab{font-size:9px}
 }
 /* iPhone-Safari landscape full-page notice (Add to Home Screen) */
 #iosRotate{position:fixed; inset:0; z-index:9000; background:var(--ink); color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,sans-serif}
@@ -3330,7 +3339,9 @@ function renderPlay(){
     const _newTurnA=(it.ti!==_playLastRenderTurn);   // first action of a new turn -> gold flash on the title
     r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+(_newTurnA?' flash':'')+'">'+esc(it.turnName)+'</div>'
       +'<div class="play-turn-sub">'+esc(sub)+'</div>'
-      +'<div class="play-solo">'+_playPortrait(a.char,'play-solo-portrait')+'<div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div>'+nextHtml+'</div>';
+      +'<div class="play-solo">'+_playPortrait(a.char,'play-solo-portrait')
+        +'<div class="play-solo-text"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div>'+nextHtml+'</div>'
+      +'</div>';
     _playLastRenderTurn=it.ti;
     r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
     mkDots(it.ti); return;
@@ -3586,6 +3597,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622c</div>
+<div class="version-tag">260622d</div>
 </body>
 </html>
