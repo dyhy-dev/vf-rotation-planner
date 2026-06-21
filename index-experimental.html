@@ -190,10 +190,14 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .rev-row select:focus{outline:none; border-color:var(--blue-strong)}
 .unit.elu{border-top-style:dashed}
 .unit .grip{position:absolute; top:6px; right:6px; z-index:2; background:#000a; border:1px solid var(--line);
-  color:#dfe6f5; border-radius:6px; padding:1px 6px 3px; cursor:grab; font-size:13px; line-height:1; user-select:none}
+  color:#dfe6f5; border-radius:6px; min-width:20px; height:20px; padding:0 6px; display:flex; align-items:center; justify-content:center; cursor:grab; font-size:13px; line-height:1; user-select:none}
 .unit .grip:active{cursor:grabbing}
 .unit.dragging{opacity:.45}
 .unit.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+/* touch long-press reorder: floating ghost + callout suppression on the grab surfaces */
+.touch-ghost{position:fixed; left:0; top:0; margin:0; pointer-events:none; z-index:9000; opacity:.93; max-height:240px; overflow:hidden; border-radius:12px; box-shadow:0 14px 34px #000b}
+body.touch-dragging{-webkit-user-select:none; user-select:none}
+.unit .art, .persona-col .pcol-img img{-webkit-touch-callout:none; -webkit-user-drag:none}
 .elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
   color:var(--blue); font-size:9px; letter-spacing:.12em; padding:2px 6px; border-radius:5px; font-weight:700}
 .order-badge{position:absolute; top:6px; left:6px; z-index:2; background:#0008; border:1px solid var(--gold);
@@ -3410,6 +3414,62 @@ _updateIosRotate();
 // block iOS Safari pinch-zoom while the player is open
 document.addEventListener('gesturestart', e=>{ const r=document.getElementById('playRoot'); if(r&&!r.hidden) e.preventDefault(); }, {passive:false});
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ const r=document.getElementById('playRoot'); if(r) r.classList.toggle('is-fs', !!_fsEl()); }));
+/* ---------- touch reorder: long-press a character/persona image or a turn header to drag ----------
+   Native HTML5 drag is mouse-only, so on touch we long-press to pick the tile up, drag a floating ghost, and
+   drop it on the tile under the finger. The grips stay as the visual "this tile can move" hint. */
+(function(){
+  if(!('ontouchstart' in window) && !(navigator.maxTouchPoints>0)) return;   // touch devices only
+  const KINDS=[
+    { handle:'.unit .art', item:'.unit[data-uidx]', attr:'uidx', scroll:null,
+      drop(f,t){ if(f===t) return; const[m]=state.units.splice(f,1); state.units.splice(t,0,m); save(); renderTeam(); renderTurns(); } },
+    { handle:'.persona-col .pcol-img', item:'.persona-col[data-pidx]', attr:'pidx', scroll:null,
+      drop(f,t){ if(f===t) return; const[m]=state.personas.splice(f,1); state.personas.splice(t,0,m); save(); renderTeam(); renderTurns(); } },
+    { handle:'.turn-head', item:'.turn[data-tidx]', attr:'tidx', scroll:'turns',
+      drop(f,t){ const dd=state.setup.type==='DOD', nn=state.turns.length, mx=(dd&&nn>=DOD_BREAKS)?nn-DOD_BREAKS:nn;
+        if(f>=mx||f===t) return; t=Math.max(0,Math.min(t,mx-1)); const[m]=state.turns.splice(f,1); state.turns.splice(t,0,m); save(); renderTurns(); } },
+  ];
+  let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, over=null, offX=0, offY=0, fx=0, fy=0, raf=0;
+  function resolve(tg){ if(!tg||!tg.closest) return null;
+    if(tg.closest('input,select,textarea,button,a,.combo-clear')) return null;   // leave real controls tappable
+    for(const k of KINDS){ const h=tg.closest(k.handle); if(h){ const it=h.closest(k.item); if(it&&it.dataset[k.attr]!=null) return {k,it}; } }
+    return null; }
+  function clearOver(){ if(over){ over.classList.remove('drag-over'); over=null; } }
+  function end(){ clearTimeout(timer); timer=0; if(raf){ cancelAnimationFrame(raf); raf=0; }
+    if(ghost){ ghost.remove(); ghost=null; } if(src) src.classList.remove('dragging');
+    clearOver(); if(dragging) document.body.classList.remove('touch-dragging');
+    dragging=false; kind=null; from=-1; src=null;
+    document.removeEventListener('touchmove', move, {passive:false});
+    document.removeEventListener('touchend', up); document.removeEventListener('touchcancel', up); }
+  function place(x,y){ fx=x; fy=y; if(ghost) ghost.style.transform='translate('+(x-offX)+'px,'+(y-offY)+'px)'; }
+  function tick(){ if(!dragging){ raf=0; return; }
+    if(kind.scroll){ const el=document.getElementById(kind.scroll); if(el){ const b=el.getBoundingClientRect(), m=46;
+        if(fx<b.left+m) el.scrollLeft-=14; else if(fx>b.right-m) el.scrollLeft+=14; } }
+    else { const vh=window.innerHeight, m=60; if(fy<m) window.scrollBy(0,-14); else if(fy>vh-m) window.scrollBy(0,14); }
+    raf=requestAnimationFrame(tick); }
+  function start(t){ dragging=true; src.classList.add('dragging'); document.body.classList.add('touch-dragging');
+    const r=src.getBoundingClientRect();
+    ghost=src.cloneNode(true); ghost.classList.add('touch-ghost'); ghost.classList.remove('dragging'); ghost.style.width=r.width+'px';
+    offX=t.clientX-r.left; offY=Math.min(t.clientY-r.top,56);
+    document.body.appendChild(ghost); place(t.clientX,t.clientY);
+    if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(_){} }
+    raf=requestAnimationFrame(tick); }
+  function move(e){ const t=e.touches[0]; if(!t) return;
+    if(!dragging){ if(Math.abs(t.clientX-sx)>10||Math.abs(t.clientY-sy)>10){ clearTimeout(timer); timer=0; } return; }
+    e.preventDefault(); place(t.clientX,t.clientY);
+    const u=document.elementFromPoint(t.clientX,t.clientY), tg=u&&u.closest?u.closest(kind.item):null;
+    if(tg!==over){ clearOver(); if(tg&&tg!==src){ over=tg; over.classList.add('drag-over'); } } }
+  function up(){ if(dragging&&over){ const to=+over.dataset[kind.attr], k=kind, f=from; end(); k.drop(f,to); return; } end(); }
+  document.addEventListener('touchstart', e=>{
+    if(dragging||timer||e.touches.length>1) return;
+    const f=resolve(e.target); if(!f) return;
+    kind=f.k; src=f.it; from=+src.dataset[kind.attr];
+    const t=e.touches[0]; sx=t.clientX; sy=t.clientY;
+    document.addEventListener('touchmove', move, {passive:false});
+    document.addEventListener('touchend', up); document.addEventListener('touchcancel', up);
+    timer=setTimeout(()=>{ timer=0; start(t); }, 360);
+  }, {passive:true});
+  document.addEventListener('dragstart', e=>{ if(timer||dragging) e.preventDefault(); });   // block native drag during a touch gesture
+})();
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
@@ -3540,6 +3600,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620u</div>
+<div class="version-tag">260620v</div>
 </body>
 </html>
