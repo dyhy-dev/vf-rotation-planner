@@ -192,10 +192,12 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .unit .grip{position:absolute; top:6px; right:6px; z-index:2; background:#000a; border:1px solid var(--line);
   color:#dfe6f5; border-radius:6px; min-width:20px; height:20px; padding:0 6px; display:flex; align-items:center; justify-content:center; cursor:grab; font-size:13px; line-height:1; user-select:none}
 .unit .grip:active{cursor:grabbing}
+.grip-dots{display:block; width:10px; height:14px; fill:currentColor}
+.pgrip, .turn-head .tgrip{display:inline-flex; align-items:center; justify-content:center}
 .unit.dragging{opacity:.45}
 .unit.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
 /* touch long-press reorder: floating ghost + callout suppression on the grab surfaces */
-.touch-ghost{position:fixed; left:0; top:0; margin:0; pointer-events:none; z-index:9000; opacity:.93; max-height:240px; overflow:hidden; border-radius:12px; box-shadow:0 14px 34px #000b}
+.touch-ghost{position:fixed; left:0; top:0; margin:0; pointer-events:none; z-index:9000; opacity:.93; border-radius:12px; box-shadow:0 14px 34px #000b}
 body.touch-dragging{-webkit-user-select:none; user-select:none}
 .unit .art, .persona-col .pcol-img img{-webkit-touch-callout:none; -webkit-user-drag:none}
 .elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
@@ -1395,6 +1397,16 @@ function renderHead(){
 }
 
 /* ---------- render: team ---------- */
+// six-dot drag handle, drawn as an SVG so it sits exactly centered (the braille glyph rendered top-heavy)
+const GRIP_DOTS='<svg class="grip-dots" viewBox="0 0 10 14" aria-hidden="true"><circle cx="2.5" cy="2.5" r="1.25"/><circle cx="7.5" cy="2.5" r="1.25"/><circle cx="2.5" cy="7" r="1.25"/><circle cx="7.5" cy="7" r="1.25"/><circle cx="2.5" cy="11.5" r="1.25"/><circle cx="7.5" cy="11.5" r="1.25"/></svg>';
+// desktop native drag: make the whole tile (not just the little grip) the drag image hanging from the cursor
+function _setTileDragImage(e, tile){ try{ const r=tile.getBoundingClientRect();
+  const c=tile.cloneNode(true); c.classList.remove('dragging');
+  c.style.cssText='position:fixed; left:-10000px; top:0; width:'+r.width+'px; margin:0; pointer-events:none; opacity:1';
+  document.body.appendChild(c);
+  e.dataTransfer.setDragImage(c, e.clientX-r.left, e.clientY-r.top);
+  setTimeout(function(){ c.remove(); }, 0);
+}catch(_){} }
 function unitCard(u, path, elu, idx, backup){
   const col=uiAccent(u.name); const img=imgFor(u.name);
   const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
@@ -1442,7 +1454,7 @@ function unitCard(u, path, elu, idx, backup){
     if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
     extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
   }
-  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
+  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">'+GRIP_DOTS+'</div>':''}`;
   const art = img
     ? `<div class="art" style="background-image:${bgURL(img)}">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
@@ -1468,7 +1480,7 @@ function renderTeam(){
     + (_bkName ? unitCard(Object.assign({},state.backup,{name:_bkName}),'backup',false,null,true) : '');
   const personaHtml = state.personas.map((p,k)=>`
     <div class="persona-col minicard" data-pidx="${k}">
-      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">\u283f</span></div>
+      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">${GRIP_DOTS}</span></div>
       <div class="pcol-body">
         <div class="pcol-fields">
           <span class="combo-wrap"><input class="persona-name combo" data-combo="persona" data-path="personas.${k}.name" value="${esc(p.name)}" placeholder="Choose Persona" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>
@@ -1519,7 +1531,7 @@ function renderTeam(){
   let dragP=null;
   tp.querySelectorAll('.persona-col .pgrip').forEach(g=>{
     g.addEventListener('dragstart',e=>{ const col=g.closest('[data-pidx]'); dragP=+col.dataset.pidx;
-      col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
+      _setTileDragImage(e, col); col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
     g.addEventListener('dragend',()=>tp.querySelectorAll('.persona-col').forEach(c=>c.classList.remove('dragging','drag-over')));
   });
   tp.querySelectorAll('[data-pidx]').forEach(col=>{
@@ -1545,7 +1557,7 @@ function renderTeam(){
   let dragIdx=null;
   tp.querySelectorAll('.unit .grip').forEach(g=>{
     g.addEventListener('dragstart',e=>{ const card=g.closest('[data-uidx]'); dragIdx=+card.dataset.uidx;
-      card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
+      _setTileDragImage(e, card); card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
     g.addEventListener('dragend',()=>tp.querySelectorAll('.unit').forEach(c=>c.classList.remove('dragging','drag-over')));
   });
   tp.querySelectorAll('[data-uidx]').forEach(card=>{
@@ -1904,7 +1916,7 @@ function turnHtml(t,ti,isBreak){
   return `
     <div class="turn${ordBad?' order-bad':''}" data-tidx="${ti}"${ordBad?' title="Character order in this turn differs from the team order"':''}>
       <div class="turn-head">
-        ${isBreak?'':`<span class="tgrip" draggable="true" title="Drag to reorder">\u283f</span>`}
+        ${isBreak?'':`<span class="tgrip" draggable="true" title="Drag to reorder">${GRIP_DOTS}</span>`}
         <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
         ${isBreak?'':`<button class="dup" data-dupturn="${ti}" title="Duplicate turn">\u29c9</button><button class="del" data-delturn="${ti}" title="Remove turn">\u00d7</button>`}
       </div>
@@ -2034,7 +2046,7 @@ function renderTurns(){
   let dragTurn=null;
   wrap.querySelectorAll('.tgrip').forEach(g=>{
     g.addEventListener('dragstart',e=>{ const col=g.closest('[data-tidx]'); dragTurn=+col.dataset.tidx;
-      col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','t');}catch(_){} });
+      _setTileDragImage(e, col); col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','t');}catch(_){} });
     g.addEventListener('dragend',()=>wrap.querySelectorAll('.turn').forEach(c=>c.classList.remove('dragging','drag-over')));
   });
   wrap.querySelectorAll('[data-tidx]').forEach(col=>{
@@ -3456,7 +3468,7 @@ document.addEventListener('gesturestart', e=>{ const r=document.getElementById('
   function start(t){ dragging=true; src.classList.add('dragging'); document.body.classList.add('touch-dragging');
     const r=src.getBoundingClientRect();
     ghost=src.cloneNode(true); ghost.classList.add('touch-ghost'); ghost.classList.remove('dragging'); ghost.style.width=r.width+'px';
-    offX=t.clientX-r.left; offY=Math.min(t.clientY-r.top,56);
+    offX=t.clientX-r.left; offY=t.clientY-r.top;   // hang the whole tile from the exact grab point
     document.body.appendChild(ghost); place(t.clientX,t.clientY);
     if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(_){} }
     raf=requestAnimationFrame(tick); }
@@ -3607,6 +3619,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620w</div>
+<div class="version-tag">260620x</div>
 </body>
 </html>
