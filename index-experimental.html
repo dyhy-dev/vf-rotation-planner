@@ -215,7 +215,7 @@ body.touch-dragging, body.touch-dragging *{cursor:grabbing !important}
 .minicard .vals{display:flex; flex-direction:column; gap:6px; margin-top:6px}
 .minicard select,.minicard input{background:var(--field); border:1px solid var(--line); border-radius:6px; padding:6px; font-weight:600; width:100%}
 .persona-grid{display:grid; grid-template-columns:120px repeat(3,1fr); gap:12px; margin-top:14px}
-.persona-col{position:relative}
+.persona-col{position:relative; container-type:inline-size; container-name:persona}
 .pcol-head{display:flex; align-items:center; justify-content:space-between; gap:6px}
 .pgrip{cursor:grab; color:var(--muted); user-select:none; font-size:13px; line-height:1; padding:0 2px}
 .pgrip:active{cursor:grabbing}
@@ -236,8 +236,9 @@ body.touch-dragging, body.touch-dragging *{cursor:grabbing !important}
 .pcol-img{flex:0 0 auto}
 .pcol-img img{height:100%; max-height:200px; width:auto; max-width:130px; display:block; border-radius:6px; background:var(--field); object-fit:contain}
 body.persona-img-left .pcol-body{flex-direction:row-reverse}
-/* narrow widths: the persona image squeezes the fields too much — drop it below the fields instead */
-@media (max-width:1024px){
+/* when the persona COLUMN itself gets too narrow (regardless of window width — the grid widens columns again
+   when it drops to one), the image squeezes the fields, so drop it below them instead */
+@container persona (max-width:320px){
   .pcol-body, body.persona-img-left .pcol-body{flex-direction:column; align-items:stretch}
   .pcol-img{align-self:center; margin-top:8px}
   .pcol-img img{height:auto; max-height:160px; width:auto; max-width:120px}
@@ -3611,6 +3612,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622f</div>
+<div class="version-tag">260622g</div>
 </body>
 </html>
