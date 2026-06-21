@@ -416,7 +416,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
-.version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:1000; pointer-events:none; user-select:none}
+.version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
+body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
 .combo-item{padding:6px 10px; border-radius:5px; font:600 13px Inter,sans-serif; color:var(--text); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .combo-item:hover{background:#2a2740}
@@ -1940,7 +1941,7 @@ function turnHtml(t,ti,isBreak){
 }
 let rotationPreviewOpen=true;
 let rotationPreviewZoom=0.2;    /* horizontal preview extra zoom (0 = fit to width .. 2 = zoomed in) */
-let rotationPreviewZoomV=0.2;   /* vertical preview extra zoom — independent slider */
+let rotationPreviewZoomV=0;     /* vertical preview extra zoom — independent slider, defaults to fit-to-width (0.0×) */
 let _previewFit=1;              /* fit-to-width baseline scale of whichever preview is currently rendered */
 function _curPreviewZoom(){ return state.rotationView==='horizontal'?rotationPreviewZoom:rotationPreviewZoomV; }
 function _applyPreviewZoom(z){ z=Math.max(0,Math.min(2,Math.round(z*100)/100));
@@ -3655,6 +3656,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622k</div>
+<div class="version-tag">260622l</div>
 </body>
 </html>
