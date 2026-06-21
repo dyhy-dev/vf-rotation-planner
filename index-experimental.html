@@ -1399,13 +1399,12 @@ function renderHead(){
 /* ---------- render: team ---------- */
 // six-dot drag handle, drawn as an SVG so it sits exactly centered (the braille glyph rendered top-heavy)
 const GRIP_DOTS='<svg class="grip-dots" viewBox="0 0 10 14" aria-hidden="true"><circle cx="2.5" cy="2.5" r="1.25"/><circle cx="7.5" cy="2.5" r="1.25"/><circle cx="2.5" cy="7" r="1.25"/><circle cx="7.5" cy="7" r="1.25"/><circle cx="2.5" cy="11.5" r="1.25"/><circle cx="7.5" cy="11.5" r="1.25"/></svg>';
-// desktop native drag: make the whole tile (not just the little grip) the drag image hanging from the cursor
+// desktop native drag: make the whole tile (not just the little grip) the drag image hanging from the cursor.
+// Use the live, already-painted tile (a fresh clone wouldn't have its lazy <img> painted yet) and only dim
+// it AFTER the browser has snapshotted the drag image at the end of dragstart.
 function _setTileDragImage(e, tile){ try{ const r=tile.getBoundingClientRect();
-  const c=tile.cloneNode(true); c.classList.remove('dragging');
-  c.style.cssText='position:fixed; left:-10000px; top:0; width:'+r.width+'px; margin:0; pointer-events:none; opacity:1';
-  document.body.appendChild(c);
-  e.dataTransfer.setDragImage(c, e.clientX-r.left, e.clientY-r.top);
-  setTimeout(function(){ c.remove(); }, 0);
+  e.dataTransfer.setDragImage(tile, e.clientX-r.left, e.clientY-r.top);
+  setTimeout(function(){ tile.classList.add('dragging'); }, 0);
 }catch(_){} }
 function unitCard(u, path, elu, idx, backup){
   const col=uiAccent(u.name); const img=imgFor(u.name);
@@ -1531,7 +1530,7 @@ function renderTeam(){
   let dragP=null;
   tp.querySelectorAll('.persona-col .pgrip').forEach(g=>{
     g.addEventListener('dragstart',e=>{ const col=g.closest('[data-pidx]'); dragP=+col.dataset.pidx;
-      _setTileDragImage(e, col); col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
+      _setTileDragImage(e, col); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
     g.addEventListener('dragend',()=>tp.querySelectorAll('.persona-col').forEach(c=>c.classList.remove('dragging','drag-over')));
   });
   tp.querySelectorAll('[data-pidx]').forEach(col=>{
@@ -1557,7 +1556,7 @@ function renderTeam(){
   let dragIdx=null;
   tp.querySelectorAll('.unit .grip').forEach(g=>{
     g.addEventListener('dragstart',e=>{ const card=g.closest('[data-uidx]'); dragIdx=+card.dataset.uidx;
-      _setTileDragImage(e, card); card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
+      _setTileDragImage(e, card); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
     g.addEventListener('dragend',()=>tp.querySelectorAll('.unit').forEach(c=>c.classList.remove('dragging','drag-over')));
   });
   tp.querySelectorAll('[data-uidx]').forEach(card=>{
@@ -2046,7 +2045,7 @@ function renderTurns(){
   let dragTurn=null;
   wrap.querySelectorAll('.tgrip').forEach(g=>{
     g.addEventListener('dragstart',e=>{ const col=g.closest('[data-tidx]'); dragTurn=+col.dataset.tidx;
-      _setTileDragImage(e, col); col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','t');}catch(_){} });
+      _setTileDragImage(e, col); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','t');}catch(_){} });
     g.addEventListener('dragend',()=>wrap.querySelectorAll('.turn').forEach(c=>c.classList.remove('dragging','drag-over')));
   });
   wrap.querySelectorAll('[data-tidx]').forEach(col=>{
@@ -3468,6 +3467,7 @@ document.addEventListener('gesturestart', e=>{ const r=document.getElementById('
   function start(t){ dragging=true; src.classList.add('dragging'); document.body.classList.add('touch-dragging');
     const r=src.getBoundingClientRect();
     ghost=src.cloneNode(true); ghost.classList.add('touch-ghost'); ghost.classList.remove('dragging'); ghost.style.width=r.width+'px';
+    ghost.querySelectorAll('img[loading]').forEach(im=>im.removeAttribute('loading'));   // load the persona image right away in the ghost
     offX=t.clientX-r.left; offY=t.clientY-r.top;   // hang the whole tile from the exact grab point
     document.body.appendChild(ghost); place(t.clientX,t.clientY);
     if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(_){} }
@@ -3619,6 +3619,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620x</div>
+<div class="version-tag">260620y</div>
 </body>
 </html>
