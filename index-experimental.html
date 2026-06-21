@@ -1400,27 +1400,22 @@ function renderHead(){
 /* ---------- render: team ---------- */
 // six-dot drag handle, drawn as an SVG so it sits exactly centered (the braille glyph rendered top-heavy)
 const GRIP_DOTS='<svg class="grip-dots" viewBox="0 0 10 14" aria-hidden="true"><circle cx="2.5" cy="2.5" r="1.25"/><circle cx="7.5" cy="2.5" r="1.25"/><circle cx="2.5" cy="7" r="1.25"/><circle cx="7.5" cy="7" r="1.25"/><circle cx="2.5" cy="11.5" r="1.25"/><circle cx="7.5" cy="11.5" r="1.25"/></svg>';
-// desktop native drag: the browser's setDragImage clips tall tiles (only the top — image + name — shows up),
-// so suppress the native drag image and draw our own full-tile ghost that follows the cursor (same look as
-// the touch ghost; the cloned <img> paints over a frame, so the persona art shows).
-const _BLANK_DRAG_IMG=new Image(); _BLANK_DRAG_IMG.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-let _deskGhost=null, _deskTile=null, _deskOffX=0, _deskOffY=0;
+// desktop native drag: the native setDragImage only captures the part of the tile that's inside the viewport,
+// so a tile scrolled past the fold loses its lower half (just image + name showed). Snapshot a full-size clone
+// pinned at the top of the viewport instead (never clipped), with persona <img> swapped to a background div so
+// the cached art is painted synchronously into the snapshot (a fresh lazy <img> wouldn't be).
 function _setTileDragImage(e, tile){ try{
   const r=tile.getBoundingClientRect();
-  e.dataTransfer.setDragImage(_BLANK_DRAG_IMG, 0, 0);   // hide the (clipped) native drag image
-  _deskTile=tile; _deskOffX=e.clientX-r.left; _deskOffY=e.clientY-r.top;
-  _deskGhost=tile.cloneNode(true); _deskGhost.classList.add('touch-ghost'); _deskGhost.classList.remove('dragging');
-  _deskGhost.style.width=r.width+'px';
-  _deskGhost.querySelectorAll('img[loading]').forEach(im=>im.removeAttribute('loading'));
-  document.body.appendChild(_deskGhost); _moveDeskGhost(e.clientX, e.clientY);
-  setTimeout(function(){ if(_deskTile) _deskTile.classList.add('dragging'); }, 0);
+  const c=tile.cloneNode(true); c.classList.remove('dragging');
+  c.querySelectorAll('.pcol-img img').forEach(im=>{ const b=im.getBoundingClientRect(); const d=document.createElement('div');
+    d.style.cssText='width:'+Math.round(b.width||120)+'px;height:'+Math.round(b.height||180)+'px;flex:0 0 auto;border-radius:6px;background:var(--field) center/contain no-repeat url("'+(im.currentSrc||im.src)+'")';
+    im.replaceWith(d); });
+  c.style.cssText='position:fixed; left:0; top:0; z-index:-1; width:'+r.width+'px; margin:0; pointer-events:none; opacity:1; box-shadow:0 14px 34px #000b; border-radius:12px';
+  document.body.appendChild(c);
+  e.dataTransfer.setDragImage(c, e.clientX-r.left, e.clientY-r.top);
+  setTimeout(function(){ c.remove(); }, 0);
+  setTimeout(function(){ tile.classList.add('dragging'); }, 0);   // dim the source only after the snapshot
 }catch(_){} }
-function _moveDeskGhost(x,y){ if(_deskGhost) _deskGhost.style.transform='translate('+(x-_deskOffX)+'px,'+(y-_deskOffY)+'px)'; }
-function _endDeskGhost(){ if(_deskGhost){ _deskGhost.remove(); _deskGhost=null; } if(_deskTile){ _deskTile.classList.remove('dragging'); _deskTile=null; } }
-document.addEventListener('dragover', e=>{ if(_deskGhost) _moveDeskGhost(e.clientX, e.clientY); });
-document.addEventListener('drag', e=>{ if(_deskGhost && (e.clientX||e.clientY)) _moveDeskGhost(e.clientX, e.clientY); });
-document.addEventListener('dragend', _endDeskGhost);
-document.addEventListener('drop', _endDeskGhost);
 function unitCard(u, path, elu, idx, backup){
   const col=uiAccent(u.name); const img=imgFor(u.name);
   const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
@@ -3634,6 +3629,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622a</div>
+<div class="version-tag">260622b</div>
 </body>
 </html>
