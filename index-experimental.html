@@ -629,6 +629,28 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
   .play-next{position:absolute; left:50%; bottom:5px; transform:translateX(-50%); margin:0; max-width:94%; flex-direction:row; align-items:baseline; gap:8px; white-space:nowrap; padding:5px 14px}
   .play-next-lab{font-size:9px} .play-next-actor{font-size:16px} .play-next-detail{font-size:13px; overflow:hidden; text-overflow:ellipsis; min-width:0}
 }
+/* action mode: the portrait-over-text stack starts to overlap the title well before the landscape-phone
+   sizes kick in, so switch early — lay the portrait LEFT of the name/action and pin a one-line NEXT to the
+   bottom as soon as the window height drops under ~820px. (Placed last so it wins the cascade; the 520px
+   block below it then layers the very-compact phone sizes on top.) */
+@media (max-height:820px){
+  .play-solo{flex-direction:row; text-align:left; align-items:center; gap:26px; padding:8px 18px 48px}
+  .play-solo-text{align-items:flex-start; gap:12px; flex:1 1 auto}
+  .play-solo-portrait{height:140px; width:140px; border-radius:14px}
+  #playRoot:not(.play-touch) .play-solo-portrait{height:150px; width:150px}
+  .play-body{position:relative}
+  .play-next{position:absolute; left:50%; bottom:8px; transform:translateX(-50%); margin:0; max-width:94%; flex-direction:row; align-items:baseline; gap:8px; white-space:nowrap; padding:6px 16px}
+  .play-next-detail{overflow:hidden; text-overflow:ellipsis; min-width:0}
+}
+@media (max-height:520px){
+  .play-solo{gap:18px; padding:2px 12px 34px}
+  .play-solo-text{gap:6px}
+  .play-solo-portrait{height:84px; width:84px; border-radius:11px}
+  #playRoot:not(.play-touch) .play-solo-portrait{height:96px; width:96px}
+  .play-solo-actor{font-size:28px} #playRoot:not(.play-touch) .play-solo-actor{font-size:34px}
+  .play-solo-detail{font-size:21px} #playRoot:not(.play-touch) .play-solo-detail{font-size:24px}
+  .play-next{padding:5px 14px} .play-next-lab{font-size:9px} .play-next-actor{font-size:16px} .play-next-detail{font-size:13px}
+}
 /* iPhone-Safari landscape full-page notice (Add to Home Screen) */
 #iosRotate{position:fixed; inset:0; z-index:9000; background:var(--ink); color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,sans-serif}
 #iosRotate[hidden]{display:none}
@@ -3612,6 +3634,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622h</div>
+<div class="version-tag">260622i</div>
 </body>
 </html>
