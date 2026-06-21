@@ -1066,8 +1066,12 @@ function imgFor(name){
   return imgURL(DATA.characterImages[name.toUpperCase()] || DATA.characterImages[name] || '');
 }
 /* black-and-white face portrait for the Play mode (images/faces/<KEY>.png; middle dot -> hyphen).
-   Always returns a URL; a character without a face file just 404s and the <img> hides itself. */
+   Always returns a URL; a character without a face file 404s and the <img> turns into an invisible
+   placeholder (faceFallback) so the row/solo layout stays aligned with the ones that do have a face. */
 function faceImg(name){ if(!name) return ''; const fn=String(name).toUpperCase().replace(/·/g,'-').replace(/[\\/:*?"<>|]/g,'-'); return imgURL('images/faces/'+fn+'.png'); }
+/* like imgFallback, but keeps the box (visibility:hidden, not display:none) so the missing face still
+   reserves its space — same alignment as actors that have a face. */
+function faceFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.visibility='hidden'; }
 function personaImg(name){
   if(!name) return '';
   return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
@@ -3263,7 +3267,7 @@ function renderPlayInfo(){
 function playFirst(){ if(_playMode==='action') _playAct=0; else _playTurn=0; renderPlay(); }
 function playLast(){ if(_playMode==='action') _playAct=_playFlat().length-1; else _playTurn=(state.turns||[]).length-1; renderPlay(); }
 /* portrait <img> for a character, or '' when no art is available */
-function _playPortrait(name, cls){ const src=faceImg(name); if(!src) return ''; return '<img class="'+cls+'" src="'+esc(src)+'" alt="" onerror="imgFallback(this)"/>'; }
+function _playPortrait(name, cls){ const src=faceImg(name); if(!src) return ''; return '<img class="'+cls+'" src="'+esc(src)+'" alt="" onerror="faceFallback(this)"/>'; }
 /* update the header progress bar (mirrors the X / N counter) */
 function _playSetProgress(cur, total, brk){ const f=document.getElementById('playProgFill'); if(!f) return; f.style.width=(total>0?Math.max(0,Math.min(100,(cur/total)*100)):0)+'%'; f.classList.toggle('brk',!!brk); }
 function playSetMode(m){ if(m===_playMode){ renderPlay(); return; } const flat=_playFlat();
@@ -3469,6 +3473,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620n</div>
+<div class="version-tag">260620o</div>
 </body>
 </html>
