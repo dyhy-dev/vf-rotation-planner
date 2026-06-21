@@ -199,7 +199,8 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 /* touch long-press reorder: floating ghost + callout suppression on the grab surfaces */
 .touch-ghost{position:fixed; left:0; top:0; margin:0; pointer-events:none; z-index:9000; opacity:.93; border-radius:12px; box-shadow:0 14px 34px #000b}
 body.touch-dragging{-webkit-user-select:none; user-select:none}
-.unit .art, .persona-col .pcol-img img{-webkit-touch-callout:none; -webkit-user-drag:none}
+.unit .art, .persona-col .pcol-img img{-webkit-touch-callout:none}
+.persona-col .pcol-img img{cursor:grab}
 .elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
   color:var(--blue); font-size:9px; letter-spacing:.12em; padding:2px 6px; border-radius:5px; font-weight:700}
 .order-badge{position:absolute; top:6px; left:6px; z-index:2; background:#0008; border:1px solid var(--gold);
@@ -1399,13 +1400,27 @@ function renderHead(){
 /* ---------- render: team ---------- */
 // six-dot drag handle, drawn as an SVG so it sits exactly centered (the braille glyph rendered top-heavy)
 const GRIP_DOTS='<svg class="grip-dots" viewBox="0 0 10 14" aria-hidden="true"><circle cx="2.5" cy="2.5" r="1.25"/><circle cx="7.5" cy="2.5" r="1.25"/><circle cx="2.5" cy="7" r="1.25"/><circle cx="7.5" cy="7" r="1.25"/><circle cx="2.5" cy="11.5" r="1.25"/><circle cx="7.5" cy="11.5" r="1.25"/></svg>';
-// desktop native drag: make the whole tile (not just the little grip) the drag image hanging from the cursor.
-// Use the live, already-painted tile (a fresh clone wouldn't have its lazy <img> painted yet) and only dim
-// it AFTER the browser has snapshotted the drag image at the end of dragstart.
-function _setTileDragImage(e, tile){ try{ const r=tile.getBoundingClientRect();
-  e.dataTransfer.setDragImage(tile, e.clientX-r.left, e.clientY-r.top);
-  setTimeout(function(){ tile.classList.add('dragging'); }, 0);
+// desktop native drag: the browser's setDragImage clips tall tiles (only the top — image + name — shows up),
+// so suppress the native drag image and draw our own full-tile ghost that follows the cursor (same look as
+// the touch ghost; the cloned <img> paints over a frame, so the persona art shows).
+const _BLANK_DRAG_IMG=new Image(); _BLANK_DRAG_IMG.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+let _deskGhost=null, _deskTile=null, _deskOffX=0, _deskOffY=0;
+function _setTileDragImage(e, tile){ try{
+  const r=tile.getBoundingClientRect();
+  e.dataTransfer.setDragImage(_BLANK_DRAG_IMG, 0, 0);   // hide the (clipped) native drag image
+  _deskTile=tile; _deskOffX=e.clientX-r.left; _deskOffY=e.clientY-r.top;
+  _deskGhost=tile.cloneNode(true); _deskGhost.classList.add('touch-ghost'); _deskGhost.classList.remove('dragging');
+  _deskGhost.style.width=r.width+'px';
+  _deskGhost.querySelectorAll('img[loading]').forEach(im=>im.removeAttribute('loading'));
+  document.body.appendChild(_deskGhost); _moveDeskGhost(e.clientX, e.clientY);
+  setTimeout(function(){ if(_deskTile) _deskTile.classList.add('dragging'); }, 0);
 }catch(_){} }
+function _moveDeskGhost(x,y){ if(_deskGhost) _deskGhost.style.transform='translate('+(x-_deskOffX)+'px,'+(y-_deskOffY)+'px)'; }
+function _endDeskGhost(){ if(_deskGhost){ _deskGhost.remove(); _deskGhost=null; } if(_deskTile){ _deskTile.classList.remove('dragging'); _deskTile=null; } }
+document.addEventListener('dragover', e=>{ if(_deskGhost) _moveDeskGhost(e.clientX, e.clientY); });
+document.addEventListener('drag', e=>{ if(_deskGhost && (e.clientX||e.clientY)) _moveDeskGhost(e.clientX, e.clientY); });
+document.addEventListener('dragend', _endDeskGhost);
+document.addEventListener('drop', _endDeskGhost);
 function unitCard(u, path, elu, idx, backup){
   const col=uiAccent(u.name); const img=imgFor(u.name);
   const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
@@ -1489,7 +1504,7 @@ function renderTeam(){
             <input class="persona-note" data-path="personas.${k}.note" value="${esc(p.note||'')}" placeholder="Notes..." autocomplete="off"/>
           </div>
         </div>
-        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
+        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" draggable="true" title="Drag to reorder" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
       </div>
     </div>`).join('');
   const _w=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
@@ -1528,7 +1543,7 @@ function renderTeam(){
   const tn=document.getElementById('teamNotes'); tn.value=state.teamNotes||''; tn.oninput=()=>{ state.teamNotes=tn.value; save(); };
   // drag & drop reorder of personas (slot labels Persona 1/2/3 stay fixed; only the content moves)
   let dragP=null;
-  tp.querySelectorAll('.persona-col .pgrip').forEach(g=>{
+  tp.querySelectorAll('.persona-col .pgrip, .persona-col .pcol-img img').forEach(g=>{   // grip OR the persona image is a drag handle
     g.addEventListener('dragstart',e=>{ const col=g.closest('[data-pidx]'); dragP=+col.dataset.pidx;
       _setTileDragImage(e, col); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
     g.addEventListener('dragend',()=>tp.querySelectorAll('.persona-col').forEach(c=>c.classList.remove('dragging','drag-over')));
@@ -3619,6 +3634,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620y</div>
+<div class="version-tag">260622a</div>
 </body>
 </html>
