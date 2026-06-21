@@ -200,7 +200,8 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .touch-ghost{position:fixed; left:0; top:0; margin:0; pointer-events:none; z-index:9000; opacity:.93; border-radius:12px; box-shadow:0 14px 34px #000b}
 body.touch-dragging{-webkit-user-select:none; user-select:none}
 .unit .art, .persona-col .pcol-img img{-webkit-touch-callout:none}
-.persona-col .pcol-img img{cursor:grab}
+.persona-col .pcol-img img, .unit .art{cursor:grab}
+body.touch-dragging, body.touch-dragging *{cursor:grabbing !important}
 .elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
   color:var(--blue); font-size:9px; letter-spacing:.12em; padding:2px 6px; border-radius:5px; font-weight:700}
 .order-badge{position:absolute; top:6px; left:6px; z-index:2; background:#0008; border:1px solid var(--gold);
@@ -1400,22 +1401,6 @@ function renderHead(){
 /* ---------- render: team ---------- */
 // six-dot drag handle, drawn as an SVG so it sits exactly centered (the braille glyph rendered top-heavy)
 const GRIP_DOTS='<svg class="grip-dots" viewBox="0 0 10 14" aria-hidden="true"><circle cx="2.5" cy="2.5" r="1.25"/><circle cx="7.5" cy="2.5" r="1.25"/><circle cx="2.5" cy="7" r="1.25"/><circle cx="7.5" cy="7" r="1.25"/><circle cx="2.5" cy="11.5" r="1.25"/><circle cx="7.5" cy="11.5" r="1.25"/></svg>';
-// desktop native drag: the native setDragImage only captures the part of the tile that's inside the viewport,
-// so a tile scrolled past the fold loses its lower half (just image + name showed). Snapshot a full-size clone
-// pinned at the top of the viewport instead (never clipped), with persona <img> swapped to a background div so
-// the cached art is painted synchronously into the snapshot (a fresh lazy <img> wouldn't be).
-function _setTileDragImage(e, tile){ try{
-  const r=tile.getBoundingClientRect();
-  const c=tile.cloneNode(true); c.classList.remove('dragging');
-  c.querySelectorAll('.pcol-img img').forEach(im=>{ const b=im.getBoundingClientRect(); const d=document.createElement('div');
-    d.style.cssText='width:'+Math.round(b.width||120)+'px;height:'+Math.round(b.height||180)+'px;flex:0 0 auto;border-radius:6px;background:var(--field) center/contain no-repeat url("'+(im.currentSrc||im.src)+'")';
-    im.replaceWith(d); });
-  c.style.cssText='position:fixed; left:0; top:0; z-index:-1; width:'+r.width+'px; margin:0; pointer-events:none; opacity:1; box-shadow:0 14px 34px #000b; border-radius:12px';
-  document.body.appendChild(c);
-  e.dataTransfer.setDragImage(c, e.clientX-r.left, e.clientY-r.top);
-  setTimeout(function(){ c.remove(); }, 0);
-  setTimeout(function(){ tile.classList.add('dragging'); }, 0);   // dim the source only after the snapshot
-}catch(_){} }
 function unitCard(u, path, elu, idx, backup){
   const col=uiAccent(u.name); const img=imgFor(u.name);
   const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
@@ -1463,7 +1448,7 @@ function unitCard(u, path, elu, idx, backup){
     if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
     extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
   }
-  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">'+GRIP_DOTS+'</div>':''}`;
+  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" title="Drag to reorder">'+GRIP_DOTS+'</div>':''}`;
   const art = img
     ? `<div class="art" style="background-image:${bgURL(img)}">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
@@ -1489,7 +1474,7 @@ function renderTeam(){
     + (_bkName ? unitCard(Object.assign({},state.backup,{name:_bkName}),'backup',false,null,true) : '');
   const personaHtml = state.personas.map((p,k)=>`
     <div class="persona-col minicard" data-pidx="${k}">
-      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">${GRIP_DOTS}</span></div>
+      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" title="Drag to reorder">${GRIP_DOTS}</span></div>
       <div class="pcol-body">
         <div class="pcol-fields">
           <span class="combo-wrap"><input class="persona-name combo" data-combo="persona" data-path="personas.${k}.name" value="${esc(p.name)}" placeholder="Choose Persona" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>
@@ -1499,7 +1484,7 @@ function renderTeam(){
             <input class="persona-note" data-path="personas.${k}.note" value="${esc(p.note||'')}" placeholder="Notes..." autocomplete="off"/>
           </div>
         </div>
-        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" draggable="true" title="Drag to reorder" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
+        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" title="Drag to reorder" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
       </div>
     </div>`).join('');
   const _w=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
@@ -1536,21 +1521,7 @@ function renderTeam(){
     };
   });
   const tn=document.getElementById('teamNotes'); tn.value=state.teamNotes||''; tn.oninput=()=>{ state.teamNotes=tn.value; save(); };
-  // drag & drop reorder of personas (slot labels Persona 1/2/3 stay fixed; only the content moves)
-  let dragP=null;
-  tp.querySelectorAll('.persona-col .pgrip, .persona-col .pcol-img img').forEach(g=>{   // grip OR the persona image is a drag handle
-    g.addEventListener('dragstart',e=>{ const col=g.closest('[data-pidx]'); dragP=+col.dataset.pidx;
-      _setTileDragImage(e, col); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
-    g.addEventListener('dragend',()=>tp.querySelectorAll('.persona-col').forEach(c=>c.classList.remove('dragging','drag-over')));
-  });
-  tp.querySelectorAll('[data-pidx]').forEach(col=>{
-    col.addEventListener('dragover',e=>{ if(dragP!=null){ e.preventDefault(); col.classList.add('drag-over'); }});
-    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
-    col.addEventListener('drop',e=>{ e.preventDefault(); col.classList.remove('drag-over');
-      const to=+col.dataset.pidx;
-      if(dragP!=null && dragP!==to){ const[m]=state.personas.splice(dragP,1); state.personas.splice(to,0,m); save(); renderTeam(); renderTurns(); }
-      dragP=null; });
-  });
+  // persona & unit reordering is handled by the custom pointer drag (see the reorder IIFE near the bottom)
   tp.querySelectorAll('[data-uname]').forEach(el=>{
     el.onchange=()=>{
       const u=getByPath(el.dataset.uname);
@@ -1561,21 +1532,6 @@ function renderTeam(){
       u.space=_def?_def.space:''; u.sunsky=_def?_def.sunsky:'';
       save(); renderTeam(); renderTurns();
     };
-  });
-  // drag & drop reorder of the 4 main units (elucidator excluded)
-  let dragIdx=null;
-  tp.querySelectorAll('.unit .grip').forEach(g=>{
-    g.addEventListener('dragstart',e=>{ const card=g.closest('[data-uidx]'); dragIdx=+card.dataset.uidx;
-      _setTileDragImage(e, card); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
-    g.addEventListener('dragend',()=>tp.querySelectorAll('.unit').forEach(c=>c.classList.remove('dragging','drag-over')));
-  });
-  tp.querySelectorAll('[data-uidx]').forEach(card=>{
-    card.addEventListener('dragover',e=>{ if(dragIdx!=null){ e.preventDefault(); card.classList.add('drag-over'); }});
-    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
-    card.addEventListener('drop',e=>{ e.preventDefault(); card.classList.remove('drag-over');
-      const to=+card.dataset.uidx;
-      if(dragIdx!=null && dragIdx!==to){ const[m]=state.units.splice(dragIdx,1); state.units.splice(to,0,m); save(); renderTeam(); renderTurns(); }
-      dragIdx=null; });
   });
   paintImp();
 }
@@ -1925,7 +1881,7 @@ function turnHtml(t,ti,isBreak){
   return `
     <div class="turn${ordBad?' order-bad':''}" data-tidx="${ti}"${ordBad?' title="Character order in this turn differs from the team order"':''}>
       <div class="turn-head">
-        ${isBreak?'':`<span class="tgrip" draggable="true" title="Drag to reorder">${GRIP_DOTS}</span>`}
+        ${isBreak?'':`<span class="tgrip" title="Drag to reorder">${GRIP_DOTS}</span>`}
         <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
         ${isBreak?'':`<button class="dup" data-dupturn="${ti}" title="Duplicate turn">\u29c9</button><button class="del" data-delturn="${ti}" title="Remove turn">\u00d7</button>`}
       </div>
@@ -2051,25 +2007,7 @@ function renderTurns(){
       const ti=+zone.dataset.ti; const [m]=state.turns[dragAct.ti].actions.splice(dragAct.ai,1);
       state.turns[ti].actions.push(m); dragAct=null; save(); renderTurns(); });
   });
-  // turn-column drag & drop reorder via the grip; breaks stay pinned at the end, numbering re-indexes
-  let dragTurn=null;
-  wrap.querySelectorAll('.tgrip').forEach(g=>{
-    g.addEventListener('dragstart',e=>{ const col=g.closest('[data-tidx]'); dragTurn=+col.dataset.tidx;
-      _setTileDragImage(e, col); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','t');}catch(_){} });
-    g.addEventListener('dragend',()=>wrap.querySelectorAll('.turn').forEach(c=>c.classList.remove('dragging','drag-over')));
-  });
-  wrap.querySelectorAll('[data-tidx]').forEach(col=>{
-    col.addEventListener('dragover',e=>{ if(dragTurn!=null){ e.preventDefault(); col.classList.add('drag-over'); }});
-    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
-    col.addEventListener('drop',e=>{ if(dragTurn==null) return; e.preventDefault(); col.classList.remove('drag-over');
-      let to=+col.dataset.tidx;
-      const dd=state.setup.type==='DOD', nn=state.turns.length, maxNormal=(dd&&nn>=DOD_BREAKS)?nn-DOD_BREAKS:nn;
-      if(dragTurn<maxNormal && dragTurn!==to){            /* only reorder normal turns */
-        to=Math.max(0,Math.min(to,maxNormal-1));          /* never past the breaks */
-        const[m]=state.turns.splice(dragTurn,1); state.turns.splice(to,0,m); save(); renderTurns();
-      }
-      dragTurn=null; });
-  });
+  // turn-column reordering (drag the header) is handled by the custom pointer drag (reorder IIFE near the bottom)
   wrap.scrollLeft=sl;
   renderRotationPreview();
   refreshDiscrepancies();
@@ -3442,62 +3380,81 @@ _updateIosRotate();
 // block iOS Safari pinch-zoom while the player is open
 document.addEventListener('gesturestart', e=>{ const r=document.getElementById('playRoot'); if(r&&!r.hidden) e.preventDefault(); }, {passive:false});
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ const r=document.getElementById('playRoot'); if(r) r.classList.toggle('is-fs', !!_fsEl()); }));
-/* ---------- touch reorder: long-press a character/persona image or a turn header to drag ----------
-   Native HTML5 drag is mouse-only, so on touch we long-press to pick the tile up, drag a floating ghost, and
-   drop it on the tile under the finger. The grips stay as the visual "this tile can move" hint. */
+/* ---------- reorder a tile by dragging its grip / image (or a turn header) — our own ghost, touch AND mouse ----
+   The native HTML5 drag can't render a cursor-following ghost (Chrome doesn't repaint during a drag) and its
+   snapshot drops freshly-cloned art, so we run the drag ourselves: a floating clone of the whole tile follows
+   the pointer and drops on the tile underneath. Touch picks up on a long-press; the mouse picks up after a few
+   pixels of motion. The grips are no longer native-draggable, so nothing steals the touch gesture. */
 (function(){
-  if(!('ontouchstart' in window) && !(navigator.maxTouchPoints>0)) return;   // touch devices only
   const KINDS=[
-    { handle:'.unit .art', item:'.unit[data-uidx]', attr:'uidx', scroll:null,
+    { handle:'.unit .grip, .unit .art', item:'.unit[data-uidx]', attr:'uidx', scroll:null,
       drop(f,t){ if(f===t) return; const[m]=state.units.splice(f,1); state.units.splice(t,0,m); save(); renderTeam(); renderTurns(); } },
-    { handle:'.persona-col .pcol-img', item:'.persona-col[data-pidx]', attr:'pidx', scroll:null,
+    { handle:'.persona-col .pgrip, .persona-col .pcol-img', item:'.persona-col[data-pidx]', attr:'pidx', scroll:null,
       drop(f,t){ if(f===t) return; const[m]=state.personas.splice(f,1); state.personas.splice(t,0,m); save(); renderTeam(); renderTurns(); } },
     { handle:'.turn-head', item:'.turn[data-tidx]', attr:'tidx', scroll:'turns',
       drop(f,t){ const dd=state.setup.type==='DOD', nn=state.turns.length, mx=(dd&&nn>=DOD_BREAKS)?nn-DOD_BREAKS:nn;
         if(f>=mx||f===t) return; t=Math.max(0,Math.min(t,mx-1)); const[m]=state.turns.splice(f,1); state.turns.splice(t,0,m); save(); renderTurns(); } },
   ];
-  let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, over=null, offX=0, offY=0, fx=0, fy=0, raf=0;
+  let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, over=null, offX=0, offY=0, fx=0, fy=0, raf=0, mouse=false, lastTouch=0;
   function resolve(tg){ if(!tg||!tg.closest) return null;
-    if(tg.closest('input,select,textarea,button,a,.combo-clear')) return null;   // leave real controls tappable
+    if(tg.closest('input,select,textarea,button,a,.combo-clear')) return null;   // leave real controls clickable
     for(const k of KINDS){ const h=tg.closest(k.handle); if(h){ const it=h.closest(k.item); if(it&&it.dataset[k.attr]!=null) return {k,it}; } }
     return null; }
   function clearOver(){ if(over){ over.classList.remove('drag-over'); over=null; } }
-  function end(){ clearTimeout(timer); timer=0; if(raf){ cancelAnimationFrame(raf); raf=0; }
-    if(ghost){ ghost.remove(); ghost=null; } if(src) src.classList.remove('dragging');
-    clearOver(); if(dragging) document.body.classList.remove('touch-dragging');
-    dragging=false; kind=null; from=-1; src=null;
-    document.removeEventListener('touchmove', move, {passive:false});
-    document.removeEventListener('touchend', up); document.removeEventListener('touchcancel', up); }
   function place(x,y){ fx=x; fy=y; if(ghost) ghost.style.transform='translate('+(x-offX)+'px,'+(y-offY)+'px)'; }
   function tick(){ if(!dragging){ raf=0; return; }
     if(kind.scroll){ const el=document.getElementById(kind.scroll); if(el){ const b=el.getBoundingClientRect(), m=46;
         if(fx<b.left+m) el.scrollLeft-=14; else if(fx>b.right-m) el.scrollLeft+=14; } }
     else { const vh=window.innerHeight, m=60; if(fy<m) window.scrollBy(0,-14); else if(fy>vh-m) window.scrollBy(0,14); }
     raf=requestAnimationFrame(tick); }
-  function start(t){ dragging=true; src.classList.add('dragging'); document.body.classList.add('touch-dragging');
+  function start(x,y){ dragging=true; src.classList.add('dragging'); document.body.classList.add('touch-dragging');
     const r=src.getBoundingClientRect();
-    ghost=src.cloneNode(true); ghost.classList.add('touch-ghost'); ghost.classList.remove('dragging'); ghost.style.width=r.width+'px';
-    ghost.querySelectorAll('img[loading]').forEach(im=>im.removeAttribute('loading'));   // load the persona image right away in the ghost
-    offX=t.clientX-r.left; offY=t.clientY-r.top;   // hang the whole tile from the exact grab point
-    document.body.appendChild(ghost); place(t.clientX,t.clientY);
-    if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(_){} }
+    ghost=src.cloneNode(true); ghost.classList.add('touch-ghost'); ghost.classList.remove('dragging');
+    // force the floating position inline (keeps the clone's other inline styles, e.g. a unit's --ux accent) —
+    // the clone keeps its tile class and .persona-col is position:relative, which would otherwise win over .touch-ghost
+    ghost.style.position='fixed'; ghost.style.left='0'; ghost.style.top='0'; ghost.style.margin='0'; ghost.style.zIndex='9000'; ghost.style.width=r.width+'px';
+    ghost.querySelectorAll('img[loading]').forEach(im=>im.removeAttribute('loading'));   // load the art right away in the ghost
+    offX=sx-r.left; offY=sy-r.top;   // hang the whole tile from the exact grab point
+    document.body.appendChild(ghost); place(x,y);
+    if(!mouse && navigator.vibrate){ try{ navigator.vibrate(15); }catch(_){} }
     raf=requestAnimationFrame(tick); }
-  function move(e){ const t=e.touches[0]; if(!t) return;
-    if(!dragging){ if(Math.abs(t.clientX-sx)>10||Math.abs(t.clientY-sy)>10){ clearTimeout(timer); timer=0; } return; }
-    e.preventDefault(); place(t.clientX,t.clientY);
-    const u=document.elementFromPoint(t.clientX,t.clientY), tg=u&&u.closest?u.closest(kind.item):null;
+  function moveTo(x,y){ place(x,y);
+    const u=document.elementFromPoint(x,y), tg=u&&u.closest?u.closest(kind.item):null;
     if(tg!==over){ clearOver(); if(tg&&tg!==src){ over=tg; over.classList.add('drag-over'); } } }
-  function up(){ if(dragging&&over){ const to=+over.dataset[kind.attr], k=kind, f=from; end(); k.drop(f,to); return; } end(); }
+  function end(){ clearTimeout(timer); timer=0; if(raf){ cancelAnimationFrame(raf); raf=0; }
+    if(ghost){ ghost.remove(); ghost=null; } if(src) src.classList.remove('dragging');
+    clearOver(); document.body.classList.remove('touch-dragging');
+    dragging=false; kind=null; from=-1; src=null;
+    document.removeEventListener('touchmove', tmove, {passive:false});
+    document.removeEventListener('touchend', tup); document.removeEventListener('touchcancel', tup);
+    document.removeEventListener('mousemove', mmove); document.removeEventListener('mouseup', mup); }
+  function finish(){ if(dragging&&over){ const to=+over.dataset[kind.attr], k=kind, f=from; end(); k.drop(f,to); return; } end(); }
+  // touch: long-press to pick up; a move before that is a scroll
+  function tmove(e){ const t=e.touches[0]; if(!t) return;
+    if(!dragging){ if(Math.abs(t.clientX-sx)>10||Math.abs(t.clientY-sy)>10){ clearTimeout(timer); timer=0; } return; }
+    e.preventDefault(); moveTo(t.clientX,t.clientY); }
+  function tup(){ finish(); }
   document.addEventListener('touchstart', e=>{
+    lastTouch=Date.now();
     if(dragging||timer||e.touches.length>1) return;
     const f=resolve(e.target); if(!f) return;
-    kind=f.k; src=f.it; from=+src.dataset[kind.attr];
+    kind=f.k; src=f.it; from=+src.dataset[kind.attr]; mouse=false;
     const t=e.touches[0]; sx=t.clientX; sy=t.clientY;
-    document.addEventListener('touchmove', move, {passive:false});
-    document.addEventListener('touchend', up); document.addEventListener('touchcancel', up);
-    timer=setTimeout(()=>{ timer=0; start(t); }, 360);
+    document.addEventListener('touchmove', tmove, {passive:false});
+    document.addEventListener('touchend', tup); document.addEventListener('touchcancel', tup);
+    timer=setTimeout(()=>{ timer=0; start(sx,sy); }, 360);
   }, {passive:true});
-  document.addEventListener('dragstart', e=>{ if(timer||dragging) e.preventDefault(); });   // block native drag during a touch gesture
+  // mouse: pick up after a few px of motion (no long-press)
+  function mmove(e){ if(!dragging){ if(Math.abs(e.clientX-sx)>4||Math.abs(e.clientY-sy)>4) start(e.clientX,e.clientY); else return; }
+    e.preventDefault(); moveTo(e.clientX,e.clientY); }
+  function mup(){ finish(); }
+  document.addEventListener('mousedown', e=>{
+    if(dragging||e.button!==0||Date.now()-lastTouch<700) return;   // ignore the synthetic mouse event after a touch
+    const f=resolve(e.target); if(!f) return;
+    kind=f.k; src=f.it; from=+src.dataset[kind.attr]; mouse=true; sx=e.clientX; sy=e.clientY;
+    e.preventDefault();   // no text selection while picking the tile up
+    document.addEventListener('mousemove', mmove); document.addEventListener('mouseup', mup);
+  });
 })();
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
@@ -3629,6 +3586,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622b</div>
+<div class="version-tag">260622c</div>
 </body>
 </html>
