@@ -440,11 +440,18 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 #playRoot.is-fs .play-fs .fs-enter{display:none}
 #playRoot.is-fs .play-fs .fs-exit{display:inline-flex}
 .play-body{flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:safe center; padding:28px 18px; gap:22px}
-.play-turn-name{font:700 34px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase; position:relative}
-.play-turn-tools{position:absolute; left:100%; margin-left:14px; top:50%; transform:translateY(-50%); display:flex; gap:8px}
+.play-turn-head{position:relative; align-self:stretch; display:flex; align-items:center; justify-content:center; padding:0 10px}
+.play-turn-name{font:700 34px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
+@keyframes playTurnFlash{ 0%{color:var(--gold)} }
+.play-turn-name.flash{animation:playTurnFlash .7s ease-out}
+.play-turn-tools{position:absolute; right:10px; top:50%; transform:translateY(-50%); display:flex; gap:8px}
 .play-turn-tools button{display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:var(--panel); border:1px solid var(--line); color:var(--soft); cursor:pointer; padding:0}
 .play-turn-tools button:hover{color:var(--text); border-color:var(--blue-strong)}
 @media (max-width:600px){ .play-turn-tools button{width:32px; height:32px; border-radius:8px} .play-turn-tools button svg{width:18px; height:18px} }
+.play-finished{font:700 26px Oswald,sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--blue-strong); margin-top:6px}
+.play-act.block{position:relative}
+.play-act.block .play-actn{position:absolute; top:8px; left:11px; margin:0}
+.play-solo{cursor:pointer}
 .play-turn-name.brk{color:#e0445e}
 .play-turn-sub{font:600 15px Inter,sans-serif; color:var(--muted); margin-top:-14px}
 .play-actions{display:flex; flex-direction:column; gap:14px; width:100%; max-width:880px; flex:0 0 auto}
@@ -3177,7 +3184,7 @@ window.addEventListener('resize', ()=>{
 });
 
 /* ---------- Play mode: full-screen player (turn-by-turn or action-by-action; vertical or horizontal) ---------- */
-let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical', _playDone=0;
+let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical', _playDone=0, _playLastRenderTurn=-1, _playAdvTimer=0;
 const _playTouch = (function(){ try{ return (window.matchMedia&&window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window); }catch(e){ return false; } })();
 function _playLandscape(){ return (window.innerWidth||0) > (window.innerHeight||0); }   /* direct dimensions are more reliable than the orientation media query on iOS Safari */
 const _isIphone = /iPhone|iPod/.test(navigator.userAgent||'');
@@ -3229,7 +3236,8 @@ function openPlayMode(){
       if(_playMode==='turn' && _playLayout==='horizontal'){ if(dx<0){ if(swEnd) playStep(1); } else if(swStart) playStep(-1); }
       else playStep(dx<0?1:-1); },{passive:true});
     // turn mode: tap/click an action to check it off (grey out); tapping a checked one re-activates it
-    _pbody.addEventListener('click',e=>{ if(_playMode!=='turn') return;
+    _pbody.addEventListener('click',e=>{
+      if(_playMode==='action'){ if(e.target.closest('.play-solo')) playStep(1); return; }   // tap the action area -> next action
       if(e.target.closest('.play-turn-restart')){ playRestart(); return; }
       if(e.target.closest('.play-turn-reset')){ playResetTurn(); return; }
       const el=e.target.closest('.play-act[data-gi]'); if(el) playToggleDone(+el.dataset.gi); });
@@ -3237,7 +3245,7 @@ function openPlayMode(){
     if(_isIphone){ const fb=root.querySelector('#playFs'); if(fb) fb.style.display='none'; }   /* iPhone Safari has no element fullscreen and the Home-Screen web app is already full-screen */
     if(_playTouch) root.classList.add('play-touch');
   }
-  _playMode='turn'; _playTurn=0; _playAct=0; _playDone=0;
+  _playMode='turn'; _playTurn=0; _playAct=0; _playDone=0; _playLastRenderTurn=-1;
   _playLayout = _playTouch ? (_playWantsHorizontal()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
   playCloseInfo();
   root.hidden=false; document.body.classList.add('play-open');
@@ -3302,8 +3310,10 @@ function playToggleDone(gi){
   const turnLen=(turns[_playTurn].actions||[]).filter(a=>a&&a.char).length;
   const forward=gi>=_playDone;
   _playDone = forward ? gi+1 : gi;
-  if(forward && _playDone>=turnStart+turnLen && _playTurn<n-1) _playTurn++;   // last action of the turn checked -> next turn
-  renderPlay();
+  renderPlay();   // show the just-checked action greyed first (renderPlay clears any pending advance)
+  if(forward && _playDone>=turnStart+turnLen && _playTurn<n-1){
+    _playAdvTimer=setTimeout(()=>{ _playTurn++; renderPlay(); }, 480);   // brief grey-out, then load the next turn
+  }
 }
 /* reset just the current turn: re-activate its actions (and any after it); earlier turns stay checked. */
 function playResetTurn(){ const turns=state.turns||[]; let turnStart=0; for(let ti=0;ti<_playTurn;ti++) turnStart+=(turns[ti].actions||[]).filter(a=>a&&a.char).length; _playDone=Math.min(_playDone,turnStart); renderPlay(); }
@@ -3311,6 +3321,7 @@ function playResetTurn(){ const turns=state.turns||[]; let turnStart=0; for(let 
 function playRestart(){ _playDone=0; _playTurn=0; renderPlay(); }
 function renderPlay(){
   const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  clearTimeout(_playAdvTimer);   // any (re)render cancels a pending auto-advance; playToggleDone re-arms it
   const turns=state.turns||[], n=turns.length, s=state.setup||{}, dod=(s.type||'').toUpperCase()==='DOD';
   r.querySelector('#playTitle').textContent=[(s.boss||'').trim(),(s.type||'').trim()].filter(Boolean).join(' · ')||((s.rotationName||'').trim()||'Rotation');
   r.querySelectorAll('#playModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pmode===_playMode));
@@ -3343,15 +3354,22 @@ function renderPlay(){
   let _turnStart=0; for(let ti=0;ti<i;ti++) _turnStart+=(turns[ti].actions||[]).filter(a=>a&&a.char).length;
   const rows=acts.length?acts.map((a,k)=>{ const accent=cardAccent(a.char, exPalette(_effTheme==='light'));
     const gi=_turnStart+k, done=gi<_playDone?' done':'';
-    if(horiz) return '<div class="play-act block'+done+'" data-gi="'+gi+'" style="border-top-color:'+esc(accent)+'">'+_playPortrait(a.char,'play-portrait block')+'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+    if(horiz) return '<div class="play-act block'+done+'" data-gi="'+gi+'" style="border-top-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span>'+_playPortrait(a.char,'play-portrait block')+'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
     return '<div class="play-act'+done+'" data-gi="'+gi+'" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span>'+_playPortrait(a.char,'play-portrait')+'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
   }).join(''):'<div class="play-empty">No actions in this turn.</div>';
   const _tools='<span class="play-turn-tools">'
     +'<button type="button" class="play-turn-reset" aria-label="Reset this turn" title="Reset this turn"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.5 8a9 9 0 1 1-1 4"/></svg></button>'
     +'<button type="button" class="play-turn-restart" aria-label="Restart from the beginning" title="Restart from the beginning"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4"/><line x1="5" y1="5" x2="5" y2="19"/></svg></button></span>';
-  r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(isBreak?' brk':'')+'">'+esc(t.name||('Turn '+(i+1)))+_tools+'</div>'
+  const _newTurn=(i!==_playLastRenderTurn);                           // new turn -> gold flash on the title
+  const _finished=(_playDone>=_playFlat().length && i===n-1)?'<div class="play-finished">Fight Finished</div>':'';
+  const _oldStrip=horiz?r.querySelector('.play-actions.horiz'):null;  // keep the horizontal scroll on a same-turn re-render
+  const _sl=(_oldStrip && !_newTurn)?_oldStrip.scrollLeft:0;
+  r.querySelector('#playBody').innerHTML='<div class="play-turn-head"><div class="play-turn-name'+(isBreak?' brk':'')+(_newTurn?' flash':'')+'">'+esc(t.name||('Turn '+(i+1)))+'</div>'+_tools+'</div>'
     +'<div class="play-actions'+(horiz?' horiz':'')+'">'+rows+'</div>'
+    +_finished
     +((t.note||'').trim()?'<div class="play-note">'+esc(t.note.trim())+'</div>':'');
+  if(horiz && _sl){ const _ns=r.querySelector('.play-actions.horiz'); if(_ns) _ns.scrollLeft=_sl; }
+  _playLastRenderTurn=i;
   r.querySelector('#playPrev').disabled=(i<=0); r.querySelector('#playNext').disabled=(i>=n-1);
   r.querySelector('#playHint').textContent=_playTouch?(horiz?'Swipe through the turn — past the end goes to the next turn':'Swipe left / right to change turn'):'← → change turn · 1–9 jump · Home/End first & last · Esc close';
   mkDots(i);
@@ -3506,6 +3524,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260620q</div>
+<div class="version-tag">260620r</div>
 </body>
 </html>
