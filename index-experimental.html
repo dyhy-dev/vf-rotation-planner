@@ -597,8 +597,10 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .play-info-notes{font:500 13px Inter,sans-serif; color:var(--text); line-height:1.55; white-space:pre-wrap}
 .play-info-empty{color:var(--muted); font-size:14px; text-align:center; margin-top:34px}
 /* character portraits inside the player */
-.play-portrait{height:38px; width:38px; border-radius:8px; object-fit:cover; flex:0 0 auto; display:block; align-self:center}
-.play-act.block .play-portrait{height:56px; width:56px; border-radius:10px; align-self:flex-start}
+.play-portrait{height:46px; width:46px; border-radius:9px; object-fit:cover; flex:0 0 auto; display:block; align-self:center}
+#playRoot:not(.play-touch) .play-portrait{height:54px; width:54px; border-radius:10px}
+.play-act.block .play-portrait{height:68px; width:68px; border-radius:11px; align-self:flex-start}
+#playRoot:not(.play-touch).is-horiz .play-act.block .play-portrait{height:84px; width:84px; border-radius:12px}
 .play-solo-portrait{height:150px; width:150px; border-radius:16px; object-fit:cover; display:block}
 #playRoot:not(.play-touch) .play-solo-portrait{height:176px; width:176px}
 /* action mode: upcoming-action preview */
@@ -609,8 +611,8 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .play-next.end{color:var(--blue-strong); font:700 19px Oswald,sans-serif; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap}
 /* phones: keep portraits + preview from crowding the action rows */
 @media (max-width:600px){
-  .play-portrait{height:30px; width:30px; border-radius:6px}
-  .play-act.block .play-portrait{height:44px; width:44px}
+  .play-portrait{height:38px; width:38px; border-radius:7px}
+  .play-act.block .play-portrait{height:54px; width:54px}
   .play-solo-portrait{height:104px; width:104px; border-radius:13px}
   .play-next-actor{font-size:16px} .play-next-detail{font-size:14px}
 }
@@ -622,7 +624,7 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
   #playRoot:not(.play-touch) .play-turn-name{font-size:22px}
   #playRoot:not(.play-touch) .play-solo-actor{font-size:34px}
   #playRoot:not(.play-touch) .play-solo-detail{font-size:24px}
-  .play-act.block .play-portrait{height:40px; width:40px}
+  .play-act.block .play-portrait{height:50px; width:50px}
   /* action mode: lift the NEXT preview out of the text column — one line, pinned just above the nav bar */
   .play-body{position:relative}
   .play-solo{padding-bottom:34px}
@@ -3634,6 +3636,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622i</div>
+<div class="version-tag">260622j</div>
 </body>
 </html>
