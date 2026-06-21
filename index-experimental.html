@@ -612,7 +612,11 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
   #playRoot:not(.play-touch) .play-solo-actor{font-size:34px}
   #playRoot:not(.play-touch) .play-solo-detail{font-size:24px}
   .play-act.block .play-portrait{height:40px; width:40px}
-  .play-next{margin-top:0; padding:5px 12px; gap:1px} .play-next-actor{font-size:16px} .play-next-detail{font-size:13px} .play-next-lab{font-size:9px}
+  /* action mode: lift the NEXT preview out of the text column — one line, pinned just above the nav bar */
+  .play-body{position:relative}
+  .play-solo{padding-bottom:34px}
+  .play-next{position:absolute; left:50%; bottom:5px; transform:translateX(-50%); margin:0; max-width:94%; flex-direction:row; align-items:baseline; gap:8px; white-space:nowrap; padding:5px 14px}
+  .play-next-lab{font-size:9px} .play-next-actor{font-size:16px} .play-next-detail{font-size:13px; overflow:hidden; text-overflow:ellipsis; min-width:0}
 }
 /* iPhone-Safari landscape full-page notice (Add to Home Screen) */
 #iosRotate{position:fixed; inset:0; z-index:9000; background:var(--ink); color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,sans-serif}
@@ -3597,6 +3601,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622d</div>
+<div class="version-tag">260622e</div>
 </body>
 </html>
