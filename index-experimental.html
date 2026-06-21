@@ -456,7 +456,7 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 #playRoot.is-fs .play-fs .fs-enter{display:none}
 #playRoot.is-fs .play-fs .fs-exit{display:inline-flex}
 .play-body{flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:safe center; padding:28px 18px; gap:22px}
-.play-turn-head{position:relative; align-self:stretch; display:flex; align-items:center; justify-content:center; padding:0 10px}
+.play-turn-head{position:relative; align-self:stretch; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0 10px; min-height:52px}
 .play-turn-name{font:700 34px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
 @keyframes playTurnFlash{ 0%,18%{color:var(--gold)} }
 .play-turn-name.flash{animation:playTurnFlash 1.3s ease-out}
@@ -3612,6 +3612,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622g</div>
+<div class="version-tag">260622h</div>
 </body>
 </html>
