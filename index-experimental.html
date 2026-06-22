@@ -365,6 +365,22 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-module:hover{border-color:#ffae42}
 .dev-module-name{font:700 14px Oswald,sans-serif; letter-spacing:.02em}
 .dev-module-desc{font-size:12px; color:var(--muted); line-height:1.4}
+.dev-tool-card{max-width:min(720px,94vw)}
+.dev-tool-body{padding:14px 22px 22px; display:flex; flex-direction:column; gap:10px}
+.dev-textarea{width:100%; box-sizing:border-box; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:10px; font:13px ui-monospace,Menlo,Consolas,monospace; resize:vertical}
+.dev-tool-row{display:flex; align-items:center; gap:10px}
+.dev-out{background:var(--field); border:1px solid var(--line); border-radius:8px; padding:10px; font:12px ui-monospace,Menlo,Consolas,monospace; color:var(--text); white-space:pre-wrap; word-break:break-word; max-height:46vh; overflow:auto}
+.dev-out:empty{display:none}
+.dev-section-label{font:700 11px Oswald,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-top:4px}
+.dev-worker-status{font:600 13px Inter,system-ui,sans-serif; color:var(--muted)}
+.dev-worker-status.ok{color:#8de28d}
+.dev-worker-status.err{color:#ff6b6b}
+.dev-storage{display:flex; flex-direction:column; gap:6px}
+.dev-storage-row{display:flex; align-items:center; gap:8px; font:12px ui-monospace,Menlo,Consolas,monospace; color:var(--text)}
+.dev-storage-key{flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.dev-storage-size{color:var(--muted)}
+.dev-mini-btn{background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:2px 8px; font-size:11px; cursor:pointer}
+.dev-mini-btn:hover{border-color:#ffae42}
 .crop-exp-tag{font:600 11px Inter,system-ui,sans-serif; color:#ffae42; border:1px dashed #ffae42; border-radius:6px; padding:1px 7px; vertical-align:middle; margin-left:8px; letter-spacing:0}
 .crop-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:14px; max-height:70vh; overflow:auto; padding:14px 22px 24px}
 .crop-cell{display:flex; flex-direction:column; gap:5px}
@@ -850,7 +866,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="modal-close" id="cropClose" aria-label="Close">&times;</button>
     </div>
     <div class="crop-tools">
-      <span class="crop-hint">Drag a portrait up or down to set its vertical crop. The sides are already zoomed past the card frame; the Zoom slider fine-tunes that. Saved on this device only.</span>
+      <span class="crop-hint">Drag a portrait to position it (up/down and left/right); the Zoom slider sets how far it is zoomed in. The sides start zoomed past the card frame. Saved on this device only.</span>
       <span class="crop-tools-sp"></span>
       <label class="crop-remember" title="Stay unlocked on this device so you don't re-enter the password (stores it locally on this device only)"><input type="checkbox" id="cropRemember"> Remember me</label>
       <button class="btn" id="cropResetAll">Reset all</button>
@@ -863,6 +879,41 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   </div>
 </div>
 <!-- ===== end EXPERIMENTAL-ONLY crop editor ===== -->
+
+<!-- ===== EXPERIMENTAL-ONLY: Dev module — Parser Console — DO NOT PROMOTE ===== -->
+<div class="modal" id="parserModal" hidden>
+  <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Parser console">
+    <div class="modal-head">
+      <h2>Parser Console <span class="crop-exp-tag" id="parserVer">parser</span></h2>
+      <button class="modal-close" id="parserClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="dev-tool-body">
+      <p class="crop-hint">Paste rotation text and see exactly what vf-parser.js recognizes. This does not touch your current rotation.</p>
+      <textarea id="parserIn" class="dev-textarea" rows="7" spellcheck="false" placeholder="Paste a rotation here…"></textarea>
+      <div class="dev-tool-row"><label class="crop-remember"><input type="checkbox" id="parserDod"> Treat as DOD</label><span class="crop-tools-sp"></span><button class="btn btn-exp" id="parserRun">Parse</button></div>
+      <div class="dev-out" id="parserOut"></div>
+    </div>
+  </div>
+</div>
+<!-- ===== end Parser Console ===== -->
+
+<!-- ===== EXPERIMENTAL-ONLY: Dev module — Diagnostics & Storage — DO NOT PROMOTE ===== -->
+<div class="modal" id="diagModal" hidden>
+  <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Diagnostics and storage">
+    <div class="modal-head">
+      <h2>Diagnostics &amp; Storage <span class="crop-exp-tag">experimental</span></h2>
+      <button class="modal-close" id="diagClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="dev-tool-body">
+      <div class="dev-tool-row"><button class="btn" id="diagWorker">Check worker</button><span class="dev-worker-status" id="diagWorkerStatus"></span></div>
+      <div class="dev-section-label">Build</div>
+      <div class="dev-out" id="diagBuild"></div>
+      <div class="dev-section-label">Local storage on this device</div>
+      <div class="dev-storage" id="diagStorage"></div>
+    </div>
+  </div>
+</div>
+<!-- ===== end Diagnostics ===== -->
 
 <div class="modal" id="ioModal" hidden>
   <div class="modal-card io-card" role="dialog" aria-modal="true" aria-label="Share">
@@ -1201,12 +1252,12 @@ function personaImg(name){
    portraitDataURL (live preview + PNG export + share webview). When this is finalised, the
    chosen values get baked in as a fixed table and THIS editor + helpers are removed on promotion. */
 const CHAR_CROP_KEY='vf-charcrop-v1';
-const CHAR_CROP_DEF={z:112,y:50};   /* z = zoom % (112 crops the ~28px L/R card frame just out of view, ~30px/side); y = vertical position % (50 = centred) */
+const CHAR_CROP_DEF={z:112,y:50,x:50};   /* z = zoom % (112 crops the ~28px L/R card frame just out of view); y = vertical position %, x = horizontal position % (50 = centred) */
 let charCrops={};
 function loadCharCrops(){ try{ const o=JSON.parse(localStorage.getItem(CHAR_CROP_KEY)); charCrops=(o&&typeof o==='object')?o:{}; }catch(e){ charCrops={}; } }
 function saveCharCrops(){ try{ localStorage.setItem(CHAR_CROP_KEY, JSON.stringify(charCrops)); }catch(e){} }
-function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y) }; }
-function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:50% ${c.y}%`; }
+function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y), x:(c.x!=null?+c.x:CHAR_CROP_DEF.x) }; }
+function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:${c.x}% ${c.y}%`; }
 /* Developer Mode gate: only the SHA-256 HASH of the password lives here (not the password itself).
    To change it: run  await sha256hex('your-new-password')  in the console, paste the result here,
    then set the worker secret CROP_SECRET to the same password.
@@ -1214,6 +1265,7 @@ function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:
 const DEV_PW_HASH='cfa3b34ceade48e19dc33c10d289ea31640e6ff6c6b12dedd58da8e13e5b1b60';
 const DEV_REMEMBER_KEY='vf-dev-pass';   /* "Remember me": stores the password locally on this device only (so the editor opens without re-entering it) */
 let _devPass=null;
+const DEV_MODULES=[];   /* Developer Mode hub registry; each module pushes {name, desc, open()} (Image Crops, Parser Console, Diagnostics, …) */
 async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s))); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 /* ===================== end EXPERIMENTAL-ONLY crop helpers ===================== */
 const DAGGER_IMG={
@@ -2772,7 +2824,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const modal=document.getElementById('cropModal'); if(!modal) return;
   const grid=document.getElementById('cropGrid');
   try{ const rp=localStorage.getItem(DEV_REMEMBER_KEY); if(rp) _devPass=rp; }catch(e){}   /* remembered unlock on this device */
-  function applyCell(prev,name){ const c=cropOf(name); prev.style.backgroundImage=bgURL(imgFor(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition='50% '+c.y+'%'; const v=prev.parentElement&&prev.parentElement.querySelector('.crop-vals'); if(v) v.textContent='Z '+c.z+'   Y '+c.y; }
+  function applyCell(prev,name){ const c=cropOf(name); prev.style.backgroundImage=bgURL(imgFor(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition=c.x+'% '+c.y+'%'; const v=prev.parentElement&&prev.parentElement.querySelector('.crop-vals'); if(v) v.textContent='Z '+c.z+'   X '+c.x+'   Y '+c.y; }
   function entry(name){ const k=name.toUpperCase(); return charCrops[k]||(charCrops[k]={}); }
   function build(){
     grid.innerHTML='';
@@ -2787,9 +2839,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       zlab.append('Zoom', zoom);
       cell.append(prev,nm,vals,zlab); grid.appendChild(cell);
       applyCell(prev,name);
-      let dragging=false, sy=0, sV=0;
-      prev.addEventListener('pointerdown', e=>{ dragging=true; sy=e.clientY; sV=cropOf(name).y; try{prev.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
-      prev.addEventListener('pointermove', e=>{ if(!dragging) return; const dv=((e.clientY-sy)/(prev.offsetHeight||130))*100; entry(name).y=Math.round(Math.max(0,Math.min(100, sV - dv))); applyCell(prev,name); });  /* drag down reveals the top of the card */
+      let dragging=false, sx=0, sy=0, sVx=50, sVy=50;
+      prev.addEventListener('pointerdown', e=>{ dragging=true; sx=e.clientX; sy=e.clientY; const c=cropOf(name); sVx=c.x; sVy=c.y; try{prev.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
+      prev.addEventListener('pointermove', e=>{ if(!dragging) return; const ent=entry(name); ent.x=Math.round(Math.max(0,Math.min(100, sVx - ((e.clientX-sx)/(prev.offsetWidth||130))*100))); ent.y=Math.round(Math.max(0,Math.min(100, sVy - ((e.clientY-sy)/(prev.offsetHeight||130))*100))); applyCell(prev,name); });  /* drag moves the image: right reveals the left edge, down reveals the top */
       const end=()=>{ if(dragging){ dragging=false; saveCharCrops(); } };
       prev.addEventListener('pointerup', end); prev.addEventListener('pointercancel', end);
       zoom.addEventListener('input', ()=>{ entry(name).z=+zoom.value; applyCell(prev,name); });
@@ -2800,9 +2852,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const openCrops=()=>{ loadCharCrops(); build(); const rb=document.getElementById('cropRemember'); if(rb){ try{ rb.checked=!!localStorage.getItem(DEV_REMEMBER_KEY); }catch(e){} } modal.hidden=false; };
   const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
   /* ---- Developer Mode hub: an extensible launcher. Add a new tool by appending one entry here. ---- */
-  const DEV_MODULES=[
-    { name:'Image Crops', desc:'Choose how each character image is cropped, then push it live for everyone.', open:openCrops },
-  ];
+  DEV_MODULES.push({ name:'Image Crops', desc:'Choose how each character image is cropped, then push it live for everyone.', open:openCrops });
   const devModal=document.getElementById('devModal'), devModules=document.getElementById('devModules');
   function openHub(){
     if(devModules){ devModules.innerHTML=''; DEV_MODULES.forEach(m=>{ const b=document.createElement('button'); b.className='dev-module'; const n=document.createElement('span'); n.className='dev-module-name'; n.textContent=m.name; const d=document.createElement('span'); d.className='dev-module-desc'; d.textContent=m.desc; b.append(n,d); b.onclick=()=>{ closeHub(); m.open(); }; devModules.appendChild(b); }); }
@@ -2826,6 +2876,72 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const push=document.getElementById('cropPush'); if(push) push.onclick=()=>{ if(!_devPass){ setStatus('Unlock Developer Mode first.', true); return; } setStatus('Pushing to live…'); fetch(SHORTENER+'/crops',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass:_devPass, data:charCrops})}).then(r=>{ if(r.ok){ setStatus('Pushed. The crops are now live in the main tool.'); } else if(r.status===403){ setStatus('Rejected by the worker (wrong password).', true); } else { setStatus('Push failed ('+r.status+').', true); } }).catch(()=>setStatus('Push failed (network or worker).', true)); };
 })();
 /* ===================== end EXPERIMENTAL-ONLY crop editor wiring ===================== */
+
+/* ===================== EXPERIMENTAL-ONLY: Dev module — Parser Console — DO NOT PROMOTE ===================== */
+(function(){
+  const modal=document.getElementById('parserModal'); if(!modal) return;
+  const inp=document.getElementById('parserIn'), out=document.getElementById('parserOut'), dod=document.getElementById('parserDod'), ver=document.getElementById('parserVer');
+  function openParser(){ if(ver) ver.textContent='parser '+(window.VF_PARSER_VERSION||'?'); modal.hidden=false; setTimeout(()=>{ try{ inp.focus(); }catch(e){} },50); }
+  function close(){ modal.hidden=true; }
+  function run(){
+    const t=(inp.value||'');
+    if(!t.trim()){ out.textContent='(paste some text first)'; return; }
+    let res; try{ res=parseRotationText(t,{dod:!!(dod&&dod.checked)}); }catch(e){ out.textContent='Parser threw: '+((e&&e.message)||e); return; }
+    const L=[];
+    L.push('WARNINGS ('+((res.warnings||[]).length)+'):');
+    (res.warnings||[]).forEach(w=>L.push('  - '+w));
+    L.push(''); L.push('RECOGNIZED (got):'); L.push(JSON.stringify(res.got||{}, null, 2));
+    L.push(''); L.push('PARSED STATE:'); L.push(JSON.stringify(res.state||{}, null, 2));
+    out.textContent=L.join('\n');
+  }
+  DEV_MODULES.push({ name:'Parser Console', desc:'Paste rotation text and see what vf-parser.js recognizes (import debugging).', open:openParser });
+  const r=document.getElementById('parserRun'); if(r) r.onclick=run;
+  const c=document.getElementById('parserClose'); if(c) c.onclick=close;
+  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
+})();
+/* ===================== end Parser Console ===================== */
+
+/* ===================== EXPERIMENTAL-ONLY: Dev module — Diagnostics & Storage — DO NOT PROMOTE ===================== */
+(function(){
+  const modal=document.getElementById('diagModal'); if(!modal) return;
+  function fmtBytes(n){ return n<1024 ? n+' B' : (n/1024).toFixed(1)+' KB'; }
+  function renderStorage(){
+    const box=document.getElementById('diagStorage'); if(!box) return; box.innerHTML='';
+    let keys=[]; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf('vf-')===0) keys.push(k); } }catch(e){}
+    keys.sort();
+    if(!keys.length){ box.textContent='(no vf- keys)'; return; }
+    keys.forEach(k=>{
+      let val=''; try{ val=localStorage.getItem(k)||''; }catch(e){}
+      const row=document.createElement('div'); row.className='dev-storage-row';
+      const kn=document.createElement('span'); kn.className='dev-storage-key'; kn.textContent=k; kn.title=k;
+      const sz=document.createElement('span'); sz.className='dev-storage-size'; sz.textContent=fmtBytes(val.length);
+      const copy=document.createElement('button'); copy.className='dev-mini-btn'; copy.textContent='Copy';
+      copy.onclick=()=>{ try{ navigator.clipboard.writeText(val); copy.textContent='✓'; setTimeout(()=>copy.textContent='Copy',1000); }catch(e){} };
+      const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Clear';
+      del.onclick=()=>{ if(confirm('Remove '+k+' from this device?')){ try{ localStorage.removeItem(k); }catch(e){} renderStorage(); } };
+      row.append(kn,sz,copy,del); box.appendChild(row);
+    });
+  }
+  function renderBuild(){
+    const b=document.getElementById('diagBuild'); if(!b) return;
+    const vt=document.querySelector('.version-tag');
+    b.textContent='App version : '+((vt&&vt.textContent)||'?')+'\n'+
+      'Parser      : '+(window.VF_PARSER_VERSION||'?')+'\n'+
+      'Origin      : '+location.origin+'\n'+
+      'Page        : '+location.pathname+'\n'+
+      'Worker      : '+SHORTENER+'\n'+
+      'User agent  : '+navigator.userAgent;
+  }
+  function openDiag(){ renderBuild(); renderStorage(); const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent=''; s.className='dev-worker-status'; } modal.hidden=false; }
+  function close(){ modal.hidden=true; }
+  const wb=document.getElementById('diagWorker'); if(wb) wb.onclick=()=>{ const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent='checking…'; s.className='dev-worker-status'; } fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>{ if(s){ s.textContent='/crops  '+r.status+(r.ok?' OK':''); s.className='dev-worker-status '+(r.ok?'ok':'err'); } }).catch(()=>{ if(s){ s.textContent='unreachable'; s.className='dev-worker-status err'; } }); };
+  DEV_MODULES.push({ name:'Diagnostics & Storage', desc:'Worker status, build info, and local storage (view, copy or clear vf- keys).', open:openDiag });
+  const c=document.getElementById('diagClose'); if(c) c.onclick=close;
+  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
+})();
+/* ===================== end Diagnostics ===================== */
 
 /* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
 function exportBaseName(){
@@ -3180,7 +3296,7 @@ function portraitDataURL(img,size,crop){
   const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
   const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
   const dw=size*(crop.z/100), sc=dw/iw, dh=ih*sc;               /* width-driven zoom (these cards are portrait, so width is the cover dimension) */
-  x.drawImage(img,(size-dw)/2,(size-dh)*(crop.y/100),dw,dh);    /* center horizontally, pan vertically by y% (background-position semantics) */
+  x.drawImage(img,(size-dw)*((crop.x!=null?crop.x:50)/100),(size-dh)*(crop.y/100),dw,dh);    /* pan horizontally by x% and vertically by y% (background-position semantics) */
   return c.toDataURL('image/png');
 }
 function fullDataURL(img){
@@ -3781,6 +3897,6 @@ state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622e</div>
+<div class="version-tag">260622f</div>
 </body>
 </html>

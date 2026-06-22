@@ -1134,11 +1134,11 @@ function personaImg(name){
    frame (default 112% crops it out of view), y pans vertically. The values are authored in the
    experimental "Developer Mode" editor and pushed to the worker; this live build only reads + applies them
    (no editor here), so changes appear without re-uploading index.html. */
-const CHAR_CROP_DEF={z:112,y:50};
+const CHAR_CROP_DEF={z:112,y:50,x:50};
 const CHAR_CROP_LIVE_KEY='vf-charcrop-live-v1';
 let charCrops={};
-function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y) }; }
-function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:50% ${c.y}%`; }
+function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y), x:(c.x!=null?+c.x:CHAR_CROP_DEF.x) }; }
+function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:${c.x}% ${c.y}%`; }
 function loadCharCropsLive(){
   try{ const c=JSON.parse(localStorage.getItem(CHAR_CROP_LIVE_KEY)); if(c&&typeof c==='object') charCrops=c; }catch(e){}
   try{ fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
@@ -3050,7 +3050,7 @@ function portraitDataURL(img,size,crop){
   const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
   const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
   const dw=size*(crop.z/100), sc=dw/iw, dh=ih*sc;               /* width-driven zoom (these cards are portrait, so width is the cover dimension) */
-  x.drawImage(img,(size-dw)/2,(size-dh)*(crop.y/100),dw,dh);    /* center horizontally, pan vertically by y% (background-position semantics) */
+  x.drawImage(img,(size-dw)*((crop.x!=null?crop.x:50)/100),(size-dh)*(crop.y/100),dw,dh);    /* pan horizontally by x% and vertically by y% (background-position semantics) */
   return c.toDataURL('image/png');
 }
 function fullDataURL(img){
