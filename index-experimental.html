@@ -2684,8 +2684,9 @@ function _syncStatus(m,err){ const el=document.getElementById('syncStatus'); if(
 function syncCodeSet(code){ _syncCode=(code||'').trim(); try{ if(_syncCode) localStorage.setItem(SYNC_KEY,_syncCode); else localStorage.removeItem(SYNC_KEY); }catch(e){} }
 function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib() }; }
 function _syncApply(d){ _syncApplying=true; try{ applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); }catch(e){} _syncApplying=false; }
-function syncPull(silent){ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); return; } if(!silent) _syncStatus('Syncing…');
-  fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return null; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(!d) return; if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); } else if(!silent) _syncStatus('Already up to date.'); }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); }); }
+/* resolves with: 'applied' (server was newer, taken), 'empty' (valid slot, nothing newer -> caller may push local up), 'unknown' (bad code), 'error' */
+function syncPull(silent){ return new Promise(resolve=>{ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); resolve('error'); return; } if(!silent) _syncStatus('Syncing…');
+  fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return '__404__'; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(d==='__404__'){ resolve('unknown'); return; } if(!d){ resolve('error'); return; } if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); resolve('applied'); } else { if(!silent) _syncStatus('Already up to date.'); resolve('empty'); } }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); resolve('error'); }); }); }
 function syncPush(){ if(!_syncCode) return; const data=_syncSnapshot();
   fetch(SHORTENER+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:_syncCode,data})}).then(r=>{ if(r.ok){ _setSyncMetaTs(data.ts); _syncStatus('Saved to the cloud.'); } else if(r.status===403){ _syncStatus('This sync code is not active.',true); } else { _syncStatus('Cloud save failed ('+r.status+').',true); } }).catch(()=>_syncStatus('Could not reach the sync service.',true)); }
 function syncSchedulePush(){ if(!_syncCode||_syncApplying) return; clearTimeout(_syncPushT); _syncPushT=setTimeout(syncPush, 2500); }
@@ -3047,8 +3048,8 @@ function syncRefreshUI(){ const row=document.getElementById('syncConnectedRow'),
   if(inp && document.activeElement!==inp) inp.value=c;
   if(row) row.hidden=!c;
   if(who) who.textContent = c ? ('Connected with code '+c+'. Settings and library sync automatically.') : ''; }
-{ const cn=document.getElementById('syncConnect'); if(cn) cn.onclick=()=>{ const v=(document.getElementById('syncCodeIn').value||'').trim(); if(!v){ _syncStatus('Enter a sync code first.',true); return; } syncCodeSet(v); _setSyncMetaTs(0); syncRefreshUI(); syncPull(false); };
-  const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false); setTimeout(syncPush, 400); };
+{ const cn=document.getElementById('syncConnect'); if(cn) cn.onclick=()=>{ const v=(document.getElementById('syncCodeIn').value||'').trim(); if(!v){ _syncStatus('Enter a sync code first.',true); return; } syncCodeSet(v); _setSyncMetaTs(0); syncRefreshUI(); syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
+  const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
   const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ syncCodeSet(''); _setSyncMetaTs(0); syncRefreshUI(); _syncStatus('Disconnected. This device no longer syncs.'); };
   syncRefreshUI(); }
 document.getElementById('settingsFile').onchange=e=>{
@@ -4705,6 +4706,6 @@ if(_syncCode) syncPull(true);   /* pull the latest settings + library from the c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623a</div>
+<div class="version-tag">260623b</div>
 </body>
 </html>
