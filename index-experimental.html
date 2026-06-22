@@ -398,7 +398,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-tabs{display:flex; gap:6px}
 .dev-tab{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:6px 14px; font:600 12px Inter,system-ui,sans-serif; cursor:pointer}
 .dev-tab.active{color:var(--text); border-color:#ffae42; background:var(--panel2)}
-.dev-add-fields{display:flex; flex-direction:column; gap:9px}
+#rosterAddPane, #rosterEditPane{display:flex; flex-direction:column; gap:11px}
+.dev-add-fields{display:flex; flex-direction:column; gap:10px; margin:2px 0}
 .dev-add-row{display:flex; align-items:center; gap:10px}
 .dev-add-row>label{flex:0 0 130px; font-size:12px; color:var(--muted)}
 .dev-add-row input[type=text]{flex:1 1 auto; min-width:0; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 9px; font:13px Inter,system-ui,sans-serif}
@@ -3266,7 +3267,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       else if(d.type==='select'){ row.append(selOf(d.k, d.opts, false)); }
       else if(d.type==='check'){ const c=document.createElement('input'); c.type='checkbox'; c.dataset.k=d.k; c.onchange=updateWhen; row.append(c); }
       else if(d.type==='file'){ const f=document.createElement('input'); f.type='file'; f.accept='image/*'; f.dataset.k=d.k; const pv=document.createElement('span'); pv.className='dev-add-prev'; f.onchange=()=>{ const file=f.files&&f.files[0]; if(file){ const r=new FileReader(); r.onload=()=>{ pv.style.backgroundImage="url('"+r.result+"')"; }; r.readAsDataURL(file); } }; row.append(f,pv); }
-      else { const t=document.createElement('input'); t.type='text'; t.dataset.k=d.k; if(d.ph) t.placeholder=d.ph; else if(d.up) t.placeholder='UPPERCASE'; row.append(t); }
+      else { const t=document.createElement('input'); t.type='text'; t.dataset.k=d.k; if(d.ph) t.placeholder=d.ph; else if(d.up) t.placeholder='UPPERCASE'; if(d.up){ t.style.textTransform='uppercase'; t.oninput=()=>{ const p=t.selectionStart; t.value=t.value.toUpperCase(); try{ t.setSelectionRange(p,p); }catch(e){} }; } row.append(t); }
       addFields.appendChild(row);
     });
     updateWhen();
@@ -4316,6 +4317,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622o</div>
+<div class="version-tag">260622p</div>
 </body>
 </html>
