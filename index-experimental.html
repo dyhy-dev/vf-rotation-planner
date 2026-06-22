@@ -104,6 +104,7 @@ button{cursor:pointer}
 
 /* header / setup */
 .head-top{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap}
+.head-actions{display:flex; gap:8px; flex:0 0 auto; align-items:center; margin-left:auto; flex-wrap:wrap; justify-content:flex-end}
 .rot-name{flex:1 1 320px}
 .rot-name input{width:100%; background:transparent; border:none; border-bottom:2px solid var(--line);
   font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
@@ -834,7 +835,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="dropdown-item" data-export="code">Copy Code</button>
         </div>
       </div>
-      <button class="btn" id="libBtn" title="Your saved rotations (this device)">Library</button>
       <button class="btn" id="settingsBtn" title="Open settings (local display options)">Settings</button>
       <button class="btn" id="resetBtn">Reset</button>
       <button class="btn" id="playBtn" title="Play the rotation turn by turn">Play</button>
@@ -871,9 +871,9 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <div class="modal" id="libModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="My rotations">
-    <div class="modal-head"><h2>My Rotations</h2><button class="modal-close" id="libClose" aria-label="Close">&times;</button></div>
+    <div class="modal-head"><h2 id="libTitle">My Rotations</h2><button class="modal-close" id="libClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
-      <div class="lib-tools"><button class="btn" id="libSaveBtn">Save current rotation</button><span class="lib-hint">Saved on this device. Use Settings &rarr; Backup to export them to a file.</span></div>
+      <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><span class="lib-hint">Saved on this device. Use Settings &rarr; Backup to export them to a file.</span></div>
       <div class="lib-filters">
         <input type="text" id="libSearch" class="lib-input" placeholder="Search name, boss, credits..."/>
         <select id="libBoss" class="lib-select"><option value="">All bosses</option></select>
@@ -1749,6 +1749,11 @@ function renderHead(){
   document.getElementById('headPanel').innerHTML=`
     <div class="head-top">
       <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="Rotation Name"/></div>
+      <div class="head-actions">
+        <button type="button" class="btn" id="setupSaveBtn">Save current rotation</button>
+        <button type="button" class="btn" id="setupLoadBtn">Load</button>
+        <button type="button" class="btn" id="setupLibBtn" title="Your saved rotations (this device)">Library</button>
+      </div>
     </div>
     <div class="meta meta-big">
       <div class="type-field"><label>Mode</label><div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div></div>
@@ -1759,6 +1764,9 @@ function renderHead(){
     </div>
     <datalist id="bossList"></datalist>`;
   bind('f_name','setup.rotationName');
+  { const sv=document.getElementById('setupSaveBtn'); if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
+    const ld=document.getElementById('setupLoadBtn'); if(ld) ld.onclick=()=>window.openLibrary&&window.openLibrary('load');
+    const lib=document.getElementById('setupLibBtn'); if(lib) lib.onclick=()=>window.openLibrary&&window.openLibrary('full'); }
   bind('f_credits','setup.credits');
   { const cf=document.getElementById('f_credits');
     if(cf){ cf.addEventListener('input', fitCredits);
@@ -3081,6 +3089,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
 (function(){
   const modal=document.getElementById('libModal'); if(!modal) return;
   const list=document.getElementById('libList');
+  let _libMode='full';   /* 'full' = library (save/overwrite/rename/delete); 'load' = load-only list */
   function fmtDate(ts){ try{ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
   const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sortSel=document.getElementById('libSort');
   function fillSel(sel, allLabel, values){ const cur=sel.value; sel.innerHTML='<option value="">'+allLabel+'</option>'; values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); sel.value = values.indexOf(cur)>=0 ? cur : ''; }
@@ -3104,8 +3113,8 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       main.append(nm,meta);
       const btns=document.createElement('div'); btns.className='lib-item-btns';
       const mk=(t,fn)=>{ const b=document.createElement('button'); b.className='lib-mini'; b.textContent=t; b.onclick=fn; return b; };
-      btns.append(
-        mk('Load',()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)) close(); } }),
+      btns.append(mk('Load',()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)) close(); } }));
+      if(_libMode!=='load') btns.append(
         mk('Overwrite',()=>{ if(confirm('Overwrite "'+e.name+'" with your current rotation?')){ libOverwrite(e.id); render(); } }),
         mk('Rename',()=>{ const n=prompt('Rename rotation:', e.name); if(n!=null){ libRename(e.id,n); render(); } }),
         mk('Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
@@ -3113,11 +3122,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       it.append(main,btns); list.appendChild(it);
     });
   }
-  const open=()=>{ render(); modal.hidden=false; };
+  function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
   const close=()=>{ modal.hidden=true; };
-  const lb=document.getElementById('libBtn'); if(lb) lb.onclick=open;
+  function doSave(){ const n=prompt('Save current rotation as:', state.setup.rotationName||'Rotation'); if(n!=null){ libSaveCurrent(n); render(); } }
+  window.openLibrary=open; window.saveCurrentRotation=doSave;
   const lc=document.getElementById('libClose'); if(lc) lc.onclick=close;
-  const sb=document.getElementById('libSaveBtn'); if(sb) sb.onclick=()=>{ const n=prompt('Save current rotation as:', state.setup.rotationName||'Rotation'); if(n!=null){ libSaveCurrent(n); render(); } };
+  const sb=document.getElementById('libSaveBtn'); if(sb) sb.onclick=doSave;
   if(searchInp) searchInp.oninput=render;
   [bossSel,modeSel,sortSel].forEach(s=>{ if(s) s.onchange=render; });
   const lcl=document.getElementById('libClear'); if(lcl) lcl.onclick=()=>{ if(searchInp) searchInp.value=''; if(bossSel) bossSel.value=''; if(modeSel) modeSel.value=''; if(sortSel) sortSel.value='new'; render(); };
@@ -4583,6 +4593,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622y</div>
+<div class="version-tag">260622z</div>
 </body>
 </html>
