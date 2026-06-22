@@ -993,7 +993,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="dev-tabs"><button class="dev-tab active" id="rosterTabAdd">Add new</button><button class="dev-tab" id="rosterTabEdit">Edit tables</button></div>
       <div id="rosterAddPane">
         <p class="crop-hint">Pick what to add, fill in the details and optionally upload an image. Everything is filed into the right tables automatically. "Add to session" tests it locally; "Add &amp; push live" makes it live for everyone. On push, an uploaded image is committed to the GitHub repo (visible after the Pages build, about a minute).</p>
-        <div class="dev-tool-row"><span class="dev-label">Add a</span><select id="addType" class="dev-select"><option value="character">Character</option><option value="persona">Persona</option><option value="dagger">Dagger</option><option value="skill">Skill</option></select></div>
+        <div class="dev-tool-row"><span class="dev-label">Add a</span><select id="addType" class="dev-select"><option value="character">Character</option><option value="persona">Persona</option><option value="dagger">Dagger</option><option value="skill">Skill</option><option value="boss">Boss</option><option value="revelation">Revelation card</option></select></div>
         <div class="dev-add-fields" id="addFields"></div>
         <div class="dev-tool-row"><span class="dev-status" id="addStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="addApply">Add to session</button><button class="btn btn-exp" id="addPush">Add &amp; push live</button></div>
       </div>
@@ -1246,6 +1246,8 @@ function btnLabel(c){ return BTN_LABEL[c]||c||''; }
 const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO','CROW','QUEEN','MONT·F','LUCE']; // get a separate button next to the character select
 const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC', QUEEN:'CO'};                       // editor button text; default 'Alt'
 const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch', QUEEN:'Crash Out'}; // export text; default 'Button'
+/* element -> character colour (used by the dev "Add new" form; values are editable in the Data Editor). "Elucidator" also flags the character as a navigator. */
+const ELEM_COLOR = {Fire:'#ff391d', Ice:'#00afff', Elec:'#fcff37', Wind:'#82ec2c', Nuke:'#ff9d00', Psy:'#ffffa2', Bless:'#fe9e01', Curse:'#ff66ff', Gun:'#00fcff', Phys:'#ff0036', Almighty:'#ffffff', Elucidator:'#3a6dfa'};
 function hasAlt(name){ return ALT_CHARS.includes((name||'').toUpperCase()); }
 function altBtnLabel(name){ return ALT_BTN_LABEL[(name||'').toUpperCase()] || 'Alt'; }
 function altExportLabel(name){ return ALT_EXPORT_LABEL[(name||'').toUpperCase()] || 'Button'; }
@@ -1397,13 +1399,18 @@ function savePersonaCrops(){ try{ localStorage.setItem(PERSONA_CROP_KEY, JSON.st
 const DATA_LIVE_KEY='vf-data-live-v1';
 function applyDataOverrides(o){
   if(!o||typeof o!=='object') return;
-  ['characterNames','personaNames','charColors','characterImages','personaImages','bossNames','daggerNames','elucidatorNames','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
+  ['characterNames','personaNames','charColors','characterImages','personaImages','bossNames','daggerNames','elucidatorNames','elucidatorOpts','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
   if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
   if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
   if(o.PERSONA_SIGNATURES&&typeof o.PERSONA_SIGNATURES==='object'){ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,o.PERSONA_SIGNATURES); }
   if(o.DAGGER_IMG&&typeof o.DAGGER_IMG==='object'){ Object.keys(DAGGER_IMG).forEach(x=>delete DAGGER_IMG[x]); Object.assign(DAGGER_IMG,o.DAGGER_IMG); }
   if(o.SKILL_ALIASES&&typeof o.SKILL_ALIASES==='object'){ Object.keys(SKILL_ALIASES).forEach(x=>delete SKILL_ALIASES[x]); Object.assign(SKILL_ALIASES,o.SKILL_ALIASES); }
   if(o.SKILL_LIST&&Array.isArray(o.SKILL_LIST)){ SKILL_LIST.length=0; o.SKILL_LIST.forEach(x=>SKILL_LIST.push(x)); }
+  if(o.ELEM_COLOR&&typeof o.ELEM_COLOR==='object'){ Object.keys(ELEM_COLOR).forEach(x=>delete ELEM_COLOR[x]); Object.assign(ELEM_COLOR,o.ELEM_COLOR); }
+  if(o.CHAR_CARD_DEFAULTS&&typeof o.CHAR_CARD_DEFAULTS==='object'){ Object.keys(CHAR_CARD_DEFAULTS).forEach(x=>delete CHAR_CARD_DEFAULTS[x]); Object.assign(CHAR_CARD_DEFAULTS,o.CHAR_CARD_DEFAULTS); }
+  if(o.ALT_BTN_LABEL&&typeof o.ALT_BTN_LABEL==='object'){ Object.keys(ALT_BTN_LABEL).forEach(x=>delete ALT_BTN_LABEL[x]); Object.assign(ALT_BTN_LABEL,o.ALT_BTN_LABEL); }
+  if(o.ALT_EXPORT_LABEL&&typeof o.ALT_EXPORT_LABEL==='object'){ Object.keys(ALT_EXPORT_LABEL).forEach(x=>delete ALT_EXPORT_LABEL[x]); Object.assign(ALT_EXPORT_LABEL,o.ALT_EXPORT_LABEL); }
+  if(o.ALT_CHARS&&Array.isArray(o.ALT_CHARS)){ ALT_CHARS.length=0; o.ALT_CHARS.forEach(x=>ALT_CHARS.push(x)); }
 }
 function loadDataLive(){
   try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
@@ -3166,7 +3173,13 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     {k:'sunSkyCards', type:'array', get:()=>DATA.sunSkyCards, set:v=>{ DATA.sunSkyCards=v; }},
     {k:'revSets', type:'array', get:()=>DATA.revSets, set:v=>{ DATA.revSets=v; }},
     {k:'personaImages', type:'map', get:()=>(DATA.personaImages||(DATA.personaImages={})), set:v=>{ DATA.personaImages=v; }},
-    {k:'SKILL_LIST', type:'array', get:()=>SKILL_LIST, set:v=>{ SKILL_LIST.length=0; v.forEach(x=>SKILL_LIST.push(x)); }}
+    {k:'SKILL_LIST', type:'array', get:()=>SKILL_LIST, set:v=>{ SKILL_LIST.length=0; v.forEach(x=>SKILL_LIST.push(x)); }},
+    {k:'elucidatorOpts', type:'array', get:()=>DATA.elucidatorOpts, set:v=>{ DATA.elucidatorOpts=v; }},
+    {k:'ELEM_COLOR', type:'map', get:()=>ELEM_COLOR, set:v=>{ Object.keys(ELEM_COLOR).forEach(x=>delete ELEM_COLOR[x]); Object.assign(ELEM_COLOR,v); }},
+    {k:'CHAR_CARD_DEFAULTS', type:'map', get:()=>CHAR_CARD_DEFAULTS, set:v=>{ Object.keys(CHAR_CARD_DEFAULTS).forEach(x=>delete CHAR_CARD_DEFAULTS[x]); Object.assign(CHAR_CARD_DEFAULTS,v); }},
+    {k:'ALT_CHARS', type:'array', get:()=>ALT_CHARS, set:v=>{ ALT_CHARS.length=0; v.forEach(x=>ALT_CHARS.push(x)); }},
+    {k:'ALT_BTN_LABEL', type:'map', get:()=>ALT_BTN_LABEL, set:v=>{ Object.keys(ALT_BTN_LABEL).forEach(x=>delete ALT_BTN_LABEL[x]); Object.assign(ALT_BTN_LABEL,v); }},
+    {k:'ALT_EXPORT_LABEL', type:'map', get:()=>ALT_EXPORT_LABEL, set:v=>{ Object.keys(ALT_EXPORT_LABEL).forEach(x=>delete ALT_EXPORT_LABEL[x]); Object.assign(ALT_EXPORT_LABEL,v); }}
   ];
   /* adding/removing a character or persona (or dagger) keeps the linked tables in sync */
   const GROUPS={
@@ -3183,12 +3196,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   let working=[], jsonMode=false;
   function cur(){ return TABLES[sel.selectedIndex]||TABLES[0]; }
-  function toWorking(v,t){ if(t==='array') return (v||[]).slice(); if(t==='map') return Object.entries(v||{}).map(([k,x])=>[k,x]); return Object.entries(v||{}).map(([k,x])=>[k,(x||[]).join(', ')]); }
+  function toWorking(v,t){ if(t==='array') return (v||[]).slice(); if(t==='map') return Object.entries(v||{}).map(([k,x])=>[k,(x&&typeof x==='object')?JSON.stringify(x):x]); return Object.entries(v||{}).map(([k,x])=>[k,(x||[]).join(', ')]); }
   function realValue(){
     if(jsonMode) return JSON.parse(ta.value);
     const t=cur().type;
     if(t==='array') return working.map(s=>String(s).trim()).filter(Boolean);
-    if(t==='map'){ const o={}; working.forEach(p=>{ const k=String(p[0]).trim(); if(k) o[k]=p[1]; }); return o; }
+    if(t==='map'){ const o={}; working.forEach(p=>{ const k=String(p[0]).trim(); if(!k) return; let val=p[1]; const s=String(val).trim(); if(s[0]==='{'||s[0]==='['){ try{ val=JSON.parse(s); }catch(e){} } o[k]=val; }); return o; }
     const o={}; working.forEach(p=>{ const k=String(p[0]).trim(); if(k) o[k]=String(p[1]).split(',').map(s=>s.trim()).filter(Boolean); }); return o;
   }
   function renderForm(){
@@ -3217,30 +3230,49 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   let addTimer=null;
   function addStatus(m,err){ if(!addStatusEl) return; if(addTimer){clearTimeout(addTimer);addTimer=null;} addStatusEl.textContent=m||''; addStatusEl.classList.toggle('err',!!err); if(m){ addTimer=setTimeout(()=>{ addStatusEl.textContent=''; addStatusEl.classList.remove('err'); },6000); } }
   const ADD_DEFS={
-    character:[{k:'name',l:'Name (e.g. JOKER2)',up:true},{k:'color',l:'Colour',color:true},{k:'aliases',l:'Aliases (comma sep.)'},{k:'image',l:'Image',file:true}],
-    persona:[{k:'name',l:'Name'},{k:'signature',l:'Signature skill'},{k:'aliases',l:'Aliases (comma sep.)'},{k:'image',l:'Image',file:true}],
-    dagger:[{k:'name',l:'Name'},{k:'image',l:'Image',file:true}],
-    skill:[{k:'name',l:'Name'},{k:'aliases',l:'Aliases (comma sep.)'}]
+    character:[
+      {k:'name',l:'Name (e.g. JOKER2)',type:'text',up:true},
+      {k:'element',l:'Element (sets colour)',type:'element'},
+      {k:'aliases',l:'Aliases (comma sep.)',type:'text'},
+      {k:'space',l:'Default Space card',type:'space'},
+      {k:'sunsky',l:'Default Sun/Sky card',type:'sunsky'},
+      {k:'image',l:'Image',type:'file'},
+      {k:'alt',l:'Alt button?',type:'check'},
+      {k:'altLabel',l:'Alt button name',type:'text',when:'alt',ph:'Alt'},
+      {k:'altExport',l:'Alt export text',type:'text',when:'alt',ph:'Button'}
+    ],
+    persona:[{k:'name',l:'Name',type:'text'},{k:'signature',l:'Signature skill',type:'text'},{k:'aliases',l:'Aliases (comma sep.)',type:'text'},{k:'image',l:'Image',type:'file'}],
+    dagger:[{k:'name',l:'Name',type:'text'},{k:'image',l:'Image',type:'file'}],
+    skill:[{k:'name',l:'Name',type:'text'},{k:'aliases',l:'Aliases (comma sep.)',type:'text'}],
+    boss:[{k:'name',l:'Name',type:'text',up:true}],
+    revelation:[{k:'cat',l:'Card type',type:'select',opts:['Space','Sun/Moon/Star/Sky']},{k:'name',l:'Card name',type:'text'}]
   };
+  function selOf(k,list,empty){ const s=document.createElement('select'); s.className='dev-select'; s.dataset.k=k; if(empty) s.append(new Option('','')); (list||[]).forEach(o=>s.append(new Option(o,o))); return s; }
+  function updateWhen(){ addFields.querySelectorAll('.dev-add-row[data-when]').forEach(row=>{ const dep=addFields.querySelector('[data-k="'+row.dataset.when+'"]'); row.hidden=!(dep&&dep.checked); }); }
   function renderAddFields(){
     const type=addTypeSel.value; addFields.innerHTML='';
     ADD_DEFS[type].forEach(d=>{
-      const row=document.createElement('div'); row.className='dev-add-row';
+      const row=document.createElement('div'); row.className='dev-add-row'; if(d.when) row.dataset.when=d.when;
       const lab=document.createElement('label'); lab.textContent=d.l; row.append(lab);
-      if(d.color){ const c=document.createElement('input'); c.type='color'; c.value='#ffffff'; c.dataset.k=d.k; const hx=document.createElement('input'); hx.type='text'; hx.value='#ffffff'; hx.dataset.k=d.k+'_hex'; c.oninput=()=>{ hx.value=c.value; }; hx.oninput=()=>{ if(/^#[0-9a-fA-F]{6}$/.test(hx.value)) c.value=hx.value; }; row.append(c,hx); }
-      else if(d.file){ const f=document.createElement('input'); f.type='file'; f.accept='image/*'; f.dataset.k=d.k; const pv=document.createElement('span'); pv.className='dev-add-prev'; f.onchange=()=>{ const file=f.files&&f.files[0]; if(file){ const r=new FileReader(); r.onload=()=>{ pv.style.backgroundImage="url('"+r.result+"')"; }; r.readAsDataURL(file); } }; row.append(f,pv); }
-      else { const t=document.createElement('input'); t.type='text'; t.dataset.k=d.k; if(d.up) t.placeholder='UPPERCASE'; row.append(t); }
+      if(d.type==='element'){ const s=selOf(d.k, Object.keys(ELEM_COLOR), true); const sw=document.createElement('span'); sw.className='dev-swatch'; s.onchange=()=>{ sw.style.background=ELEM_COLOR[s.value]||'transparent'; }; row.append(s,sw); }
+      else if(d.type==='space'){ row.append(selOf(d.k, DATA.spaceCards, true)); }
+      else if(d.type==='sunsky'){ row.append(selOf(d.k, DATA.sunSkyCards, true)); }
+      else if(d.type==='select'){ row.append(selOf(d.k, d.opts, false)); }
+      else if(d.type==='check'){ const c=document.createElement('input'); c.type='checkbox'; c.dataset.k=d.k; c.onchange=updateWhen; row.append(c); }
+      else if(d.type==='file'){ const f=document.createElement('input'); f.type='file'; f.accept='image/*'; f.dataset.k=d.k; const pv=document.createElement('span'); pv.className='dev-add-prev'; f.onchange=()=>{ const file=f.files&&f.files[0]; if(file){ const r=new FileReader(); r.onload=()=>{ pv.style.backgroundImage="url('"+r.result+"')"; }; r.readAsDataURL(file); } }; row.append(f,pv); }
+      else { const t=document.createElement('input'); t.type='text'; t.dataset.k=d.k; if(d.ph) t.placeholder=d.ph; else if(d.up) t.placeholder='UPPERCASE'; row.append(t); }
       addFields.appendChild(row);
     });
+    updateWhen();
   }
-  function addVals(){ const o={}; addFields.querySelectorAll('input[data-k]').forEach(i=>{ if(i.type==='file') o[i.dataset.k]=i; else if(!/_hex$/.test(i.dataset.k)) o[i.dataset.k]=i.value; }); return o; }
+  function addVals(){ const o={}; addFields.querySelectorAll('[data-k]').forEach(i=>{ const k=i.dataset.k; if(i.type==='file') o[k]=i; else if(i.type==='checkbox') o[k]=i.checked; else o[k]=i.value; }); return o; }
   function readFile(input){ return new Promise(res=>{ const f=input&&input.files&&input.files[0]; if(!f){ res(''); return; } const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>res(''); r.readAsDataURL(f); }); }
   function extFromDataURL(d){ const m=/^data:image\/([a-z0-9.+-]+)/i.exec(d||''); let e=(m?m[1]:'png').toLowerCase(); if(e==='jpeg') e='jpg'; if(e==='svg+xml') e='svg'; return e.replace(/[^a-z0-9]/g,'')||'png'; }
   function safeFile(n){ return String(n).replace(/[\\/:*?"<>|\s·]+/g,'-'); }
   async function commitImg(path, dataURL){ const r=await fetch(SHORTENER+'/img',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,path,data:dataURL})}); if(!r.ok){ let d=''; try{ d=(await r.json()).error||''; }catch(e){} throw new Error(r.status+(d?(' '+d):'')); } return path; }
   async function addEntry(push){
     const type=addTypeSel.value, v=addVals();
-    let name=(v.name||'').trim(); if(type==='character') name=name.toUpperCase();
+    let name=(v.name||'').trim(); if(type==='character'||type==='boss') name=name.toUpperCase();
     if(!name){ addStatus('Enter a name.',true); return; }
     if(push && !_devPass){ addStatus('Unlock Developer Mode first.',true); return; }
     const aliases=(v.aliases||'').split(',').map(s=>s.trim()).filter(Boolean);
@@ -3252,10 +3284,19 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     }
     DATA.personaImages=DATA.personaImages||{};
     let touched=[];
-    if(type==='character'){ if(!DATA.characterNames.includes(name)) DATA.characterNames.push(name); DATA.charColors[name]=v.color||''; CHAR_ALIASES[name]=aliases; if(imgVal) DATA.characterImages[name]=imgVal; touched=['characterNames','charColors','CHAR_ALIASES','characterImages']; }
+    if(type==='character'){
+      if(!DATA.characterNames.includes(name)) DATA.characterNames.push(name);
+      DATA.charColors[name]=ELEM_COLOR[v.element]||''; CHAR_ALIASES[name]=aliases; if(imgVal) DATA.characterImages[name]=imgVal;
+      touched=['characterNames','charColors','CHAR_ALIASES','characterImages'];
+      if(v.element==='Elucidator'){ DATA.elucidatorNames=DATA.elucidatorNames||[]; DATA.elucidatorOpts=DATA.elucidatorOpts||[]; if(!DATA.elucidatorNames.includes(name)) DATA.elucidatorNames.push(name); if(!DATA.elucidatorOpts.includes(name)) DATA.elucidatorOpts.push(name); touched.push('elucidatorNames','elucidatorOpts'); }
+      if(v.space && v.sunsky){ CHAR_CARD_DEFAULTS[name]={space:v.space,sunsky:v.sunsky}; touched.push('CHAR_CARD_DEFAULTS'); }
+      if(v.alt){ if(!ALT_CHARS.includes(name)) ALT_CHARS.push(name); touched.push('ALT_CHARS'); const lbl=(v.altLabel||'').trim(); if(lbl){ ALT_BTN_LABEL[name]=lbl; touched.push('ALT_BTN_LABEL'); } const exp=(v.altExport||'').trim(); if(exp){ ALT_EXPORT_LABEL[name]=exp; touched.push('ALT_EXPORT_LABEL'); } }
+    }
     else if(type==='persona'){ if(!DATA.personaNames.includes(name)) DATA.personaNames.push(name); PERSONA_SIGNATURES[name]=v.signature||''; PERSONA_ALIASES[name]=aliases; if(imgVal) DATA.personaImages[name]=imgVal; touched=['personaNames','PERSONA_SIGNATURES','PERSONA_ALIASES','personaImages']; }
     else if(type==='dagger'){ if(!DATA.daggerNames.includes(name)) DATA.daggerNames.push(name); if(imgVal) DAGGER_IMG[name]=imgVal; touched=['daggerNames','DAGGER_IMG']; }
     else if(type==='skill'){ if(!SKILL_LIST.includes(name)) SKILL_LIST.push(name); if(aliases.length) SKILL_ALIASES[name]=aliases; touched=['SKILL_LIST','SKILL_ALIASES']; }
+    else if(type==='boss'){ if(!DATA.bossNames.includes(name)) DATA.bossNames.push(name); touched=['bossNames']; }
+    else if(type==='revelation'){ const arr=(v.cat==='Space')?'spaceCards':'sunSkyCards'; if(!DATA[arr].includes(name)) DATA[arr].push(name); touched=[arr]; }
     try{ renderAll(); }catch(e){}
     if(push){ const data={}; touched.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok) addStatus('Added "'+name+'" and pushed it live.'); else if(r.status===403) addStatus('Rejected (wrong password).',true); else addStatus('Saved locally, but push failed ('+r.status+').',true); }).catch(()=>addStatus('Saved locally, but push failed (worker).',true)); }
     else addStatus('Added "'+name+'" to this session.');
@@ -4269,6 +4310,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622l</div>
+<div class="version-tag">260622m</div>
 </body>
 </html>
