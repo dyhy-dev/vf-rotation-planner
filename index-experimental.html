@@ -1628,7 +1628,7 @@ function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:
 function libDelete(id){ saveLib(loadLib().filter(e=>e.id!==id)); }
 function libRename(id,name){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.name=String(name||'').trim()||e.name; saveLib(a); } }
 function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
-function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; try{ state=migrate(JSON.parse(JSON.stringify(e.state))); save(); renderAll(); return true; }catch(err){ return false; } }
+function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; try{ state=migrate(JSON.parse(JSON.stringify(e.state))); _lastImportText=''; save(); renderAll(); return true; }catch(err){ return false; } }
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
@@ -1742,6 +1742,7 @@ function openImportText(){
       paintImp();
       const keepEl=document.getElementById('ioKeep'); const keepText=(keepEl&&keepEl.checked)?v:null;
       showImportFeedback(res);
+      _lastImportText = keepText || ''; syncImportBtn();
       if(keepText) showImportNote(keepText); else { const n=document.getElementById('importNote'); if(n) n.hidden=true; }
     }});
 }
@@ -1767,12 +1768,15 @@ function fitCredits(){
   el.style.paddingTop=pad+'px'; el.style.paddingBottom=pad+'px';
 }
 
+let _lastImportText='';   /* the raw text from the last "keep text" import, so it can be reopened from the setup header */
+function syncImportBtn(){ const b=document.getElementById('setupShowImport'); if(b) b.hidden=!_lastImportText; }
 function renderHead(){
   const s=state.setup;
   document.getElementById('headPanel').innerHTML=`
     <div class="head-top">
       <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="Rotation Name"/></div>
       <div class="head-actions">
+        <button type="button" class="btn" id="setupShowImport" title="Show the imported text again"${_lastImportText?'':' hidden'}>Imported text</button>
         <button type="button" class="btn" id="setupSaveBtn" title="Save the current rotation to your library">Save</button>
         <button type="button" class="btn" id="setupLoadBtn">Load</button>
         <button type="button" class="btn" id="setupLibBtn" title="Your saved rotations (this device)">Library</button>
@@ -1787,7 +1791,8 @@ function renderHead(){
     </div>
     <datalist id="bossList"></datalist>`;
   bind('f_name','setup.rotationName');
-  { const sv=document.getElementById('setupSaveBtn'); if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
+  { const si=document.getElementById('setupShowImport'); if(si) si.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
+    const sv=document.getElementById('setupSaveBtn'); if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
     const ld=document.getElementById('setupLoadBtn'); if(ld) ld.onclick=()=>window.openLibrary&&window.openLibrary('load');
     const lib=document.getElementById('setupLibBtn'); if(lib) lib.onclick=()=>window.openLibrary&&window.openLibrary('full'); }
   bind('f_credits','setup.credits');
@@ -2906,7 +2911,7 @@ function popOutImportNote(text){
   document.addEventListener('touchmove', e=>{ const tt=e.touches[0]; if(dragging) move(tt.clientX,tt.clientY); else if(rz) rzMove(tt.clientX,tt.clientY); }, {passive:true});
   document.addEventListener('touchend', ()=>{ end(); rzEnd(); });
 })();
-document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); save(); renderAll(); } };
+document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear all fields?')){ state=blankState(); _lastImportText=''; save(); renderAll(); } };
 { const pb=document.getElementById('playBtn'); if(pb) pb.onclick=openPlayMode; }
 function _abbrRows(map, aliasData, kind){
   const m=map||{};
@@ -4617,6 +4622,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622Y</div>
+<div class="version-tag">260622e2</div>
 </body>
 </html>
