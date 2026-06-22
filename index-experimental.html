@@ -410,6 +410,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-link-row{display:flex; align-items:center; gap:8px; font:12px ui-monospace,Menlo,Consolas,monospace; background:var(--field); border:1px solid var(--line); border-radius:7px; padding:6px 10px}
 .dev-link-id{font-weight:700; color:#ffae42; flex:0 0 auto}
 .dev-link-frag{flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted)}
+.dev-link-date{flex:0 0 auto; color:var(--muted); font-size:11px; white-space:nowrap}
 .pcol-img .pcol-pic{width:120px; height:200px; border-radius:6px; background:var(--field) center/cover no-repeat; cursor:grab; -webkit-touch-callout:none}
 @container persona (max-width:320px){ .pcol-img .pcol-pic{width:96px; height:160px} }
 .modal-back{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:6px; font:600 16px/1 Inter,system-ui,sans-serif; padding:2px 9px; cursor:pointer; vertical-align:middle; margin-right:6px}
@@ -1775,6 +1776,7 @@ function renderHead(){
   };
   bind('f_boss','setup.boss');
   bind('f_patch','setup.patch', normalizePatch); bind('f_score','setup.score', normalizeScore);
+  (function(){ const el=document.getElementById('f_score'); if(el){ const base=el.oninput; el.oninput=()=>{ liveGroupScore(el); if(base) base(); }; } })();
   paintImp();
   paintSetupValidity(); refreshDiscrepancies();
 }
@@ -2127,6 +2129,19 @@ function normalizeScore(raw){
   }
   if(!suf && /^\d+$/.test(num)) num = num.replace(/\B(?=(\d{3})+(?!\d))/g, ',');   /* a plain integer (no magnitude, no existing separators) gets thousands commas: 1000000 -> 1,000,000 */
   return {ok:true, value:num+sp+suf};
+}
+/* live thousands grouping while typing: only when the field holds a plain integer (with/without commas), keeping the caret on the same digit */
+function liveGroupScore(el){
+  const v=el.value;
+  if(!/^[\d,]*$/.test(v)) return;                          /* leave magnitudes/decimals/scientific to onchange */
+  const digits=v.replace(/,/g,''); if(!digits) return;
+  const caret=(el.selectionStart==null)?v.length:el.selectionStart;
+  const digitsBefore=v.slice(0,caret).replace(/,/g,'').length;
+  const grouped=digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if(grouped===v) return;
+  el.value=grouped;
+  let pos=0, seen=0; while(pos<grouped.length && seen<digitsBefore){ if(grouped[pos]!==',') seen++; pos++; }
+  try{ el.setSelectionRange(pos,pos); }catch(e){}
 }
 function setupIssues(){
   const s=state.setup||{};
@@ -3236,7 +3251,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const modal=document.getElementById('linksModal'); if(!modal) return;
   const st=document.getElementById('linksStatus'), list=document.getElementById('linksList');
   function status(m,err){ if(st){ st.textContent=m||''; st.classList.toggle('err',!!err); } }
-  function render(items){ list.innerHTML=''; if(!items||!items.length){ list.textContent='(no short links)'; return; } items.forEach(it=>{ const row=document.createElement('div'); row.className='dev-link-row'; const id=document.createElement('span'); id.className='dev-link-id'; id.textContent=it.id; const frag=document.createElement('span'); frag.className='dev-link-frag'; frag.textContent=it.frag||''; frag.title=it.frag||''; const open=document.createElement('button'); open.className='dev-mini-btn'; open.textContent='Open'; open.onclick=()=>{ window.open(location.origin+location.pathname+'#'+(it.frag||''),'_blank'); }; const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Delete'; del.onclick=()=>{ if(!confirm('Delete short link '+it.id+'?')) return; fetch(SHORTENER+'/links-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,id:it.id})}).then(r=>{ if(r.ok){ row.remove(); } else { status('Delete failed ('+r.status+').',true); } }).catch(()=>status('Delete failed.',true)); }; row.append(id,frag,open,del); list.appendChild(row); }); }
+  function render(items){ list.innerHTML=''; if(!items||!items.length){ list.textContent='(no short links)'; return; } items.forEach(it=>{ const row=document.createElement('div'); row.className='dev-link-row'; const id=document.createElement('span'); id.className='dev-link-id'; id.textContent=it.id; const frag=document.createElement('span'); frag.className='dev-link-frag'; frag.textContent=it.frag||''; frag.title=it.frag||''; const date=document.createElement('span'); date.className='dev-link-date'; const _ts=it.ts||it.created; if(_ts){ const d=new Date(_ts); date.textContent=d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); date.title='Created '+d.toLocaleString('en-GB'); } const open=document.createElement('button'); open.className='dev-mini-btn'; open.textContent='Open'; open.onclick=()=>{ window.open(location.origin+location.pathname+'#'+(it.frag||''),'_blank'); }; const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Delete'; del.onclick=()=>{ if(!confirm('Delete short link '+it.id+'?')) return; fetch(SHORTENER+'/links-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,id:it.id})}).then(r=>{ if(r.ok){ row.remove(); } else { status('Delete failed ('+r.status+').',true); } }).catch(()=>status('Delete failed.',true)); }; row.append(id,frag,date,open,del); list.appendChild(row); }); }
   function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/links-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ render(j.links||[]); status((j.links||[]).length+' link(s).'); } }).catch(()=>status('Could not load (is the worker /links-list deployed?).',true)); }
   function openLinks(){ list.innerHTML=''; status(''); modal.hidden=false; load(); }
   function close(){ modal.hidden=true; }
@@ -4522,6 +4537,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622v</div>
+<div class="version-tag">260622w</div>
 </body>
 </html>
