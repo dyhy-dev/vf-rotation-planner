@@ -1030,6 +1030,8 @@ function btnLabel(c){ return BTN_LABEL[c]||c||''; }
 const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO','CROW','QUEEN','MONT·F','LUCE']; // get a separate button next to the character select
 const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC', QUEEN:'CO'};                       // editor button text; default 'Alt'
 const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch', QUEEN:'Crash Out'}; // export text; default 'Button'
+/* element -> character colour (used by the dev "Add new" form; values are editable in the Data Editor). "Elucidator" also flags the character as a navigator. */
+const ELEM_COLOR = {Fire:'#ff391d', Ice:'#00afff', Elec:'#fcff37', Wind:'#82ec2c', Nuke:'#ff9d00', Psy:'#ffffa2', Bless:'#fe9e01', Curse:'#ff66ff', Gun:'#00fcff', Phys:'#ff0036', Almighty:'#ffffff', Elucidator:'#3a6dfa'};
 function hasAlt(name){ return ALT_CHARS.includes((name||'').toUpperCase()); }
 function altBtnLabel(name){ return ALT_BTN_LABEL[(name||'').toUpperCase()] || 'Alt'; }
 function altExportLabel(name){ return ALT_EXPORT_LABEL[(name||'').toUpperCase()] || 'Button'; }
@@ -1174,13 +1176,18 @@ function loadPersonaCropsLive(){
 const DATA_LIVE_KEY='vf-data-live-v1';
 function applyDataOverrides(o){
   if(!o||typeof o!=='object') return;
-  ['characterNames','personaNames','charColors','characterImages','personaImages','bossNames','daggerNames','elucidatorNames','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
+  ['characterNames','personaNames','charColors','characterImages','personaImages','bossNames','daggerNames','elucidatorNames','elucidatorOpts','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
   if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
   if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
   if(o.PERSONA_SIGNATURES&&typeof o.PERSONA_SIGNATURES==='object'){ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,o.PERSONA_SIGNATURES); }
   if(o.DAGGER_IMG&&typeof o.DAGGER_IMG==='object'){ Object.keys(DAGGER_IMG).forEach(x=>delete DAGGER_IMG[x]); Object.assign(DAGGER_IMG,o.DAGGER_IMG); }
   if(o.SKILL_ALIASES&&typeof o.SKILL_ALIASES==='object'){ Object.keys(SKILL_ALIASES).forEach(x=>delete SKILL_ALIASES[x]); Object.assign(SKILL_ALIASES,o.SKILL_ALIASES); }
   if(o.SKILL_LIST&&Array.isArray(o.SKILL_LIST)){ SKILL_LIST.length=0; o.SKILL_LIST.forEach(x=>SKILL_LIST.push(x)); }
+  if(o.ELEM_COLOR&&typeof o.ELEM_COLOR==='object'){ Object.keys(ELEM_COLOR).forEach(x=>delete ELEM_COLOR[x]); Object.assign(ELEM_COLOR,o.ELEM_COLOR); }
+  if(o.CHAR_CARD_DEFAULTS&&typeof o.CHAR_CARD_DEFAULTS==='object'){ Object.keys(CHAR_CARD_DEFAULTS).forEach(x=>delete CHAR_CARD_DEFAULTS[x]); Object.assign(CHAR_CARD_DEFAULTS,o.CHAR_CARD_DEFAULTS); }
+  if(o.ALT_BTN_LABEL&&typeof o.ALT_BTN_LABEL==='object'){ Object.keys(ALT_BTN_LABEL).forEach(x=>delete ALT_BTN_LABEL[x]); Object.assign(ALT_BTN_LABEL,o.ALT_BTN_LABEL); }
+  if(o.ALT_EXPORT_LABEL&&typeof o.ALT_EXPORT_LABEL==='object'){ Object.keys(ALT_EXPORT_LABEL).forEach(x=>delete ALT_EXPORT_LABEL[x]); Object.assign(ALT_EXPORT_LABEL,o.ALT_EXPORT_LABEL); }
+  if(o.ALT_CHARS&&Array.isArray(o.ALT_CHARS)){ ALT_CHARS.length=0; o.ALT_CHARS.forEach(x=>ALT_CHARS.push(x)); }
 }
 function loadDataLive(){
   try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
