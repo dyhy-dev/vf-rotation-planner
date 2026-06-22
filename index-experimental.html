@@ -759,73 +759,43 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="modal-close" id="guideClose" aria-label="Close">&times;</button>
     </div>
     <div class="guide">
-      <p class="lead">Build a Persona 5: The Phantom X boss rotation, then export it as a shareable image or a JSON file. Everything you type is saved automatically in your browser.</p>
+      <p class="lead">Plan a Persona 5: The Phantom X boss rotation — build your team, script each turn, then share it as a link or image, or run it live while you fight. Everything you type is saved automatically in your browser.</p>
 
       <h3>Toolbar</h3>
       <ul>
-        <li><b>Guide</b> — opens this help.</li>
-        <li><b>Load Examples</b> — load a ready-made <b>MLD</b> or <b>DOD</b> rotation to see how a finished plan looks. This replaces your current work, so export first if you want to keep it.</li>
-        <li><b>Import</b> — load a rotation:
-          <ul>
-            <li><b>Import JSON</b> — from a <code>.json</code> file (e.g. one a teammate shared).</li>
-            <li><b>Import Code</b> — from a share code, full link or short link pasted into the box.</li>
-            <li><b>Import Text</b> — paste a rotation written in plain text (like a post from Discord) and the planner fills in what it recognizes: boss, mode and patch from the title, the team with awareness/cards, personas, the dagger, and every turn. Anything left empty (or anything it could not read) is <span style="color:#f1c232;font-weight:700;">highlighted in yellow</span> so you can see at a glance what still needs your attention, and a summary lists whatever could not be imported. If a rotation is already open, it asks before replacing it. Tick <b>Keep the pasted text in a movable window</b> to keep the original text in a small draggable panel afterwards, so you can refer to it while you tidy up the turns.</li>
-          </ul>
-        </li>
-        <li><b>Export</b> — save or share your rotation:
-          <ul>
-            <li><b>JSON</b> — a data file you can re-import later or share.</li>
-            <li><b>PNG &amp; Images</b> — an image with character portraits, persona art and the Wonder's dagger.</li>
-            <li><b>PNG (no Images)</b> — the same layout as text only.</li>
-            <li><b>PNG (Rotation only)</b> — just the turns, without the team section.</li>
-            <li><b>Text</b> — a plain-text version of the whole rotation (a title line with patch / mode / name, then credits, boss &amp; personas, team, notes and all turns) in a box with a <b>Copy</b> button, ready to paste into Discord. In the turns, Wonder actions are listed under their persona; actions without a persona (e.g. Attack / Guard / Gun) use the Wonder name. Action labels use the short codes (HL, MSQ, S1…).</li>
-            <li><b>Share Editor Link</b> — a link that loads the whole rotation into the editor when opened.</li>
-            <li><b>Share View Link</b> — a link that opens a read-only view which looks like the image export (no editing controls, mobile-friendly, with a PNG download button), ideal for sharing a finished rotation.</li>
-            <li><b>Copy Code</b> — a short text code that holds the whole rotation.</li>
-          </ul>
-        </li>
-        <li><b>Settings</b> — local display options (saved only on this device): choose a <b>Light, Dark or System</b> theme (the image export always stays dark), show or hide the Character, Team and Rotation notes fields, put the persona images on the left, choose whether the rotation preview starts expanded, switch the rotation layout between vertical and horizontal, and export or import your settings as a JSON file. These never affect your rotation, share links or exports.</li>
-        <li><b>Reset</b> — clear all fields and start a blank plan.</li>
+        <li><b>Guide</b> — this help.</li>
+        <li><b>Load Examples</b> — open a finished MLD or DOD rotation to see how a plan looks (replaces your current work).</li>
+        <li><b>Import</b> — bring a rotation in from a JSON file, a share code/link, or plain text pasted from Discord. A text import fills in what it recognizes and highlights in <span style="color:#f1c232;font-weight:700;">yellow</span> whatever still needs your attention.</li>
+        <li><b>Export</b> — share or save your work: a <b>JSON</b> backup, a <b>PNG</b> image (with art, without art, or turns only), a Discord-ready <b>Text</b> version, a <b>Share Link</b> (editable or read-only view), or a short <b>Code</b>.</li>
+        <li><b>Settings</b> — per-device look &amp; feel (theme, which note fields show, which side the persona art sits on, the default layout). Never changes your rotation or exports.</li>
+        <li><b>Reset</b> — start over with a blank plan.</li>
       </ul>
 
-      <h3>Setup (top bar)</h3>
-      <p>Fill in the header: <b>Rotation Name</b>, <b>Mode</b> (MLD / DOD / NOD / SOS), <b>Boss</b>, <b>Patch</b>, <b>Expected Score</b> and <b>Credits</b>. Empty fields are simply left out of the export, but it is recommended to fill in all of them.</p>
+      <h3>Setup</h3>
+      <p>Fill in the header — <b>Name, Mode, Boss, Patch, Expected Score, Credits</b> — so your rotation is properly labelled. Everything is required for export except the Expected Score.</p>
 
       <h3>Team</h3>
-      <p>There are four team slots (1st–4th) plus the <b>Elucidator</b>. For each unit pick a <b>Character</b> — the field works like the Boss and Persona fields (click to see the full list, or type to filter it; only names from the list are accepted). You can also type an in-game name or nickname (e.g. <b>Manaka</b> or <b>Navi</b>) and the matching codename is offered — the codename is what gets saved. A small <b>×</b> appears inside the field (and in the <b>Boss</b> field) once it has a value; tapping it clears the field and opens the list right away — handy on mobile. Then set:</p>
-      <ul>
-        <li><b>Awareness</b> — A0 to A6.</li>
-        <li><b>Reforge</b> — RX to R6.</li>
-        <li><b>Revelation Cards</b> — choose the <b>Space</b> card first, then the matching <b>Sun / Moon / Star / Sky</b> cards are shown. For most characters their usual set is filled in automatically when you pick them; you can still change it. A text import that names a set always takes precedence over the default.</li>
-        <li>Special fields appear automatically: <b>Wonder</b> gets a Dagger (its artwork appears in its own box next to the Personas), <b>Twins</b> a Role (which shows the matching S1 / S2 dual-element symbols below it, and in the image export too), <b>Fuuka</b> a Backup.</li>
-        <li>Each character has its own <b>Notes</b> field at the bottom of the card; it also appears at the end of the character's box in the image export.</li>
-      </ul>
-      <p>You can reorder team slots 1–4 by dragging them. The <b>Whale</b> button in the team header sets every Awareness to A6 and every Reforge to R6 at once.</p>
-      <p>Below the team you set up to three <b>Personas</b> (with up to two teachable skills each) and a <b>Team Notes</b> box, where you can add information such as the required Pierce or Crit. The Persona field works like the Boss field — click it to see the full list, or type to filter it (only names from the list are accepted). Each persona shows its <b>Signature skill</b> on a fixed line above the two teachable-skill fields — it is set automatically by the persona and can't be edited. The two teachable-skill fields are combo boxes: pick from the skill list, or type freely (free text is allowed, and abbreviations like “WT” or “Taru” filter the list). In a text import, writing <b>Sig</b> as a persona's skill is understood as that persona's signature skill, and common skill abbreviations are expanded to their full names.</p>
+      <p>Four slots plus the <b>Elucidator</b>. Pick each <b>character</b> (type to filter the list; in-game names and nicknames work too), then set <b>Awareness</b>, <b>Reforge</b> and the <b>Revelation cards</b> — the usual card set is filled in for you and you can still change it. Each card also has its own <b>Notes</b> line.</p>
+      <p>Special fields appear by themselves where they matter: Wonder's <b>dagger</b>, the Twins' <b>role</b> (with its dual-element symbols), and Fuuka's <b>backup character</b> — the backup gets its own build card so its debuffs (which Fuuka herself lacks) show up in every export. Drag a card — by its grip or its image — to reorder the slots, and use <b>Whale</b> to max everyone to A6/R6 at once.</p>
+      <p>Below the team, add up to three <b>Personas</b> (the signature skill fills in automatically, plus two teachable skills) and a <b>Team Notes</b> box for things like the required Pierce or Crit.</p>
 
       <h3>Rotation</h3>
-      <p>The rotation is a row of <b>turns</b>; each turn has a name (which you can edit), an optional <b>turn note</b> field below the name, and a list of <b>actions</b>. The turn note is shown in the export next to the turn name — in the vertical layout right-aligned in the header, in the horizontal layout under the turn name.</p>
-      <p><b>Start here:</b> press <b>Auto Fill</b> first. It fills every empty turn column with your team characters 1–4 in order, so afterwards you only have to fill in the actions. It is recommended to do this before adding actions yourself. Afterwards Auto Fill never overwrites a column that already has a character, so if you add more turns later you can press Auto Fill again to fill them. <b>Clear</b> removes all actions from every turn if you want to start over.</p>
-      <p>If you swap a team character or a Persona while actions still reference the old one, those actions are highlighted in red (in the editor and the preview) and the <b>Export</b> button is disabled until you fix them — this prevents exporting a broken rotation. A banner briefly appears to point it out. As soon as every action again points to a current character/Persona, export is re-enabled automatically.</p>
-      <p><b>Export</b> is also disabled while the <b>Setup</b> is incomplete. Every setup field is required except <b>Expected Score</b>, which is optional. <b>Patch</b> must be a number like <code>4.3</code>, and <b>Expected Score</b> accepts plain numbers, grouped numbers like <code>1,000,000</code> or <code>1.000.000</code>, or magnitudes such as <code>100M</code>, <code>1.3 B</code>, <code>945 Mil</code>, <code>2Bil</code> or <code>59T</code>. A decimal comma like <code>1,3</code> is converted to a period automatically, and a lower-case T/M/B is capitalised for you. An invalid field turns red and a tooltip explains the problem with an example.</p>
-      <p>When there is a discrepancy, an <b>Auto Correct</b> button appears next to <b>Auto Fill</b>. It opens a dialog with a <b>checklist</b> of every change it can make, each one toggleable, so you stay in control. It can: <b>replace a missing character</b> in the actions with the one that took its team slot; <b>fix a Wonder Persona</b> that is no longer in a slot (swapping it for a free slot persona, or dropping it into an empty slot); and resolve <b>turn order</b>. For the order it offers a choice — <b>reorder the team slots</b> to match the turns, <b>reorder the actions</b> inside each turn (keep both, fix the order), or <b>delete</b> the too-early or the too-late action in each conflicting turn. When characters act in conflicting orders across different turns (so no single team order can satisfy them all), it says so and recommends reordering the actions instead. After applying, an <b>Undo</b> appears so you can revert everything in one click. Anything it genuinely can't resolve (e.g. a missing character with no free slot) is listed for you to fix by hand.</p>
-      <p>A turn is also tinted red when the characters in it don't act in <b>team order</b>: the planner reads the first Skill/Attack/Gun/Guard of each character (ignoring Highlights/Theurgy, Assists and the Elucidator) and compares it to the order of your team slots. This is enforced the same way — the banner reports it and <b>Export</b> stays disabled until the turn matches the team order again. Reordering your team (or editing a turn) re-checks every turn instantly, so it's easy to spot a sequence that slipped.</p>
-      <p>For every action:</p>
-      <ul>
-        <li>Pick the acting <b>character</b> from the dropdown.</li>
-        <li>Optionally tap an <b>action button</b>. Normal characters have <code>S1 S2 S3 HL</code> plus <code>Attack Gun Guard</code>; SEES members show <code>TG</code> (Theurgy) instead of HL and <code>Assist</code> instead of Gun; the Elucidators only have <code>S1 S2 S3</code>. A few characters (Messa, Violet, Rin·F, Turbo, Twins, Ange, Akihiko) also have a separate button next to the character dropdown that exports to its own wording — e.g. Violet's <code>MSQ</code> → “Masquerade”, Ange's <code>DC</code> → “Da Capo”, Akihiko's <code>Alt</code> → “Punch”. Tap an active button again to clear it.</li>
-        <li><b>Wonder</b> is special: choose one of your three personas from the dropdown and optionally toggle the <b>HL</b> button next to it. A second row of buttons (<b>Attack / Gun / Guard</b>) covers Wonder's basic actions. Once a persona is selected, a <b>skill dropdown</b> appears with that persona's three skills (its signature plus the two teachable skills) so you can pick the exact skill quickly. In a text import, a bare <b>Wonder HL</b> automatically adopts the persona Wonder used most recently.</li>
-        <li>The <b>text field</b> is always available as the last line for free notes, e.g. the target of the action or other information.</li>
-      </ul>
-      <p>In the export, a button and text are joined with a space — e.g. <code>S2</code> + <code>Violet</code> becomes “S2 Violet”, and a Wonder action becomes e.g. “Koumokuten HL Haru”. You can also use only the text field without any button.</p>
-      <p>Each turn header has a <b>grip</b> (drag to reorder the column), a <b>duplicate</b> button (copies the turn with all its content to the right) and a <b>×</b> button (remove). You can also <b>drag</b> actions into a new order. Turns stay numbered left to right (1, 2, 3, …); in <b>DOD</b> mode the last two turns are breaks (<b>Break 1</b>, <b>Break 2</b>), always pinned at the end and highlighted in red in the export. A separate <b>Rotation Notes</b> box sits above the turns.</p>
+      <p>Each <b>turn</b> has a name, an optional note and a list of <b>actions</b>. Press <b>Auto Fill</b> first to drop your team into every turn, so you only have to type the actions (<b>Clear</b> empties them again). For each action, pick the character and tap a button — <code>S1–S3</code>, <code>HL</code>/<code>Theurgy</code>, <code>Attack/Gun/Guard</code>, and a few characters have an extra signature button (e.g. Violet's “Masquerade”). <b>Wonder</b> also picks a persona and skill. A free text line is always there for the target or a note.</p>
+      <p>If an action still points at a character or persona you've swapped out — or the characters in a turn don't act in your team order — the turn turns red and <b>Export</b> is blocked, so you never share a broken plan. <b>Auto Correct</b> offers one-click fixes (with undo) for most of it. Reorder turns by dragging their header, and duplicate or delete them; in <b>DOD</b> the last two turns are breaks, pinned at the end.</p>
 
-      <h3>Rotation Preview</h3>
-      <p>The <b>Rotation Preview</b> toggle below the turns shows a live preview of how the rotation will look in the image export. It updates as you type and is never part of the exported file.</p>
+      <h3>Play Mode</h3>
+      <p>Press <b>Play</b> to run the rotation live and hands-free while you fight — a clean full-screen view that shows one step at a time with big character faces, so you can follow your plan at a glance from a phone or a second screen.</p>
+      <ul>
+        <li><b>Turn or Action</b> — show a whole turn at once, or focus a single action with a “what's next” preview.</li>
+        <li><b>Vertical or Horizontal</b> — choose the layout that fits your screen (it adapts on its own on phones in landscape).</li>
+        <li>In Turn mode, <b>tap each action to check it off</b> as you go; checking the last one loads the next turn. Swipe or use Prev/Next to move through the fight, and the reset/restart buttons jump back to the start.</li>
+      </ul>
+
+      <h3>Live Preview</h3>
+      <p>The <b>Rotation Preview</b> toggle below the turns shows exactly how the image export will look and updates as you type. Use the <b>Zoom</b> slider — or pinch / ctrl-scroll right inside it — to inspect the details up close. It's never part of the exported file.</p>
 
       <h3>Saving &amp; sharing</h3>
-      <p>Your work is saved automatically in this browser (autosave). For a permanent backup, use <b>Export → JSON</b> and re-import the file later. For a picture to post, use one of the PNG exports.</p>
-      <p>To send a rotation to a teammate without a file, use <b>Export → Share Editor Link</b> or <b>Copy Code</b>. Both open a box showing the link/code with a <b>Copy</b> button. The two share-link boxes (<b>Share Editor Link</b> and <b>Share View Link</b>) automatically turn the link into a short one (via a small Cloudflare service) the moment they open. The same rotation always reuses the same short link — a new one is only created when the rotation actually changes. They also show an editable <b>Discord title</b> line, pre-filled with the rotation name, mode, patch and credits. Adjust the title however you like, then press the Discord button to copy a <b>masked link</b> (your title as a single clickable label, with the link hidden behind it) ready to paste into Discord. Opening a <b>Share Editor Link</b> loads the rotation automatically; a <b>Code</b> is loaded via <b>Import → Import Code</b> (which also accepts a full link or a short link). The whole rotation is packed into the link/code itself — nothing is uploaded to a server.</p>
+      <p>Your work autosaves in this browser. For a backup, use <b>Export → JSON</b>; for a picture to post, use a <b>PNG</b>; to send it to a teammate, use a <b>Share Link</b> or <b>Copy Code</b> — the whole rotation is packed into the link itself, so nothing is uploaded to a server. Share links shorten automatically and also hand you a ready-made, Discord-friendly masked link.</p>
     </div>
   </div>
 </div>
@@ -3663,6 +3633,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622n</div>
+<div class="version-tag">260622o</div>
 </body>
 </html>
