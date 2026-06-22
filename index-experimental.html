@@ -395,6 +395,16 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-inp{flex:1 1 auto; min-width:0; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:5px 8px; font:12px ui-monospace,Menlo,Consolas,monospace}
 .dev-inp.dev-key{flex:0 0 140px}
 .dev-swatch{width:24px; height:24px; border-radius:5px; border:1px solid var(--line); flex:0 0 auto}
+.dev-tabs{display:flex; gap:6px}
+.dev-tab{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:6px 14px; font:600 12px Inter,system-ui,sans-serif; cursor:pointer}
+.dev-tab.active{color:var(--text); border-color:#ffae42; background:var(--panel2)}
+.dev-add-fields{display:flex; flex-direction:column; gap:9px}
+.dev-add-row{display:flex; align-items:center; gap:10px}
+.dev-add-row>label{flex:0 0 130px; font-size:12px; color:var(--muted)}
+.dev-add-row input[type=text]{flex:1 1 auto; min-width:0; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 9px; font:13px Inter,system-ui,sans-serif}
+.dev-add-row input[type=file]{flex:1 1 auto; min-width:0; color:var(--muted); font-size:12px}
+.dev-add-row input[type=color]{width:44px; height:30px; padding:0; border:1px solid var(--line); border-radius:6px; background:var(--field); cursor:pointer}
+.dev-add-prev{width:40px; height:40px; border-radius:6px; border:1px solid var(--line); background:var(--field) center/cover no-repeat; flex:0 0 auto}
 .dev-links{display:flex; flex-direction:column; gap:6px; max-height:54vh; overflow:auto}
 .dev-link-row{display:flex; align-items:center; gap:8px; font:12px ui-monospace,Menlo,Consolas,monospace; background:var(--field); border:1px solid var(--line); border-radius:7px; padding:6px 10px}
 .dev-link-id{font-weight:700; color:#ffae42; flex:0 0 auto}
@@ -980,11 +990,20 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Roster data editor">
     <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Roster / Data Editor <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="rosterClose" aria-label="Close">&times;</button></div>
     <div class="dev-tool-body">
-      <p class="crop-hint">Edit a data table. "Apply to session" tests it locally; "Push to live" makes it live for everyone (no re-upload); "Copy" gives you the JSON to bake into the code. Toggle "JSON view" to edit the raw JSON.</p>
-      <div class="dev-tool-row"><select id="rosterTable" class="dev-select"></select><button class="btn" id="rosterJson">JSON view</button><span class="crop-tools-sp"></span><button class="btn" id="rosterCopy">Copy</button><button class="btn" id="rosterApply">Apply to session</button><button class="btn btn-exp" id="rosterPush">Push to live</button></div>
-      <span class="dev-status" id="rosterStatus"></span>
-      <div class="dev-form" id="rosterForm"></div>
-      <textarea id="rosterIn" class="dev-textarea" rows="16" spellcheck="false" hidden></textarea>
+      <div class="dev-tabs"><button class="dev-tab active" id="rosterTabAdd">Add new</button><button class="dev-tab" id="rosterTabEdit">Edit tables</button></div>
+      <div id="rosterAddPane">
+        <p class="crop-hint">Pick what to add, fill in the details and optionally upload an image. Everything is filed into the right tables automatically. "Add to session" tests it locally; "Add &amp; push live" makes it live for everyone.</p>
+        <div class="dev-tool-row"><span class="dev-label">Add a</span><select id="addType" class="dev-select"><option value="character">Character</option><option value="persona">Persona</option><option value="dagger">Dagger</option><option value="skill">Skill</option></select></div>
+        <div class="dev-add-fields" id="addFields"></div>
+        <div class="dev-tool-row"><span class="dev-status" id="addStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="addApply">Add to session</button><button class="btn btn-exp" id="addPush">Add &amp; push live</button></div>
+      </div>
+      <div id="rosterEditPane" hidden>
+        <p class="crop-hint">Edit a data table directly. "Apply to session" tests it locally; "Push to live" makes it live for everyone; "Copy" gives you the JSON. Toggle "JSON view" to edit the raw JSON.</p>
+        <div class="dev-tool-row"><select id="rosterTable" class="dev-select"></select><button class="btn" id="rosterJson">JSON view</button><span class="crop-tools-sp"></span><button class="btn" id="rosterCopy">Copy</button><button class="btn" id="rosterApply">Apply to session</button><button class="btn btn-exp" id="rosterPush">Push to live</button></div>
+        <span class="dev-status" id="rosterStatus"></span>
+        <div class="dev-form" id="rosterForm"></div>
+        <textarea id="rosterIn" class="dev-textarea" rows="16" spellcheck="false" hidden></textarea>
+      </div>
     </div>
   </div>
 </div>
@@ -1316,7 +1335,7 @@ function cardAccent(name, C){ const c=charColor(name); if(!(C&&C._light)) return
    Relative paths are kept as an automatic fallback (see imgFallback/bgURL/loadImg), so images still work if this domain
    ever changes or someone else self-hosts the page. Set IMG_BASE='' to force relative-only. */
 const IMG_BASE='https://dyhy-dev.github.io/vf-rotation-planner/';
-function imgURL(p){ return p ? IMG_BASE+p : p; }
+function imgURL(p){ if(p && /^(https?:|data:)/i.test(p)) return p; return p ? IMG_BASE+p : p; }
 function imgRel(u){ return (IMG_BASE && u && u.indexOf(IMG_BASE)===0) ? u.slice(IMG_BASE.length) : ''; }
 /* <img> fallback: if the absolute (hosted) URL fails, retry once with the relative path (works when self-hosted), else hide */
 function imgFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.display='none'; }
@@ -1335,6 +1354,7 @@ function faceImg(name){ if(!name) return ''; const fn=String(name).toUpperCase()
 function faceFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.visibility='hidden'; }
 function personaImg(name){
   if(!name) return '';
+  if(DATA.personaImages && DATA.personaImages[name]) return imgURL(DATA.personaImages[name]);
   return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
 }
 /* ===================== EXPERIMENTAL-ONLY: character image crop =====================
@@ -1377,12 +1397,13 @@ function savePersonaCrops(){ try{ localStorage.setItem(PERSONA_CROP_KEY, JSON.st
 const DATA_LIVE_KEY='vf-data-live-v1';
 function applyDataOverrides(o){
   if(!o||typeof o!=='object') return;
-  ['characterNames','personaNames','charColors','characterImages','bossNames','daggerNames','elucidatorNames','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
+  ['characterNames','personaNames','charColors','characterImages','personaImages','bossNames','daggerNames','elucidatorNames','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
   if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
   if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
   if(o.PERSONA_SIGNATURES&&typeof o.PERSONA_SIGNATURES==='object'){ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,o.PERSONA_SIGNATURES); }
   if(o.DAGGER_IMG&&typeof o.DAGGER_IMG==='object'){ Object.keys(DAGGER_IMG).forEach(x=>delete DAGGER_IMG[x]); Object.assign(DAGGER_IMG,o.DAGGER_IMG); }
   if(o.SKILL_ALIASES&&typeof o.SKILL_ALIASES==='object'){ Object.keys(SKILL_ALIASES).forEach(x=>delete SKILL_ALIASES[x]); Object.assign(SKILL_ALIASES,o.SKILL_ALIASES); }
+  if(o.SKILL_LIST&&Array.isArray(o.SKILL_LIST)){ SKILL_LIST.length=0; o.SKILL_LIST.forEach(x=>SKILL_LIST.push(x)); }
 }
 function loadDataLive(){
   try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
@@ -3143,7 +3164,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     {k:'SKILL_ALIASES', type:'aliasmap', get:()=>SKILL_ALIASES, set:v=>{ Object.keys(SKILL_ALIASES).forEach(x=>delete SKILL_ALIASES[x]); Object.assign(SKILL_ALIASES,v); }},
     {k:'spaceCards', type:'array', get:()=>DATA.spaceCards, set:v=>{ DATA.spaceCards=v; }},
     {k:'sunSkyCards', type:'array', get:()=>DATA.sunSkyCards, set:v=>{ DATA.sunSkyCards=v; }},
-    {k:'revSets', type:'array', get:()=>DATA.revSets, set:v=>{ DATA.revSets=v; }}
+    {k:'revSets', type:'array', get:()=>DATA.revSets, set:v=>{ DATA.revSets=v; }},
+    {k:'personaImages', type:'map', get:()=>(DATA.personaImages||(DATA.personaImages={})), set:v=>{ DATA.personaImages=v; }},
+    {k:'SKILL_LIST', type:'array', get:()=>SKILL_LIST, set:v=>{ SKILL_LIST.length=0; v.forEach(x=>SKILL_LIST.push(x)); }}
   ];
   /* adding/removing a character or persona (or dagger) keeps the linked tables in sync */
   const GROUPS={
@@ -3181,7 +3204,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function renderView(){ const jb=document.getElementById('rosterJson'); if(jsonMode){ form.hidden=true; ta.hidden=false; if(jb) jb.textContent='Form view'; } else { ta.hidden=true; form.hidden=false; renderForm(); if(jb) jb.textContent='JSON view'; } }
   function show(){ jsonMode=false; working=toWorking(cur().get(), cur().type); renderView(); status(''); }
-  function openRoster(){ if(!sel.options.length){ TABLES.forEach(t=>{ const o=document.createElement('option'); o.textContent=t.k; sel.appendChild(o); }); } show(); modal.hidden=false; }
+  function openRoster(){ if(!sel.options.length){ TABLES.forEach(t=>{ const o=document.createElement('option'); o.textContent=t.k; sel.appendChild(o); }); } show(); showTab(true); modal.hidden=false; }
   function close(){ modal.hidden=true; }
   DEV_MODULES.push({ name:'Roster / Data Editor', desc:'Edit the character/persona/alias tables in a form or as JSON; apply to test, push live, or copy to bake in.', open:openRoster });
   if(sel) sel.onchange=show;
@@ -3189,6 +3212,56 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const cp=document.getElementById('rosterCopy'); if(cp) cp.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ navigator.clipboard.writeText(JSON.stringify(v,null,2)); status('Copied.'); }catch(e){ status('Copy failed.',true); } };
   const ap=document.getElementById('rosterApply'); if(ap) ap.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } let synced=[]; try{ cur().set(v); synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; }catch(e){ status('Apply failed: '+e.message,true); return; } try{ renderAll(); }catch(e){} status(synced.length?('Applied + synced '+synced.join(', ')+' (session only).'):'Applied to this session (not saved).'); };
   const pu=document.getElementById('rosterPush'); if(pu) pu.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } const data={[cur().k]:v}; try{ cur().set(v); const synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; synced.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); renderAll(); }catch(e){} status('Pushing…'); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed '+Object.keys(data).join(', ')+' live.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (is the worker /data deployed?).',true)); };
+  /* ---- "Add new" form: file a Character / Persona / Dagger / Skill into all the right tables at once ---- */
+  const addTypeSel=document.getElementById('addType'), addFields=document.getElementById('addFields'), addStatusEl=document.getElementById('addStatus');
+  let addTimer=null;
+  function addStatus(m,err){ if(!addStatusEl) return; if(addTimer){clearTimeout(addTimer);addTimer=null;} addStatusEl.textContent=m||''; addStatusEl.classList.toggle('err',!!err); if(m){ addTimer=setTimeout(()=>{ addStatusEl.textContent=''; addStatusEl.classList.remove('err'); },6000); } }
+  const ADD_DEFS={
+    character:[{k:'name',l:'Name (e.g. JOKER2)',up:true},{k:'color',l:'Colour',color:true},{k:'aliases',l:'Aliases (comma sep.)'},{k:'image',l:'Image',file:true}],
+    persona:[{k:'name',l:'Name'},{k:'signature',l:'Signature skill'},{k:'aliases',l:'Aliases (comma sep.)'},{k:'image',l:'Image',file:true}],
+    dagger:[{k:'name',l:'Name'},{k:'image',l:'Image',file:true}],
+    skill:[{k:'name',l:'Name'},{k:'aliases',l:'Aliases (comma sep.)'}]
+  };
+  function renderAddFields(){
+    const type=addTypeSel.value; addFields.innerHTML='';
+    ADD_DEFS[type].forEach(d=>{
+      const row=document.createElement('div'); row.className='dev-add-row';
+      const lab=document.createElement('label'); lab.textContent=d.l; row.append(lab);
+      if(d.color){ const c=document.createElement('input'); c.type='color'; c.value='#ffffff'; c.dataset.k=d.k; const hx=document.createElement('input'); hx.type='text'; hx.value='#ffffff'; hx.dataset.k=d.k+'_hex'; c.oninput=()=>{ hx.value=c.value; }; hx.oninput=()=>{ if(/^#[0-9a-fA-F]{6}$/.test(hx.value)) c.value=hx.value; }; row.append(c,hx); }
+      else if(d.file){ const f=document.createElement('input'); f.type='file'; f.accept='image/*'; f.dataset.k=d.k; const pv=document.createElement('span'); pv.className='dev-add-prev'; f.onchange=()=>{ const file=f.files&&f.files[0]; if(file){ const r=new FileReader(); r.onload=()=>{ pv.style.backgroundImage="url('"+r.result+"')"; }; r.readAsDataURL(file); } }; row.append(f,pv); }
+      else { const t=document.createElement('input'); t.type='text'; t.dataset.k=d.k; if(d.up) t.placeholder='UPPERCASE'; row.append(t); }
+      addFields.appendChild(row);
+    });
+  }
+  function addVals(){ const o={}; addFields.querySelectorAll('input[data-k]').forEach(i=>{ if(i.type==='file') o[i.dataset.k]=i; else if(!/_hex$/.test(i.dataset.k)) o[i.dataset.k]=i.value; }); return o; }
+  function readFile(input){ return new Promise(res=>{ const f=input&&input.files&&input.files[0]; if(!f){ res(''); return; } const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>res(''); r.readAsDataURL(f); }); }
+  async function uploadImg(key,dataURL){ const r=await fetch(SHORTENER+'/img',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,key,data:dataURL})}); if(!r.ok) throw new Error(String(r.status)); const j=await r.json(); return j.url||''; }
+  async function addEntry(push){
+    const type=addTypeSel.value, v=addVals();
+    let name=(v.name||'').trim(); if(type==='character') name=name.toUpperCase();
+    if(!name){ addStatus('Enter a name.',true); return; }
+    if(push && !_devPass){ addStatus('Unlock Developer Mode first.',true); return; }
+    const aliases=(v.aliases||'').split(',').map(s=>s.trim()).filter(Boolean);
+    let imgData=''; if(v.image) imgData=await readFile(v.image);
+    let imgVal=imgData;
+    if(push && imgData){ addStatus('Uploading image…'); try{ imgVal=await uploadImg(type+'-'+name.replace(/[^A-Za-z0-9]/g,'_')+'-'+Date.now(), imgData); }catch(e){ addStatus('Image upload failed ('+e.message+').',true); return; } }
+    DATA.personaImages=DATA.personaImages||{};
+    let touched=[];
+    if(type==='character'){ if(!DATA.characterNames.includes(name)) DATA.characterNames.push(name); DATA.charColors[name]=v.color||''; CHAR_ALIASES[name]=aliases; if(imgVal) DATA.characterImages[name]=imgVal; touched=['characterNames','charColors','CHAR_ALIASES','characterImages']; }
+    else if(type==='persona'){ if(!DATA.personaNames.includes(name)) DATA.personaNames.push(name); PERSONA_SIGNATURES[name]=v.signature||''; PERSONA_ALIASES[name]=aliases; if(imgVal) DATA.personaImages[name]=imgVal; touched=['personaNames','PERSONA_SIGNATURES','PERSONA_ALIASES','personaImages']; }
+    else if(type==='dagger'){ if(!DATA.daggerNames.includes(name)) DATA.daggerNames.push(name); if(imgVal) DAGGER_IMG[name]=imgVal; touched=['daggerNames','DAGGER_IMG']; }
+    else if(type==='skill'){ if(!SKILL_LIST.includes(name)) SKILL_LIST.push(name); if(aliases.length) SKILL_ALIASES[name]=aliases; touched=['SKILL_LIST','SKILL_ALIASES']; }
+    try{ renderAll(); }catch(e){}
+    if(push){ const data={}; touched.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok) addStatus('Added "'+name+'" and pushed it live.'); else if(r.status===403) addStatus('Rejected (wrong password).',true); else addStatus('Saved locally, but push failed ('+r.status+').',true); }).catch(()=>addStatus('Saved locally, but push failed (worker).',true)); }
+    else addStatus('Added "'+name+'" to this session.');
+  }
+  if(addTypeSel) addTypeSel.onchange=renderAddFields;
+  renderAddFields();
+  const aA=document.getElementById('addApply'); if(aA) aA.onclick=()=>addEntry(false);
+  const aP=document.getElementById('addPush'); if(aP) aP.onclick=()=>addEntry(true);
+  function showTab(add){ const ap=document.getElementById('rosterAddPane'), ep=document.getElementById('rosterEditPane'), ta=document.getElementById('rosterTabAdd'), te=document.getElementById('rosterTabEdit'); if(ap) ap.hidden=!add; if(ep) ep.hidden=add; if(ta) ta.classList.toggle('active',add); if(te) te.classList.toggle('active',!add); }
+  const tabA=document.getElementById('rosterTabAdd'); if(tabA) tabA.onclick=()=>showTab(true);
+  const tabE=document.getElementById('rosterTabEdit'); if(tabE) tabE.onclick=()=>showTab(false);
   const c=document.getElementById('rosterClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
@@ -4191,6 +4264,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622j</div>
+<div class="version-tag">260622k</div>
 </body>
 </html>

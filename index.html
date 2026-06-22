@@ -1119,7 +1119,7 @@ function cardAccent(name, C){ const c=charColor(name); if(!(C&&C._light)) return
    Relative paths are kept as an automatic fallback (see imgFallback/bgURL/loadImg), so images still work if this domain
    ever changes or someone else self-hosts the page. Set IMG_BASE='' to force relative-only. */
 const IMG_BASE='https://dyhy-dev.github.io/vf-rotation-planner/';
-function imgURL(p){ return p ? IMG_BASE+p : p; }
+function imgURL(p){ if(p && /^(https?:|data:)/i.test(p)) return p; return p ? IMG_BASE+p : p; }
 function imgRel(u){ return (IMG_BASE && u && u.indexOf(IMG_BASE)===0) ? u.slice(IMG_BASE.length) : ''; }
 /* <img> fallback: if the absolute (hosted) URL fails, retry once with the relative path (works when self-hosted), else hide */
 function imgFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.display='none'; }
@@ -1138,6 +1138,7 @@ function faceImg(name){ if(!name) return ''; const fn=String(name).toUpperCase()
 function faceFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.visibility='hidden'; }
 function personaImg(name){
   if(!name) return '';
+  if(DATA.personaImages && DATA.personaImages[name]) return imgURL(DATA.personaImages[name]);
   return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
 }
 /* ---------- character image crop (display-only; values fetched live from the worker, /crops) ----------
@@ -1173,12 +1174,13 @@ function loadPersonaCropsLive(){
 const DATA_LIVE_KEY='vf-data-live-v1';
 function applyDataOverrides(o){
   if(!o||typeof o!=='object') return;
-  ['characterNames','personaNames','charColors','characterImages','bossNames','daggerNames','elucidatorNames','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
+  ['characterNames','personaNames','charColors','characterImages','personaImages','bossNames','daggerNames','elucidatorNames','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
   if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
   if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
   if(o.PERSONA_SIGNATURES&&typeof o.PERSONA_SIGNATURES==='object'){ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,o.PERSONA_SIGNATURES); }
   if(o.DAGGER_IMG&&typeof o.DAGGER_IMG==='object'){ Object.keys(DAGGER_IMG).forEach(x=>delete DAGGER_IMG[x]); Object.assign(DAGGER_IMG,o.DAGGER_IMG); }
   if(o.SKILL_ALIASES&&typeof o.SKILL_ALIASES==='object'){ Object.keys(SKILL_ALIASES).forEach(x=>delete SKILL_ALIASES[x]); Object.assign(SKILL_ALIASES,o.SKILL_ALIASES); }
+  if(o.SKILL_LIST&&Array.isArray(o.SKILL_LIST)){ SKILL_LIST.length=0; o.SKILL_LIST.forEach(x=>SKILL_LIST.push(x)); }
 }
 function loadDataLive(){
   try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
