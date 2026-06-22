@@ -504,6 +504,12 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c; background:linear-gradient(90deg,#21331f,#18261a)}
 .app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232; background:linear-gradient(90deg,#332f1a,#262216)}
 .app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161; background:linear-gradient(90deg,#331a1f,#261619)}
+body.theme-light .app-banner{ background:linear-gradient(90deg,#efeaf8,#e7e1f3); border-color:#cfc7e6; color:#2a2540 }
+body.theme-light .app-banner-x{ color:#6a6480 }
+body.theme-light .app-banner-x:hover{ color:#2a2540 }
+body.theme-light .app-banner.acc-green{ background:linear-gradient(90deg,#e6f5df,#dbf0d0); border-color:#9cc98a }
+body.theme-light .app-banner.acc-gold{ background:linear-gradient(90deg,#fbf3d2,#f8edc2); border-color:#e0c878 }
+body.theme-light .app-banner.acc-red{ background:linear-gradient(90deg,#fce1e4,#f9d6da); border-color:#e09aa4 }
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
 body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
@@ -777,7 +783,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </head>
 <body>
 <div class="wrap">
-  <div class="app-banner" id="appBanner" hidden role="status"><span class="app-banner-text" id="appBannerText"></span><button class="app-banner-x" id="appBannerClose" aria-label="Dismiss">&times;</button></div>
   <div class="toolbar">
     <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
     <div class="toolbar-actions">
@@ -817,6 +822,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
   </div>
 
+  <div class="app-banner" id="appBanner" hidden role="status"><span class="app-banner-text" id="appBannerText"></span><button class="app-banner-x" id="appBannerClose" aria-label="Dismiss">&times;</button></div>
   <div class="panel" id="headPanel"></div>
   <div class="panel" id="teamPanel"></div>
   <div class="panel">
@@ -3015,10 +3021,10 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const openCrops=()=>{ loadCharCrops(); build(); modal.hidden=false; };
   const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
   /* ---- Developer Mode hub: an extensible launcher. Add a new tool by appending one entry here. ---- */
-  DEV_MODULES.push({ name:'Image Crops', desc:'Choose how each character image is cropped, then push it live for everyone.', open:openCrops });
+  DEV_MODULES.push({ name:'Character Image Crops', desc:'Choose how each character image is cropped, then push it live for everyone.', open:openCrops, order:1 });
   const devModal=document.getElementById('devModal'), devModules=document.getElementById('devModules');
   function openHub(){
-    if(devModules){ devModules.innerHTML=''; DEV_MODULES.forEach(m=>{ const b=document.createElement('button'); b.className='dev-module'; const n=document.createElement('span'); n.className='dev-module-name'; n.textContent=m.name; const d=document.createElement('span'); d.className='dev-module-desc'; d.textContent=m.desc; b.append(n,d); b.onclick=()=>{ closeHub(); m.open(); }; devModules.appendChild(b); }); }
+    if(devModules){ devModules.innerHTML=''; DEV_MODULES.slice().sort((a,b)=>(a.order||99)-(b.order||99)).forEach(m=>{ const b=document.createElement('button'); b.className='dev-module'; const n=document.createElement('span'); n.className='dev-module-name'; n.textContent=m.name; const d=document.createElement('span'); d.className='dev-module-desc'; d.textContent=m.desc; b.append(n,d); b.onclick=()=>{ closeHub(); m.open(); }; devModules.appendChild(b); }); }
     const rb=document.getElementById('cropRemember'); if(rb){ try{ rb.checked=!!localStorage.getItem(DEV_REMEMBER_KEY); }catch(e){} }
     if(devModal) devModal.hidden=false;
   }
@@ -3059,7 +3065,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     L.push(''); L.push('PARSED STATE:'); L.push(JSON.stringify(res.state||{}, null, 2));
     out.textContent=L.join('\n');
   }
-  DEV_MODULES.push({ name:'Parser Console', desc:'Paste rotation text and see what vf-parser.js recognizes (import debugging).', open:openParser });
+  DEV_MODULES.push({ name:'Parser Console', desc:'Paste rotation text and see what vf-parser.js recognizes (import debugging).', open:openParser, order:4 });
   const r=document.getElementById('parserRun'); if(r) r.onclick=run;
   const c=document.getElementById('parserClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
@@ -3104,7 +3110,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function openDiag(){ renderBuild(); renderStorage(); const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent=''; s.className='dev-worker-status'; } modal.hidden=false; }
   function close(){ modal.hidden=true; }
   const wb=document.getElementById('diagWorker'); if(wb) wb.onclick=()=>{ const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent='checking…'; s.className='dev-worker-status'; } fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>{ if(s){ s.textContent='/crops  '+r.status+(r.ok?' OK':''); s.className='dev-worker-status '+(r.ok?'ok':'err'); } }).catch(()=>{ if(s){ s.textContent='unreachable'; s.className='dev-worker-status err'; } }); };
-  DEV_MODULES.push({ name:'Diagnostics & Storage', desc:'Worker status, build info, and local storage (view, copy or clear vf- keys).', open:openDiag });
+  DEV_MODULES.push({ name:'Diagnostics & Storage', desc:'Worker status, build info, and local storage (view, copy or clear vf- keys).', open:openDiag, order:6 });
   const c=document.getElementById('diagClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
@@ -3122,7 +3128,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function openBanner(){ status(''); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ if(b&&typeof b==='object'){ if(inp) inp.value=(b.text||''); setAcc(b.color); } }).catch(()=>{}); modal.hidden=false; setTimeout(()=>{ try{ inp.focus(); }catch(e){} },50); }
   function close(){ modal.hidden=true; }
   function push(text){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); const data={text:(text||''), id:Date.now(), color:accColor()}; fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} showBanner(data); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
-  DEV_MODULES.push({ name:'Live Banner', desc:'Show a short announcement to everyone on the live tool.', open:openBanner });
+  DEV_MODULES.push({ name:'Live Banner', desc:'Show a short announcement to everyone on the live tool.', open:openBanner, order:5 });
   const pb=document.getElementById('bannerPush'); if(pb) pb.onclick=()=>push(inp.value);
   const cl=document.getElementById('bannerClear'); if(cl) cl.onclick=()=>{ if(confirm('Remove the live banner for everyone?')){ inp.value=''; push(''); } };
   const pl=document.getElementById('bannerPull'); if(pl) pl.onclick=()=>{ status('Loading…'); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(b=>{ if(inp) inp.value=((b&&b.text)||''); setAcc(b&&b.color); status('Loaded the live banner.'); }).catch(()=>status('Could not load the live banner.',true)); };
@@ -3142,7 +3148,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/links-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ render(j.links||[]); status((j.links||[]).length+' link(s).'); } }).catch(()=>status('Could not load (is the worker /links-list deployed?).',true)); }
   function openLinks(){ list.innerHTML=''; status(''); modal.hidden=false; load(); }
   function close(){ modal.hidden=true; }
-  DEV_MODULES.push({ name:'Short Links', desc:'List the stored short links and delete stale ones.', open:openLinks });
+  DEV_MODULES.push({ name:'Short Links', desc:'List the stored short links and delete stale ones.', open:openLinks, order:7 });
   const lb=document.getElementById('linksLoad'); if(lb) lb.onclick=load;
   const c=document.getElementById('linksClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
@@ -3219,7 +3225,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function show(){ jsonMode=false; working=toWorking(cur().get(), cur().type); renderView(); status(''); }
   function openRoster(){ if(!sel.options.length){ TABLES.forEach(t=>{ const o=document.createElement('option'); o.textContent=t.k; sel.appendChild(o); }); } show(); showTab(true); modal.hidden=false; }
   function close(){ modal.hidden=true; }
-  DEV_MODULES.push({ name:'Roster / Data Editor', desc:'Edit the character/persona/alias tables in a form or as JSON; apply to test, push live, or copy to bake in.', open:openRoster });
+  DEV_MODULES.push({ name:'Roster / Data Editor', desc:'Edit the character/persona/alias tables in a form or as JSON; apply to test, push live, or copy to bake in.', open:openRoster, order:3 });
   if(sel) sel.onchange=show;
   const jb=document.getElementById('rosterJson'); if(jb) jb.onclick=()=>{ if(jsonMode){ let v; try{ v=JSON.parse(ta.value); }catch(e){ status('Invalid JSON: '+e.message,true); return; } working=toWorking(v,cur().type); jsonMode=false; } else { try{ ta.value=JSON.stringify(realValue(),null,2); }catch(e){ status('Error: '+e.message,true); return; } jsonMode=true; } renderView(); };
   const cp=document.getElementById('rosterCopy'); if(cp) cp.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ navigator.clipboard.writeText(JSON.stringify(v,null,2)); status('Copied.'); }catch(e){ status('Copy failed.',true); } };
@@ -3345,7 +3351,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function openPCrops(){ loadPersonaCrops(); build(); modal.hidden=false; }
   function close(){ modal.hidden=true; savePersonaCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); }
-  DEV_MODULES.push({ name:'Persona Image Crops', desc:'Crop and position persona images, then push them live for everyone.', open:openPCrops });
+  DEV_MODULES.push({ name:'Persona Image Crops', desc:'Crop and position persona images, then push them live for everyone.', open:openPCrops, order:2 });
   const cc=document.getElementById('pcropClose'); if(cc) cc.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
@@ -4310,6 +4316,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622m</div>
+<div class="version-tag">260622n</div>
 </body>
 </html>
