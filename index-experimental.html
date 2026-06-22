@@ -348,6 +348,21 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .modal-head h2{margin:0; font:700 18px Oswald,sans-serif; letter-spacing:.04em; color:var(--text)}
 .modal-close{background:transparent; border:none; color:var(--muted); font-size:24px; line-height:1; cursor:pointer; padding:2px 8px; border-radius:6px}
 .modal-close:hover{color:var(--text); background:var(--panel2)}
+/* ===== EXPERIMENTAL-ONLY: character image crop editor styling — DO NOT PROMOTE ===== */
+.btn-exp{border-style:dashed}
+.crop-card{max-width:min(1120px,95vw)}
+.crop-tools{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 22px 0}
+.crop-tools-sp{flex:1 1 auto}
+.crop-hint{color:var(--muted); font-size:12.5px; line-height:1.45; max-width:620px}
+.crop-exp-tag{font:600 11px Inter,system-ui,sans-serif; color:#ffae42; border:1px dashed #ffae42; border-radius:6px; padding:1px 7px; vertical-align:middle; margin-left:8px; letter-spacing:0}
+.crop-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:14px; max-height:70vh; overflow:auto; padding:14px 22px 24px}
+.crop-cell{display:flex; flex-direction:column; gap:5px}
+.crop-prev{aspect-ratio:1/1; border-radius:8px; background:#0d0b14; border:1px solid var(--line); cursor:ns-resize; touch-action:none; position:relative; overflow:hidden; user-select:none; -webkit-user-select:none}
+.crop-prev::after{content:""; position:absolute; inset:0; border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); pointer-events:none}
+.crop-name{font:700 11px Oswald,sans-serif; letter-spacing:.3px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text)}
+.crop-mini{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+.crop-mini input[type=range]{flex:1 1 auto; min-width:0}
+/* ===== end EXPERIMENTAL-ONLY crop editor styling ===== */
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
 .guide p{margin:6px 0}
@@ -724,6 +739,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="btn" id="settingsBtn" title="Open settings (local display options)">Settings</button>
       <button class="btn" id="resetBtn">Reset</button>
       <button class="btn" id="playBtn" title="Play the rotation turn by turn">Play</button>
+      <button class="btn btn-exp" id="cropBtn" title="EXPERIMENTAL (this device only, not in the official tool): choose how each character image is cropped">Image Crops</button>
       <input type="file" id="importFile" accept="application/json" hidden/>
     </div>
   </div>
@@ -799,6 +815,24 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
   </div>
 </div>
+
+<!-- ===== EXPERIMENTAL-ONLY: character image crop editor — DO NOT PROMOTE to index.html ===== -->
+<div class="modal" id="cropModal" hidden>
+  <div class="modal-card crop-card" role="dialog" aria-modal="true" aria-label="Character image crops">
+    <div class="modal-head">
+      <h2>Character Image Crops <span class="crop-exp-tag">experimental · this device only</span></h2>
+      <button class="modal-close" id="cropClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="crop-tools">
+      <span class="crop-hint">Drag a portrait up or down to set its vertical crop. The sides are already zoomed past the card frame; the Zoom slider fine-tunes that. Saved on this device only.</span>
+      <span class="crop-tools-sp"></span>
+      <button class="btn" id="cropResetAll">Reset all</button>
+      <button class="btn" id="cropCopy" title="Copy the crop values as JSON (to bake into the official tool later)">Copy values</button>
+    </div>
+    <div class="crop-grid" id="cropGrid"></div>
+  </div>
+</div>
+<!-- ===== end EXPERIMENTAL-ONLY crop editor ===== -->
 
 <div class="modal" id="ioModal" hidden>
   <div class="modal-card io-card" role="dialog" aria-modal="true" aria-label="Share">
@@ -1129,6 +1163,21 @@ function personaImg(name){
   if(!name) return '';
   return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
 }
+/* ===================== EXPERIMENTAL-ONLY: character image crop =====================
+   DO NOT PROMOTE to index.html. The character art files are the full P5X cards (552x924,
+   decorative frame on the sides). This lets the dev pick the displayed crop per character:
+   the L/R card frame is zoomed past by default (z), and the image can be panned vertically (y).
+   Stored per-device in localStorage; applied in the team card (cropBgStyle) and in
+   portraitDataURL (live preview + PNG export + share webview). When this is finalised, the
+   chosen values get baked in as a fixed table and THIS editor + helpers are removed on promotion. */
+const CHAR_CROP_KEY='vf-charcrop-v1';
+const CHAR_CROP_DEF={z:112,y:50};   /* z = zoom % (112 crops the ~28px L/R card frame just out of view, ~30px/side); y = vertical position % (50 = centred) */
+let charCrops={};
+function loadCharCrops(){ try{ const o=JSON.parse(localStorage.getItem(CHAR_CROP_KEY)); charCrops=(o&&typeof o==='object')?o:{}; }catch(e){ charCrops={}; } }
+function saveCharCrops(){ try{ localStorage.setItem(CHAR_CROP_KEY, JSON.stringify(charCrops)); }catch(e){} }
+function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y) }; }
+function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:50% ${c.y}%`; }
+/* ===================== end EXPERIMENTAL-ONLY crop helpers ===================== */
 const DAGGER_IMG={
   "Arc Knife":"daggers/01_Arc_Knife.webp","Cyclotron":"daggers/02_Cyclotron.webp",
   "Starry Compass":"daggers/03_Starry_Compass.webp","Glimmer":"daggers/04_Glimmer.webp",
@@ -1469,7 +1518,7 @@ function unitCard(u, path, elu, idx, backup){
   }
   const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" title="Drag to reorder">'+GRIP_DOTS+'</div>':''}`;
   const art = img
-    ? `<div class="art" style="background-image:${bgURL(img)}">${overlay}</div>`
+    ? `<div class="art" style="${cropBgStyle(u.name, bgURL(img))/*EXPERIMENTAL crop*/}">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
   return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
     ${art}
@@ -2680,6 +2729,44 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
 
+/* ===================== EXPERIMENTAL-ONLY: character image crop editor wiring — DO NOT PROMOTE ===================== */
+(function(){
+  const modal=document.getElementById('cropModal'); if(!modal) return;
+  const grid=document.getElementById('cropGrid');
+  function applyCell(prev,name){ const c=cropOf(name); prev.style.backgroundImage=bgURL(imgFor(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition='50% '+c.y+'%'; }
+  function entry(name){ const k=name.toUpperCase(); return charCrops[k]||(charCrops[k]={}); }
+  function build(){
+    grid.innerHTML='';
+    DATA.characterNames.slice().sort().forEach(name=>{
+      if(!imgFor(name)) return;
+      const cell=document.createElement('div'); cell.className='crop-cell';
+      const prev=document.createElement('div'); prev.className='crop-prev';
+      const nm=document.createElement('div'); nm.className='crop-name'; nm.textContent=name;
+      const zlab=document.createElement('label'); zlab.className='crop-mini';
+      const zoom=document.createElement('input'); zoom.type='range'; zoom.min='100'; zoom.max='170'; zoom.step='1'; zoom.value=cropOf(name).z;
+      zlab.append('Zoom', zoom);
+      cell.append(prev,nm,zlab); grid.appendChild(cell);
+      applyCell(prev,name);
+      let dragging=false, sy=0, sV=0;
+      prev.addEventListener('pointerdown', e=>{ dragging=true; sy=e.clientY; sV=cropOf(name).y; try{prev.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
+      prev.addEventListener('pointermove', e=>{ if(!dragging) return; const dv=((e.clientY-sy)/(prev.offsetHeight||130))*100; entry(name).y=Math.round(Math.max(0,Math.min(100, sV - dv))); applyCell(prev,name); });  /* drag down reveals the top of the card */
+      const end=()=>{ if(dragging){ dragging=false; saveCharCrops(); } };
+      prev.addEventListener('pointerup', end); prev.addEventListener('pointercancel', end);
+      zoom.addEventListener('input', ()=>{ entry(name).z=+zoom.value; applyCell(prev,name); });
+      zoom.addEventListener('change', saveCharCrops);
+    });
+  }
+  const open=()=>{ loadCharCrops(); build(); modal.hidden=false; };
+  const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
+  const cb=document.getElementById('cropBtn'); if(cb) cb.onclick=open;
+  const cc=document.getElementById('cropClose'); if(cc) cc.onclick=close;
+  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
+  const ra=document.getElementById('cropResetAll'); if(ra) ra.onclick=()=>{ charCrops={}; saveCharCrops(); build(); };
+  const cp=document.getElementById('cropCopy'); if(cp) cp.onclick=()=>{ const out=JSON.stringify(charCrops); const ok=()=>{ cp.textContent='Copied'; setTimeout(()=>cp.textContent='Copy values',1200); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(out).then(ok,()=>prompt('Crop values:',out)); else prompt('Crop values:',out); };
+})();
+/* ===================== end EXPERIMENTAL-ONLY crop editor wiring ===================== */
+
 /* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
 function exportBaseName(){
   const s=state.setup;
@@ -3027,12 +3114,13 @@ function loadImg(src){ return new Promise((res,rej)=>{
   };
   attempt(src, true);
 }); }
-function portraitDataURL(img,size){
+function portraitDataURL(img,size,crop){
+  crop=crop||CHAR_CROP_DEF;                                     /* EXPERIMENTAL crop (z,y); matches the team-card background */
   const c=document.createElement('canvas'); c.width=size; c.height=size;
   const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
   const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
-  const sc=Math.max(size/iw,size/ih), dw=iw*sc, dh=ih*sc;       /* cover */
-  x.drawImage(img,(size-dw)/2,(size-dh)/2,dw,dh);               /* center crop, matches the page */
+  const dw=size*(crop.z/100), sc=dw/iw, dh=ih*sc;               /* width-driven zoom (these cards are portrait, so width is the cover dimension) */
+  x.drawImage(img,(size-dw)/2,(size-dh)*(crop.y/100),dw,dh);    /* center horizontally, pan vertically by y% (background-position semantics) */
   return c.toDataURL('image/png');
 }
 function fullDataURL(img){
@@ -3091,7 +3179,7 @@ function collectExportImages(){
   const exUnits=[...state.units, state.elucidator].concat(_bk?[_bk]:[]);
   exUnits.forEach(u=>{
     const src=imgFor(u.name); if(!src || seen['c:'+u.name]) return; seen['c:'+u.name]=1;
-    tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
+    tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360,cropOf(u.name))/*EXPERIMENTAL crop*/; }));
   });
   exUnits.forEach(u=>{
     const dn=u.gear, src=daggerImg(dn); if(!src || seen['d:'+dn]) return; seen['d:'+dn]=1;
@@ -3611,7 +3699,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
-state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL crop*/; rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
@@ -3633,6 +3721,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622s</div>
+<div class="version-tag">260622a</div>
 </body>
 </html>
