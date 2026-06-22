@@ -2072,6 +2072,7 @@ function normalizeScore(raw){
     if(!allowed.includes(U)) return {ok:false, value:num+sp+suf, reason:'Unknown magnitude "'+suf+'". Use K, M, Mil, B, Bil or T. Examples: 1.3 B, 945 Mil.'};
     suf = (suf.length===1) ? U : (suf[0].toUpperCase()+suf.slice(1).toLowerCase());   /* T/M/B → uppercase; Mil/Bil → capitalised */
   }
+  if(!suf && /^\d+$/.test(num)) num = num.replace(/\B(?=(\d{3})+(?!\d))/g, ',');   /* a plain integer (no magnitude, no existing separators) gets thousands commas: 1000000 -> 1,000,000 */
   return {ok:true, value:num+sp+suf};
 }
 function setupIssues(){
@@ -4318,6 +4319,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622q</div>
+<div class="version-tag">260622r</div>
 </body>
 </html>
