@@ -1021,7 +1021,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Roster data editor">
     <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Roster / Data Editor <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="rosterClose" aria-label="Close">&times;</button></div>
     <div class="dev-tool-body">
-      <div class="dev-tabs"><button class="dev-tab active" id="rosterTabAdd">Add new</button><button class="dev-tab" id="rosterTabEdit">Edit tables</button></div>
+      <div class="dev-tabs"><button class="dev-tab active" id="rosterTabAdd">Add new</button><button class="dev-tab" id="rosterTabEdit">Edit tables</button><button class="dev-tab" id="rosterTabAudit">Audit</button></div>
       <div id="rosterAddPane">
         <p class="crop-hint">Pick what to add, fill in the details and optionally upload an image. Everything is filed into the right tables automatically. "Add to session" tests it locally; "Add &amp; push live" makes it live for everyone. On push, an uploaded image is committed to the GitHub repo (visible after the Pages build, about a minute).</p>
         <div class="dev-tool-row"><span class="dev-label">Add a</span><select id="addType" class="dev-select"><option value="character">Character</option><option value="persona">Persona</option><option value="dagger">Dagger</option><option value="skill">Skill</option><option value="boss">Boss</option><option value="revelation">Revelation card</option></select></div>
@@ -1034,6 +1034,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <span class="dev-status" id="rosterStatus"></span>
         <div class="dev-form" id="rosterForm"></div>
         <textarea id="rosterIn" class="dev-textarea" rows="16" spellcheck="false" hidden></textarea>
+      </div>
+      <div id="rosterAuditPane" hidden>
+        <p class="crop-hint">Checks the data tables for gaps and orphans: characters without an image/colour/aliases/card defaults, personas without a signature, daggers without an image, and entries that exist in a map but not in the matching names list.</p>
+        <div class="dev-tool-row"><span class="dev-status" id="auditStatus"></span><span class="crop-tools-sp"></span><button class="btn btn-exp" id="auditRun">Run audit</button></div>
+        <div class="dev-out" id="auditOut"></div>
       </div>
     </div>
   </div>
@@ -1057,6 +1062,19 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   </div>
 </div>
 <!-- ===== end Persona Image Crops ===== -->
+
+<!-- ===== EXPERIMENTAL-ONLY: Dev module — Live Data Backup — DO NOT PROMOTE ===== -->
+<div class="modal" id="livebkModal" hidden>
+  <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Live data backup">
+    <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Live Data Backup <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="livebkClose" aria-label="Close">&times;</button></div>
+    <div class="dev-tool-body">
+      <p class="crop-hint">Download everything stored on the worker (character crops, persona crops, banner, data overrides) as one JSON, or restore it from a file. A safety net if the KV is lost or something is pushed by mistake.</p>
+      <div class="dev-tool-row"><span class="dev-status" id="livebkStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="livebkExport">Export live data</button><button class="btn btn-exp" id="livebkRestore">Restore from file</button></div>
+      <input type="file" id="livebkFile" accept="application/json,.json" hidden/>
+    </div>
+  </div>
+</div>
+<!-- ===== end Live Data Backup ===== -->
 
 <div class="modal" id="ioModal" hidden>
   <div class="modal-card io-card" role="dialog" aria-modal="true" aria-label="Share">
@@ -3310,7 +3328,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const pu=document.getElementById('rosterPush'); if(pu) pu.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } const data={[cur().k]:v}; try{ cur().set(v); const synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; synced.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); renderAll(); }catch(e){} status('Pushing…'); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed '+Object.keys(data).join(', ')+' live.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (is the worker /data deployed?).',true)); };
   /* ---- "Add new" form: file a Character / Persona / Dagger / Skill into all the right tables at once ---- */
   const addTypeSel=document.getElementById('addType'), addFields=document.getElementById('addFields'), addStatusEl=document.getElementById('addStatus');
-  let addTimer=null;
+  let addTimer=null, _addCrop=null;
   function addStatus(m,err){ if(!addStatusEl) return; if(addTimer){clearTimeout(addTimer);addTimer=null;} addStatusEl.textContent=m||''; addStatusEl.classList.toggle('err',!!err); if(m){ addTimer=setTimeout(()=>{ addStatusEl.textContent=''; addStatusEl.classList.remove('err'); },6000); } }
   const ADD_DEFS={
     character:[
@@ -3347,6 +3365,29 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       addFields.appendChild(row);
     });
     updateWhen();
+    _addCrop=null;
+    if(type==='character'||type==='persona'){
+      const fi=addFields.querySelector('input[type=file]');
+      if(fi){ const cw=buildAddCropWidget(type); addFields.appendChild(cw.el); fi.onchange=()=>{ const file=fi.files&&fi.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ const pv=fi.parentElement.querySelector('.dev-add-prev'); if(pv) pv.style.backgroundImage="url('"+r.result+"')"; cw.setImage(r.result); }; r.readAsDataURL(file); }; }
+    }
+  }
+  function buildAddCropWidget(type){
+    _addCrop = type==='character'? {z:112,y:50,x:50} : {z:100,y:50,x:50};
+    const wrap=document.createElement('div'); wrap.className='dev-add-row';
+    const lab=document.createElement('label'); lab.textContent='Crop & position'; wrap.append(lab);
+    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;gap:7px;flex:1 1 auto;min-width:0;';
+    const box=document.createElement('div');
+    box.style.cssText=(type==='persona'?'width:120px;height:198px;':'width:130px;height:130px;')+'border:1px solid var(--line);border-radius:8px;background:#0d0b14 50% 50%/cover no-repeat;cursor:move;touch-action:none;';
+    const zlab=document.createElement('label'); zlab.style.cssText='font-size:11px;color:var(--muted);display:flex;gap:7px;align-items:center;max-width:210px;';
+    const zoom=document.createElement('input'); zoom.type='range'; zoom.min='100'; zoom.max=(type==='character'?'170':'180'); zoom.step='1'; zoom.value=_addCrop.z; zoom.style.flex='1';
+    zlab.append('Zoom', zoom); col.append(box, zlab); wrap.append(col);
+    function apply(){ box.style.backgroundSize=_addCrop.z+'% auto'; box.style.backgroundPosition=_addCrop.x+'% '+_addCrop.y+'%'; }
+    let dragging=false,sx=0,sy=0,sVx=50,sVy=50;
+    box.addEventListener('pointerdown',e=>{ if(!_addCrop) return; dragging=true; sx=e.clientX; sy=e.clientY; sVx=_addCrop.x; sVy=_addCrop.y; try{box.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
+    box.addEventListener('pointermove',e=>{ if(!dragging||!_addCrop) return; _addCrop.x=Math.round(Math.max(0,Math.min(100, sVx-((e.clientX-sx)/(box.offsetWidth||120))*100))); _addCrop.y=Math.round(Math.max(0,Math.min(100, sVy-((e.clientY-sy)/(box.offsetHeight||120))*100))); apply(); });
+    const end=()=>{ dragging=false; }; box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+    zoom.addEventListener('input',()=>{ if(_addCrop){ _addCrop.z=+zoom.value; apply(); } });
+    return { el:wrap, setImage:url=>{ box.style.backgroundImage="url('"+url+"')"; apply(); } };
   }
   function addVals(){ const o={}; addFields.querySelectorAll('[data-k]').forEach(i=>{ const k=i.dataset.k; if(i.type==='file') o[k]=i; else if(i.type==='checkbox') o[k]=i.checked; else o[k]=i.value; }); return o; }
   function readFile(input){ return new Promise(res=>{ const f=input&&input.files&&input.files[0]; if(!f){ res(''); return; } const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>res(''); r.readAsDataURL(f); }); }
@@ -3381,17 +3422,47 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     else if(type==='skill'){ if(!SKILL_LIST.includes(name)) SKILL_LIST.push(name); if(aliases.length) SKILL_ALIASES[name]=aliases; touched=['SKILL_LIST','SKILL_ALIASES']; }
     else if(type==='boss'){ if(!DATA.bossNames.includes(name)) DATA.bossNames.push(name); touched=['bossNames']; }
     else if(type==='revelation'){ const arr=(v.cat==='Space')?'spaceCards':'sunSkyCards'; if(!DATA[arr].includes(name)) DATA[arr].push(name); touched=[arr]; }
+    if(imgData && _addCrop && (type==='character'||type==='persona')){
+      if(type==='character'){ charCrops[name]=Object.assign({},_addCrop); try{ saveCharCrops(); }catch(e){} }
+      else { personaCrops[name]=Object.assign({},_addCrop); try{ savePersonaCrops(); }catch(e){} }
+    }
     try{ renderAll(); }catch(e){}
-    if(push){ const data={}; touched.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok) addStatus('Added "'+name+'" and pushed it live.'); else if(r.status===403) addStatus('Rejected (wrong password).',true); else addStatus('Saved locally, but push failed ('+r.status+').',true); }).catch(()=>addStatus('Saved locally, but push failed (worker).',true)); }
+    if(push){ const data={}; touched.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok) addStatus('Added "'+name+'" and pushed it live.'); else if(r.status===403) addStatus('Rejected (wrong password).',true); else addStatus('Saved locally, but push failed ('+r.status+').',true); }).catch(()=>addStatus('Saved locally, but push failed (worker).',true));
+      if(imgData && _addCrop && (type==='character'||type==='persona')){ const ep=type==='character'?'/crops':'/personacrops'; fetch(SHORTENER+ep,{cache:'no-store'}).then(r=>r.ok?r.json():{}).then(live=>{ if(!live||typeof live!=='object') live={}; live[name]=Object.assign({},_addCrop); return fetch(SHORTENER+ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:live})}); }).catch(()=>{}); } }
     else addStatus('Added "'+name+'" to this session.');
   }
   if(addTypeSel) addTypeSel.onchange=renderAddFields;
   renderAddFields();
   const aA=document.getElementById('addApply'); if(aA) aA.onclick=()=>addEntry(false);
   const aP=document.getElementById('addPush'); if(aP) aP.onclick=()=>addEntry(true);
-  function showTab(add){ const ap=document.getElementById('rosterAddPane'), ep=document.getElementById('rosterEditPane'), ta=document.getElementById('rosterTabAdd'), te=document.getElementById('rosterTabEdit'); if(ap) ap.hidden=!add; if(ep) ep.hidden=add; if(ta) ta.classList.toggle('active',add); if(te) te.classList.toggle('active',!add); }
-  const tabA=document.getElementById('rosterTabAdd'); if(tabA) tabA.onclick=()=>showTab(true);
-  const tabE=document.getElementById('rosterTabEdit'); if(tabE) tabE.onclick=()=>showTab(false);
+  const PANES={add:'rosterAddPane', edit:'rosterEditPane', audit:'rosterAuditPane'}, TABS={add:'rosterTabAdd', edit:'rosterTabEdit', audit:'rosterTabAudit'};
+  function showTab(which){ if(which===true) which='add'; if(which===false) which='edit'; Object.keys(PANES).forEach(k=>{ const p=document.getElementById(PANES[k]); if(p) p.hidden=(k!==which); const t=document.getElementById(TABS[k]); if(t) t.classList.toggle('active', k===which); }); }
+  function runAudit(){
+    const cn=DATA.characterNames||[], pn=DATA.personaNames||[], dn=DATA.daggerNames||[];
+    const cnSet=new Set(cn), pnSet=new Set(pn), dnSet=new Set(dn), out=[];
+    const miss=(label,list,has)=>{ const m=list.filter(n=>!has(n)); if(m.length) out.push('- '+label+' ('+m.length+'): '+m.join(', ')); };
+    miss('Characters without an image', cn, n=>DATA.characterImages&&DATA.characterImages[n]);
+    miss('Characters without a colour', cn, n=>DATA.charColors&&DATA.charColors[n]);
+    miss('Characters without aliases', cn, n=>CHAR_ALIASES[n]&&CHAR_ALIASES[n].length);
+    miss('Characters without default cards', cn, n=>CHAR_CARD_DEFAULTS[n]);
+    miss('Personas without a signature skill', pn, n=>PERSONA_SIGNATURES[n]);
+    miss('Daggers without an image', dn, n=>DAGGER_IMG[n]);
+    const orph=(label,obj,set)=>{ const o=Object.keys(obj||{}).filter(k=>!set.has(k)); if(o.length) out.push('- '+label+' ('+o.length+'): '+o.join(', ')); };
+    orph('charColors not in characterNames', DATA.charColors, cnSet);
+    orph('characterImages not in characterNames', DATA.characterImages, cnSet);
+    orph('CHAR_ALIASES not in characterNames', CHAR_ALIASES, cnSet);
+    orph('CHAR_CARD_DEFAULTS not in characterNames', CHAR_CARD_DEFAULTS, cnSet);
+    orph('PERSONA_SIGNATURES not in personaNames', PERSONA_SIGNATURES, pnSet);
+    orph('PERSONA_ALIASES not in personaNames', PERSONA_ALIASES, pnSet);
+    orph('DAGGER_IMG not in daggerNames', DAGGER_IMG, dnSet);
+    const elu=(DATA.elucidatorNames||[]).filter(n=>!cnSet.has(n)); if(elu.length) out.push('- elucidatorNames not in characterNames ('+elu.length+'): '+elu.join(', '));
+    const o2=document.getElementById('auditOut'); if(o2) o2.textContent = out.length ? (out.length+' issue(s):\n\n'+out.join('\n')) : 'All good — no gaps or orphans found.';
+    const as=document.getElementById('auditStatus'); if(as){ as.textContent=out.length?(out.length+' issue(s)'):'Clean'; as.classList.toggle('err', out.length>0); }
+  }
+  const tabA=document.getElementById('rosterTabAdd'); if(tabA) tabA.onclick=()=>showTab('add');
+  const tabE=document.getElementById('rosterTabEdit'); if(tabE) tabE.onclick=()=>showTab('edit');
+  const tabAu=document.getElementById('rosterTabAudit'); if(tabAu) tabAu.onclick=()=>showTab('audit');
+  const arun=document.getElementById('auditRun'); if(arun) arun.onclick=runAudit;
   const c=document.getElementById('rosterClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
@@ -3439,6 +3510,39 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const push=document.getElementById('pcropPush'); if(push) push.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); fetch(SHORTENER+'/personacrops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:personaCrops})}).then(r=>{ if(r.ok){ status('Pushed. Live for everyone now.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); };
 })();
 /* ===================== end Persona Image Crops ===================== */
+
+/* ===================== EXPERIMENTAL-ONLY: Dev module — Live Data Backup — DO NOT PROMOTE ===================== */
+(function(){
+  const modal=document.getElementById('livebkModal'); if(!modal) return;
+  const st=document.getElementById('livebkStatus'); let timer=null;
+  function status(m,err){ if(!st) return; if(timer){clearTimeout(timer);timer=null;} st.textContent=m||''; st.classList.toggle('err',!!err); if(m){ timer=setTimeout(()=>{ st.textContent=''; st.classList.remove('err'); },6000); } }
+  const EP=[['crops','/crops'],['personacrops','/personacrops'],['banner','/banner'],['data','/data']];
+  function openMod(){ status(''); modal.hidden=false; }
+  function close(){ modal.hidden=true; }
+  async function doExport(){
+    status('Fetching live data…');
+    try{
+      const out={ app:'vfrp-live', version:1, exportedAt:new Date().toISOString() };
+      for(const [k,p] of EP){ try{ const r=await fetch(SHORTENER+p,{cache:'no-store'}); out[k]= r.ok? await r.json() : null; }catch(e){ out[k]=null; } }
+      const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vfrp-live-data.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
+      status('Exported the live data.');
+    }catch(e){ status('Export failed (worker unreachable).',true); }
+  }
+  async function doRestore(obj){
+    if(!_devPass){ status('Unlock Developer Mode first.',true); return; }
+    status('Restoring…'); let okc=0, failc=0;
+    for(const [k,p] of EP){ if(obj[k]==null) continue; try{ const r=await fetch(SHORTENER+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:obj[k]})}); if(r.ok) okc++; else failc++; }catch(e){ failc++; } }
+    status(failc? ('Restored '+okc+', '+failc+' failed.') : ('Restored '+okc+' live data set(s).'), !!failc);
+  }
+  DEV_MODULES.push({ name:'Live Data Backup', desc:'Export all worker-stored live data (crops, banner, data) as one JSON, or restore it.', open:openMod, order:8 });
+  const eb=document.getElementById('livebkExport'); if(eb) eb.onclick=doExport;
+  const rb=document.getElementById('livebkRestore'); if(rb) rb.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } document.getElementById('livebkFile').click(); };
+  const fi=document.getElementById('livebkFile'); if(fi) fi.onchange=e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return; if(!confirm('Restore live data from this file? It overwrites the current live crops/banner/data for everyone.')) return; const r=new FileReader(); r.onload=()=>{ let o; try{ o=JSON.parse(r.result); }catch(err){ status('Invalid JSON file.',true); return; } doRestore(o); }; r.readAsText(f); };
+  const c=document.getElementById('livebkClose'); if(c) c.onclick=close;
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
+})();
+/* ===================== end Live Data Backup ===================== */
 
 /* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
 function exportBaseName(){
@@ -4421,6 +4525,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622s</div>
+<div class="version-tag">260622t</div>
 </body>
 </html>
