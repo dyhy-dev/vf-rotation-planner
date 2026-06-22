@@ -992,7 +992,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="dev-tool-body">
       <div class="dev-tabs"><button class="dev-tab active" id="rosterTabAdd">Add new</button><button class="dev-tab" id="rosterTabEdit">Edit tables</button></div>
       <div id="rosterAddPane">
-        <p class="crop-hint">Pick what to add, fill in the details and optionally upload an image. Everything is filed into the right tables automatically. "Add to session" tests it locally; "Add &amp; push live" makes it live for everyone.</p>
+        <p class="crop-hint">Pick what to add, fill in the details and optionally upload an image. Everything is filed into the right tables automatically. "Add to session" tests it locally; "Add &amp; push live" makes it live for everyone. On push, an uploaded image is committed to the GitHub repo (visible after the Pages build, about a minute).</p>
         <div class="dev-tool-row"><span class="dev-label">Add a</span><select id="addType" class="dev-select"><option value="character">Character</option><option value="persona">Persona</option><option value="dagger">Dagger</option><option value="skill">Skill</option></select></div>
         <div class="dev-add-fields" id="addFields"></div>
         <div class="dev-tool-row"><span class="dev-status" id="addStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="addApply">Add to session</button><button class="btn btn-exp" id="addPush">Add &amp; push live</button></div>
@@ -3235,7 +3235,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function addVals(){ const o={}; addFields.querySelectorAll('input[data-k]').forEach(i=>{ if(i.type==='file') o[i.dataset.k]=i; else if(!/_hex$/.test(i.dataset.k)) o[i.dataset.k]=i.value; }); return o; }
   function readFile(input){ return new Promise(res=>{ const f=input&&input.files&&input.files[0]; if(!f){ res(''); return; } const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>res(''); r.readAsDataURL(f); }); }
-  async function uploadImg(key,dataURL){ const r=await fetch(SHORTENER+'/img',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,key,data:dataURL})}); if(!r.ok) throw new Error(String(r.status)); const j=await r.json(); return j.url||''; }
+  function extFromDataURL(d){ const m=/^data:image\/([a-z0-9.+-]+)/i.exec(d||''); let e=(m?m[1]:'png').toLowerCase(); if(e==='jpeg') e='jpg'; if(e==='svg+xml') e='svg'; return e.replace(/[^a-z0-9]/g,'')||'png'; }
+  function safeFile(n){ return String(n).replace(/[\\/:*?"<>|\s·]+/g,'-'); }
+  async function commitImg(path, dataURL){ const r=await fetch(SHORTENER+'/img',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,path,data:dataURL})}); if(!r.ok){ let d=''; try{ d=(await r.json()).error||''; }catch(e){} throw new Error(r.status+(d?(' '+d):'')); } return path; }
   async function addEntry(push){
     const type=addTypeSel.value, v=addVals();
     let name=(v.name||'').trim(); if(type==='character') name=name.toUpperCase();
@@ -3243,8 +3245,11 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     if(push && !_devPass){ addStatus('Unlock Developer Mode first.',true); return; }
     const aliases=(v.aliases||'').split(',').map(s=>s.trim()).filter(Boolean);
     let imgData=''; if(v.image) imgData=await readFile(v.image);
-    let imgVal=imgData;
-    if(push && imgData){ addStatus('Uploading image…'); try{ imgVal=await uploadImg(type+'-'+name.replace(/[^A-Za-z0-9]/g,'_')+'-'+Date.now(), imgData); }catch(e){ addStatus('Image upload failed ('+e.message+').',true); return; } }
+    let imgVal='';
+    if(imgData){
+      if(push){ const folder= type==='character'?'images' : type==='persona'?'personas' : 'daggers'; const path=folder+'/'+safeFile(name)+'.'+extFromDataURL(imgData); addStatus('Committing image to GitHub…'); try{ imgVal=await commitImg(path, imgData); }catch(e){ addStatus('Image commit failed ('+e.message+').',true); return; } }
+      else imgVal=imgData;
+    }
     DATA.personaImages=DATA.personaImages||{};
     let touched=[];
     if(type==='character'){ if(!DATA.characterNames.includes(name)) DATA.characterNames.push(name); DATA.charColors[name]=v.color||''; CHAR_ALIASES[name]=aliases; if(imgVal) DATA.characterImages[name]=imgVal; touched=['characterNames','charColors','CHAR_ALIASES','characterImages']; }
@@ -4264,6 +4269,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622k</div>
+<div class="version-tag">260622l</div>
 </body>
 </html>
