@@ -357,8 +357,14 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .crop-tools{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 22px 0}
 .crop-tools-sp{flex:1 1 auto}
 .crop-hint{color:var(--muted); font-size:12.5px; line-height:1.45; max-width:520px}
-.crop-status{font:600 12px Inter,system-ui,sans-serif; color:#8de28d}
-.crop-status.err{color:#ff6b6b}
+.crop-statusline{padding:10px 22px 0; min-height:22px; text-align:right; font:600 13px Inter,system-ui,sans-serif; color:#8de28d}
+.crop-statusline.err{color:#ff6b6b}
+.dev-card{max-width:min(560px,94vw)}
+.dev-modules{display:grid; grid-template-columns:1fr; gap:10px; padding:16px 22px 24px}
+.dev-module{display:flex; flex-direction:column; gap:3px; text-align:left; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:13px 16px; cursor:pointer; color:var(--text); font:inherit}
+.dev-module:hover{border-color:#ffae42}
+.dev-module-name{font:700 14px Oswald,sans-serif; letter-spacing:.02em}
+.dev-module-desc{font-size:12px; color:var(--muted); line-height:1.4}
 .crop-exp-tag{font:600 11px Inter,system-ui,sans-serif; color:#ffae42; border:1px dashed #ffae42; border-radius:6px; padding:1px 7px; vertical-align:middle; margin-left:8px; letter-spacing:0}
 .crop-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:14px; max-height:70vh; overflow:auto; padding:14px 22px 24px}
 .crop-cell{display:flex; flex-direction:column; gap:5px}
@@ -825,6 +831,17 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   </div>
 </div>
 
+<!-- ===== EXPERIMENTAL-ONLY: Developer Mode hub (extensible module launcher) — DO NOT PROMOTE ===== -->
+<div class="modal" id="devModal" hidden>
+  <div class="modal-card dev-card" role="dialog" aria-modal="true" aria-label="Developer Mode">
+    <div class="modal-head">
+      <h2>Developer Mode <span class="crop-exp-tag">experimental · this device only</span></h2>
+      <button class="modal-close" id="devClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="dev-modules" id="devModules"></div>
+  </div>
+</div>
+
 <!-- ===== EXPERIMENTAL-ONLY: character image crop editor — DO NOT PROMOTE to index.html ===== -->
 <div class="modal" id="cropModal" hidden>
   <div class="modal-card crop-card" role="dialog" aria-modal="true" aria-label="Character image crops">
@@ -834,7 +851,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
     <div class="crop-tools">
       <span class="crop-hint">Drag a portrait up or down to set its vertical crop. The sides are already zoomed past the card frame; the Zoom slider fine-tunes that. Saved on this device only.</span>
-      <span class="crop-status" id="cropStatus"></span>
       <span class="crop-tools-sp"></span>
       <label class="crop-remember" title="Stay unlocked on this device so you don't re-enter the password (stores it locally on this device only)"><input type="checkbox" id="cropRemember"> Remember me</label>
       <button class="btn" id="cropResetAll">Reset all</button>
@@ -842,6 +858,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="btn" id="cropPull" title="Load the crops currently live (from the worker) into the editor">Pull live</button>
       <button class="btn btn-exp" id="cropPush" title="Push these crops live for everyone (via the worker)">Push to live</button>
     </div>
+    <div class="crop-statusline" id="cropStatus"></div>
     <div class="crop-grid" id="cropGrid"></div>
   </div>
 </div>
@@ -2779,11 +2796,26 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       zoom.addEventListener('change', saveCharCrops);
     });
   }
-  const open=()=>{ loadCharCrops(); build(); const rb=document.getElementById('cropRemember'); if(rb){ try{ rb.checked=!!localStorage.getItem(DEV_REMEMBER_KEY); }catch(e){} } modal.hidden=false; };
+  /* the crop editor is one Developer-Mode MODULE (see DEV_MODULES); open/close just toggle its modal */
+  const openCrops=()=>{ loadCharCrops(); build(); const rb=document.getElementById('cropRemember'); if(rb){ try{ rb.checked=!!localStorage.getItem(DEV_REMEMBER_KEY); }catch(e){} } modal.hidden=false; };
   const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
-  function setStatus(msg, err){ const s=document.getElementById('cropStatus'); if(s){ s.textContent=msg||''; s.classList.toggle('err', !!err); } }
-  async function openDev(){ if(_devPass){ open(); setStatus(''); return; } const pw=prompt('Developer password:'); if(pw==null) return; let h=''; try{ h=await sha256hex(pw); }catch(e){} if(h===DEV_PW_HASH){ _devPass=pw; open(); setStatus(''); } else { alert('Wrong password.'); } }
+  /* ---- Developer Mode hub: an extensible launcher. Add a new tool by appending one entry here. ---- */
+  const DEV_MODULES=[
+    { name:'Image Crops', desc:'Choose how each character image is cropped, then push it live for everyone.', open:openCrops },
+  ];
+  const devModal=document.getElementById('devModal'), devModules=document.getElementById('devModules');
+  function openHub(){
+    if(devModules){ devModules.innerHTML=''; DEV_MODULES.forEach(m=>{ const b=document.createElement('button'); b.className='dev-module'; const n=document.createElement('span'); n.className='dev-module-name'; n.textContent=m.name; const d=document.createElement('span'); d.className='dev-module-desc'; d.textContent=m.desc; b.append(n,d); b.onclick=()=>{ closeHub(); m.open(); }; devModules.appendChild(b); }); }
+    if(devModal) devModal.hidden=false;
+  }
+  function closeHub(){ if(devModal) devModal.hidden=true; }
+  let _statusTimer=null;
+  function setStatus(msg, err){ const s=document.getElementById('cropStatus'); if(!s) return; if(_statusTimer){ clearTimeout(_statusTimer); _statusTimer=null; } s.textContent=msg||''; s.classList.toggle('err', !!err); if(msg){ _statusTimer=setTimeout(()=>{ s.textContent=''; s.classList.remove('err'); _statusTimer=null; }, 5000); } }
+  async function openDev(){ if(_devPass){ openHub(); return; } const pw=prompt('Developer password:'); if(pw==null) return; let h=''; try{ h=await sha256hex(pw); }catch(e){} if(h===DEV_PW_HASH){ _devPass=pw; openHub(); } else { alert('Wrong password.'); } }
   const dm=document.getElementById('devModeBtn'); if(dm) dm.onclick=openDev;
+  const dc=document.getElementById('devClose'); if(dc) dc.onclick=closeHub;
+  if(devModal) devModal.addEventListener('click', e=>{ if(e.target===devModal) closeHub(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && devModal && !devModal.hidden) closeHub(); });
   const rem=document.getElementById('cropRemember'); if(rem) rem.onchange=()=>{ try{ if(rem.checked && _devPass) localStorage.setItem(DEV_REMEMBER_KEY, _devPass); else localStorage.removeItem(DEV_REMEMBER_KEY); }catch(e){} };
   const cc=document.getElementById('cropClose'); if(cc) cc.onclick=close;
   modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
@@ -3749,6 +3781,6 @@ state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622d</div>
+<div class="version-tag">260622e</div>
 </body>
 </html>
