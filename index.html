@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
 <title>Velvet Frequency Rotation Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,6 +65,7 @@ body{
   background:radial-gradient(1200px 600px at 70% -10%, #241f38 0%, var(--ink) 60%) fixed, var(--ink);
   color:var(--text); font-family:"Inter",system-ui,sans-serif; font-size:14px; line-height:1.4;
   padding:0 0 80px;
+  min-width:360px;   /* below this the editor scrolls horizontally instead of breaking/overlapping */
 }
 .wrap{max-width:1280px; margin:0 auto; padding:18px}
 h1,h2,h3{font-family:"Oswald",sans-serif; font-weight:600; letter-spacing:.04em; margin:0}
@@ -150,6 +151,7 @@ button{cursor:pointer}
   padding:8px; font-family:"Oswald"; font-weight:600; font-size:16px; letter-spacing:.05em; text-align:center}
 .unit input.name{box-sizing:border-box}
 .unit input.name:focus{outline:none; border-color:var(--blue-strong)}
+.unit input.name.name-fixed{cursor:default}
 .unit .tags{display:flex; gap:6px; margin-top:6px}
 .unit .tags select{flex:1; background:var(--field); border:1px solid var(--line); border-radius:6px; padding:5px; font-size:12px; font-weight:600}
 .unit select:disabled{opacity:.4; cursor:not-allowed}
@@ -189,10 +191,18 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .rev-row select:focus{outline:none; border-color:var(--blue-strong)}
 .unit.elu{border-top-style:dashed}
 .unit .grip{position:absolute; top:6px; right:6px; z-index:2; background:#000a; border:1px solid var(--line);
-  color:#dfe6f5; border-radius:6px; padding:1px 6px 3px; cursor:grab; font-size:13px; line-height:1; user-select:none}
+  color:#dfe6f5; border-radius:6px; min-width:20px; height:20px; padding:0 6px; display:flex; align-items:center; justify-content:center; cursor:grab; font-size:13px; line-height:1; user-select:none}
 .unit .grip:active{cursor:grabbing}
+.grip-dots{display:block; width:10px; height:14px; fill:currentColor}
+.pgrip, .turn-head .tgrip{display:inline-flex; align-items:center; justify-content:center}
 .unit.dragging{opacity:.45}
 .unit.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+/* touch long-press reorder: floating ghost + callout suppression on the grab surfaces */
+.touch-ghost{position:fixed; left:0; top:0; margin:0; pointer-events:none; z-index:9000; opacity:.93; border-radius:12px; box-shadow:0 14px 34px #000b}
+body.touch-dragging{-webkit-user-select:none; user-select:none}
+.unit .art, .persona-col .pcol-img img{-webkit-touch-callout:none}
+.persona-col .pcol-img img, .unit .art{cursor:grab}
+body.touch-dragging, body.touch-dragging *{cursor:grabbing !important}
 .elu-badge{position:absolute; top:6px; left:6px; background:#0008; border:1px solid var(--blue-strong);
   color:var(--blue); font-size:9px; letter-spacing:.12em; padding:2px 6px; border-radius:5px; font-weight:700}
 .order-badge{position:absolute; top:6px; left:6px; z-index:2; background:#0008; border:1px solid var(--gold);
@@ -205,7 +215,7 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .minicard .vals{display:flex; flex-direction:column; gap:6px; margin-top:6px}
 .minicard select,.minicard input{background:var(--field); border:1px solid var(--line); border-radius:6px; padding:6px; font-weight:600; width:100%}
 .persona-grid{display:grid; grid-template-columns:120px repeat(3,1fr); gap:12px; margin-top:14px}
-.persona-col{position:relative}
+.persona-col{position:relative; container-type:inline-size; container-name:persona}
 .pcol-head{display:flex; align-items:center; justify-content:space-between; gap:6px}
 .pgrip{cursor:grab; color:var(--muted); user-select:none; font-size:13px; line-height:1; padding:0 2px}
 .pgrip:active{cursor:grabbing}
@@ -226,6 +236,13 @@ body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version
 .pcol-img{flex:0 0 auto}
 .pcol-img img{height:100%; max-height:200px; width:auto; max-width:130px; display:block; border-radius:6px; background:var(--field); object-fit:contain}
 body.persona-img-left .pcol-body{flex-direction:row-reverse}
+/* when the persona COLUMN itself gets too narrow (regardless of window width — the grid widens columns again
+   when it drops to one), the image squeezes the fields, so drop it below them instead */
+@container persona (max-width:320px){
+  .pcol-body, body.persona-img-left .pcol-body{flex-direction:column; align-items:stretch}
+  .pcol-img{align-self:center; margin-top:8px}
+  .pcol-img img{height:auto; max-height:160px; width:auto; max-width:120px}
+}
 @media (max-width:640px){ .persona-grid{grid-template-columns:1fr} }
 .team-notes{margin-top:14px}
 .team-notes .tn-label{display:block; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
@@ -399,7 +416,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
-.version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:1000; pointer-events:none; user-select:none}
+.version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
+body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
 .combo-item{padding:6px 10px; border-radius:5px; font:600 13px Inter,sans-serif; color:var(--text); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .combo-item:hover{background:#2a2740}
@@ -439,17 +457,36 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 #playRoot.is-fs .play-fs .fs-enter{display:none}
 #playRoot.is-fs .play-fs .fs-exit{display:inline-flex}
 .play-body{flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:safe center; padding:28px 18px; gap:22px}
+.play-turn-head{position:relative; align-self:stretch; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0 10px; min-height:52px}
 .play-turn-name{font:700 34px Oswald,sans-serif; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
+@keyframes playTurnFlash{ 0%,18%{color:var(--gold)} }
+.play-turn-name.flash{animation:playTurnFlash 1.3s ease-out}
+.play-turn-tools{position:absolute; right:10px; top:50%; transform:translateY(-50%); display:flex; gap:8px}
+.play-turn-tools button{display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:var(--panel); border:1px solid var(--line); color:var(--soft); cursor:pointer; padding:0}
+.play-turn-tools button:hover{color:var(--text); border-color:var(--blue-strong)}
+@media (max-width:600px){ .play-turn-tools button{width:32px; height:32px; border-radius:8px} .play-turn-tools button svg{width:18px; height:18px} }
+.play-dotwrap{position:relative; flex:1 1 auto; display:flex; justify-content:center; align-items:center}
+.play-dots{transition:opacity .55s ease}
+.play-dots.dim{opacity:0}
+.play-finished{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; white-space:nowrap; font:700 22px Oswald,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue-strong); opacity:0; pointer-events:none; transition:opacity .55s ease}
+.play-finished.show{opacity:1}
+@media (max-width:560px){ .play-finished{font-size:17px; letter-spacing:.05em} }
+@media (max-width:380px){ .play-finished{font-size:14px; letter-spacing:.02em} }
+.play-act.block{position:relative}
+.play-act.block .play-actn{position:absolute; top:8px; left:11px; margin:0}
+.play-solo{cursor:pointer}
 .play-turn-name.brk{color:#e0445e}
 .play-turn-sub{font:600 15px Inter,sans-serif; color:var(--muted); margin-top:-14px}
 .play-actions{display:flex; flex-direction:column; gap:14px; width:100%; max-width:880px; flex:0 0 auto}
 .play-act{display:flex; align-items:baseline; gap:16px; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--line); border-radius:12px; padding:18px 24px}
+#playRoot .play-act[data-gi]{cursor:pointer; transition:opacity .12s, filter .12s}
+#playRoot .play-act.done{opacity:.32; filter:grayscale(1)}
+#playRoot:not(.play-touch) .play-act[data-gi]:hover{border-color:var(--blue-strong)}
 .play-actn{font:700 15px Oswald,sans-serif; color:var(--muted); flex:0 0 20px}
-.play-actor{font:700 24px Oswald,sans-serif; letter-spacing:.03em; flex:0 0 168px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.play-actdetail{font:600 22px Inter,sans-serif; color:var(--text); flex:1; min-width:0}
+.play-actor{font:700 24px Oswald,sans-serif; letter-spacing:.03em; flex:0 1 168px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.play-actdetail{font:600 22px Inter,sans-serif; color:var(--text); flex:1 1 auto; min-width:3.2em}
 .play-empty{color:var(--muted); font-size:16px}
 .play-note{color:var(--muted); font-size:14px; max-width:880px; text-align:center}
-.play-hint{flex:0 0 auto; text-align:center; color:var(--muted); font-size:12px; padding:2px 0 8px}
 .play-nav{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 24px 18px; border-top:1px solid var(--line)}
 .play-navbtn{background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:12px 22px; font:700 15px Inter,sans-serif; cursor:pointer; min-width:112px}
 .play-navbtn:hover:not(:disabled){border-color:var(--blue-strong)}
@@ -473,6 +510,7 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 .play-act.block .play-actdetail{flex:none}
 /* action mode: one action, big and centered */
 .play-solo{flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:10px 16px; min-height:0}
+.play-solo-text{display:flex; flex-direction:column; align-items:center; gap:18px; min-width:0}
 .play-solo-actor{font:700 46px Oswald,sans-serif; letter-spacing:.04em}
 .play-solo-detail{font:600 34px Inter,sans-serif; color:var(--text); max-width:900px}
 /* desktop has more room — scale everything up */
@@ -486,6 +524,13 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 #playRoot:not(.play-touch) .play-solo-actor{font-size:60px}
 #playRoot:not(.play-touch) .play-solo-detail{font-size:42px}
 @media (max-width:600px){ .play-turn-name{font-size:24px} .play-actor{flex-basis:108px; font-size:18px} .play-actdetail{font-size:17px} .play-navbtn{min-width:80px; padding:13px 14px} .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px} .play-act{padding:14px 16px} .play-act.block{width:174px} .play-act.block .play-actor{font-size:18px} }
+/* very narrow screens: tighten the action row (both touch & desktop sizing) so the name + action both fit */
+@media (max-width:400px){
+  #playRoot .play-act{gap:9px}
+  #playRoot:not(.play-touch) .play-act, #playRoot.play-touch .play-act{padding:12px}
+  #playRoot:not(.play-touch) .play-actor, #playRoot.play-touch .play-actor{font-size:17px; flex-basis:92px}
+  #playRoot:not(.play-touch) .play-actdetail, #playRoot.play-touch .play-actdetail{font-size:16px}
+}
 /* horizontal layout: the turn name is just a label above the tile row — keep it small so the tiles get the room */
 #playRoot.is-horiz .play-turn-name{font-size:20px}
 #playRoot.is-horiz .play-body{justify-content:flex-start; gap:12px}
@@ -493,11 +538,18 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
 #playRoot:not(.play-touch).is-horiz .play-body{justify-content:safe center}
 /* landscape phones / short viewports: compress the chrome so the action tiles fit fully */
 @media (max-height:520px){
-  .play-head{padding:8px 16px} .play-body{padding:12px 14px; gap:10px}
+  .play-head{padding:6px 16px} .play-body{padding:6px 14px; gap:5px}
   .play-turn-name{font-size:20px} #playRoot.is-horiz .play-turn-name{font-size:16px}
-  .play-hint{display:none} .play-nav{padding:8px 16px 10px}
+  .play-turn-sub{margin-top:-4px; font-size:13px}
+  .play-nav{padding:8px 16px 10px}
+  /* horizontal turn mode: drop the turn row (with the reset/restart buttons) below the progress bar so they don't touch it; the tile strip (flex) shrinks to compensate */
+  #playRoot.is-horiz .play-body{padding-top:12px}
+  #playRoot.is-horiz .play-turn-head{min-height:44px}
   .play-act.block{width:170px} .play-act.block .play-actor{font-size:18px} .play-act.block .play-actdetail{font-size:16px}
-  .play-solo-actor{font-size:30px} .play-solo-detail{font-size:22px}
+  /* action mode: a short (landscape) viewport can't stack portrait-over-text without overflowing — put the portrait left of the name/action so it fits without scrolling */
+  .play-solo{flex-direction:row; gap:20px; text-align:left; padding:2px 12px; align-items:center}
+  .play-solo-text{align-items:flex-start; gap:6px; flex:1 1 auto}
+  .play-solo-actor{font-size:28px} .play-solo-detail{font-size:21px}
 }
 /* horizontal mode on phones: the tile row fills the available height; tiles stretch and center their content */
 #playRoot.play-touch.is-horiz .play-actions{flex:1 1 auto; min-height:0; align-items:stretch}
@@ -513,6 +565,94 @@ body.theme-light #playRoot{ background:radial-gradient(1200px 600px at 70% -10%,
   .play-title{flex:1 1 auto}
   .play-right{flex:0 0 auto}
   .play-segs{order:3; flex:1 1 100%; justify-content:center; margin-top:8px}
+}
+/* progress bar under the header — a visual mirror of the "X / N" counter */
+.play-progress{flex:0 0 auto; height:4px; background:var(--line); position:relative; overflow:hidden}
+body.theme-light .play-progress{background:rgba(0,0,0,.08)}
+.play-progress-fill{position:absolute; left:0; top:0; bottom:0; width:0; background:var(--blue-strong); transition:width .18s ease}
+.play-progress-fill.brk{background:#e0445e}
+/* team-info toggle (header) + slide-in panel (dagger / personas / team notes) */
+.play-info-btn{background:transparent; border:none; color:var(--muted); cursor:pointer; padding:4px 8px; flex:0 0 auto; display:inline-flex; align-items:center}
+.play-info-btn:hover, .play-info-btn.on{color:var(--blue)}
+.play-info-panel{position:absolute; inset:0; z-index:10}
+.play-info-panel[hidden]{display:none}
+.play-info-back{position:absolute; inset:0; background:rgba(8,6,18,.55)}
+.play-info-card{position:absolute; top:0; right:0; bottom:0; width:380px; max-width:88vw; background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; box-shadow:-12px 0 40px #0007; animation:playInfoIn .18s ease}
+@keyframes playInfoIn{from{transform:translateX(24px); opacity:.5} to{transform:none; opacity:1}}
+.play-info-head{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line); font:700 14px Oswald,sans-serif; letter-spacing:.08em; color:var(--blue); text-transform:uppercase}
+.play-info-x{background:transparent; border:none; color:var(--muted); font-size:26px; line-height:1; cursor:pointer; padding:0 4px}
+.play-info-x:hover{color:var(--text)}
+.play-info-body{flex:1 1 auto; min-height:0; overflow:auto; padding:14px 18px; -webkit-overflow-scrolling:touch}
+.play-info-sec{margin-bottom:18px}
+.play-info-sec:last-child{margin-bottom:0}
+.play-info-lab{font:700 11px Inter,sans-serif; letter-spacing:.1em; color:var(--muted); margin-bottom:8px}
+.play-info-dagger{display:flex; align-items:center; gap:10px; font:700 16px Oswald,sans-serif; color:var(--blue)}
+.play-info-dagger img{height:46px; width:auto; border-radius:6px; display:block}
+.play-info-persona{display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line)}
+.play-info-persona:first-of-type{border-top:none; padding-top:0}
+.play-info-persona img{height:54px; width:auto; border-radius:6px; display:block; flex:0 0 auto}
+.play-info-ptext{min-width:0}
+.play-info-pname{font:700 15px Oswald,sans-serif; color:#f1c232}
+.play-info-sig{font:500 12px Inter,sans-serif; color:var(--muted); margin-top:3px; line-height:1.5}
+.play-info-sk{font:500 12px Inter,sans-serif; color:var(--blue-soft); margin-top:3px; line-height:1.5}
+.play-info-notes{font:500 13px Inter,sans-serif; color:var(--text); line-height:1.55; white-space:pre-wrap}
+.play-info-empty{color:var(--muted); font-size:14px; text-align:center; margin-top:34px}
+/* character portraits inside the player */
+.play-portrait{height:46px; width:46px; border-radius:9px; object-fit:cover; flex:0 0 auto; display:block; align-self:center}
+#playRoot:not(.play-touch) .play-portrait{height:54px; width:54px; border-radius:10px}
+.play-act.block .play-portrait{height:68px; width:68px; border-radius:11px; align-self:flex-start}
+#playRoot:not(.play-touch).is-horiz .play-act.block .play-portrait{height:84px; width:84px; border-radius:12px}
+.play-solo-portrait{height:150px; width:150px; border-radius:16px; object-fit:cover; display:block}
+#playRoot:not(.play-touch) .play-solo-portrait{height:176px; width:176px}
+/* action mode: upcoming-action preview */
+.play-next{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:3px; margin-top:10px; padding:10px 20px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; max-width:760px; box-sizing:border-box; text-align:center}
+.play-next-lab{font:700 11px Inter,sans-serif; letter-spacing:.14em; color:var(--muted)}
+.play-next-actor{font:700 21px Oswald,sans-serif}
+.play-next-detail{font:600 16px Inter,sans-serif; color:var(--muted)}
+.play-next.end{color:var(--blue-strong); font:700 19px Oswald,sans-serif; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap}
+/* phones: keep portraits + preview from crowding the action rows */
+@media (max-width:600px){
+  .play-portrait{height:38px; width:38px; border-radius:7px}
+  .play-act.block .play-portrait{height:54px; width:54px}
+  .play-solo-portrait{height:104px; width:104px; border-radius:13px}
+  .play-next-actor{font-size:16px} .play-next-detail{font-size:14px}
+}
+/* short/landscape viewports: shrink the action-mode portrait + preview so the action still fits without scrolling
+   (these override the taller desktop :not(.play-touch) sizes too, since the block sits late in the stylesheet) */
+@media (max-height:520px){
+  .play-solo-portrait{height:84px; width:84px; border-radius:11px}
+  #playRoot:not(.play-touch) .play-solo-portrait{height:96px; width:96px}
+  #playRoot:not(.play-touch) .play-turn-name{font-size:22px}
+  #playRoot:not(.play-touch) .play-solo-actor{font-size:34px}
+  #playRoot:not(.play-touch) .play-solo-detail{font-size:24px}
+  .play-act.block .play-portrait{height:50px; width:50px}
+  /* action mode: lift the NEXT preview out of the text column — one line, pinned just above the nav bar */
+  .play-body{position:relative}
+  .play-solo{padding-bottom:34px}
+  .play-next{position:absolute; left:50%; bottom:5px; transform:translateX(-50%); margin:0; max-width:94%; flex-direction:row; align-items:center; gap:8px; white-space:nowrap; padding:5px 14px}
+  .play-next-lab{font-size:9px} .play-next-actor{font-size:16px} .play-next-detail{font-size:13px; overflow:hidden; text-overflow:ellipsis; min-width:0}
+}
+/* action mode: the portrait-over-text stack starts to overlap the title well before the landscape-phone
+   sizes kick in, so switch early — lay the portrait LEFT of the name/action and pin a one-line NEXT to the
+   bottom as soon as the window height drops under ~820px. (Placed last so it wins the cascade; the 520px
+   block below it then layers the very-compact phone sizes on top.) */
+@media (max-height:820px){
+  .play-solo{flex-direction:row; text-align:left; align-items:center; gap:26px; padding:8px 18px 48px}
+  .play-solo-text{align-items:flex-start; gap:12px; flex:1 1 auto}
+  .play-solo-portrait{height:140px; width:140px; border-radius:14px}
+  #playRoot:not(.play-touch) .play-solo-portrait{height:150px; width:150px}
+  .play-body{position:relative}
+  .play-next{position:absolute; left:50%; bottom:8px; transform:translateX(-50%); margin:0; max-width:94%; flex-direction:row; align-items:center; gap:8px; white-space:nowrap; padding:6px 16px}
+  .play-next-detail{overflow:hidden; text-overflow:ellipsis; min-width:0}
+}
+@media (max-height:520px){
+  .play-solo{gap:18px; padding:2px 12px 34px}
+  .play-solo-text{gap:6px}
+  .play-solo-portrait{height:84px; width:84px; border-radius:11px}
+  #playRoot:not(.play-touch) .play-solo-portrait{height:96px; width:96px}
+  .play-solo-actor{font-size:28px} #playRoot:not(.play-touch) .play-solo-actor{font-size:34px}
+  .play-solo-detail{font-size:21px} #playRoot:not(.play-touch) .play-solo-detail{font-size:24px}
+  .play-next{padding:5px 14px} .play-next-lab{font-size:9px} .play-next-actor{font-size:16px} .play-next-detail{font-size:13px}
 }
 /* iPhone-Safari landscape full-page notice (Add to Home Screen) */
 #iosRotate{position:fixed; inset:0; z-index:9000; background:var(--ink); color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px; font-family:Inter,sans-serif}
@@ -593,7 +733,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="panel">
     <div class="section-title"><h2>Rotation</h2><div class="rule"></div>
       <button class="btn ac-btn" id="autoCorrect" hidden title="Fix discrepancies: replace missing characters/personas and resolve turn order">Auto Correct</button>
-      <button class="btn" id="autoFill" title="Fill empty turn columns with characters 1–4 in order (columns that already have a character are left untouched)">Auto Fill</button>
+      <button class="btn" id="autoFill" title="Fill empty turn columns with characters 1-4 in order (columns that already have a character are left untouched)">Auto Fill</button>
       <button class="btn" id="clearActions" title="Remove all actions from every turn">Clear</button>
     </div>
     <div class="notes-row"><textarea id="notes" placeholder="Rotation notes…"></textarea></div>
@@ -619,73 +759,43 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="modal-close" id="guideClose" aria-label="Close">&times;</button>
     </div>
     <div class="guide">
-      <p class="lead">Build a Persona 5: The Phantom X boss rotation, then export it as a shareable image or a JSON file. Everything you type is saved automatically in your browser.</p>
+      <p class="lead">Plan a Persona 5: The Phantom X boss rotation. Build your team, script each turn, then share it as a link or image, or run it live while you fight. Everything you type is saved automatically in your browser.</p>
 
       <h3>Toolbar</h3>
       <ul>
-        <li><b>Guide</b> — opens this help.</li>
-        <li><b>Load Examples</b> — load a ready-made <b>MLD</b> or <b>DOD</b> rotation to see how a finished plan looks. This replaces your current work, so export first if you want to keep it.</li>
-        <li><b>Import</b> — load a rotation:
-          <ul>
-            <li><b>Import JSON</b> — from a <code>.json</code> file (e.g. one a teammate shared).</li>
-            <li><b>Import Code</b> — from a share code, full link or short link pasted into the box.</li>
-            <li><b>Import Text</b> — paste a rotation written in plain text (like a post from Discord) and the planner fills in what it recognizes: boss, mode and patch from the title, the team with awareness/cards, personas, the dagger, and every turn. Anything left empty (or anything it could not read) is <span style="color:#f1c232;font-weight:700;">highlighted in yellow</span> so you can see at a glance what still needs your attention, and a summary lists whatever could not be imported. If a rotation is already open, it asks before replacing it. Tick <b>Keep the pasted text in a movable window</b> to keep the original text in a small draggable panel afterwards, so you can refer to it while you tidy up the turns.</li>
-          </ul>
-        </li>
-        <li><b>Export</b> — save or share your rotation:
-          <ul>
-            <li><b>JSON</b> — a data file you can re-import later or share.</li>
-            <li><b>PNG &amp; Images</b> — an image with character portraits, persona art and the Wonder's dagger.</li>
-            <li><b>PNG (no Images)</b> — the same layout as text only.</li>
-            <li><b>PNG (Rotation only)</b> — just the turns, without the team section.</li>
-            <li><b>Text</b> — a plain-text version of the whole rotation (a title line with patch / mode / name, then credits, boss &amp; personas, team, notes and all turns) in a box with a <b>Copy</b> button, ready to paste into Discord. In the turns, Wonder actions are listed under their persona; actions without a persona (e.g. Attack / Guard / Gun) use the Wonder name. Action labels use the short codes (HL, MSQ, S1…).</li>
-            <li><b>Share Editor Link</b> — a link that loads the whole rotation into the editor when opened.</li>
-            <li><b>Share View Link</b> — a link that opens a read-only view which looks like the image export (no editing controls, mobile-friendly, with a PNG download button), ideal for sharing a finished rotation.</li>
-            <li><b>Copy Code</b> — a short text code that holds the whole rotation.</li>
-          </ul>
-        </li>
-        <li><b>Settings</b> — local display options (saved only on this device): choose a <b>Light, Dark or System</b> theme (the image export always stays dark), show or hide the Character, Team and Rotation notes fields, put the persona images on the left, choose whether the rotation preview starts expanded, switch the rotation layout between vertical and horizontal, and export or import your settings as a JSON file. These never affect your rotation, share links or exports.</li>
-        <li><b>Reset</b> — clear all fields and start a blank plan.</li>
+        <li><b>Guide</b>: this help.</li>
+        <li><b>Load Examples</b>: open a finished MLD or DOD rotation to see how a plan looks (replaces your current work).</li>
+        <li><b>Import</b>: bring a rotation in from a JSON file, a share code or link, or plain text pasted from Discord. A text import fills in what it recognizes and highlights in <span style="color:#f1c232;font-weight:700;">yellow</span> whatever still needs your attention.</li>
+        <li><b>Export</b>: save or share your work as a <b>JSON</b> backup, a <b>PNG</b> image (with art, without art, or turns only), a Discord-ready <b>Text</b> version, a <b>Share Link</b> (editable or read-only view), or a short <b>Code</b>.</li>
+        <li><b>Settings</b>: per-device look and feel (theme, which note fields show, which side the persona art sits on, the default layout). Never changes your rotation or exports.</li>
+        <li><b>Reset</b>: start over with a blank plan.</li>
       </ul>
 
-      <h3>Setup (top bar)</h3>
-      <p>Fill in the header: <b>Rotation Name</b>, <b>Mode</b> (MLD / DOD / NOD / SOS), <b>Boss</b>, <b>Patch</b>, <b>Expected Score</b> and <b>Credits</b>. Empty fields are simply left out of the export, but it is recommended to fill in all of them.</p>
+      <h3>Setup</h3>
+      <p>Fill in the header (<b>Name, Mode, Boss, Patch, Expected Score, Credits</b>) so your rotation is properly labelled. Everything is required for export except the Expected Score.</p>
 
       <h3>Team</h3>
-      <p>There are four team slots (1st–4th) plus the <b>Elucidator</b>. For each unit pick a <b>Character</b> — the field works like the Boss and Persona fields (click to see the full list, or type to filter it; only names from the list are accepted). You can also type an in-game name or nickname (e.g. <b>Manaka</b> or <b>Navi</b>) and the matching codename is offered — the codename is what gets saved. A small <b>×</b> appears inside the field (and in the <b>Boss</b> field) once it has a value; tapping it clears the field and opens the list right away — handy on mobile. Then set:</p>
-      <ul>
-        <li><b>Awareness</b> — A0 to A6.</li>
-        <li><b>Reforge</b> — RX to R6.</li>
-        <li><b>Revelation Cards</b> — choose the <b>Space</b> card first, then the matching <b>Sun / Moon / Star / Sky</b> cards are shown. For most characters their usual set is filled in automatically when you pick them; you can still change it. A text import that names a set always takes precedence over the default.</li>
-        <li>Special fields appear automatically: <b>Wonder</b> gets a Dagger (its artwork appears in its own box next to the Personas), <b>Twins</b> a Role (which shows the matching S1 / S2 dual-element symbols below it, and in the image export too), <b>Fuuka</b> a Backup.</li>
-        <li>Each character has its own <b>Notes</b> field at the bottom of the card; it also appears at the end of the character's box in the image export.</li>
-      </ul>
-      <p>You can reorder team slots 1–4 by dragging them. The <b>Whale</b> button in the team header sets every Awareness to A6 and every Reforge to R6 at once.</p>
-      <p>Below the team you set up to three <b>Personas</b> (with up to two teachable skills each) and a <b>Team Notes</b> box, where you can add information such as the required Pierce or Crit. The Persona field works like the Boss field — click it to see the full list, or type to filter it (only names from the list are accepted). Each persona shows its <b>Signature skill</b> on a fixed line above the two teachable-skill fields — it is set automatically by the persona and can't be edited. The two teachable-skill fields are combo boxes: pick from the skill list, or type freely (free text is allowed, and abbreviations like “WT” or “Taru” filter the list). In a text import, writing <b>Sig</b> as a persona's skill is understood as that persona's signature skill, and common skill abbreviations are expanded to their full names.</p>
+      <p>Four slots plus the <b>Elucidator</b>. Pick each <b>character</b> (type to filter the list; in-game names and nicknames work too), then set <b>Awareness</b>, <b>Reforge</b> and the <b>Revelation cards</b>. The usual card set is filled in for you, and you can still change it. Each card also has its own <b>Notes</b> line.</p>
+      <p>Special fields appear by themselves where they matter: Wonder's <b>dagger</b>, the Twins' <b>role</b> (with its dual-element symbols), and Fuuka's <b>backup character</b> (which gets its own build card). Drag a card by its grip or its image to reorder the slots, and use <b>Whale</b> to max everyone to A6/R6 at once.</p>
+      <p>Below the team, add up to three <b>Personas</b> (the signature skill fills in automatically, plus two teachable skills) and a <b>Team Notes</b> box for things like the required Pierce or Crit.</p>
 
       <h3>Rotation</h3>
-      <p>The rotation is a row of <b>turns</b>; each turn has a name (which you can edit), an optional <b>turn note</b> field below the name, and a list of <b>actions</b>. The turn note is shown in the export next to the turn name — in the vertical layout right-aligned in the header, in the horizontal layout under the turn name.</p>
-      <p><b>Start here:</b> press <b>Auto Fill</b> first. It fills every empty turn column with your team characters 1–4 in order, so afterwards you only have to fill in the actions. It is recommended to do this before adding actions yourself. Afterwards Auto Fill never overwrites a column that already has a character, so if you add more turns later you can press Auto Fill again to fill them. <b>Clear</b> removes all actions from every turn if you want to start over.</p>
-      <p>If you swap a team character or a Persona while actions still reference the old one, those actions are highlighted in red (in the editor and the preview) and the <b>Export</b> button is disabled until you fix them — this prevents exporting a broken rotation. A banner briefly appears to point it out. As soon as every action again points to a current character/Persona, export is re-enabled automatically.</p>
-      <p><b>Export</b> is also disabled while the <b>Setup</b> is incomplete. Every setup field is required except <b>Expected Score</b>, which is optional. <b>Patch</b> must be a number like <code>4.3</code>, and <b>Expected Score</b> accepts plain numbers, grouped numbers like <code>1,000,000</code> or <code>1.000.000</code>, or magnitudes such as <code>100M</code>, <code>1.3 B</code>, <code>945 Mil</code>, <code>2Bil</code> or <code>59T</code>. A decimal comma like <code>1,3</code> is converted to a period automatically, and a lower-case T/M/B is capitalised for you. An invalid field turns red and a tooltip explains the problem with an example.</p>
-      <p>When there is a discrepancy, an <b>Auto Correct</b> button appears next to <b>Auto Fill</b>. It opens a dialog with a <b>checklist</b> of every change it can make, each one toggleable, so you stay in control. It can: <b>replace a missing character</b> in the actions with the one that took its team slot; <b>fix a Wonder Persona</b> that is no longer in a slot (swapping it for a free slot persona, or dropping it into an empty slot); and resolve <b>turn order</b>. For the order it offers a choice — <b>reorder the team slots</b> to match the turns, <b>reorder the actions</b> inside each turn (keep both, fix the order), or <b>delete</b> the too-early or the too-late action in each conflicting turn. When characters act in conflicting orders across different turns (so no single team order can satisfy them all), it says so and recommends reordering the actions instead. After applying, an <b>Undo</b> appears so you can revert everything in one click. Anything it genuinely can't resolve (e.g. a missing character with no free slot) is listed for you to fix by hand.</p>
-      <p>A turn is also tinted red when the characters in it don't act in <b>team order</b>: the planner reads the first Skill/Attack/Gun/Guard of each character (ignoring Highlights/Theurgy, Assists and the Elucidator) and compares it to the order of your team slots. This is enforced the same way — the banner reports it and <b>Export</b> stays disabled until the turn matches the team order again. Reordering your team (or editing a turn) re-checks every turn instantly, so it's easy to spot a sequence that slipped.</p>
-      <p>For every action:</p>
-      <ul>
-        <li>Pick the acting <b>character</b> from the dropdown.</li>
-        <li>Optionally tap an <b>action button</b>. Normal characters have <code>S1 S2 S3 HL</code> plus <code>Attack Gun Guard</code>; SEES members show <code>TG</code> (Theurgy) instead of HL and <code>Assist</code> instead of Gun; the Elucidators only have <code>S1 S2 S3</code>. A few characters (Messa, Violet, Rin·F, Turbo, Twins, Ange, Akihiko) also have a separate button next to the character dropdown that exports to its own wording — e.g. Violet's <code>MSQ</code> → “Masquerade”, Ange's <code>DC</code> → “Da Capo”, Akihiko's <code>Alt</code> → “Punch”. Tap an active button again to clear it.</li>
-        <li><b>Wonder</b> is special: choose one of your three personas from the dropdown and optionally toggle the <b>HL</b> button next to it. A second row of buttons (<b>Attack / Gun / Guard</b>) covers Wonder's basic actions. Once a persona is selected, a <b>skill dropdown</b> appears with that persona's three skills (its signature plus the two teachable skills) so you can pick the exact skill quickly. In a text import, a bare <b>Wonder HL</b> automatically adopts the persona Wonder used most recently.</li>
-        <li>The <b>text field</b> is always available as the last line for free notes, e.g. the target of the action or other information.</li>
-      </ul>
-      <p>In the export, a button and text are joined with a space — e.g. <code>S2</code> + <code>Violet</code> becomes “S2 Violet”, and a Wonder action becomes e.g. “Koumokuten HL Haru”. You can also use only the text field without any button.</p>
-      <p>Each turn header has a <b>grip</b> (drag to reorder the column), a <b>duplicate</b> button (copies the turn with all its content to the right) and a <b>×</b> button (remove). You can also <b>drag</b> actions into a new order. Turns stay numbered left to right (1, 2, 3, …); in <b>DOD</b> mode the last two turns are breaks (<b>Break 1</b>, <b>Break 2</b>), always pinned at the end and highlighted in red in the export. A separate <b>Rotation Notes</b> box sits above the turns.</p>
+      <p>Each <b>turn</b> has a name, an optional note and a list of <b>actions</b>. Press <b>Auto Fill</b> first to drop your team into every turn, so you only have to type the actions (<b>Clear</b> empties them again). For each action, pick the character and tap a button (<code>S1</code> to <code>S3</code>, <code>HL</code>/<code>Theurgy</code>, <code>Attack/Gun/Guard</code>); a few characters have an extra signature button such as Violet's “Masquerade”. <b>Wonder</b> also picks a persona and skill. A free text line is always there for the target or a note.</p>
+      <p>If an action still points at a character or persona you've swapped out, or the characters in a turn don't act in your team order, the turn turns red and <b>Export</b> is blocked, so you never share a broken plan. <b>Auto Correct</b> offers one-click fixes (with undo) for most of it. Reorder turns by dragging their header, and duplicate or delete them. In <b>DOD</b> the last two turns are breaks, pinned at the end.</p>
 
-      <h3>Rotation Preview</h3>
-      <p>The <b>Rotation Preview</b> toggle below the turns shows a live preview of how the rotation will look in the image export. It updates as you type and is never part of the exported file.</p>
+      <h3>Play Mode</h3>
+      <p>Press <b>Play</b> to run the rotation live while you fight. It is a clean full-screen view that shows one step at a time with big character faces, so you can follow your plan at a glance from a phone or a second screen.</p>
+      <ul>
+        <li><b>Turn or Action</b>: show a whole turn at once, or focus a single action with a “what's next” preview.</li>
+        <li><b>Vertical or Horizontal</b>: choose the layout that fits your screen (it adapts on its own on phones in landscape).</li>
+        <li>In Turn mode, <b>tap each action to check it off</b> as you go; checking the last one loads the next turn. Swipe or use Prev/Next to move through the fight, and the reset and restart buttons jump back to the start.</li>
+      </ul>
+
+      <h3>Live Preview</h3>
+      <p>The <b>Rotation Preview</b> toggle below the turns shows exactly how the image export will look and updates as you type. Use the <b>Zoom</b> slider (or pinch and ctrl-scroll right inside it) to inspect the details up close. It's never part of the exported file.</p>
 
       <h3>Saving &amp; sharing</h3>
-      <p>Your work is saved automatically in this browser (autosave). For a permanent backup, use <b>Export → JSON</b> and re-import the file later. For a picture to post, use one of the PNG exports.</p>
-      <p>To send a rotation to a teammate without a file, use <b>Export → Share Editor Link</b> or <b>Copy Code</b>. Both open a box showing the link/code with a <b>Copy</b> button. The two share-link boxes (<b>Share Editor Link</b> and <b>Share View Link</b>) automatically turn the link into a short one (via a small Cloudflare service) the moment they open. The same rotation always reuses the same short link — a new one is only created when the rotation actually changes. They also show an editable <b>Discord title</b> line, pre-filled with the rotation name, mode, patch and credits. Adjust the title however you like, then press the Discord button to copy a <b>masked link</b> (your title as a single clickable label, with the link hidden behind it) ready to paste into Discord. Opening a <b>Share Editor Link</b> loads the rotation automatically; a <b>Code</b> is loaded via <b>Import → Import Code</b> (which also accepts a full link or a short link). The whole rotation is packed into the link/code itself — nothing is uploaded to a server.</p>
+      <p>Your work autosaves in this browser. For a backup, use the <b>JSON</b> export; for a picture to post, use a <b>PNG</b>; to send it to a teammate, use a <b>Share Link</b> or <b>Copy Code</b>. The whole rotation is packed into the link itself, so nothing is uploaded to a server. Share links shorten automatically and also hand you a ready-made, Discord-friendly masked link.</p>
     </div>
   </div>
 </div>
@@ -806,7 +916,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       </div>
       <div class="set-status" id="settingsStatus" hidden></div>
       <input type="file" id="settingsFile" accept="application/json,.json" hidden/>
-      <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports — hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
+      <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports. Hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
     </div>
   </div>
 </div>
@@ -837,7 +947,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <ol>
       <li>Tap the <b>Share</b> button in Safari (the square with an up-arrow).</li>
       <li>Choose <b>“Add to Home Screen”</b>.</li>
-      <li>Open the planner from the new Home-Screen icon — it then runs full-screen in any orientation.</li>
+      <li>Open the planner from the new Home-Screen icon, and it then runs full-screen in any orientation.</li>
     </ol>
   </div>
 </div>
@@ -1008,6 +1118,13 @@ function imgFor(name){
   if(!name) return '';
   return imgURL(DATA.characterImages[name.toUpperCase()] || DATA.characterImages[name] || '');
 }
+/* black-and-white face portrait for the Play mode (images/faces/<KEY>.png; middle dot -> hyphen).
+   Always returns a URL; a character without a face file 404s and the <img> turns into an invisible
+   placeholder (faceFallback) so the row/solo layout stays aligned with the ones that do have a face. */
+function faceImg(name){ if(!name) return ''; const fn=String(name).toUpperCase().replace(/·/g,'-').replace(/[\\/:*?"<>|]/g,'-'); return imgURL('images/faces/'+fn+'.png'); }
+/* like imgFallback, but keeps the box (visibility:hidden, not display:none) so the missing face still
+   reserves its space — same alignment as actors that have a face. */
+function faceFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.visibility='hidden'; }
 function personaImg(name){
   if(!name) return '';
   return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
@@ -1032,6 +1149,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 /* ---------- state ---------- */
 const KEY='vf-rotation-storage';
 const LEGACY_KEY='paradise-rotation-v1';   /* old key name; read once so existing drafts carry over */
+function _blankBackup(){ return {name:'',awareness:'A0',rev:'RX',gear:'',space:'',sunsky:'',role:'',companion:'',note:''}; }
 function defaultState(){
   const i=DATA.initial;
   function mk(n,aw,rv,g){
@@ -1048,6 +1166,7 @@ function defaultState(){
     personas:i.persona.map((n,k)=>({name:n, skills:[ i.skills[k]||'', '' ], note:''})),
     teamNotes:'',
     turns:JSON.parse(JSON.stringify(i.turns)),
+    backup:_blankBackup(),
   };
   normalizeActions(st.turns);
   return st;
@@ -1063,6 +1182,7 @@ function blankState(){
     teamNotes:'',
     rotationView:'vertical',
     turns:Array.from({length:6},(_,i)=>({name:'TURN '+(i+1),actions:[{char:'',btn:'',text:''}]})),
+    backup:_blankBackup(),
   };
 }
 let state;
@@ -1073,7 +1193,8 @@ function migrate(st){
     st.personas=names.map((n,k)=>({name:n,skills:[old[k]||''],note:''}));
   }
   st.personas.forEach(p=>{ p.skills=p.skills||[]; while(p.skills.length<2)p.skills.push(''); p.skills=p.skills.slice(0,2); if(typeof p.note!=='string')p.note=''; });
-  [].concat(st.units||[], st.elucidator?[st.elucidator]:[]).forEach(u=>{
+  if(!st.backup || typeof st.backup!=='object') st.backup=_blankBackup();
+  [].concat(st.units||[], st.elucidator?[st.elucidator]:[], [st.backup]).forEach(u=>{
     if(!u) return;
     if(u.space===undefined)u.space='';
     if(u.sunsky===undefined)u.sunsky='';
@@ -1187,7 +1308,7 @@ function showImportFeedback(res){
   L.push('• '+u+' team character'+(u===1?'':'s')+(st.elucidator&&st.elucidator.name?('     Elucidator: '+st.elucidator.name):''));
   L.push('• '+pc+' persona'+(pc===1?'':'s')+'     '+(st.turns||[]).length+' turn'+((st.turns||[]).length===1?'':'s'));
   const P=[];
-  (res.warnings||[]).forEach(w=>{ if(w&&w.trim()) P.push('• "'+w.trim()+'" — not recognized'); });
+  (res.warnings||[]).forEach(w=>{ if(w&&w.trim()) P.push('• "'+w.trim()+'" (not recognized)'); });
   if(!st.setup.boss) P.push('• Boss could not be determined from the title');
   let uc=0; (st.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a._uncertain) uc++; }));
   if(uc) P.push('• '+uc+' action'+(uc===1?'':'s')+' had no clear button/skill (highlighted)');
@@ -1199,7 +1320,7 @@ function showImportFeedback(res){
 }
 function openImportText(){
   openShareModal({title:'Import Text', text:'', readonly:false, showKeepText:true, showDodToggle:true,
-    placeholder:'Paste a rotation written in plain text — like a post from Discord. The planner recognizes what it can (boss, team, personas, turns) and highlights what still needs filling in.',
+    placeholder:'Paste a rotation written in plain text, like a post from Discord. The planner recognizes what it can (boss, team, personas, turns) and highlights what still needs filling in.',
     primaryLabel:'Import', onPrimary:(t,hint,close)=>{
       const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a rotation text first.'; return; }
       if(!isRotationEmpty(state) && !confirm('This replaces your current rotation (team, personas and all turns).\n\nConsider using Export \u2192 Export JSON first to back it up.\n\nReplace it now?')) return;
@@ -1297,12 +1418,14 @@ function renderHead(){
 }
 
 /* ---------- render: team ---------- */
-function unitCard(u, path, elu, idx){
+// six-dot drag handle, drawn as an SVG so it sits exactly centered (the braille glyph rendered top-heavy)
+const GRIP_DOTS='<svg class="grip-dots" viewBox="0 0 10 14" aria-hidden="true"><circle cx="2.5" cy="2.5" r="1.25"/><circle cx="7.5" cy="2.5" r="1.25"/><circle cx="2.5" cy="7" r="1.25"/><circle cx="7.5" cy="7" r="1.25"/><circle cx="2.5" cy="11.5" r="1.25"/><circle cx="7.5" cy="11.5" r="1.25"/></svg>';
+function unitCard(u, path, elu, idx, backup){
   const col=uiAccent(u.name); const img=imgFor(u.name);
   const names = elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
   let nameOpts=[''].concat(names);
   if(u.name && !nameOpts.includes(u.name)) nameOpts=[''].concat([u.name]).concat(names);
-  const isW = !elu && (u.name||'').toUpperCase()==='WONDER';
+  const isW = !elu && !backup && (u.name||'').toUpperCase()==='WONDER';
   const awareOpts = isW ? ['DGR'] : DATA.awarenessOpts.filter(o=>o!=='DGR');
   const revFull = isW ? DATA.revOpts.filter(o=>o!=='RX') : DATA.revOpts.slice();
   if(isW){ if(u.awareness!=='DGR') u.awareness='DGR'; }
@@ -1339,19 +1462,21 @@ function unitCard(u, path, elu, idx){
     }
   }
   if(nm==='FUUKA'){
-    const compNames=DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
+    const compNames=DATA.characterNames.filter(n=>n!=='WONDER' && !(DATA.elucidatorNames||[]).includes(n));
     let cOpts=[''].concat(compNames);
     if(u.companion && !cOpts.includes(u.companion)) cOpts=[''].concat([u.companion]).concat(compNames);
     extraBlock+=`<div class="rev-row one"><div><div class="rev-lab">Backup</div><select data-path="${path}.companion">${opt(cOpts,u.companion)}</select></div></div>`;
   }
-  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" draggable="true" title="Drag to reorder">\u283f</div>':''}`;
+  const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" title="Drag to reorder">'+GRIP_DOTS+'</div>':''}`;
   const art = img
     ? `<div class="art" style="background-image:${bgURL(img)}">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
   return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
     ${art}
     <div class="body">
-      <span class="combo-wrap"><input class="name combo" data-combo="char"${elu?' data-elu="1"':''} data-uname="${path}" value="${esc(u.name)}" placeholder="${elu?'Elucidator':'Character'}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>
+      ${(isW||backup)
+        ? `<input class="name name-fixed" value="${esc(isW?'WONDER':(u.name||''))}" readonly tabindex="-1" title="${isW?'Wonder is always on the team and can&#39;t be swapped out':'Backup character, chosen in Fuuka&#39;s Backup field'}"/>`
+        : `<span class="combo-wrap"><input class="name combo" data-combo="char"${elu?' data-elu="1"':''} data-uname="${path}" value="${esc(u.name)}" placeholder="${elu?'Elucidator':'Character'}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`}
       <div class="rev-row">
         <div><div class="rev-lab">Awareness</div><select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select></div>
         <div><div class="rev-lab">Reforge</div><select data-path="${path}.rev">${opt(revFull,u.rev)}</select></div>
@@ -1362,20 +1487,23 @@ function unitCard(u, path, elu, idx){
     </div></div>`;
 }
 function renderTeam(){
-  const unitsHtml = state.units.map((u,k)=>unitCard(u,`units.${k}`,false,k)).join('') + unitCard(state.elucidator,'elucidator',true,null);
+  const _bkName=backupCharName();
+  const unitsHtml = state.units.map((u,k)=>unitCard(u,`units.${k}`,false,k)).join('')
+    + unitCard(state.elucidator,'elucidator',true,null)
+    + (_bkName ? unitCard(Object.assign({},state.backup,{name:_bkName}),'backup',false,null,true) : '');
   const personaHtml = state.personas.map((p,k)=>`
     <div class="persona-col minicard" data-pidx="${k}">
-      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" draggable="true" title="Drag to reorder">\u283f</span></div>
+      <div class="pcol-head"><label>Persona ${k+1}${k===0?' (Lead)':''}</label><span class="pgrip" title="Drag to reorder">${GRIP_DOTS}</span></div>
       <div class="pcol-body">
         <div class="pcol-fields">
           <span class="combo-wrap"><input class="persona-name combo" data-combo="persona" data-path="personas.${k}.name" value="${esc(p.name)}" placeholder="Choose Persona" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>
           <div class="skills">
-            <input class="sig-skill" value="${esc(p.name?(PERSONA_SIGNATURES[p.name]||''):'')}" placeholder="Signature Skill" readonly tabindex="-1" title="Signature skill — set automatically by the persona, can't be edited"/>
+            <input class="sig-skill" value="${esc(p.name?(PERSONA_SIGNATURES[p.name]||''):'')}" placeholder="Signature Skill" readonly tabindex="-1" title="Signature skill, set automatically by the persona, can't be edited"/>
             ${p.skills.slice(0,2).map((s,si)=>`<span class="combo-wrap"><input class="skill-combo combo" data-combo="skill" data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Teachable Skill ${si+1}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`).join('')}
             <input class="persona-note" data-path="personas.${k}.note" value="${esc(p.note||'')}" placeholder="Notes..." autocomplete="off"/>
           </div>
         </div>
-        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
+        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" title="Drag to reorder" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
       </div>
     </div>`).join('');
   const _w=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
@@ -1398,7 +1526,7 @@ function renderTeam(){
   const whaleBtn=document.getElementById('whaleBtn');
   if(whaleBtn) whaleBtn.onclick=()=>{
     const apply=u=>{ if(!u) return; if((u.name||'').toUpperCase()==='WONDER') u.rev='R6'; else { u.awareness='A6'; u.rev='R6'; } };
-    (state.units||[]).forEach(apply); apply(state.elucidator);
+    (state.units||[]).forEach(apply); apply(state.elucidator); if(backupCharName()) apply(state.backup);
     save(); renderTeam();
   };
   bindPaths(tp, ()=>{ renderTeam(); renderTurns(); });
@@ -1412,21 +1540,7 @@ function renderTeam(){
     };
   });
   const tn=document.getElementById('teamNotes'); tn.value=state.teamNotes||''; tn.oninput=()=>{ state.teamNotes=tn.value; save(); };
-  // drag & drop reorder of personas (slot labels Persona 1/2/3 stay fixed; only the content moves)
-  let dragP=null;
-  tp.querySelectorAll('.persona-col .pgrip').forEach(g=>{
-    g.addEventListener('dragstart',e=>{ const col=g.closest('[data-pidx]'); dragP=+col.dataset.pidx;
-      col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','p');}catch(_){} });
-    g.addEventListener('dragend',()=>tp.querySelectorAll('.persona-col').forEach(c=>c.classList.remove('dragging','drag-over')));
-  });
-  tp.querySelectorAll('[data-pidx]').forEach(col=>{
-    col.addEventListener('dragover',e=>{ if(dragP!=null){ e.preventDefault(); col.classList.add('drag-over'); }});
-    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
-    col.addEventListener('drop',e=>{ e.preventDefault(); col.classList.remove('drag-over');
-      const to=+col.dataset.pidx;
-      if(dragP!=null && dragP!==to){ const[m]=state.personas.splice(dragP,1); state.personas.splice(to,0,m); save(); renderTeam(); renderTurns(); }
-      dragP=null; });
-  });
+  // persona & unit reordering is handled by the custom pointer drag (see the reorder IIFE near the bottom)
   tp.querySelectorAll('[data-uname]').forEach(el=>{
     el.onchange=()=>{
       const u=getByPath(el.dataset.uname);
@@ -1438,25 +1552,20 @@ function renderTeam(){
       save(); renderTeam(); renderTurns();
     };
   });
-  // drag & drop reorder of the 4 main units (elucidator excluded)
-  let dragIdx=null;
-  tp.querySelectorAll('.unit .grip').forEach(g=>{
-    g.addEventListener('dragstart',e=>{ const card=g.closest('[data-uidx]'); dragIdx=+card.dataset.uidx;
-      card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','u');}catch(_){} });
-    g.addEventListener('dragend',()=>tp.querySelectorAll('.unit').forEach(c=>c.classList.remove('dragging','drag-over')));
-  });
-  tp.querySelectorAll('[data-uidx]').forEach(card=>{
-    card.addEventListener('dragover',e=>{ if(dragIdx!=null){ e.preventDefault(); card.classList.add('drag-over'); }});
-    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
-    card.addEventListener('drop',e=>{ e.preventDefault(); card.classList.remove('drag-over');
-      const to=+card.dataset.uidx;
-      if(dragIdx!=null && dragIdx!==to){ const[m]=state.units.splice(dragIdx,1); state.units.splice(to,0,m); save(); renderTeam(); renderTurns(); }
-      dragIdx=null; });
-  });
   paintImp();
 }
 
 /* ---------- render: turns ---------- */
+/* The Fuuka Backup character's name (single source of truth = Fuuka's companion field).
+   Picks the first Fuuka with a chosen backup, team slots before the elucidator. */
+function backupCharName(){
+  const all=[...(state.units||[]), state.elucidator];
+  for(const u of all){ if(u && (u.name||'').toUpperCase()==='FUUKA' && (u.companion||'').trim()) return u.companion.trim(); }
+  return '';
+}
+/* The backup as a full unit object (build from state.backup + name mirrored from the companion),
+   or null when no backup is chosen. Used by every export so the off-team backup shows up. */
+function backupUnit(){ const nm=backupCharName(); return nm ? Object.assign({}, state.backup, {name:nm}) : null; }
 function teamChars(){
   const all=[...state.units, state.elucidator];
   const comp=all.filter(u=>u && (u.name||'').toUpperCase()==='FUUKA').map(u=>u.companion);
@@ -1692,7 +1801,7 @@ function refreshDiscrepancies(){
     const blocked = total>0 || !iss.ok;
     eb.disabled=blocked; eb.classList.toggle('disabled', blocked);
     if(total>0) eb.title='Resolve the discrepancies before exporting.';
-    else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); eb.title='Complete the setup first — '+parts.join('; ')+'.'; }
+    else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); eb.title='Complete the setup first: '+parts.join('; ')+'.'; }
     else eb.removeAttribute('title');
   }
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
@@ -1740,7 +1849,7 @@ function actRow(a, ti, ai){
       const uniq=list.filter((v,i,arr)=>arr.indexOf(v)===i);
       const cur=a.skill||'';
       const extraSk=(cur && !uniq.includes(cur))?[cur]:[];
-      row2=`<select data-wskill="${ti}.${ai}"${a.hl?' disabled title="Highlight is selected — Wonder can\'t also use a persona skill"':''}><option value=""${cur?'':' selected'}>Skill…</option>${extraSk.concat(uniq).map(s=>`<option${cur===s?' selected':''}>${esc(s)}</option>`).join('')}</select>`;
+      row2=`<select data-wskill="${ti}.${ai}"${a.hl?' disabled title="Highlight is selected, so Wonder can\'t also use a persona skill"':''}><option value=""${cur?'':' selected'}>Skill…</option>${extraSk.concat(uniq).map(s=>`<option${cur===s?' selected':''}>${esc(s)}</option>`).join('')}</select>`;
     } else {
       row2=`<div class="act-actions">${['Atk','Gn','Gd'].map(c=>`<button type="button" class="actbtn ${a.btn===c?'on':''}" data-actset="${ti}.${ai}" data-code="${c}">${esc(btnLabel(c))}</button>`).join('')}</div>`;
     }
@@ -1791,7 +1900,7 @@ function turnHtml(t,ti,isBreak){
   return `
     <div class="turn${ordBad?' order-bad':''}" data-tidx="${ti}"${ordBad?' title="Character order in this turn differs from the team order"':''}>
       <div class="turn-head">
-        ${isBreak?'':`<span class="tgrip" draggable="true" title="Drag to reorder">\u283f</span>`}
+        ${isBreak?'':`<span class="tgrip" title="Drag to reorder">${GRIP_DOTS}</span>`}
         <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
         ${isBreak?'':`<button class="dup" data-dupturn="${ti}" title="Duplicate turn">\u29c9</button><button class="del" data-delturn="${ti}" title="Remove turn">\u00d7</button>`}
       </div>
@@ -1801,7 +1910,22 @@ function turnHtml(t,ti,isBreak){
     </div>`;
 }
 let rotationPreviewOpen=true;
-let rotationPreviewZoom=0.2;   /* 0 = fit to width, up to 2 = zoomed in */
+let rotationPreviewZoom=0.2;    /* horizontal preview extra zoom (0 = fit to width .. 2 = zoomed in) */
+let rotationPreviewZoomV=0;     /* vertical preview extra zoom — independent slider, defaults to fit-to-width (0.0×) */
+let _previewFit=1;              /* fit-to-width baseline scale of whichever preview is currently rendered */
+function _curPreviewZoom(){ return state.rotationView==='horizontal'?rotationPreviewZoom:rotationPreviewZoomV; }
+function _applyPreviewZoom(z){ z=Math.max(0,Math.min(2,Math.round(z*100)/100));
+  if(state.rotationView==='horizontal') rotationPreviewZoom=z; else rotationPreviewZoomV=z;
+  const sc=document.getElementById('rotPreviewScale'), sl=document.getElementById('rotPreviewZoom'), vl=document.getElementById('rotPreviewZoomVal');
+  if(sc) sc.style.zoom=_previewFit*(1+z);
+  if(sl) sl.value=z;
+  if(vl) vl.textContent=z.toFixed(1)+'×'; }
+/* pinch / ctrl-wheel inside the preview drives the zoom slider (browser zoom is blocked tool-wide elsewhere) */
+function _setupPreviewPinch(){ const pan=document.getElementById('rotPreviewPan'); if(!pan) return;
+  let d0=0, z0=0; const dist=t=>Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+  pan.addEventListener('touchstart', e=>{ if(e.touches.length===2){ d0=dist(e.touches); z0=_curPreviewZoom(); } }, {passive:true});
+  pan.addEventListener('touchmove', e=>{ if(e.touches.length===2 && d0){ e.preventDefault(); _applyPreviewZoom((1+z0)*(dist(e.touches)/d0)-1); } }, {passive:false});
+  pan.addEventListener('touchend', ()=>{ d0=0; }); }
 function renderRotationPreview(){
   const body=document.getElementById('rotPreviewBody'), btn=document.getElementById('rotPreviewToggle');
   if(!body||!btn) return;
@@ -1814,27 +1938,27 @@ function renderRotationPreview(){
   const PC=exPalette(_effTheme==='light');
   const FULLW=5*184+4*12;            /* 968 logical content width */
   const FRAME=32;                    /* dark frame padding (16*2) */
-  if(state.rotationView==='horizontal'){
-    const panelW=Math.max(280,(body.clientWidth||1000));
-    const fitScale=Math.min(1, Math.max(0.1,(panelW-FRAME)/FULLW));   /* level 0 fits the panel width */
-    const eff=z=>fitScale*(1+z);                                      /* z: 0..2 extra zoom */
-    body.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+  const zoomHdr=z=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
         <div style="font:600 10px Inter,sans-serif;color:#6f6a85;letter-spacing:.08em;text-transform:uppercase;">Image export preview · not part of the export</div>
         <div style="display:flex;align-items:center;gap:6px;font:600 11px Inter,sans-serif;color:${PC.muted};white-space:nowrap;">Zoom
-          <input id="rotPreviewZoom" type="range" min="0" max="2" step="0.1" value="${rotationPreviewZoom}" style="width:110px;accent-color:#5b9bd5;cursor:pointer;"/>
-          <span id="rotPreviewZoomVal" style="min-width:30px;text-align:right;color:${PC.text};">${rotationPreviewZoom.toFixed(1)}×</span></div>
-      </div>
-      <div style="overflow-x:auto;background:${PC.bg};padding:16px;box-sizing:border-box;border-radius:8px;font-family:Inter,system-ui,sans-serif;"><div id="rotPreviewScale" style="zoom:${eff(rotationPreviewZoom)};">${exportTurnsBlock(undefined, PC)}</div></div>`;
-    const zin=document.getElementById('rotPreviewZoom'), zval=document.getElementById('rotPreviewZoomVal'), zscale=document.getElementById('rotPreviewScale');
-    if(zin) zin.oninput=()=>{ rotationPreviewZoom=+zin.value; if(zscale) zscale.style.zoom=eff(rotationPreviewZoom); if(zval) zval.textContent=rotationPreviewZoom.toFixed(1)+'×'; };
+          <input id="rotPreviewZoom" type="range" min="0" max="2" step="0.1" value="${z}" style="width:110px;accent-color:#5b9bd5;cursor:pointer;"/>
+          <span id="rotPreviewZoomVal" style="min-width:30px;text-align:right;color:${PC.text};">${z.toFixed(1)}×</span></div>
+      </div>`;
+  if(state.rotationView==='horizontal'){
+    const panelW=Math.max(280,(body.clientWidth||1000));
+    _previewFit=Math.min(1, Math.max(0.1,(panelW-FRAME)/FULLW));     /* level 0 fits the panel width */
+    body.innerHTML=zoomHdr(rotationPreviewZoom)
+      +`<div id="rotPreviewPan" style="overflow:auto;touch-action:pan-x pan-y;background:${PC.bg};padding:16px;box-sizing:border-box;border-radius:8px;font-family:Inter,system-ui,sans-serif;"><div id="rotPreviewScale" style="zoom:${_previewFit*(1+rotationPreviewZoom)};">${exportTurnsBlock(undefined, PC)}</div></div>`;
   } else {
-    /* vertical: original fit-to-width preview, no zoom slider */
     const target=FULLW+FRAME;
     const contentW=Math.max(240,(body.clientWidth||target)-28);
-    const scale=contentW/target;
-    body.innerHTML=`<div style="font:600 10px Inter,sans-serif;color:#6f6a85;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Image export preview · not part of the export</div>
-      <div style="zoom:${scale};"><div style="background:${PC.bg};padding:16px;box-sizing:border-box;width:${target}px;border-radius:8px;font-family:Inter,system-ui,sans-serif;">${exportTurnsBlock(undefined, PC)}</div></div>`;
+    _previewFit=contentW/target;                                     /* level 0 fits the panel width */
+    body.innerHTML=zoomHdr(rotationPreviewZoomV)
+      +`<div id="rotPreviewPan" style="overflow:auto;max-height:78vh;touch-action:pan-x pan-y;background:${PC.bg};padding:16px;box-sizing:border-box;border-radius:8px;font-family:Inter,system-ui,sans-serif;"><div id="rotPreviewScale" style="zoom:${_previewFit*(1+rotationPreviewZoomV)};width:${target}px;">${exportTurnsBlock(undefined, PC)}</div></div>`;
   }
+  const sl=document.getElementById('rotPreviewZoom');
+  if(sl) sl.oninput=()=>_applyPreviewZoom(+sl.value);
+  _setupPreviewPinch();
 }
 function renderTurns(){
   renumberTurns();
@@ -1917,25 +2041,7 @@ function renderTurns(){
       const ti=+zone.dataset.ti; const [m]=state.turns[dragAct.ti].actions.splice(dragAct.ai,1);
       state.turns[ti].actions.push(m); dragAct=null; save(); renderTurns(); });
   });
-  // turn-column drag & drop reorder via the grip; breaks stay pinned at the end, numbering re-indexes
-  let dragTurn=null;
-  wrap.querySelectorAll('.tgrip').forEach(g=>{
-    g.addEventListener('dragstart',e=>{ const col=g.closest('[data-tidx]'); dragTurn=+col.dataset.tidx;
-      col.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain','t');}catch(_){} });
-    g.addEventListener('dragend',()=>wrap.querySelectorAll('.turn').forEach(c=>c.classList.remove('dragging','drag-over')));
-  });
-  wrap.querySelectorAll('[data-tidx]').forEach(col=>{
-    col.addEventListener('dragover',e=>{ if(dragTurn!=null){ e.preventDefault(); col.classList.add('drag-over'); }});
-    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
-    col.addEventListener('drop',e=>{ if(dragTurn==null) return; e.preventDefault(); col.classList.remove('drag-over');
-      let to=+col.dataset.tidx;
-      const dd=state.setup.type==='DOD', nn=state.turns.length, maxNormal=(dd&&nn>=DOD_BREAKS)?nn-DOD_BREAKS:nn;
-      if(dragTurn<maxNormal && dragTurn!==to){            /* only reorder normal turns */
-        to=Math.max(0,Math.min(to,maxNormal-1));          /* never past the breaks */
-        const[m]=state.turns.splice(dragTurn,1); state.turns.splice(to,0,m); save(); renderTurns();
-      }
-      dragTurn=null; });
-  });
+  // turn-column reordering (drag the header) is handled by the custom pointer drag (reorder IIFE near the bottom)
   wrap.scrollLeft=sl;
   renderRotationPreview();
   refreshDiscrepancies();
@@ -1972,12 +2078,19 @@ function closeAllMenus(){
   document.querySelectorAll('.dropdown-menu').forEach(mn=>{ mn.hidden=true; });
   document.querySelectorAll('.dropdown > button[aria-haspopup]').forEach(b=>b.setAttribute('aria-expanded','false'));
 }
+/* keep an open dropdown inside the window: right-align it if it would overrun the right edge (e.g. the
+   right-most Export button on a narrow screen), then nudge it back in if even that runs off the left */
+function positionMenu(menu){ if(!menu) return; const m=8;
+  menu.style.left='0'; menu.style.right='auto'; menu.style.maxWidth=(window.innerWidth-2*m)+'px';
+  let r=menu.getBoundingClientRect();
+  if(r.right>window.innerWidth-m){ menu.style.left='auto'; menu.style.right='0'; r=menu.getBoundingClientRect(); }
+  if(r.left<m){ const wl=menu.parentElement.getBoundingClientRect().left; menu.style.right='auto'; menu.style.left=(m-wl)+'px'; } }
 document.addEventListener('click', closeAllMenus);
 (function(){
   const wrap=document.getElementById('loadExWrap'), btn=document.getElementById('loadExBtn'), menu=document.getElementById('loadExMenu');
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const key=it.dataset.example, ex=EXAMPLES[key]; close(); if(!ex) return;
     if(confirm('Load the '+key+' example? This replaces your current rotation.\n\nUse "Export JSON" first if you want to keep your work.')){
       try{ state=migrate(JSON.parse(JSON.stringify(ex))); save(); renderAll(); }catch(err){ alert('Could not load example.'); }
@@ -1997,7 +2110,7 @@ document.getElementById('importFile').onchange=e=>{
   const wrap=document.getElementById('importWrap'), btn=document.getElementById('importMenuBtn'), menu=document.getElementById('importMenu');
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.import; close();
     if(k==='json') document.getElementById('importFile').click();
     else if(k==='code') openImportCode();
@@ -2046,7 +2159,8 @@ function compactEncode(st){
     (st.personas||[]).map(p=>{ const e=[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]; if((p.note||'').trim()) e.push(p.note.trim()); return e; }),
     st.teamNotes||'',
     (st.turns||[]).map(t=>[ t.name||'', (t.actions||[]).map(act), t.note||'' ]),
-    st.rotationView||'vertical' ];
+    st.rotationView||'vertical',
+    unit(st.backup||{}) ];
 }
 function compactDecode(arr){
   const R=_roster(), AW=DATA.awarenessOpts, RV=DATA.revOpts, TY=DATA.typeOpts, SP=DATA.spaceCards, SS=DATA.sunSkyCards, PN=DATA.personaNames, AC=ACT_CODES;
@@ -2069,7 +2183,8 @@ function compactDecode(arr){
     elucidator:unit(arr[3]||[]),
     personas, teamNotes:arr[5]||'',
     rotationView:(arr[7]==='horizontal'?'horizontal':'vertical'),
-    turns:(arr[6]||[]).map(t=>({ name:t[0]||'', actions:(t[1]||[]).map(act), note:t[2]||'' }))
+    turns:(arr[6]||[]).map(t=>({ name:t[0]||'', actions:(t[1]||[]).map(act), note:t[2]||'' })),
+    backup:unit(arr[8]||[])
   };
 }
 async function encodeShare(){
@@ -2131,7 +2246,7 @@ async function shortenLink(fragment){
     if(btn) btn.hidden=true;                          /* one short link per rotation is enough */
     if(hint) hint.textContent='Short link created. Use Copy or Copy for Discord below.';
   }catch(e){
-    if(hint) hint.textContent='Short-link service unavailable — using the full link. Tap “Create short link” to retry.';
+    if(hint) hint.textContent='Short-link service unavailable, using the full link. Tap “Create short link” to retry.';
     if(btn){ btn.hidden=false; btn.disabled=false; }
   }
 }
@@ -2155,7 +2270,7 @@ function openShareModal(opts){
   if(opts.discordUrl){
     if(dWrap) dWrap.hidden=false; if(dText) dText.value=opts.discordLabel||'';
     if(dBtn) dBtn.onclick=()=>{ const hint=document.getElementById('ioHint'); const masked=maskedDiscordLink(dText.value, _shareUrl); const done=()=>{ hint.textContent='Masked Discord link copied to clipboard.'; };
-      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(masked).then(done,()=>{ hint.textContent='Could not copy automatically — copy it manually.'; });
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(masked).then(done,()=>{ hint.textContent='Could not copy automatically, copy it manually.'; });
       else hint.textContent='Copying is not supported in this browser.'; };
   } else {
     if(dWrap) dWrap.hidden=true; if(dText) dText.value=''; if(dBtn) dBtn.onclick=null;
@@ -2224,6 +2339,15 @@ function buildTextExport(){
     if((u.note||'').trim()) line+=' ('+u.note.trim()+')';
     team.push(line);
   });
+  // Fuuka's off-team Backup, tagged so the parser restores its build into state.backup
+  { const _bk=backupUnit();
+    if(_bk){
+      const prefix=((_bk.awareness||'').trim()+(_bk.rev||'').trim());
+      const cards=[_bk.space,_bk.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
+      let line='Backup: '+(prefix?prefix+' ':'')+((_bk.name||'').toUpperCase()===MIKU_NAME?'Miku':titleCase(_bk.name))+(cards?': '+cards:'');
+      if((_bk.note||'').trim()) line+=' ('+_bk.note.trim()+')';
+      team.push(line);
+    } }
   if(team.length){ L.push(''); L.push(...team);
     if(settings.textTurnOrder){ const ord=(state.units||[]).map(u=>(u.name||'').trim()).filter(Boolean)
         .map(nm=>nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm));
@@ -2302,7 +2426,7 @@ function popOutImportNote(text){
   const w=window.open('','vfImportedText','width=460,height=560');
   if(!w){ // pop-up blocked -> fall back to the in-tool panel so the text is never lost
     _showImportNotePanel(t);
-    const h=document.getElementById('ioHint'); if(h) h.textContent='Pop-up blocked by the browser — showing the imported text inside the tool instead.';
+    const h=document.getElementById('ioHint'); if(h) h.textContent='Pop-up blocked by the browser, showing the imported text inside the tool instead.';
     return; }
   const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   w.document.open();
@@ -2454,7 +2578,7 @@ document.getElementById('settingsFile').onchange=e=>{
 };
 document.getElementById('autoFill').onclick=()=>{
   const chars=state.units.filter(u=>(u.name||'').trim()).map(u=>u.name);
-  if(!chars.length){ alert('No characters in team slots 1–4 yet.'); return; }
+  if(!chars.length){ alert('No characters in team slots 1-4 yet.'); return; }
   if(!state.turns.length){ alert('No turns to fill yet.'); return; }
   let filled=0;
   state.turns.forEach(t=>{
@@ -2463,7 +2587,7 @@ document.getElementById('autoFill').onclick=()=>{
     t.actions=chars.map(c=>({char:c, btn:'', text:''}));
     filled++;
   });
-  if(!filled){ alert('Every turn column already has a character — nothing to fill.'); return; }
+  if(!filled){ alert('Every turn column already has a character, nothing to fill.'); return; }
   save(); renderTurns();
 };
 function esc2(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -2487,16 +2611,16 @@ function openAutoCorrectDialog(){
     h+=`<div class="ac-note">${plan.violatingTurns.length===1?'1 turn has':plan.violatingTurns.length+' turns have'} characters acting out of team order (${esc2(turns)}).</div>`;
     if(plan.orderResolvable){
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="team" checked><span><b>Reorder the team slots</b> to match the order characters act in the turns (recommended)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns"><span><b>Reorder the actions</b> inside each turn — keep both, fix the order</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns"><span><b>Reorder the actions</b> inside each turn, keep both and fix the order</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is</span></label>`;
     } else {
       h+=`<div class="ac-warn">These characters act in different orders in different turns, so no single team order can satisfy every turn: ${esc2(plan.conflicts.map(c=>c[0]+' \u2194 '+c[1]).join(', '))}. Reordering the team can't fully fix this.</div>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn — keep both, fix the order (recommended)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn, keep both and fix the order (recommended)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is — I'll fix it by hand</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is, I'll fix it by hand</span></label>`;
     }
   }
   if(plan.unmatchedChars.length) h+=`<div class="ac-warn">Cannot reassign automatically (no free team slot): ${esc2(plan.unmatchedChars.join(', '))}. Add them to the team manually.</div>`;
@@ -2582,6 +2706,8 @@ function buildCSV(){
   const e=state.elucidator;
   const ee=(e.name||'').toUpperCase()==='FUUKA' && e.companion ? 'Backup: '+e.companion : '';
   rows.push(['Elucidator', e.name, e.awareness, e.rev, gearText(e), ee]);
+  const _bk=backupUnit();
+  if(_bk) rows.push(['Backup', _bk.name, _bk.awareness, _bk.rev, gearText(_bk), '']);
   rows.push([]); rows.push(['PERSONAS']); rows.push(['#','Persona','Skill 1','Skill 2','Skill 3']);
   state.personas.forEach((p,i)=>rows.push([i+1, p.name, p.skills[0]||'', p.skills[1]||'', p.skills[2]||'']));
   if((state.teamNotes||'').trim()){ rows.push([]); rows.push(['Team Notes', state.teamNotes]); }
@@ -2633,7 +2759,8 @@ async function exportSheet(){
   // TEAM
   sectionHeader('TEAM');
   headerCell(row,1,'Slot'); headerCell(row,2,'Character'); headerCell(row,3,'Awareness'); headerCell(row,4,'Rev'); merge(row,5,6); headerCell(row,5,'Gear'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box; merge(row,7,8); headerCell(row,7,'Role / Backup'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box; row++;
-  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]);
+  const _bkRow=backupUnit();
+  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]).concat(_bkRow?[{u:_bkRow,label:'Backup'}]:[]);
   teamRows.forEach(({u,label})=>{
     set(row,1,label,{bold:true,color:MUTED,fill:PANEL});
     const nm=u.name||''; const col=nm?charColor(nm):null;
@@ -2759,7 +2886,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     return `<div style="${M?'flex:1 1 148px;min-width:148px;max-width:calc(50% - 6px);':'width:'+TEAMW+'px;'}background:${C.panel};border:1px solid ${C.border};border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
     ${art}
     <div style="font:700 10px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;">${esc(label)}</div>
-    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(charDisp(u.name)||'—')}</div>
+    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(charDisp(u.name)||'-')}</div>
     <div style="font:600 12px Inter,sans-serif;color:${C.soft};">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
     <div style="font:500 11px Inter,sans-serif;color:${C.muted};margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
     ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:${C.gold};margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
@@ -2773,19 +2900,20 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     ${(u.note && !_hn.char)?`<div style="font:500 11px Inter,sans-serif;color:${C.soft};margin-top:6px;padding-top:6px;border-top:1px solid ${C.border};line-height:1.35;white-space:pre-wrap;">${esc(u.note)}</div>`:''}
   </div>`;
   };
-  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), cardStrip(u.name, C))).join('')+card(state.elucidator,'ELUCIDATOR',C.elu);
+  const _bkCard=backupUnit();
+  const teamCards=state.units.map((u,i)=>card(u, ord[i]||((i+1)+'TH'), cardStrip(u.name, C))).join('')+card(state.elucidator,'ELUCIDATOR',C.elu)+(_bkCard?card(_bkCard,'BACKUP',cardStrip(_bkCard.name, C)):'');
   const persona=state.personas.filter(p=>(p.name||'').trim());
   const tnText=(!_hn.team ? (state.teamNotes||'').trim() : '');
-  let personaLine='', tnLine='';
+  let personaLine='', tnLine='', _pnStacked='';
   if(withImages){
-    const pCard=p=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
-      return `<div style="${M?'box-sizing:border-box;min-width:0;':'width:174px;box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
+    const pCard=(p,wide)=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
+      return `<div style="${M?'box-sizing:border-box;min-width:0;':(wide?'flex:1 1 0;min-width:0;':'width:174px;')+'box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
         ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
         <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(personaLabel(p.name))}</div>
         ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillDisplay(sig))}</div>`:''}
         ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillDisplay(s))).join('<br>')}</div>`:''}</div>
       </div>`; };
-    const personaCards=persona.map(pCard).join('');
+    const personaCards=persona.map(p=>pCard(p,false)).join('');
     const _wEx=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
     const _dgEx=_wEx?(_wEx.gear||''):''; const _dgImgEx=dImgs[_dgEx];
     const hasDagger=!!(_dgEx&&_dgImgEx);
@@ -2809,17 +2937,29 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
         personaLine=`<div style="width:100%;box-sizing:border-box;margin-top:14px;">${gridInner}${notesMobile}</div>`;
       }
     } else {
-      const personaBlock=persona.length?`<div style="flex:0 0 auto;">
-        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
+      const _hdrM=`font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;`;
+      const personaBlock=persona.length?`<div class="vf-pblock" style="flex:0 0 auto;">
+        <div style="${_hdrM}">PERSONAS</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">${personaCards}</div></div>`:'';
-      const daggerBlock=hasDagger?`<div style="flex:0 0 auto;">
-        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">DAGGER</div>
+      const daggerBlock=hasDagger?`<div class="vf-dblock" style="flex:0 0 auto;">
+        <div style="${_hdrM}">DAGGER</div>
         ${daggerCard}</div>`:'';
-      const notesBox=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
-        <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
-        <div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div></div>`:'';
+      const notesInner=`<div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;color:${C.soft};line-height:1.5;white-space:pre-wrap;">${esc(state.teamNotes)}</div>`;
+      const notesBox=tnText?`<div class="vf-tnbox" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
+        <div style="${_hdrM}">TEAM NOTES</div>${notesInner}</div>`:'';
       if(persona.length||tnText||hasDagger){
-        personaLine=`<div style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
+        personaLine=`<div class="vf-pnrow" style="display:flex;gap:12px;align-items:stretch;width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">${daggerBlock}${personaBlock}${notesBox}</div>`;
+        // stacked fallback (applied after measuring when the notes turn out taller than the personas):
+        // dagger + persona fill the full width (cards stretch), team notes go full-width underneath.
+        if(tnText && persona.length){
+          const personaCardsWide=persona.map(p=>pCard(p,true)).join('');
+          const personaBlockWide=`<div style="flex:1 1 auto;min-width:0;">
+            <div style="${_hdrM}">PERSONAS</div>
+            <div style="display:flex;gap:10px;">${personaCardsWide}</div></div>`;
+          _pnStacked=`<div class="vf-pnrow" style="width:${teamRowW}px;box-sizing:border-box;margin-top:14px;">
+            <div style="display:flex;gap:12px;align-items:stretch;width:100%;">${daggerBlock}${personaBlockWide}</div>
+            <div style="margin-top:14px;"><div style="${_hdrM}">TEAM NOTES</div>${notesInner}</div></div>`;
+        }
       }
     }
   } else {
@@ -2855,7 +2995,24 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     ${personaLine}${tnLine}`}
     ${notesLine}
     <div style="margin-top:16px;">${exportTurnsBlock(M, C)}</div>`;
-  document.body.appendChild(v); return v;
+  v._pnStacked = (_pnStacked && !M) ? _pnStacked : '';
+  document.body.appendChild(v);
+  _restackNotes(v);
+  return v;
+}
+// If the team-notes box came out taller than the personas/dagger, restack it full-width below a widened
+// persona row (measured with natural heights). Idempotent: skips when there is no stacked variant or the
+// row is already stacked. Returns true when it changed the layout. Re-run after the webview settles, since
+// the first (offscreen) pass can measure before fonts finish loading.
+function _restackNotes(v){
+  if(!v||!v._pnStacked) return false;
+  const row=v.querySelector('.vf-pnrow'); if(!row) return false;
+  const tn=row.querySelector('.vf-tnbox'); if(!tn) return false;   // no notes box -> already stacked or none
+  row.style.alignItems='flex-start';
+  const pb=row.querySelector('.vf-pblock'), db=row.querySelector('.vf-dblock');
+  const tnH=tn.offsetHeight, pivotH=Math.max(pb?pb.offsetHeight:0, db?db.offsetHeight:0);
+  if(tnH>pivotH+4){ row.outerHTML=v._pnStacked; return true; }
+  row.style.alignItems='stretch'; return false;
 }
 function loadImg(src){ return new Promise((res,rej)=>{
   const attempt=(url, canFallback)=>{
@@ -2930,15 +3087,17 @@ function renderExport(withImages, portraits, pImgs, rotationOnly, dImgs, deImgs)
 }
 function collectExportImages(){
   const portraits={}, pImgs={}, dImgs={}, deImgs={}, seen={}, tasks=[];
-  [...state.units, state.elucidator].forEach(u=>{
+  const _bk=backupUnit();
+  const exUnits=[...state.units, state.elucidator].concat(_bk?[_bk]:[]);
+  exUnits.forEach(u=>{
     const src=imgFor(u.name); if(!src || seen['c:'+u.name]) return; seen['c:'+u.name]=1;
     tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
   });
-  [...state.units, state.elucidator].forEach(u=>{
+  exUnits.forEach(u=>{
     const dn=u.gear, src=daggerImg(dn); if(!src || seen['d:'+dn]) return; seen['d:'+dn]=1;
     tasks.push(loadImg(src).then(img=>{ dImgs[dn]=fullDataURL(img); }).catch(()=>{}));
   });
-  [...state.units, state.elucidator].forEach(u=>{
+  exUnits.forEach(u=>{
     if((u.name||'').toUpperCase()!=='TWINS') return; const td=TWINS_ROLE_DUALS[u.role]; if(!td) return;
     td.forEach(dn=>{ const src=dualElemImg(dn); if(!src||seen['de:'+dn])return; seen['de:'+dn]=1;
       tasks.push(loadImg(src).then(img=>{ deImgs[dn]=fullDataURL(img); }).catch(()=>{})); });
@@ -3021,7 +3180,11 @@ function enterViewMode(){
     v.style.position='static'; v.style.left='auto'; v.style.top='auto'; v.style.margin='0';
     stage.innerHTML=''; stage.appendChild(v);
     if(mob){ v.style.transform='none'; stage.style.width='100%'; stage.style.height='auto'; }
-    else { stage.style.width=''; stage.style.height=''; fitView(); requestAnimationFrame(fitView); setTimeout(fitView,200); }
+    else { stage.style.width=''; stage.style.height=''; fitView(); requestAnimationFrame(fitView); setTimeout(fitView,200);
+      // re-check the notes stacking once fonts/layout have settled (the offscreen pass can measure too early)
+      const recheck=()=>{ if(_restackNotes(v)) fitView(); };
+      requestAnimationFrame(recheck); setTimeout(recheck,250);
+      try{ if(document.fonts&&document.fonts.ready) document.fonts.ready.then(recheck).catch(()=>{}); }catch(e){} }
   };
   _renderViewBody=renderViewBody;
   collectExportImages()
@@ -3037,7 +3200,7 @@ window.addEventListener('resize', ()=>{
 });
 
 /* ---------- Play mode: full-screen player (turn-by-turn or action-by-action; vertical or horizontal) ---------- */
-let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical';
+let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical', _playDone=0, _playLastRenderTurn=-1, _playAdvTimer=0, _playFinTimer=0;
 const _playTouch = (function(){ try{ return (window.matchMedia&&window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window); }catch(e){ return false; } })();
 function _playLandscape(){ return (window.innerWidth||0) > (window.innerHeight||0); }   /* direct dimensions are more reliable than the orientation media query on iOS Safari */
 const _isIphone = /iPhone|iPod/.test(navigator.userAgent||'');
@@ -3059,14 +3222,22 @@ function openPlayMode(){
     root.innerHTML='<div class="play-head"><div class="play-title" id="playTitle"></div>'
       +'<div class="play-segs"><div class="play-seg" id="playModeSeg"><button data-pmode="turn">Turn</button><button data-pmode="action">Action</button></div>'
       +'<div class="play-seg" id="playLayoutSeg"><button data-playlayout="vertical">Vertical</button><button data-playlayout="horizontal">Horizontal</button></div></div>'
-      +'<div class="play-right"><div class="play-pos" id="playPos"></div><button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div></div>'
+      +'<div class="play-right"><div class="play-pos" id="playPos"></div>'
+      +'<button class="play-info-btn" id="playInfo" aria-label="Team info" title="Team notes, dagger & personas"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.2"/><path d="M12 7.6v.4"/></svg></button>'
+      +'<button class="play-fs" id="playFs" aria-label="Fullscreen" title="Fullscreen"><svg class="fs-enter" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg><svg class="fs-exit" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/></svg></button><button class="play-close" id="playClose" aria-label="Close">×</button></div></div>'
+      +'<div class="play-progress" id="playProg"><div class="play-progress-fill" id="playProgFill"></div></div>'
       +'<div class="play-body" id="playBody"></div>'
-      +'<div class="play-hint" id="playHint"></div>'
-      +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dots" id="playDots"></div><button class="play-navbtn" id="playNext">Next ›</button></div>';
+      +'<div class="play-nav"><button class="play-navbtn" id="playPrev">‹ Prev</button><div class="play-dotwrap"><div class="play-dots" id="playDots"></div><div class="play-finished" id="playFinished">Fight Finished</div></div><button class="play-navbtn" id="playNext">Next ›</button></div>'
+      +'<div class="play-info-panel" id="playInfoPanel" hidden><div class="play-info-back" id="playInfoBack"></div><div class="play-info-card"><div class="play-info-head"><span>Team Info</span><button class="play-info-x" id="playInfoX" aria-label="Close">×</button></div><div class="play-info-body" id="playInfoBody"></div></div></div>';
     document.body.appendChild(root);
     root.querySelector('#playClose').onclick=closePlayMode;
     root.querySelector('#playPrev').onclick=()=>playStep(-1);
     root.querySelector('#playNext').onclick=()=>playStep(1);
+    // touch: fire on touchend and suppress the ghost click, so a mis-targeted synthesized click can't land on a body card
+    [['#playClose',closePlayMode],['#playPrev',()=>playStep(-1)],['#playNext',()=>playStep(1)]].forEach(([sel,fn])=>{ const b=root.querySelector(sel); if(b) b.addEventListener('touchend',ev=>{ if(b.disabled) return; ev.preventDefault(); fn(); },{passive:false}); });
+    root.querySelector('#playInfo').onclick=playToggleInfo;
+    root.querySelector('#playInfoX').onclick=playCloseInfo;
+    root.querySelector('#playInfoBack').onclick=playCloseInfo;
     root.querySelectorAll('#playModeSeg button').forEach(b=>b.onclick=()=>playSetMode(b.dataset.pmode));
     root.querySelectorAll('#playLayoutSeg button').forEach(b=>b.onclick=()=>{ _playLayout=b.dataset.playlayout; renderPlay(); });
     // touch swipe. In horizontal turn mode the actions strip scrolls natively; we only change turn when the
@@ -3077,21 +3248,63 @@ function openPlayMode(){
     _pbody.addEventListener('touchstart',e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; stime=Date.now();
       const strip=root.querySelector('.play-actions.horiz');
       if(strip){ const max=strip.scrollWidth-strip.clientWidth; swStart=strip.scrollLeft<=14; swEnd=strip.scrollLeft>=max-14; } else { swStart=true; swEnd=true; } },{passive:true});
-    _pbody.addEventListener('touchend',e=>{ const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
-      if(!(Date.now()-stime<700 && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3)) return;
-      if(_playMode==='turn' && _playLayout==='horizontal'){ if(dx<0){ if(swEnd) playStep(1); } else if(swStart) playStep(-1); }
-      else playStep(dx<0?1:-1); },{passive:true});
+    _pbody.addEventListener('touchend',e=>{ const t=e.changedTouches[0]; const dx=t.clientX-sx, dy=t.clientY-sy, dt=Date.now()-stime;
+      if(dt<700 && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3){   // horizontal swipe -> navigate
+        if(_playMode==='turn' && _playLayout==='horizontal'){ if(dx<0){ if(swEnd) playStep(1); } else if(swStart) playStep(-1); }
+        else playStep(dx<0?1:-1); return; }
+      if(dt<700 && Math.abs(dx)<16 && Math.abs(dy)<16){   // tap -> act here and kill the ghost click so it can't mis-land on a chrome button (× / Next)
+        _playBodyTap(e.target); e.preventDefault(); } },{passive:false});
+    // desktop only: on touch the tap is handled on touchend above (and the synthesized click is suppressed there)
+    _pbody.addEventListener('click',e=>{ if(_playTouch) return; _playBodyTap(e.target); });
     root.querySelector('#playFs').onclick=playToggleFs;
     if(_isIphone){ const fb=root.querySelector('#playFs'); if(fb) fb.style.display='none'; }   /* iPhone Safari has no element fullscreen and the Home-Screen web app is already full-screen */
     if(_playTouch) root.classList.add('play-touch');
   }
-  _playMode='turn'; _playTurn=0; _playAct=0;
+  _playMode='turn'; _playTurn=0; _playAct=0; _playDone=0; _playLastRenderTurn=_playTurn;   // start on turn 1 without a flash
   _playLayout = _playTouch ? (_playWantsHorizontal()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
+  playCloseInfo();
   root.hidden=false; document.body.classList.add('play-open');
   renderPlay();
+  _playAcquireWake();   /* keep the screen awake while you follow the rotation live */
   if(_playTouch && _fsSupported) _playEnterFs();   /* the Play tap is a user gesture, so fullscreen is allowed (iPad/Android; iPhone Safari has no element fullscreen) */
 }
-function closePlayMode(){ const r=document.getElementById('playRoot'); if(r) r.hidden=true; document.body.classList.remove('play-open'); _playExitFs(); }
+function closePlayMode(){ const r=document.getElementById('playRoot'); if(r) r.hidden=true; document.body.classList.remove('play-open'); playCloseInfo(); _playReleaseWake(); _playExitFs(); }
+/* --- screen wake lock: hold the screen on while the player is open, re-acquire when the tab returns to the foreground --- */
+let _wakeLock=null;
+function _playAcquireWake(){ try{ if('wakeLock' in navigator && !_wakeLock){ navigator.wakeLock.request('screen').then(wl=>{ _wakeLock=wl; wl.addEventListener('release',()=>{ _wakeLock=null; }); }).catch(()=>{ _wakeLock=null; }); } }catch(e){ _wakeLock=null; } }
+function _playReleaseWake(){ try{ const wl=_wakeLock; _wakeLock=null; if(wl) wl.release().catch(()=>{}); }catch(e){ _wakeLock=null; } }
+document.addEventListener('visibilitychange',()=>{ const r=document.getElementById('playRoot'); if(r && !r.hidden && document.visibilityState==='visible') _playAcquireWake(); });
+/* --- team-info slide-in panel (dagger / personas / team notes) --- */
+let _playInfoOpen=false;
+function playToggleInfo(){ _playInfoOpen ? playCloseInfo() : playOpenInfo(); }
+function playOpenInfo(){ const r=document.getElementById('playRoot'); if(!r) return; renderPlayInfo(); const p=r.querySelector('#playInfoPanel'); if(p) p.hidden=false; const b=r.querySelector('#playInfo'); if(b) b.classList.add('on'); _playInfoOpen=true; }
+function playCloseInfo(){ const r=document.getElementById('playRoot'); if(!r){ _playInfoOpen=false; return; } const p=r.querySelector('#playInfoPanel'); if(p) p.hidden=true; const b=r.querySelector('#playInfo'); if(b) b.classList.remove('on'); _playInfoOpen=false; }
+function renderPlayInfo(){
+  const r=document.getElementById('playRoot'); if(!r) return; const body=r.querySelector('#playInfoBody'); if(!body) return;
+  const _w=(state.units||[]).find(u=>(u.name||'').toUpperCase()==='WONDER'); const dg=_w?(_w.gear||'').trim():''; const dgSrc=daggerImg(dg);
+  const pers=(state.personas||[]).filter(p=>(p.name||'').trim());
+  const tn=(state.teamNotes||'').trim();
+  let html='';
+  if(dg){ html+='<div class="play-info-sec"><div class="play-info-lab">DAGGER</div><div class="play-info-dagger">'
+    +(dgSrc?'<img src="'+esc(dgSrc)+'" alt="" onerror="this.style.display=\'none\'"/>':'')+'<span>'+esc(dg)+'</span></div></div>'; }
+  if(pers.length){ html+='<div class="play-info-sec"><div class="play-info-lab">PERSONAS</div>';
+    pers.forEach(p=>{ const nm=(p.name||'').trim(), sig=PERSONA_SIGNATURES[nm]||'', sk=(p.skills||[]).filter(Boolean), src=personaImg(nm);
+      html+='<div class="play-info-persona">'+(src?'<img src="'+esc(src)+'" alt="" onerror="this.style.display=\'none\'"/>':'')
+        +'<div class="play-info-ptext"><div class="play-info-pname">'+esc(personaLabel(nm))+'</div>'
+        +(sig?'<div class="play-info-sig">'+esc(skillDisplay(sig))+'</div>':'')
+        +(sk.length?'<div class="play-info-sk">'+sk.map(s=>esc(skillDisplay(s))).join('<br>')+'</div>':'')
+        +'</div></div>'; });
+    html+='</div>'; }
+  if(tn){ html+='<div class="play-info-sec"><div class="play-info-lab">TEAM NOTES</div><div class="play-info-notes">'+esc(tn)+'</div></div>'; }
+  body.innerHTML = html || '<div class="play-info-empty">No dagger, personas or team notes set yet.</div>';
+}
+/* jump helpers (Home / End keys) */
+function playFirst(){ if(_playMode==='action') _playAct=0; else _playTurn=0; renderPlay(); }
+function playLast(){ if(_playMode==='action') _playAct=_playFlat().length-1; else _playTurn=(state.turns||[]).length-1; renderPlay(); }
+/* portrait <img> for a character, or '' when no art is available */
+function _playPortrait(name, cls){ const src=faceImg(name); if(!src) return ''; return '<img class="'+cls+'" src="'+esc(src)+'" alt="" onerror="faceFallback(this)"/>'; }
+/* update the header progress bar (mirrors the X / N counter) */
+function _playSetProgress(cur, total, brk){ const f=document.getElementById('playProgFill'); if(!f) return; f.style.width=(total>0?Math.max(0,Math.min(100,(cur/total)*100)):0)+'%'; f.classList.toggle('brk',!!brk); }
 function playSetMode(m){ if(m===_playMode){ renderPlay(); return; } const flat=_playFlat();
   if(m==='action'){ const idx=flat.findIndex(x=>x.ti===_playTurn); _playAct=idx<0?0:idx; }
   else { _playTurn=(flat[_playAct]||{}).ti||0; }
@@ -3103,8 +3316,40 @@ function playStep(dir){
 function playGoTurn(i){ _playTurn=Math.max(0,Math.min(i,(state.turns||[]).length-1));
   if(_playMode==='action'){ const idx=_playFlat().findIndex(x=>x.ti===_playTurn); if(idx>=0) _playAct=idx; }
   renderPlay(); }
+/* Turn-mode check-off: _playDone is the global count of completed actions (across all turns, in _playFlat
+   order). Tapping an active action (gi>=done) checks it and everything before it; tapping a checked one
+   (gi<done) re-activates it and everything after. When a tap completes the current turn, auto-advance. */
+function playToggleDone(gi){
+  const turns=state.turns||[], n=turns.length;
+  let turnStart=0; for(let ti=0;ti<_playTurn;ti++) turnStart+=(turns[ti].actions||[]).filter(a=>a&&a.char).length;
+  const turnLen=(turns[_playTurn].actions||[]).filter(a=>a&&a.char).length;
+  const forward=gi>=_playDone;
+  _playDone = forward ? gi+1 : gi;
+  renderPlay();   // show the just-checked action greyed first (renderPlay clears any pending advance/overlay)
+  if(forward && _playDone>=turnStart+turnLen && _playTurn<n-1){
+    _playAdvTimer=setTimeout(()=>{ _playTurn++; renderPlay(); }, 480);   // brief grey-out, then load the next turn
+  } else if(forward && _playDone>=_playFlat().length && _playTurn===n-1){
+    playShowFinished();   // last action of the final turn checked -> show the end overlay
+  }
+}
+/* Fight-Finished overlay: replace the turn dots with a 'Fight Finished' label for 3s, then cross-fade back. */
+function playShowFinished(){ const f=document.getElementById('playFinished'), d=document.getElementById('playDots'); if(!f||!d) return;
+  d.classList.add('dim'); f.classList.add('show');
+  clearTimeout(_playFinTimer); _playFinTimer=setTimeout(()=>{ f.classList.remove('show'); d.classList.remove('dim'); }, 3000); }
+/* route a tap/click inside the play body to the right action (shared by the desktop click and the touch tap paths) */
+function _playBodyTap(el){ if(!el||!el.closest) return;
+  if(_playMode==='action'){ if(el.closest('.play-solo')) playStep(1); return; }   // action mode: tap the area -> next action
+  if(el.closest('.play-turn-restart')){ playRestart(); return; }
+  if(el.closest('.play-turn-reset')){ playResetTurn(); return; }
+  const a=el.closest('.play-act[data-gi]'); if(a) playToggleDone(+a.dataset.gi); }
+/* reset just the current turn: re-activate its actions (and any after it); earlier turns stay checked. */
+function playResetTurn(){ const turns=state.turns||[]; let turnStart=0; for(let ti=0;ti<_playTurn;ti++) turnStart+=(turns[ti].actions||[]).filter(a=>a&&a.char).length; _playDone=Math.min(_playDone,turnStart); renderPlay(); }
+/* restart the whole run: back to turn 1, nothing checked. */
+function playRestart(){ _playDone=0; _playTurn=0; renderPlay(); }
 function renderPlay(){
   const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  clearTimeout(_playAdvTimer);   // any (re)render cancels a pending auto-advance; playToggleDone re-arms it
+  clearTimeout(_playFinTimer); { const _f=document.getElementById('playFinished'), _d=document.getElementById('playDots'); if(_f) _f.classList.remove('show'); if(_d) _d.classList.remove('dim'); }   // and clears the Fight-Finished overlay
   const turns=state.turns||[], n=turns.length, s=state.setup||{}, dod=(s.type||'').toUpperCase()==='DOD';
   r.querySelector('#playTitle').textContent=[(s.boss||'').trim(),(s.type||'').trim()].filter(Boolean).join(' · ')||((s.rotationName||'').trim()||'Rotation');
   r.querySelectorAll('#playModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pmode===_playMode));
@@ -3115,36 +3360,56 @@ function renderPlay(){
     const dw=r.querySelector('#playDots'); dw.innerHTML=dots; dw.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGoTurn(+d.dataset.pi)); };
   if(_playMode==='action'){
     const flat=_playFlat();
-    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; r.querySelector('#playHint').textContent=''; mkDots(-1); return; }
-    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, accent=cardAccent(a.char, exPalette(_effTheme==='light'));
+    if(!flat.length){ r.querySelector('#playBody').innerHTML='<div class="play-empty">No actions to play.</div>'; r.querySelector('#playPos').textContent='0 / 0'; _playSetProgress(0,0); r.querySelector('#playPrev').disabled=true; r.querySelector('#playNext').disabled=true; mkDots(-1); return; }
+    _playAct=Math.max(0,Math.min(_playAct,flat.length-1)); const it=flat[_playAct], a=it.a, palette=exPalette(_effTheme==='light'), accent=cardAccent(a.char, palette);
     r.querySelector('#playPos').textContent=(_playAct+1)+' / '+flat.length;
+    _playSetProgress(_playAct+1, flat.length, it.brk);
     const inTurn=flat.filter(x=>x.ti===it.ti), posInTurn=inTurn.indexOf(it)+1, leftInTurn=inTurn.length-posInTurn;
     const sub='Action '+posInTurn+' / '+inTurn.length+' in this turn'+(leftInTurn>0?(' · '+leftInTurn+' to go'):' · last action');
-    r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+'">'+esc(it.turnName)+'</div>'
+    const nx=flat[_playAct+1];
+    const nextHtml=nx?('<div class="play-next"><span class="play-next-lab">NEXT</span><span class="play-next-actor" style="color:'+esc(cardAccent(nx.a.char,palette))+'">'+esc(charDisp(nx.a.char))+'</span><span class="play-next-detail">'+esc(actionLabel(nx.a,nx.a.char,true)||'-')+'</span></div>'):'<div class="play-next end">Fight Finished</div>';
+    const _newTurnA=(it.ti!==_playLastRenderTurn);   // first action of a new turn -> gold flash on the title
+    r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+(_newTurnA?' flash':'')+'">'+esc(it.turnName)+'</div>'
       +'<div class="play-turn-sub">'+esc(sub)+'</div>'
-      +'<div class="play-solo"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div></div>';
+      +'<div class="play-solo">'+_playPortrait(a.char,'play-solo-portrait')
+        +'<div class="play-solo-text"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'-')+'</div>'+nextHtml+'</div>'
+      +'</div>';
+    _playLastRenderTurn=it.ti;
     r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
-    r.querySelector('#playHint').textContent=_playTouch?'Swipe to step through the actions':'← → step through the actions · Esc to close';
     mkDots(it.ti); return;
   }
   const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const t=turns[i]||{actions:[]}, isBreak=dod&&n>=DOD_BREAKS&&i>=n-DOD_BREAKS, horiz=_playLayout==='horizontal';
   r.querySelector('#playPos').textContent=(i+1)+' / '+n;
+  _playSetProgress(i+1, n, isBreak);
   const acts=(t.actions||[]).filter(a=>a&&a.char);
+  let _turnStart=0; for(let ti=0;ti<i;ti++) _turnStart+=(turns[ti].actions||[]).filter(a=>a&&a.char).length;
   const rows=acts.length?acts.map((a,k)=>{ const accent=cardAccent(a.char, exPalette(_effTheme==='light'));
-    if(horiz) return '<div class="play-act block" style="border-top-color:'+esc(accent)+'"><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
-    return '<div class="play-act" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span><span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+    const gi=_turnStart+k, done=gi<_playDone?' done':'';
+    if(horiz) return '<div class="play-act block'+done+'" data-gi="'+gi+'" style="border-top-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span>'+_playPortrait(a.char,'play-portrait block')+'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
+    return '<div class="play-act'+done+'" data-gi="'+gi+'" style="border-left-color:'+esc(accent)+'"><span class="play-actn">'+(k+1)+'</span>'+_playPortrait(a.char,'play-portrait')+'<span class="play-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</span><span class="play-actdetail">'+esc(actionLabel(a,a.char,true)||'')+'</span></div>';
   }).join(''):'<div class="play-empty">No actions in this turn.</div>';
-  r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(isBreak?' brk':'')+'">'+esc(t.name||('Turn '+(i+1)))+'</div>'
+  const _tools='<span class="play-turn-tools">'
+    +'<button type="button" class="play-turn-reset" aria-label="Reset this turn" title="Reset this turn"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.5 8a9 9 0 1 1-1 4"/></svg></button>'
+    +'<button type="button" class="play-turn-restart" aria-label="Restart from the beginning" title="Restart from the beginning"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4"/><line x1="5" y1="5" x2="5" y2="19"/></svg></button></span>';
+  const _newTurn=(i!==_playLastRenderTurn);                           // real turn change -> gold flash on the title
+  const _oldStrip=horiz?r.querySelector('.play-actions.horiz'):null;  // keep the horizontal scroll on a same-turn re-render
+  const _sl=(_oldStrip && !_newTurn)?_oldStrip.scrollLeft:0;
+  r.querySelector('#playBody').innerHTML='<div class="play-turn-head"><div class="play-turn-name'+(isBreak?' brk':'')+(_newTurn?' flash':'')+'">'+esc(t.name||('Turn '+(i+1)))+'</div>'+_tools+'</div>'
     +'<div class="play-actions'+(horiz?' horiz':'')+'">'+rows+'</div>'
     +((t.note||'').trim()?'<div class="play-note">'+esc(t.note.trim())+'</div>':'');
+  if(horiz && _sl){ const _ns=r.querySelector('.play-actions.horiz'); if(_ns) _ns.scrollLeft=_sl; }
+  else if(_newTurn && !horiz){ const _b=r.querySelector('#playBody'); if(_b) _b.scrollTop=0; }   // a new turn always scrolls the list back to the first action
+  _playLastRenderTurn=i;
   r.querySelector('#playPrev').disabled=(i<=0); r.querySelector('#playNext').disabled=(i>=n-1);
-  r.querySelector('#playHint').textContent=_playTouch?(horiz?'Swipe through the turn — past the end goes to the next turn':'Swipe left / right to change turn'):'← → arrow keys to change turn · Esc to close';
   mkDots(i);
 }
 document.addEventListener('keydown',e=>{ const r=document.getElementById('playRoot'); if(!r||r.hidden) return;
+  if(e.key==='Escape'){ e.preventDefault(); if(_playInfoOpen) playCloseInfo(); else closePlayMode(); return; }
   if(e.key==='ArrowLeft'){ e.preventDefault(); playStep(-1); }
   else if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); playStep(1); }
-  else if(e.key==='Escape'){ e.preventDefault(); closePlayMode(); } });
+  else if(e.key==='Home'){ e.preventDefault(); playFirst(); }
+  else if(e.key==='End'){ e.preventDefault(); playLast(); }
+  else if(/^[1-9]$/.test(e.key)){ e.preventDefault(); playGoTurn(+e.key-1); } });
 function _playOrient(){ const r=document.getElementById('playRoot'); if(r&&!r.hidden&&_playTouch){
     const want=_playWantsHorizontal()?'horizontal':'vertical'; if(want!==_playLayout){ _playLayout=want; renderPlay(); } }
   _updateIosRotate(); }
@@ -3155,14 +3420,94 @@ window.addEventListener('resize', _playOrient);
 // iOS Safari updates the window dimensions late after a rotation, so re-check a couple of times
 window.addEventListener('orientationchange', ()=>{ _playOrient(); setTimeout(_playOrient,250); setTimeout(_playOrient,600); });
 _updateIosRotate();
-// block iOS Safari pinch-zoom while the player is open
-document.addEventListener('gesturestart', e=>{ const r=document.getElementById('playRoot'); if(r&&!r.hidden) e.preventDefault(); }, {passive:false});
+// block zoom gestures tool-wide (iOS pinch + desktop trackpad-pinch / ctrl-wheel); inside the live preview
+// the gesture drives the preview zoom slider instead of the browser
+const _inPreview=e=>!!(rotationPreviewOpen && e.target && e.target.closest && e.target.closest('#rotPreviewBody'));
+document.addEventListener('gesturestart', e=>{ e.preventDefault(); }, {passive:false});
+document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault();
+  if(_inPreview(e)) _applyPreviewZoom(_curPreviewZoom() - e.deltaY*0.01); }, {passive:false});
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{ const r=document.getElementById('playRoot'); if(r) r.classList.toggle('is-fs', !!_fsEl()); }));
+/* ---------- reorder a tile by dragging its grip / image (or a turn header) — our own ghost, touch AND mouse ----
+   The native HTML5 drag can't render a cursor-following ghost (Chrome doesn't repaint during a drag) and its
+   snapshot drops freshly-cloned art, so we run the drag ourselves: a floating clone of the whole tile follows
+   the pointer and drops on the tile underneath. Touch picks up on a long-press; the mouse picks up after a few
+   pixels of motion. The grips are no longer native-draggable, so nothing steals the touch gesture. */
+(function(){
+  const KINDS=[
+    { handle:'.unit .grip, .unit .art', item:'.unit[data-uidx]', attr:'uidx', scroll:null,
+      drop(f,t){ if(f===t) return; const[m]=state.units.splice(f,1); state.units.splice(t,0,m); save(); renderTeam(); renderTurns(); } },
+    { handle:'.persona-col .pgrip, .persona-col .pcol-img', item:'.persona-col[data-pidx]', attr:'pidx', scroll:null,
+      drop(f,t){ if(f===t) return; const[m]=state.personas.splice(f,1); state.personas.splice(t,0,m); save(); renderTeam(); renderTurns(); } },
+    { handle:'.turn-head', item:'.turn[data-tidx]', attr:'tidx', scroll:'turns',
+      drop(f,t){ const dd=state.setup.type==='DOD', nn=state.turns.length, mx=(dd&&nn>=DOD_BREAKS)?nn-DOD_BREAKS:nn;
+        if(f>=mx||f===t) return; t=Math.max(0,Math.min(t,mx-1)); const[m]=state.turns.splice(f,1); state.turns.splice(t,0,m); save(); renderTurns(); } },
+  ];
+  let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, over=null, offX=0, offY=0, fx=0, fy=0, raf=0, mouse=false, lastTouch=0;
+  function resolve(tg){ if(!tg||!tg.closest) return null;
+    if(tg.closest('input,select,textarea,button,a,.combo-clear')) return null;   // leave real controls clickable
+    for(const k of KINDS){ const h=tg.closest(k.handle); if(h){ const it=h.closest(k.item); if(it&&it.dataset[k.attr]!=null) return {k,it}; } }
+    return null; }
+  function clearOver(){ if(over){ over.classList.remove('drag-over'); over=null; } }
+  function place(x,y){ fx=x; fy=y; if(ghost) ghost.style.transform='translate('+(x-offX)+'px,'+(y-offY)+'px)'; }
+  function tick(){ if(!dragging){ raf=0; return; }
+    if(kind.scroll){ const el=document.getElementById(kind.scroll); if(el){ const b=el.getBoundingClientRect(), m=46;
+        if(fx<b.left+m) el.scrollLeft-=14; else if(fx>b.right-m) el.scrollLeft+=14; } }
+    else { const vh=window.innerHeight, m=60; if(fy<m) window.scrollBy(0,-14); else if(fy>vh-m) window.scrollBy(0,14); }
+    raf=requestAnimationFrame(tick); }
+  function start(x,y){ dragging=true; src.classList.add('dragging'); document.body.classList.add('touch-dragging');
+    const r=src.getBoundingClientRect();
+    ghost=src.cloneNode(true); ghost.classList.add('touch-ghost'); ghost.classList.remove('dragging');
+    // force the floating position inline (keeps the clone's other inline styles, e.g. a unit's --ux accent) —
+    // the clone keeps its tile class and .persona-col is position:relative, which would otherwise win over .touch-ghost
+    ghost.style.position='fixed'; ghost.style.left='0'; ghost.style.top='0'; ghost.style.margin='0'; ghost.style.zIndex='9000'; ghost.style.width=r.width+'px';
+    ghost.querySelectorAll('img[loading]').forEach(im=>im.removeAttribute('loading'));   // load the art right away in the ghost
+    offX=sx-r.left; offY=sy-r.top;   // hang the whole tile from the exact grab point
+    document.body.appendChild(ghost); place(x,y);
+    if(!mouse && navigator.vibrate){ try{ navigator.vibrate(15); }catch(_){} }
+    raf=requestAnimationFrame(tick); }
+  function moveTo(x,y){ place(x,y);
+    const u=document.elementFromPoint(x,y), tg=u&&u.closest?u.closest(kind.item):null;
+    if(tg!==over){ clearOver(); if(tg&&tg!==src){ over=tg; over.classList.add('drag-over'); } } }
+  function end(){ clearTimeout(timer); timer=0; if(raf){ cancelAnimationFrame(raf); raf=0; }
+    if(ghost){ ghost.remove(); ghost=null; } if(src) src.classList.remove('dragging');
+    clearOver(); document.body.classList.remove('touch-dragging');
+    dragging=false; kind=null; from=-1; src=null;
+    document.removeEventListener('touchmove', tmove, {passive:false});
+    document.removeEventListener('touchend', tup); document.removeEventListener('touchcancel', tup);
+    document.removeEventListener('mousemove', mmove); document.removeEventListener('mouseup', mup); }
+  function finish(){ if(dragging&&over){ const to=+over.dataset[kind.attr], k=kind, f=from; end(); k.drop(f,to); return; } end(); }
+  // touch: long-press to pick up; a move before that is a scroll
+  function tmove(e){ const t=e.touches[0]; if(!t) return;
+    if(!dragging){ if(Math.abs(t.clientX-sx)>10||Math.abs(t.clientY-sy)>10){ clearTimeout(timer); timer=0; } return; }
+    e.preventDefault(); moveTo(t.clientX,t.clientY); }
+  function tup(){ finish(); }
+  document.addEventListener('touchstart', e=>{
+    lastTouch=Date.now();
+    if(dragging||timer||e.touches.length>1) return;
+    const f=resolve(e.target); if(!f) return;
+    kind=f.k; src=f.it; from=+src.dataset[kind.attr]; mouse=false;
+    const t=e.touches[0]; sx=t.clientX; sy=t.clientY;
+    document.addEventListener('touchmove', tmove, {passive:false});
+    document.addEventListener('touchend', tup); document.addEventListener('touchcancel', tup);
+    timer=setTimeout(()=>{ timer=0; start(sx,sy); }, 360);
+  }, {passive:true});
+  // mouse: pick up after a few px of motion (no long-press)
+  function mmove(e){ if(!dragging){ if(Math.abs(e.clientX-sx)>4||Math.abs(e.clientY-sy)>4) start(e.clientX,e.clientY); else return; }
+    e.preventDefault(); moveTo(e.clientX,e.clientY); }
+  function mup(){ finish(); }
+  document.addEventListener('mousedown', e=>{
+    if(dragging||e.button!==0||Date.now()-lastTouch<700) return;   // ignore the synthetic mouse event after a touch
+    const f=resolve(e.target); if(!f) return;
+    kind=f.k; src=f.it; from=+src.dataset[kind.attr]; mouse=true; sx=e.clientX; sy=e.clientY;
+    e.preventDefault();   // no text selection while picking the tile up
+    document.addEventListener('mousemove', mmove); document.addEventListener('mouseup', mup);
+  });
+})();
 (function(){
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.export; close();
     if(k==='json') exportJSON();
     else if(k==='png-art') exportImage(true);
@@ -3175,7 +3520,7 @@ document.addEventListener('gesturestart', e=>{ const r=document.getElementById('
   }; });
 })();
 
-const CHAR_ALIASES = {"MIKU":["Hatsune Miku","Hatsune","HM"],"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·S":["Marian","Minami","Summer","SMarian","SMinami"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
+const CHAR_ALIASES = {"MIKU":["Hatsune Miku","Hatsune","HM"],"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·S":["Marian","Minami","Summer","SMarian","SMinami"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","CrackRin","Crack","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
 const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy Worm"]};
 /* ---------- combobox (Boss / Personas) + discrepancy banner dismiss ---------- */
 (function(){
@@ -3186,7 +3531,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
     if(k==='boss') return bossListFor(state.setup.type);
     if(k==='persona') return DATA.personaNames;
     if(k==='skill') return SKILL_LIST;
-    if(k==='char') return input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>!(DATA.elucidatorNames||[]).includes(n));
+    if(k==='char') return input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>n!=='WONDER' && !(DATA.elucidatorNames||[]).includes(n));
     return [];
   }
   function position(){ if(!active) return; const r=active.getBoundingClientRect();
@@ -3288,6 +3633,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260619M</div>
+<div class="version-tag">260622S</div>
 </body>
 </html>
