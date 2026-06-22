@@ -423,9 +423,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
 .app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
 .app-banner-x:hover{color:#fff}
-.app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c}
-.app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232}
-.app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161}
+.app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c; background:linear-gradient(90deg,#21331f,#18261a)}
+.app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232; background:linear-gradient(90deg,#332f1a,#262216)}
+.app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161; background:linear-gradient(90deg,#331a1f,#261619)}
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
 body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
@@ -1176,6 +1176,7 @@ function applyDataOverrides(o){
   ['characterNames','personaNames','charColors','characterImages'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
   if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
   if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
+  if(o.PERSONA_SIGNATURES&&typeof o.PERSONA_SIGNATURES==='object'){ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,o.PERSONA_SIGNATURES); }
 }
 function loadDataLive(){
   try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
