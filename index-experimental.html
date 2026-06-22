@@ -390,6 +390,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-label{font:700 11px Oswald,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
 .banner-acc{display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--text); cursor:pointer; padding:3px 9px; border:1px solid var(--line); border-radius:7px}
 .banner-acc.acc-green{border-left:4px solid #82ec2c} .banner-acc.acc-gold{border-left:4px solid #f1c232} .banner-acc.acc-red{border-left:4px solid #ff5161}
+.banner-row{display:flex; align-items:flex-start; gap:10px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:var(--field)}
+.banner-row-tag{flex:0 0 42px; font:700 12px Oswald,sans-serif; letter-spacing:.03em; padding-top:8px; color:var(--muted)}
+.banner-row .dev-textarea{flex:1 1 auto; margin:0}
 .dev-select{background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 8px; font:13px Inter,system-ui,sans-serif}
 .dev-form{display:flex; flex-direction:column; gap:6px; max-height:52vh; overflow:auto; padding-right:2px}
 .dev-form[hidden]{display:none}
@@ -517,7 +520,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
-.app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; margin-bottom:14px; color:#e9e4ff}
+.app-banners{display:flex; flex-direction:column; gap:8px; margin-bottom:14px}
+.app-banners[hidden]{display:none}
+.app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; color:#e9e4ff}
 .app-banner[hidden]{display:none}
 .app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
 .app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
@@ -843,7 +848,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
   </div>
 
-  <div class="app-banner" id="appBanner" hidden role="status"><span class="app-banner-text" id="appBannerText"></span><button class="app-banner-x" id="appBannerClose" aria-label="Dismiss">&times;</button></div>
+  <div class="app-banners" id="appBanner" hidden role="status"></div>
   <div class="panel" id="headPanel"></div>
   <div class="panel" id="teamPanel"></div>
   <div class="panel">
@@ -1014,10 +1019,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Live banner">
     <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Live Banner <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="bannerClose" aria-label="Close">&times;</button></div>
     <div class="dev-tool-body">
-      <p class="crop-hint">Show a short announcement to everyone on the live tool. Push replaces the current banner; Clear removes it. Users can dismiss it.</p>
-      <textarea id="bannerIn" class="dev-textarea" rows="3" spellcheck="false" placeholder="e.g. Patch 4.4 boss is now supported."></textarea>
-      <div class="dev-tool-row"><span class="dev-label">Accent</span><label class="banner-acc acc-green"><input type="radio" name="bannerAcc" value="green" checked> Green</label><label class="banner-acc acc-gold"><input type="radio" name="bannerAcc" value="gold"> Gold</label><label class="banner-acc acc-red"><input type="radio" name="bannerAcc" value="red"> Red</label></div>
-      <div class="dev-tool-row"><span class="dev-status" id="bannerStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="bannerPreview">Preview</button><button class="btn" id="bannerPull">Pull live</button><button class="btn" id="bannerClear">Clear</button><button class="btn btn-exp" id="bannerPush">Push to live</button></div>
+      <p class="crop-hint">Show up to three announcements to everyone on the live tool, one per colour. They appear in this order: green, gold, red. Leave a line empty to hide that colour. Push replaces all three live; users can dismiss each.</p>
+      <div class="banner-row banner-acc acc-green"><span class="banner-row-tag">Green</span><textarea id="bannerInGreen" class="dev-textarea" rows="2" spellcheck="false" placeholder="Green banner (optional)"></textarea></div>
+      <div class="banner-row banner-acc acc-gold"><span class="banner-row-tag">Gold</span><textarea id="bannerInGold" class="dev-textarea" rows="2" spellcheck="false" placeholder="Gold banner (optional)"></textarea></div>
+      <div class="banner-row banner-acc acc-red"><span class="banner-row-tag">Red</span><textarea id="bannerInRed" class="dev-textarea" rows="2" spellcheck="false" placeholder="Red banner (optional)"></textarea></div>
+      <div class="dev-tool-row"><span class="dev-status" id="bannerStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="bannerPreview">Preview</button><button class="btn" id="bannerPull">Pull live</button><button class="btn" id="bannerClear">Clear all</button><button class="btn btn-exp" id="bannerPush">Push to live</button></div>
     </div>
   </div>
 </div>
@@ -1485,20 +1491,36 @@ function loadDataLive(){
   try{ fetch(SHORTENER+'/data',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(o=>{ if(o&&typeof o==='object'){ applyDataOverrides(o); try{ localStorage.setItem(DATA_LIVE_KEY, JSON.stringify(o)); }catch(e){} try{ renderAll(); }catch(e){} } }).catch(()=>{}); }catch(e){}
 }
 /* ---------- live announcement banner (display side; promotable. The editor that pushes it is experimental-only) ---------- */
-const BANNER_KEY='vf-banner-cache-v1', BANNER_DISMISS='vf-banner-dismissed';
-function showBanner(b){
-  const bar=document.getElementById('appBanner'), txt=document.getElementById('appBannerText'); if(!bar||!txt) return;
-  const text=((b&&b.text)||'').trim(), id=String((b&&b.id)||''), color=(b&&b.color)||'';
-  let dismissed=''; try{ dismissed=localStorage.getItem(BANNER_DISMISS)||''; }catch(e){}
-  bar.classList.remove('acc-green','acc-gold','acc-red'); if(color==='green'||color==='gold'||color==='red') bar.classList.add('acc-'+color);
-  if(text && id!==dismissed){ txt.textContent=text; bar.dataset.id=id; bar.hidden=false; } else { bar.hidden=true; }
+const BANNER_KEY='vf-banner-cache-v1', BANNER_DISMISS='vf-banner-dismissed', BANNER_ORDER=['green','gold','red'];
+/* normalise to the multi-banner shape {green:{text,id}, gold:{...}, red:{...}}; tolerate the old single {text,id,color} */
+function bannerNormalize(b){
+  if(!b||typeof b!=='object') return {};
+  if(b.green||b.gold||b.red) return b;
+  if(b.text && BANNER_ORDER.indexOf(b.color)>=0) return { [b.color]:{text:b.text, id:b.id} };
+  return {};
+}
+function _bannerDismissed(){ try{ const d=JSON.parse(localStorage.getItem(BANNER_DISMISS)); return (d&&typeof d==='object'&&!Array.isArray(d))?d:{}; }catch(e){ return {}; } }
+function showBanner(raw){
+  const wrap=document.getElementById('appBanner'); if(!wrap) return;
+  const b=bannerNormalize(raw), dis=_bannerDismissed();
+  wrap.innerHTML=''; let any=false;
+  BANNER_ORDER.forEach(color=>{
+    const e=b[color], text=((e&&e.text)||'').trim(), id=String((e&&e.id)||'');
+    if(!text || id===String(dis[color]||'')) return;
+    any=true;
+    const row=document.createElement('div'); row.className='app-banner acc-'+color; row.dataset.color=color; row.dataset.id=id;
+    const span=document.createElement('span'); span.className='app-banner-text'; span.textContent=text;
+    const x=document.createElement('button'); x.className='app-banner-x'; x.setAttribute('aria-label','Dismiss'); x.innerHTML='&times;';
+    x.onclick=()=>{ const m=_bannerDismissed(); m[color]=id; try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(m)); }catch(_){} row.remove(); if(!wrap.children.length) wrap.hidden=true; };
+    row.append(span,x); wrap.appendChild(row);
+  });
+  wrap.hidden=!any;
 }
 function loadBannerLive(){
   let cached=null; try{ cached=JSON.parse(localStorage.getItem(BANNER_KEY)); }catch(e){}
   if(cached) showBanner(cached);
   try{ fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ if(b&&typeof b==='object'){ try{ localStorage.setItem(BANNER_KEY, JSON.stringify(b)); }catch(e){} showBanner(b); } }).catch(()=>{}); }catch(e){}
 }
-document.addEventListener('DOMContentLoaded', ()=>{ const x=document.getElementById('appBannerClose'); if(x) x.onclick=()=>{ const bar=document.getElementById('appBanner'); if(bar){ try{ localStorage.setItem(BANNER_DISMISS, bar.dataset.id||''); }catch(e){} bar.hidden=true; } }; });
 const DAGGER_IMG={
   "Arc Knife":"daggers/01_Arc_Knife.webp","Cyclotron":"daggers/02_Cyclotron.webp",
   "Starry Compass":"daggers/03_Starry_Compass.webp","Glimmer":"daggers/04_Glimmer.webp",
@@ -3268,19 +3290,20 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
 /* ===================== EXPERIMENTAL-ONLY: Dev module — Live Banner — DO NOT PROMOTE ===================== */
 (function(){
   const modal=document.getElementById('bannerModal'); if(!modal) return;
-  const inp=document.getElementById('bannerIn'), st=document.getElementById('bannerStatus');
-  let timer=null;
+  const ins={ green:document.getElementById('bannerInGreen'), gold:document.getElementById('bannerInGold'), red:document.getElementById('bannerInRed') };
+  const st=document.getElementById('bannerStatus');
+  let timer=null, _loaded={};
   function status(m,err){ if(!st) return; if(timer){clearTimeout(timer);timer=null;} st.textContent=m||''; st.classList.toggle('err',!!err); if(m){ timer=setTimeout(()=>{ st.textContent=''; st.classList.remove('err'); },5000); } }
-  function accColor(){ const r=document.querySelector('input[name=bannerAcc]:checked'); return r?r.value:'green'; }
-  function setAcc(c){ const r=document.querySelector('input[name=bannerAcc][value="'+(c||'green')+'"]'); if(r) r.checked=true; }
-  function openBanner(){ status(''); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ if(b&&typeof b==='object'){ if(inp) inp.value=(b.text||''); setAcc(b.color); } }).catch(()=>{}); modal.hidden=false; setTimeout(()=>{ try{ inp.focus(); }catch(e){} },50); }
+  function fill(raw){ const b=bannerNormalize(raw)||{}; _loaded={}; BANNER_ORDER.forEach(c=>{ const t=((b[c]&&b[c].text)||''); if(ins[c]) ins[c].value=t; _loaded[c]={text:t.trim(), id:(b[c]&&b[c].id)||0}; }); }
+  function collect(){ const now=Date.now(); const out={}; BANNER_ORDER.forEach((c,i)=>{ const t=((ins[c]&&ins[c].value)||'').trim(); let id=0; if(t) id=(_loaded[c] && _loaded[c].text===t && _loaded[c].id) ? _loaded[c].id : (now+i); out[c]={text:t, id}; }); return out; }
+  function openBanner(){ status(''); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ fill(b); }).catch(()=>{}); modal.hidden=false; setTimeout(()=>{ try{ ins.green.focus(); }catch(e){} },50); }
   function close(){ modal.hidden=true; }
-  function push(text){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); const data={text:(text||''), id:Date.now(), color:accColor()}; fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} showBanner(data); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
-  DEV_MODULES.push({ name:'Live Banner', desc:'Show a short announcement to everyone on the live tool.', open:openBanner, order:5 });
-  const pb=document.getElementById('bannerPush'); if(pb) pb.onclick=()=>push(inp.value);
-  const cl=document.getElementById('bannerClear'); if(cl) cl.onclick=()=>{ if(confirm('Remove the live banner for everyone?')){ inp.value=''; push(''); } };
-  const pl=document.getElementById('bannerPull'); if(pl) pl.onclick=()=>{ status('Loading…'); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(b=>{ if(inp) inp.value=((b&&b.text)||''); setAcc(b&&b.color); status('Loaded the live banner.'); }).catch(()=>status('Could not load the live banner.',true)); };
-  const pv=document.getElementById('bannerPreview'); if(pv) pv.onclick=()=>{ showBanner({text:inp.value, id:'preview-'+Date.now(), color:accColor()}); status('Previewing (not pushed).'); };
+  function push(data){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} _loaded={}; BANNER_ORDER.forEach(c=>{ _loaded[c]={text:(data[c]&&data[c].text)||'', id:(data[c]&&data[c].id)||0}; }); showBanner(data); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
+  DEV_MODULES.push({ name:'Live Banner', desc:'Show up to three announcements (green, gold, red) to everyone on the live tool.', open:openBanner, order:5 });
+  const pb=document.getElementById('bannerPush'); if(pb) pb.onclick=()=>push(collect());
+  const cl=document.getElementById('bannerClear'); if(cl) cl.onclick=()=>{ if(confirm('Remove all live banners for everyone?')){ BANNER_ORDER.forEach(c=>{ if(ins[c]) ins[c].value=''; }); push(collect()); } };
+  const pl=document.getElementById('bannerPull'); if(pl) pl.onclick=()=>{ status('Loading…'); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(b=>{ fill(b); status('Loaded the live banners.'); }).catch(()=>status('Could not load the live banners.',true)); };
+  const pv=document.getElementById('bannerPreview'); if(pv) pv.onclick=()=>{ showBanner(collect()); status('Previewing (not pushed).'); };
   const c=document.getElementById('bannerClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
@@ -4594,6 +4617,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622c2</div>
+<div class="version-tag">260622d2</div>
 </body>
 </html>

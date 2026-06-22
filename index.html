@@ -418,7 +418,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
-.app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; margin-bottom:14px; color:#e9e4ff}
+.app-banners{display:flex; flex-direction:column; gap:8px; margin-bottom:14px}
+.app-banners[hidden]{display:none}
+.app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; color:#e9e4ff}
 .app-banner[hidden]{display:none}
 .app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
 .app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
@@ -744,7 +746,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
   </div>
 
-  <div class="app-banner" id="appBanner" hidden role="status"><span class="app-banner-text" id="appBannerText"></span><button class="app-banner-x" id="appBannerClose" aria-label="Dismiss">&times;</button></div>
+  <div class="app-banners" id="appBanner" hidden role="status"></div>
   <div class="panel" id="headPanel"></div>
   <div class="panel" id="teamPanel"></div>
   <div class="panel">
@@ -1200,20 +1202,36 @@ function loadDataLive(){
   try{ fetch(SHORTENER+'/data',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(o=>{ if(o&&typeof o==='object'){ applyDataOverrides(o); try{ localStorage.setItem(DATA_LIVE_KEY, JSON.stringify(o)); }catch(e){} try{ renderAll(); }catch(e){} } }).catch(()=>{}); }catch(e){}
 }
 /* ---------- live announcement banner (text pushed from the experimental Developer Mode, shown to everyone) ---------- */
-const BANNER_KEY='vf-banner-cache-v1', BANNER_DISMISS='vf-banner-dismissed';
-function showBanner(b){
-  const bar=document.getElementById('appBanner'), txt=document.getElementById('appBannerText'); if(!bar||!txt) return;
-  const text=((b&&b.text)||'').trim(), id=String((b&&b.id)||''), color=(b&&b.color)||'';
-  let dismissed=''; try{ dismissed=localStorage.getItem(BANNER_DISMISS)||''; }catch(e){}
-  bar.classList.remove('acc-green','acc-gold','acc-red'); if(color==='green'||color==='gold'||color==='red') bar.classList.add('acc-'+color);
-  if(text && id!==dismissed){ txt.textContent=text; bar.dataset.id=id; bar.hidden=false; } else { bar.hidden=true; }
+const BANNER_KEY='vf-banner-cache-v1', BANNER_DISMISS='vf-banner-dismissed', BANNER_ORDER=['green','gold','red'];
+/* normalise to the multi-banner shape {green:{text,id}, gold:{...}, red:{...}}; tolerate the old single {text,id,color} */
+function bannerNormalize(b){
+  if(!b||typeof b!=='object') return {};
+  if(b.green||b.gold||b.red) return b;
+  if(b.text && BANNER_ORDER.indexOf(b.color)>=0) return { [b.color]:{text:b.text, id:b.id} };
+  return {};
+}
+function _bannerDismissed(){ try{ const d=JSON.parse(localStorage.getItem(BANNER_DISMISS)); return (d&&typeof d==='object'&&!Array.isArray(d))?d:{}; }catch(e){ return {}; } }
+function showBanner(raw){
+  const wrap=document.getElementById('appBanner'); if(!wrap) return;
+  const b=bannerNormalize(raw), dis=_bannerDismissed();
+  wrap.innerHTML=''; let any=false;
+  BANNER_ORDER.forEach(color=>{
+    const e=b[color], text=((e&&e.text)||'').trim(), id=String((e&&e.id)||'');
+    if(!text || id===String(dis[color]||'')) return;
+    any=true;
+    const row=document.createElement('div'); row.className='app-banner acc-'+color; row.dataset.color=color; row.dataset.id=id;
+    const span=document.createElement('span'); span.className='app-banner-text'; span.textContent=text;
+    const x=document.createElement('button'); x.className='app-banner-x'; x.setAttribute('aria-label','Dismiss'); x.innerHTML='&times;';
+    x.onclick=()=>{ const m=_bannerDismissed(); m[color]=id; try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(m)); }catch(_){} row.remove(); if(!wrap.children.length) wrap.hidden=true; };
+    row.append(span,x); wrap.appendChild(row);
+  });
+  wrap.hidden=!any;
 }
 function loadBannerLive(){
   let cached=null; try{ cached=JSON.parse(localStorage.getItem(BANNER_KEY)); }catch(e){}
   if(cached) showBanner(cached);
   try{ fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ if(b&&typeof b==='object'){ try{ localStorage.setItem(BANNER_KEY, JSON.stringify(b)); }catch(e){} showBanner(b); } }).catch(()=>{}); }catch(e){}
 }
-document.addEventListener('DOMContentLoaded', ()=>{ const x=document.getElementById('appBannerClose'); if(x) x.onclick=()=>{ const bar=document.getElementById('appBanner'); if(bar){ try{ localStorage.setItem(BANNER_DISMISS, bar.dataset.id||''); }catch(e){} bar.hidden=true; } }; });
 const DAGGER_IMG={
   "Arc Knife":"daggers/01_Arc_Knife.webp","Cyclotron":"daggers/02_Cyclotron.webp",
   "Starry Compass":"daggers/03_Starry_Compass.webp","Glimmer":"daggers/04_Glimmer.webp",
