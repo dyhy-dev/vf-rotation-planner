@@ -426,6 +426,12 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c; background:linear-gradient(90deg,#21331f,#18261a)}
 .app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232; background:linear-gradient(90deg,#332f1a,#262216)}
 .app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161; background:linear-gradient(90deg,#331a1f,#261619)}
+body.theme-light .app-banner{ background:linear-gradient(90deg,#efeaf8,#e7e1f3); border-color:#cfc7e6; color:#2a2540 }
+body.theme-light .app-banner-x{ color:#6a6480 }
+body.theme-light .app-banner-x:hover{ color:#2a2540 }
+body.theme-light .app-banner.acc-green{ background:linear-gradient(90deg,#e6f5df,#dbf0d0); border-color:#9cc98a }
+body.theme-light .app-banner.acc-gold{ background:linear-gradient(90deg,#fbf3d2,#f8edc2); border-color:#e0c878 }
+body.theme-light .app-banner.acc-red{ background:linear-gradient(90deg,#fce1e4,#f9d6da); border-color:#e09aa4 }
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
 body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
@@ -699,7 +705,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </head>
 <body>
 <div class="wrap">
-  <div class="app-banner" id="appBanner" hidden role="status"><span class="app-banner-text" id="appBannerText"></span><button class="app-banner-x" id="appBannerClose" aria-label="Dismiss">&times;</button></div>
   <div class="toolbar">
     <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
     <div class="toolbar-actions">
@@ -739,6 +744,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
   </div>
 
+  <div class="app-banner" id="appBanner" hidden role="status"><span class="app-banner-text" id="appBannerText"></span><button class="app-banner-x" id="appBannerClose" aria-label="Dismiss">&times;</button></div>
   <div class="panel" id="headPanel"></div>
   <div class="panel" id="teamPanel"></div>
   <div class="panel">
