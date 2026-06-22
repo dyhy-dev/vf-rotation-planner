@@ -330,7 +330,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .set-row .set-label{font:600 13px Inter,sans-serif; color:var(--text)}
 .set-row .set-sub{font:400 12px Inter,sans-serif; color:var(--muted); margin-top:2px}
 .set-note{margin-top:14px; font:400 11px Inter,sans-serif; color:var(--muted); line-height:1.5}
-.set-backup-btns{display:flex; gap:8px; flex:0 0 auto}
+.set-backup-btns{display:flex; gap:8px; flex:0 0 auto; flex-wrap:wrap; align-items:center; justify-content:flex-end}
+.set-input{background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:7px; padding:6px 9px; font-size:13px; min-width:130px; font-family:ui-monospace,Menlo,Consolas,monospace}
 .set-status{margin-top:10px; font:600 12px Inter,sans-serif; padding:8px 10px; border-radius:6px}
 .set-status.ok{background:rgba(46,160,67,.15); color:#7ee787; border:1px solid rgba(46,160,67,.4)}
 .set-status.err{background:rgba(224,68,94,.12); color:#ff8a9b; border:1px solid rgba(224,68,94,.4)}
@@ -1042,6 +1043,19 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </div>
 <!-- ===== end Short Links ===== -->
 
+<!-- ===== EXPERIMENTAL-ONLY: Dev module — Sync Codes — DO NOT PROMOTE ===== -->
+<div class="modal" id="synccodeModal" hidden>
+  <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Sync codes">
+    <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Sync Codes <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="synccodeClose" aria-label="Close">&times;</button></div>
+    <div class="dev-tool-body">
+      <p class="crop-hint">Generate a sync code for a user. They enter it in Settings (Cloud sync) and their settings + rotation library then stay in step across all their devices. One code per person; anyone with the code can read and overwrite that slot.</p>
+      <div class="dev-tool-row"><button class="btn btn-exp" id="synccodeGen">Generate a code</button><button class="btn" id="synccodeLoad">Refresh list</button><span class="dev-status" id="synccodeStatus"></span></div>
+      <div class="dev-links" id="synccodeList"></div>
+    </div>
+  </div>
+</div>
+<!-- ===== end Sync Codes ===== -->
+
 <!-- ===== EXPERIMENTAL-ONLY: Dev module — Roster / Data Editor — DO NOT PROMOTE ===== -->
 <div class="modal" id="rosterModal" hidden>
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Roster data editor">
@@ -1216,6 +1230,15 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Backup file</div><div class="set-sub">Export your settings and your saved rotations (library) to a JSON file, or import one to restore them</div></div>
         <div class="set-backup-btns"><button class="btn" id="settingsExport">Export</button><button class="btn" id="settingsImport">Import</button></div>
       </div>
+      <div class="set-row">
+        <div><div class="set-label">Cloud sync</div><div class="set-sub">Enter the sync code Koduck gave you. Your settings and rotation library then stay in step on every device where you use the same code.</div></div>
+        <div class="set-backup-btns"><input type="text" id="syncCodeIn" class="set-input" placeholder="Sync code" autocomplete="off" spellcheck="false"/><button class="btn" id="syncConnect">Connect</button></div>
+      </div>
+      <div class="set-row" id="syncConnectedRow" hidden>
+        <div><div class="set-sub" id="syncWho"></div></div>
+        <div class="set-backup-btns"><button class="btn" id="syncNowBtn">Sync now</button><button class="btn" id="syncDisconnect">Disconnect</button></div>
+      </div>
+      <div class="set-sub" id="syncStatus" style="margin-top:4px"></div>
       <div class="set-status" id="settingsStatus" hidden></div>
       <input type="file" id="settingsFile" accept="application/json,.json" hidden/>
       <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports. Hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
@@ -1623,7 +1646,7 @@ function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
 function loadLib(){ try{ const a=JSON.parse(localStorage.getItem(LIB_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-function saveLib(a){ try{ localStorage.setItem(LIB_KEY, JSON.stringify(a)); }catch(e){} }
+function saveLib(a){ try{ localStorage.setItem(LIB_KEY, JSON.stringify(a)); }catch(e){} syncSchedulePush(); }
 function _libId(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:(String(name||state.setup.rotationName||'Rotation').trim()||'Rotation'), ts:Date.now(), state:JSON.parse(JSON.stringify(state)) }); saveLib(a); return a; }
 function libDelete(id){ saveLib(loadLib().filter(e=>e.id!==id)); }
@@ -1636,7 +1659,7 @@ const _SET_KEY='vf-settings-v1';
 const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false, defaultCredit:'' };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
-function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} }
+function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} syncSchedulePush(); }
 let _effTheme='dark';
 function _systemPrefersLight(){ try{ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches); }catch(e){ return false; } }
 function effectiveTheme(){ const t=settings.theme||'dark'; if(t==='light') return 'light'; if(t==='dark') return 'dark'; return _systemPrefersLight()?'light':'dark'; }
@@ -2649,6 +2672,23 @@ let _ioPrimary=null;
 function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
 const SHORTENER='https://vfrp.dyhy.workers.dev';   /* Cloudflare Worker short-link service */
 const _SHORT_KEY='vf-shortlinks-v1';
+
+/* ---------- cloud sync: keep settings + library in step across devices via a sync code (codes are issued from the Dev hub) ---------- */
+const SYNC_KEY='vf-sync-code-v1', SYNC_META='vf-sync-meta-v1';
+let _syncCode=''; try{ _syncCode=localStorage.getItem(SYNC_KEY)||''; }catch(e){}
+let _syncApplying=false, _syncPushT=0;
+function getSyncCode(){ return _syncCode; }
+function _syncMetaTs(){ try{ return +localStorage.getItem(SYNC_META)||0; }catch(e){ return 0; } }
+function _setSyncMetaTs(t){ try{ localStorage.setItem(SYNC_META, String(t||0)); }catch(e){} }
+function _syncStatus(m,err){ const el=document.getElementById('syncStatus'); if(el){ el.textContent=m||''; el.classList.toggle('err',!!err); } }
+function syncCodeSet(code){ _syncCode=(code||'').trim(); try{ if(_syncCode) localStorage.setItem(SYNC_KEY,_syncCode); else localStorage.removeItem(SYNC_KEY); }catch(e){} }
+function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib() }; }
+function _syncApply(d){ _syncApplying=true; try{ applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); }catch(e){} _syncApplying=false; }
+function syncPull(silent){ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); return; } if(!silent) _syncStatus('Syncing…');
+  fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return null; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(!d) return; if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); } else if(!silent) _syncStatus('Already up to date.'); }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); }); }
+function syncPush(){ if(!_syncCode) return; const data=_syncSnapshot();
+  fetch(SHORTENER+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:_syncCode,data})}).then(r=>{ if(r.ok){ _setSyncMetaTs(data.ts); _syncStatus('Saved to the cloud.'); } else if(r.status===403){ _syncStatus('This sync code is not active.',true); } else { _syncStatus('Cloud save failed ('+r.status+').',true); } }).catch(()=>_syncStatus('Could not reach the sync service.',true)); }
+function syncSchedulePush(){ if(!_syncCode||_syncApplying) return; clearTimeout(_syncPushT); _syncPushT=setTimeout(syncPush, 2500); }
 let _shareUrl='';                                   /* current full URL shown in the share modal (updated when shortened) */
 let _shortCache={};                                 /* fragment -> short URL, so an unchanged rotation reuses the same link */
 function _loadShortCache(){ try{ (JSON.parse(localStorage.getItem(_SHORT_KEY))||[]).forEach(e=>{ if(e&&e.f&&e.u) _shortCache[e.f]=e.u; }); }catch(e){} }
@@ -3002,6 +3042,15 @@ function applyImportedSettings(text){
 }
 document.getElementById('settingsExport').onclick=exportSettings;
 document.getElementById('settingsImport').onclick=()=>document.getElementById('settingsFile').click();
+/* cloud sync controls */
+function syncRefreshUI(){ const row=document.getElementById('syncConnectedRow'), inp=document.getElementById('syncCodeIn'), who=document.getElementById('syncWho'); const c=getSyncCode();
+  if(inp && document.activeElement!==inp) inp.value=c;
+  if(row) row.hidden=!c;
+  if(who) who.textContent = c ? ('Connected with code '+c+'. Settings and library sync automatically.') : ''; }
+{ const cn=document.getElementById('syncConnect'); if(cn) cn.onclick=()=>{ const v=(document.getElementById('syncCodeIn').value||'').trim(); if(!v){ _syncStatus('Enter a sync code first.',true); return; } syncCodeSet(v); _setSyncMetaTs(0); syncRefreshUI(); syncPull(false); };
+  const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false); setTimeout(syncPush, 400); };
+  const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ syncCodeSet(''); _setSyncMetaTs(0); syncRefreshUI(); _syncStatus('Disconnected. This device no longer syncs.'); };
+  syncRefreshUI(); }
 document.getElementById('settingsFile').onchange=e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value='';
   if(!f) return;
@@ -3348,6 +3397,37 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
 })();
 /* ===================== end Short Links ===================== */
+
+/* ===================== EXPERIMENTAL-ONLY: Dev module — Sync Codes — DO NOT PROMOTE ===================== */
+(function(){
+  const modal=document.getElementById('synccodeModal'); if(!modal) return;
+  const st=document.getElementById('synccodeStatus'), list=document.getElementById('synccodeList');
+  function status(m,err){ if(st){ st.textContent=m||''; st.classList.toggle('err',!!err); } }
+  let _codes=[];
+  function fmt(ts){ if(!ts) return 'never'; try{ return new Date(ts).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+  function render(){
+    list.innerHTML='';
+    if(!_codes.length){ list.textContent='(no sync codes yet)'; return; }
+    _codes.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).forEach(it=>{
+      const row=document.createElement('div'); row.className='dev-link-row';
+      const id=document.createElement('span'); id.className='dev-link-id'; id.textContent=it.code;
+      const date=document.createElement('span'); date.className='dev-link-frag'; date.textContent='last sync: '+fmt(it.ts); date.title=date.textContent;
+      const copy=document.createElement('button'); copy.className='dev-mini-btn'; copy.textContent='Copy'; copy.onclick=()=>{ try{ navigator.clipboard.writeText(it.code); status('Copied "'+it.code+'".'); }catch(e){ status('Copy failed.',true); } };
+      const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Delete'; del.onclick=()=>{ if(!confirm('Delete sync code '+it.code+'? That user can no longer sync.')) return; fetch(SHORTENER+'/sync-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,code:it.code})}).then(r=>{ if(r.ok){ _codes=_codes.filter(x=>x.code!==it.code); row.remove(); } else status('Delete failed ('+r.status+').',true); }).catch(()=>status('Delete failed.',true)); };
+      row.append(id,date,copy,del); list.appendChild(row);
+    });
+  }
+  function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/sync-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ _codes=j.codes||[]; render(); status(_codes.length+' code(s).'); } }).catch(()=>status('Could not load (is the worker /sync-list deployed?).',true)); }
+  function gen(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Generating…'); fetch(SHORTENER+'/sync-new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j&&j.code){ _codes.unshift({code:j.code, ts:0}); render(); status('New code: '+j.code+' (copy it from the list).'); } }).catch(()=>status('Could not generate (is the worker /sync-new deployed?).',true)); }
+  function openMod(){ list.innerHTML=''; status(''); modal.hidden=false; load(); }
+  function close(){ modal.hidden=true; }
+  DEV_MODULES.push({ name:'Sync Codes', desc:'Generate and manage cross-device sync codes for users.', open:openMod, order:9 });
+  const g=document.getElementById('synccodeGen'); if(g) g.onclick=gen;
+  const lb=document.getElementById('synccodeLoad'); if(lb) lb.onclick=load;
+  const c=document.getElementById('synccodeClose'); if(c) c.onclick=close;
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
+})();
+/* ===================== end Sync Codes ===================== */
 
 /* ===================== EXPERIMENTAL-ONLY: Dev module — Roster / Data Editor — DO NOT PROMOTE ===================== */
 (function(){
@@ -4603,6 +4683,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
 })();
 
 state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+if(_syncCode) syncPull(true);   /* pull the latest settings + library from the cloud on start */
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
@@ -4624,6 +4705,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623A</div>
+<div class="version-tag">260623a</div>
 </body>
 </html>
