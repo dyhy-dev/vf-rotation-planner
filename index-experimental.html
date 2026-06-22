@@ -383,13 +383,26 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-mini-btn:hover{border-color:#ffae42}
 .dev-status{font:600 12px Inter,system-ui,sans-serif; color:#8de28d}
 .dev-status.err{color:#ff6b6b}
+.dev-label{font:700 11px Oswald,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.banner-acc{display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--text); cursor:pointer; padding:3px 9px; border:1px solid var(--line); border-radius:7px}
+.banner-acc.acc-green{border-left:4px solid #82ec2c} .banner-acc.acc-gold{border-left:4px solid #f1c232} .banner-acc.acc-red{border-left:4px solid #ff5161}
 .dev-select{background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 8px; font:13px Inter,system-ui,sans-serif}
+.dev-form{display:flex; flex-direction:column; gap:6px; max-height:52vh; overflow:auto; padding-right:2px}
+.dev-form[hidden]{display:none}
+.dev-row{display:flex; gap:6px; align-items:center}
+.dev-inp{flex:1 1 auto; min-width:0; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:5px 8px; font:12px ui-monospace,Menlo,Consolas,monospace}
+.dev-inp.dev-key{flex:0 0 140px}
 .dev-links{display:flex; flex-direction:column; gap:6px; max-height:54vh; overflow:auto}
 .dev-link-row{display:flex; align-items:center; gap:8px; font:12px ui-monospace,Menlo,Consolas,monospace; background:var(--field); border:1px solid var(--line); border-radius:7px; padding:6px 10px}
 .dev-link-id{font-weight:700; color:#ffae42; flex:0 0 auto}
 .dev-link-frag{flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted)}
 .pcol-img .pcol-pic{width:120px; height:200px; border-radius:6px; background:var(--field) center/cover no-repeat; cursor:grab; -webkit-touch-callout:none}
 @container persona (max-width:320px){ .pcol-img .pcol-pic{width:96px; height:160px} }
+.modal-back{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:6px; font:600 16px/1 Inter,system-ui,sans-serif; padding:2px 9px; cursor:pointer; vertical-align:middle; margin-right:6px}
+.modal-back:hover{color:#ffae42; border-color:#ffae42}
+/* persona crop tiles use the real (portrait) image shape, so the whole image shows */
+#pcropGrid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+#pcropGrid .crop-prev{aspect-ratio:303/504}
 .crop-exp-tag{font:600 11px Inter,system-ui,sans-serif; color:#ffae42; border:1px dashed #ffae42; border-radius:6px; padding:1px 7px; vertical-align:middle; margin-left:8px; letter-spacing:0}
 .crop-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:14px; max-height:70vh; overflow:auto; padding:14px 22px 24px}
 .crop-cell{display:flex; flex-direction:column; gap:5px}
@@ -475,6 +488,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
 .app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
 .app-banner-x:hover{color:#fff}
+.app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c}
+.app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232}
+.app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161}
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
 body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
@@ -877,7 +893,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <div class="modal" id="cropModal" hidden>
   <div class="modal-card crop-card" role="dialog" aria-modal="true" aria-label="Character image crops">
     <div class="modal-head">
-      <h2>Character Image Crops <span class="crop-exp-tag">experimental · this device only</span></h2>
+      <h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Character Image Crops <span class="crop-exp-tag">experimental · this device only</span></h2>
       <button class="modal-close" id="cropClose" aria-label="Close">&times;</button>
     </div>
     <div class="crop-tools">
@@ -899,7 +915,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <div class="modal" id="parserModal" hidden>
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Parser console">
     <div class="modal-head">
-      <h2>Parser Console <span class="crop-exp-tag" id="parserVer">parser</span></h2>
+      <h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Parser Console <span class="crop-exp-tag" id="parserVer">parser</span></h2>
       <button class="modal-close" id="parserClose" aria-label="Close">&times;</button>
     </div>
     <div class="dev-tool-body">
@@ -916,7 +932,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <div class="modal" id="diagModal" hidden>
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Diagnostics and storage">
     <div class="modal-head">
-      <h2>Diagnostics &amp; Storage <span class="crop-exp-tag">experimental</span></h2>
+      <h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Diagnostics &amp; Storage <span class="crop-exp-tag">experimental</span></h2>
       <button class="modal-close" id="diagClose" aria-label="Close">&times;</button>
     </div>
     <div class="dev-tool-body">
@@ -933,10 +949,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <!-- ===== EXPERIMENTAL-ONLY: Dev module — Live Banner — DO NOT PROMOTE ===== -->
 <div class="modal" id="bannerModal" hidden>
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Live banner">
-    <div class="modal-head"><h2>Live Banner <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="bannerClose" aria-label="Close">&times;</button></div>
+    <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Live Banner <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="bannerClose" aria-label="Close">&times;</button></div>
     <div class="dev-tool-body">
       <p class="crop-hint">Show a short announcement to everyone on the live tool. Push replaces the current banner; Clear removes it. Users can dismiss it.</p>
       <textarea id="bannerIn" class="dev-textarea" rows="3" spellcheck="false" placeholder="e.g. Patch 4.4 boss is now supported."></textarea>
+      <div class="dev-tool-row"><span class="dev-label">Accent</span><label class="banner-acc acc-green"><input type="radio" name="bannerAcc" value="green" checked> Green</label><label class="banner-acc acc-gold"><input type="radio" name="bannerAcc" value="gold"> Gold</label><label class="banner-acc acc-red"><input type="radio" name="bannerAcc" value="red"> Red</label></div>
       <div class="dev-tool-row"><span class="dev-status" id="bannerStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="bannerPreview">Preview</button><button class="btn" id="bannerPull">Pull live</button><button class="btn" id="bannerClear">Clear</button><button class="btn btn-exp" id="bannerPush">Push to live</button></div>
     </div>
   </div>
@@ -946,7 +963,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <!-- ===== EXPERIMENTAL-ONLY: Dev module — Short Links — DO NOT PROMOTE ===== -->
 <div class="modal" id="linksModal" hidden>
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Short links">
-    <div class="modal-head"><h2>Short Links <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="linksClose" aria-label="Close">&times;</button></div>
+    <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Short Links <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="linksClose" aria-label="Close">&times;</button></div>
     <div class="dev-tool-body">
       <div class="dev-tool-row"><button class="btn btn-exp" id="linksLoad">Load</button><span class="dev-status" id="linksStatus"></span></div>
       <div class="dev-links" id="linksList"></div>
@@ -958,12 +975,13 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <!-- ===== EXPERIMENTAL-ONLY: Dev module — Roster / Data Editor — DO NOT PROMOTE ===== -->
 <div class="modal" id="rosterModal" hidden>
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Roster data editor">
-    <div class="modal-head"><h2>Roster / Data Editor <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="rosterClose" aria-label="Close">&times;</button></div>
+    <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Roster / Data Editor <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="rosterClose" aria-label="Close">&times;</button></div>
     <div class="dev-tool-body">
-      <p class="crop-hint">Edit a data table as JSON. "Apply to session" updates the running tool so you can test (not saved). "Copy" gives you the JSON to paste into the code.</p>
-      <div class="dev-tool-row"><select id="rosterTable" class="dev-select"></select><span class="crop-tools-sp"></span><button class="btn" id="rosterCopy">Copy</button><button class="btn btn-exp" id="rosterApply">Apply to session</button></div>
+      <p class="crop-hint">Edit a data table. "Apply to session" tests it locally; "Push to live" makes it live for everyone (no re-upload); "Copy" gives you the JSON to bake into the code. Toggle "JSON view" to edit the raw JSON.</p>
+      <div class="dev-tool-row"><select id="rosterTable" class="dev-select"></select><button class="btn" id="rosterJson">JSON view</button><span class="crop-tools-sp"></span><button class="btn" id="rosterCopy">Copy</button><button class="btn" id="rosterApply">Apply to session</button><button class="btn btn-exp" id="rosterPush">Push to live</button></div>
       <span class="dev-status" id="rosterStatus"></span>
-      <textarea id="rosterIn" class="dev-textarea" rows="16" spellcheck="false"></textarea>
+      <div class="dev-form" id="rosterForm"></div>
+      <textarea id="rosterIn" class="dev-textarea" rows="16" spellcheck="false" hidden></textarea>
     </div>
   </div>
 </div>
@@ -972,7 +990,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 <!-- ===== EXPERIMENTAL-ONLY: Dev module — Persona Image Crops — DO NOT PROMOTE ===== -->
 <div class="modal" id="pcropModal" hidden>
   <div class="modal-card crop-card" role="dialog" aria-modal="true" aria-label="Persona image crops">
-    <div class="modal-head"><h2>Persona Image Crops <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="pcropClose" aria-label="Close">&times;</button></div>
+    <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Persona Image Crops <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="pcropClose" aria-label="Close">&times;</button></div>
     <div class="crop-tools">
       <span class="crop-hint">Drag a persona image to position it (up/down and left/right); the Zoom slider zooms in. Push sends them live for everyone.</span>
       <span class="crop-tools-sp"></span>
@@ -1338,6 +1356,8 @@ const DEV_PW_HASH='cfa3b34ceade48e19dc33c10d289ea31640e6ff6c6b12dedd58da8e13e5b1
 const DEV_REMEMBER_KEY='vf-dev-pass';   /* "Remember me": stores the password locally on this device only (so the editor opens without re-entering it) */
 let _devPass=null;
 const DEV_MODULES=[];   /* Developer Mode hub registry; each module pushes {name, desc, open()} (Image Crops, Parser Console, Diagnostics, …) */
+let _devOpenHub=null;   /* set by the hub wiring; modules call it from their Back button to return to the launcher */
+document.addEventListener('click', e=>{ const bb=e.target&&e.target.closest&&e.target.closest('.modal-back'); if(!bb) return; const m=bb.closest('.modal'); const cl=m&&m.querySelector('.modal-close'); if(cl) cl.click(); if(_devOpenHub) _devOpenHub(); });
 async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s))); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 /* ===================== end EXPERIMENTAL-ONLY crop helpers ===================== */
 /* ---------- persona image crop (display side; promotable). Only personas with a crop use the box; the rest stay normal <img>. ---------- */
@@ -1350,12 +1370,25 @@ function pCropBgStyle(name, urlVal){ const c=pCropOf(name); return `background-c
 const PERSONA_CROP_KEY='vf-personacrop-v1';
 function loadPersonaCrops(){ try{ const o=JSON.parse(localStorage.getItem(PERSONA_CROP_KEY)); personaCrops=(o&&typeof o==='object')?o:{}; }catch(e){ personaCrops={}; } }
 function savePersonaCrops(){ try{ localStorage.setItem(PERSONA_CROP_KEY, JSON.stringify(personaCrops)); }catch(e){} }
+/* ---------- live data overrides (display side; promotable. Merged into DATA + aliases at load, no re-upload) ---------- */
+const DATA_LIVE_KEY='vf-data-live-v1';
+function applyDataOverrides(o){
+  if(!o||typeof o!=='object') return;
+  ['characterNames','personaNames','charColors','characterImages'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
+  if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
+  if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
+}
+function loadDataLive(){
+  try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
+  try{ fetch(SHORTENER+'/data',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(o=>{ if(o&&typeof o==='object'){ applyDataOverrides(o); try{ localStorage.setItem(DATA_LIVE_KEY, JSON.stringify(o)); }catch(e){} try{ renderAll(); }catch(e){} } }).catch(()=>{}); }catch(e){}
+}
 /* ---------- live announcement banner (display side; promotable. The editor that pushes it is experimental-only) ---------- */
 const BANNER_KEY='vf-banner-cache-v1', BANNER_DISMISS='vf-banner-dismissed';
 function showBanner(b){
   const bar=document.getElementById('appBanner'), txt=document.getElementById('appBannerText'); if(!bar||!txt) return;
-  const text=((b&&b.text)||'').trim(), id=String((b&&b.id)||'');
+  const text=((b&&b.text)||'').trim(), id=String((b&&b.id)||''), color=(b&&b.color)||'';
   let dismissed=''; try{ dismissed=localStorage.getItem(BANNER_DISMISS)||''; }catch(e){}
+  bar.classList.remove('acc-green','acc-gold','acc-red'); if(color==='green'||color==='gold'||color==='red') bar.classList.add('acc-'+color);
   if(text && id!==dismissed){ txt.textContent=text; bar.dataset.id=id; bar.hidden=false; } else { bar.hidden=true; }
 }
 function loadBannerLive(){
@@ -2911,7 +2944,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const open=()=>{ modal.hidden=false; }, close=()=>{ modal.hidden=true; };
   const gb=document.getElementById('guideBtn'); if(gb) gb.onclick=open;
   const gc=document.getElementById('guideClose'); if(gc) gc.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
 
@@ -2955,6 +2988,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     if(devModal) devModal.hidden=false;
   }
   function closeHub(){ if(devModal) devModal.hidden=true; }
+  _devOpenHub=openHub;
   let _statusTimer=null;
   function setStatus(msg, err){ const s=document.getElementById('cropStatus'); if(!s) return; if(_statusTimer){ clearTimeout(_statusTimer); _statusTimer=null; } s.textContent=msg||''; s.classList.toggle('err', !!err); if(msg){ _statusTimer=setTimeout(()=>{ s.textContent=''; s.classList.remove('err'); _statusTimer=null; }, 5000); } }
   async function openDev(){ if(_devPass){ openHub(); return; } const pw=prompt('Developer password:'); if(pw==null) return; let h=''; try{ h=await sha256hex(pw); }catch(e){} if(h===DEV_PW_HASH){ _devPass=pw; openHub(); } else { alert('Wrong password.'); } }
@@ -2964,7 +2998,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && devModal && !devModal.hidden) closeHub(); });
   const rem=document.getElementById('cropRemember'); if(rem) rem.onchange=()=>{ try{ if(rem.checked && _devPass) localStorage.setItem(DEV_REMEMBER_KEY, _devPass); else localStorage.removeItem(DEV_REMEMBER_KEY); }catch(e){} };
   const cc=document.getElementById('cropClose'); if(cc) cc.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
   const ra=document.getElementById('cropResetAll'); if(ra) ra.onclick=()=>{ charCrops={}; saveCharCrops(); build(); };
   const cp=document.getElementById('cropCopy'); if(cp) cp.onclick=()=>{ const out=JSON.stringify(charCrops); const ok=()=>{ cp.textContent='Copied'; setTimeout(()=>cp.textContent='Copy values',1200); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(out).then(ok,()=>prompt('Crop values:',out)); else prompt('Crop values:',out); };
@@ -2993,7 +3027,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   DEV_MODULES.push({ name:'Parser Console', desc:'Paste rotation text and see what vf-parser.js recognizes (import debugging).', open:openParser });
   const r=document.getElementById('parserRun'); if(r) r.onclick=run;
   const c=document.getElementById('parserClose'); if(c) c.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
 /* ===================== end Parser Console ===================== */
@@ -3021,20 +3055,23 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function renderBuild(){
     const b=document.getElementById('diagBuild'); if(!b) return;
-    const vt=document.querySelector('.version-tag');
-    b.textContent='App version : '+((vt&&vt.textContent)||'?')+'\n'+
+    const vt=document.querySelector('.version-tag'); const exp=(vt&&vt.textContent)||'?';
+    const fill=live=>{ b.textContent=
+      'App version : '+(live||'?')+' / '+exp+'   (live / experimental)\n'+
       'Parser      : '+(window.VF_PARSER_VERSION||'?')+'\n'+
       'Origin      : '+location.origin+'\n'+
       'Page        : '+location.pathname+'\n'+
       'Worker      : '+SHORTENER+'\n'+
-      'User agent  : '+navigator.userAgent;
+      'User agent  : '+navigator.userAgent; };
+    fill('…');
+    fetch('index.html',{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{ const m=t.match(/<div class="version-tag">([^<]*)<\/div>/); fill(m?m[1]:'?'); }).catch(()=>fill('?'));
   }
   function openDiag(){ renderBuild(); renderStorage(); const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent=''; s.className='dev-worker-status'; } modal.hidden=false; }
   function close(){ modal.hidden=true; }
   const wb=document.getElementById('diagWorker'); if(wb) wb.onclick=()=>{ const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent='checking…'; s.className='dev-worker-status'; } fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>{ if(s){ s.textContent='/crops  '+r.status+(r.ok?' OK':''); s.className='dev-worker-status '+(r.ok?'ok':'err'); } }).catch(()=>{ if(s){ s.textContent='unreachable'; s.className='dev-worker-status err'; } }); };
   DEV_MODULES.push({ name:'Diagnostics & Storage', desc:'Worker status, build info, and local storage (view, copy or clear vf- keys).', open:openDiag });
   const c=document.getElementById('diagClose'); if(c) c.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
 /* ===================== end Diagnostics ===================== */
@@ -3045,16 +3082,18 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const inp=document.getElementById('bannerIn'), st=document.getElementById('bannerStatus');
   let timer=null;
   function status(m,err){ if(!st) return; if(timer){clearTimeout(timer);timer=null;} st.textContent=m||''; st.classList.toggle('err',!!err); if(m){ timer=setTimeout(()=>{ st.textContent=''; st.classList.remove('err'); },5000); } }
-  function openBanner(){ status(''); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ if(b&&typeof b==='object'&&inp) inp.value=(b.text||''); }).catch(()=>{}); modal.hidden=false; setTimeout(()=>{ try{ inp.focus(); }catch(e){} },50); }
+  function accColor(){ const r=document.querySelector('input[name=bannerAcc]:checked'); return r?r.value:'green'; }
+  function setAcc(c){ const r=document.querySelector('input[name=bannerAcc][value="'+(c||'green')+'"]'); if(r) r.checked=true; }
+  function openBanner(){ status(''); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ if(b&&typeof b==='object'){ if(inp) inp.value=(b.text||''); setAcc(b.color); } }).catch(()=>{}); modal.hidden=false; setTimeout(()=>{ try{ inp.focus(); }catch(e){} },50); }
   function close(){ modal.hidden=true; }
-  function push(text){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); const data={text:(text||''), id:Date.now()}; fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} showBanner(data); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
+  function push(text){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); const data={text:(text||''), id:Date.now(), color:accColor()}; fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} showBanner(data); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
   DEV_MODULES.push({ name:'Live Banner', desc:'Show a short announcement to everyone on the live tool.', open:openBanner });
   const pb=document.getElementById('bannerPush'); if(pb) pb.onclick=()=>push(inp.value);
   const cl=document.getElementById('bannerClear'); if(cl) cl.onclick=()=>{ if(confirm('Remove the live banner for everyone?')){ inp.value=''; push(''); } };
-  const pl=document.getElementById('bannerPull'); if(pl) pl.onclick=()=>{ status('Loading…'); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(b=>{ if(inp) inp.value=((b&&b.text)||''); status('Loaded the live banner.'); }).catch(()=>status('Could not load the live banner.',true)); };
-  const pv=document.getElementById('bannerPreview'); if(pv) pv.onclick=()=>{ showBanner({text:inp.value, id:'preview-'+Date.now()}); status('Previewing (not pushed).'); };
+  const pl=document.getElementById('bannerPull'); if(pl) pl.onclick=()=>{ status('Loading…'); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(b=>{ if(inp) inp.value=((b&&b.text)||''); setAcc(b&&b.color); status('Loaded the live banner.'); }).catch(()=>status('Could not load the live banner.',true)); };
+  const pv=document.getElementById('bannerPreview'); if(pv) pv.onclick=()=>{ showBanner({text:inp.value, id:'preview-'+Date.now(), color:accColor()}); status('Previewing (not pushed).'); };
   const c=document.getElementById('bannerClose'); if(c) c.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
 })();
 /* ===================== end Live Banner ===================== */
@@ -3066,12 +3105,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function status(m,err){ if(st){ st.textContent=m||''; st.classList.toggle('err',!!err); } }
   function render(items){ list.innerHTML=''; if(!items||!items.length){ list.textContent='(no short links)'; return; } items.forEach(it=>{ const row=document.createElement('div'); row.className='dev-link-row'; const id=document.createElement('span'); id.className='dev-link-id'; id.textContent=it.id; const frag=document.createElement('span'); frag.className='dev-link-frag'; frag.textContent=it.frag||''; frag.title=it.frag||''; const open=document.createElement('button'); open.className='dev-mini-btn'; open.textContent='Open'; open.onclick=()=>{ window.open(location.origin+location.pathname+'#'+(it.frag||''),'_blank'); }; const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Delete'; del.onclick=()=>{ if(!confirm('Delete short link '+it.id+'?')) return; fetch(SHORTENER+'/links-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,id:it.id})}).then(r=>{ if(r.ok){ row.remove(); } else { status('Delete failed ('+r.status+').',true); } }).catch(()=>status('Delete failed.',true)); }; row.append(id,frag,open,del); list.appendChild(row); }); }
   function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/links-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ render(j.links||[]); status((j.links||[]).length+' link(s).'); } }).catch(()=>status('Could not load (is the worker /links-list deployed?).',true)); }
-  function openLinks(){ list.innerHTML=''; status(''); modal.hidden=false; }
+  function openLinks(){ list.innerHTML=''; status(''); modal.hidden=false; load(); }
   function close(){ modal.hidden=true; }
   DEV_MODULES.push({ name:'Short Links', desc:'List the stored short links and delete stale ones.', open:openLinks });
   const lb=document.getElementById('linksLoad'); if(lb) lb.onclick=load;
   const c=document.getElementById('linksClose'); if(c) c.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
 })();
 /* ===================== end Short Links ===================== */
@@ -3079,27 +3118,50 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
 /* ===================== EXPERIMENTAL-ONLY: Dev module — Roster / Data Editor — DO NOT PROMOTE ===================== */
 (function(){
   const modal=document.getElementById('rosterModal'); if(!modal) return;
-  const sel=document.getElementById('rosterTable'), ta=document.getElementById('rosterIn'), st=document.getElementById('rosterStatus');
+  const sel=document.getElementById('rosterTable'), ta=document.getElementById('rosterIn'), form=document.getElementById('rosterForm'), st=document.getElementById('rosterStatus');
   let timer=null;
   function status(m,err){ if(!st) return; if(timer){clearTimeout(timer);timer=null;} st.textContent=m||''; st.classList.toggle('err',!!err); if(m){ timer=setTimeout(()=>{ st.textContent=''; st.classList.remove('err'); },5000); } }
   const TABLES=[
-    {k:'characterNames', get:()=>DATA.characterNames, set:v=>{ DATA.characterNames=v; }},
-    {k:'personaNames', get:()=>DATA.personaNames, set:v=>{ DATA.personaNames=v; }},
-    {k:'charColors', get:()=>DATA.charColors, set:v=>{ DATA.charColors=v; }},
-    {k:'characterImages', get:()=>DATA.characterImages, set:v=>{ DATA.characterImages=v; }},
-    {k:'CHAR_ALIASES', get:()=>CHAR_ALIASES, set:v=>{ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,v); }},
-    {k:'PERSONA_ALIASES', get:()=>PERSONA_ALIASES, set:v=>{ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,v); }}
+    {k:'characterNames', type:'array', get:()=>DATA.characterNames, set:v=>{ DATA.characterNames=v; }},
+    {k:'personaNames', type:'array', get:()=>DATA.personaNames, set:v=>{ DATA.personaNames=v; }},
+    {k:'charColors', type:'map', get:()=>DATA.charColors, set:v=>{ DATA.charColors=v; }},
+    {k:'characterImages', type:'map', get:()=>DATA.characterImages, set:v=>{ DATA.characterImages=v; }},
+    {k:'CHAR_ALIASES', type:'aliasmap', get:()=>CHAR_ALIASES, set:v=>{ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,v); }},
+    {k:'PERSONA_ALIASES', type:'aliasmap', get:()=>PERSONA_ALIASES, set:v=>{ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,v); }}
   ];
+  let working=[], jsonMode=false;
   function cur(){ return TABLES[sel.selectedIndex]||TABLES[0]; }
-  function show(){ try{ ta.value=JSON.stringify(cur().get(), null, 2); }catch(e){ ta.value='/* could not read */'; } status(''); }
+  function toWorking(v,t){ if(t==='array') return (v||[]).slice(); if(t==='map') return Object.entries(v||{}).map(([k,x])=>[k,x]); return Object.entries(v||{}).map(([k,x])=>[k,(x||[]).join(', ')]); }
+  function realValue(){
+    if(jsonMode) return JSON.parse(ta.value);
+    const t=cur().type;
+    if(t==='array') return working.map(s=>String(s).trim()).filter(Boolean);
+    if(t==='map'){ const o={}; working.forEach(p=>{ const k=String(p[0]).trim(); if(k) o[k]=p[1]; }); return o; }
+    const o={}; working.forEach(p=>{ const k=String(p[0]).trim(); if(k) o[k]=String(p[1]).split(',').map(s=>s.trim()).filter(Boolean); }); return o;
+  }
+  function renderForm(){
+    form.innerHTML=''; const t=cur().type;
+    working.forEach((row,i)=>{
+      const r=document.createElement('div'); r.className='dev-row';
+      if(t==='array'){ const inp=document.createElement('input'); inp.className='dev-inp'; inp.value=row; inp.oninput=()=>{ working[i]=inp.value; }; r.append(inp); }
+      else { const k=document.createElement('input'); k.className='dev-inp dev-key'; k.value=row[0]; k.oninput=()=>{ working[i][0]=k.value; }; const v=document.createElement('input'); v.className='dev-inp'; v.value=row[1]; v.placeholder=(t==='aliasmap'?'comma, separated':'value'); v.oninput=()=>{ working[i][1]=v.value; }; r.append(k,v); }
+      const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='×'; del.title='Remove'; del.onclick=()=>{ working.splice(i,1); renderForm(); }; r.append(del);
+      form.appendChild(r);
+    });
+    const add=document.createElement('button'); add.className='dev-mini-btn'; add.textContent='+ Add row'; add.onclick=()=>{ working.push(t==='array'?'':['','']); renderForm(); }; form.appendChild(add);
+  }
+  function renderView(){ const jb=document.getElementById('rosterJson'); if(jsonMode){ form.hidden=true; ta.hidden=false; if(jb) jb.textContent='Form view'; } else { ta.hidden=true; form.hidden=false; renderForm(); if(jb) jb.textContent='JSON view'; } }
+  function show(){ jsonMode=false; working=toWorking(cur().get(), cur().type); renderView(); status(''); }
   function openRoster(){ if(!sel.options.length){ TABLES.forEach(t=>{ const o=document.createElement('option'); o.textContent=t.k; sel.appendChild(o); }); } show(); modal.hidden=false; }
   function close(){ modal.hidden=true; }
-  DEV_MODULES.push({ name:'Roster / Data Editor', desc:'Edit the character/persona/alias tables as JSON; apply to test or copy to bake into the code.', open:openRoster });
+  DEV_MODULES.push({ name:'Roster / Data Editor', desc:'Edit the character/persona/alias tables in a form or as JSON; apply to test, push live, or copy to bake in.', open:openRoster });
   if(sel) sel.onchange=show;
-  const cp=document.getElementById('rosterCopy'); if(cp) cp.onclick=()=>{ try{ navigator.clipboard.writeText(ta.value); status('Copied.'); }catch(e){ status('Copy failed.',true); } };
-  const ap=document.getElementById('rosterApply'); if(ap) ap.onclick=()=>{ let v; try{ v=JSON.parse(ta.value); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ cur().set(v); }catch(e){ status('Apply failed: '+e.message,true); return; } try{ renderAll(); }catch(e){} status('Applied to this session (not saved). Copy to bake it into the code.'); };
+  const jb=document.getElementById('rosterJson'); if(jb) jb.onclick=()=>{ if(jsonMode){ let v; try{ v=JSON.parse(ta.value); }catch(e){ status('Invalid JSON: '+e.message,true); return; } working=toWorking(v,cur().type); jsonMode=false; } else { try{ ta.value=JSON.stringify(realValue(),null,2); }catch(e){ status('Error: '+e.message,true); return; } jsonMode=true; } renderView(); };
+  const cp=document.getElementById('rosterCopy'); if(cp) cp.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ navigator.clipboard.writeText(JSON.stringify(v,null,2)); status('Copied.'); }catch(e){ status('Copy failed.',true); } };
+  const ap=document.getElementById('rosterApply'); if(ap) ap.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ cur().set(v); }catch(e){ status('Apply failed: '+e.message,true); return; } try{ renderAll(); }catch(e){} status('Applied to this session (not saved).'); };
+  const pu=document.getElementById('rosterPush'); if(pu) pu.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ cur().set(v); renderAll(); }catch(e){} status('Pushing…'); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:{[cur().k]:v}})}).then(r=>{ if(r.ok){ status('Pushed. '+cur().k+' is now live for everyone.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (is the worker /data deployed?).',true)); };
   const c=document.getElementById('rosterClose'); if(c) c.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
 })();
 /* ===================== end Roster / Data Editor ===================== */
@@ -3137,7 +3199,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function close(){ modal.hidden=true; savePersonaCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); }
   DEV_MODULES.push({ name:'Persona Image Crops', desc:'Crop and position persona images, then push them live for everyone.', open:openPCrops });
   const cc=document.getElementById('pcropClose'); if(cc) cc.onclick=close;
-  modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
+  /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
   const ra=document.getElementById('pcropResetAll'); if(ra) ra.onclick=()=>{ personaCrops={}; savePersonaCrops(); build(); };
   const cpv=document.getElementById('pcropCopy'); if(cpv) cpv.onclick=()=>{ const out=JSON.stringify(personaCrops); try{ navigator.clipboard.writeText(out); status('Copied.'); }catch(e){ prompt('Persona crops:',out); } };
@@ -4078,7 +4140,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
-state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
@@ -4100,6 +4162,6 @@ state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622g</div>
+<div class="version-tag">260622h</div>
 </body>
 </html>
