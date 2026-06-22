@@ -733,7 +733,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="panel">
     <div class="section-title"><h2>Rotation</h2><div class="rule"></div>
       <button class="btn ac-btn" id="autoCorrect" hidden title="Fix discrepancies: replace missing characters/personas and resolve turn order">Auto Correct</button>
-      <button class="btn" id="autoFill" title="Fill empty turn columns with characters 1–4 in order (columns that already have a character are left untouched)">Auto Fill</button>
+      <button class="btn" id="autoFill" title="Fill empty turn columns with characters 1-4 in order (columns that already have a character are left untouched)">Auto Fill</button>
       <button class="btn" id="clearActions" title="Remove all actions from every turn">Clear</button>
     </div>
     <div class="notes-row"><textarea id="notes" placeholder="Rotation notes…"></textarea></div>
@@ -916,7 +916,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       </div>
       <div class="set-status" id="settingsStatus" hidden></div>
       <input type="file" id="settingsFile" accept="application/json,.json" hidden/>
-      <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports — hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
+      <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports. Hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
     </div>
   </div>
 </div>
@@ -947,7 +947,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <ol>
       <li>Tap the <b>Share</b> button in Safari (the square with an up-arrow).</li>
       <li>Choose <b>“Add to Home Screen”</b>.</li>
-      <li>Open the planner from the new Home-Screen icon — it then runs full-screen in any orientation.</li>
+      <li>Open the planner from the new Home-Screen icon, and it then runs full-screen in any orientation.</li>
     </ol>
   </div>
 </div>
@@ -1308,7 +1308,7 @@ function showImportFeedback(res){
   L.push('• '+u+' team character'+(u===1?'':'s')+(st.elucidator&&st.elucidator.name?('     Elucidator: '+st.elucidator.name):''));
   L.push('• '+pc+' persona'+(pc===1?'':'s')+'     '+(st.turns||[]).length+' turn'+((st.turns||[]).length===1?'':'s'));
   const P=[];
-  (res.warnings||[]).forEach(w=>{ if(w&&w.trim()) P.push('• "'+w.trim()+'" — not recognized'); });
+  (res.warnings||[]).forEach(w=>{ if(w&&w.trim()) P.push('• "'+w.trim()+'" (not recognized)'); });
   if(!st.setup.boss) P.push('• Boss could not be determined from the title');
   let uc=0; (st.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a._uncertain) uc++; }));
   if(uc) P.push('• '+uc+' action'+(uc===1?'':'s')+' had no clear button/skill (highlighted)');
@@ -1320,7 +1320,7 @@ function showImportFeedback(res){
 }
 function openImportText(){
   openShareModal({title:'Import Text', text:'', readonly:false, showKeepText:true, showDodToggle:true,
-    placeholder:'Paste a rotation written in plain text — like a post from Discord. The planner recognizes what it can (boss, team, personas, turns) and highlights what still needs filling in.',
+    placeholder:'Paste a rotation written in plain text, like a post from Discord. The planner recognizes what it can (boss, team, personas, turns) and highlights what still needs filling in.',
     primaryLabel:'Import', onPrimary:(t,hint,close)=>{
       const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a rotation text first.'; return; }
       if(!isRotationEmpty(state) && !confirm('This replaces your current rotation (team, personas and all turns).\n\nConsider using Export \u2192 Export JSON first to back it up.\n\nReplace it now?')) return;
@@ -1475,7 +1475,7 @@ function unitCard(u, path, elu, idx, backup){
     ${art}
     <div class="body">
       ${(isW||backup)
-        ? `<input class="name name-fixed" value="${esc(isW?'WONDER':(u.name||''))}" readonly tabindex="-1" title="${isW?'Wonder is always on the team and can&#39;t be swapped out':'Backup character — choose it in Fuuka&#39;s Backup field'}"/>`
+        ? `<input class="name name-fixed" value="${esc(isW?'WONDER':(u.name||''))}" readonly tabindex="-1" title="${isW?'Wonder is always on the team and can&#39;t be swapped out':'Backup character, chosen in Fuuka&#39;s Backup field'}"/>`
         : `<span class="combo-wrap"><input class="name combo" data-combo="char"${elu?' data-elu="1"':''} data-uname="${path}" value="${esc(u.name)}" placeholder="${elu?'Elucidator':'Character'}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`}
       <div class="rev-row">
         <div><div class="rev-lab">Awareness</div><select data-path="${path}.awareness">${opt(awareOpts,u.awareness)}</select></div>
@@ -1498,7 +1498,7 @@ function renderTeam(){
         <div class="pcol-fields">
           <span class="combo-wrap"><input class="persona-name combo" data-combo="persona" data-path="personas.${k}.name" value="${esc(p.name)}" placeholder="Choose Persona" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>
           <div class="skills">
-            <input class="sig-skill" value="${esc(p.name?(PERSONA_SIGNATURES[p.name]||''):'')}" placeholder="Signature Skill" readonly tabindex="-1" title="Signature skill — set automatically by the persona, can't be edited"/>
+            <input class="sig-skill" value="${esc(p.name?(PERSONA_SIGNATURES[p.name]||''):'')}" placeholder="Signature Skill" readonly tabindex="-1" title="Signature skill, set automatically by the persona, can't be edited"/>
             ${p.skills.slice(0,2).map((s,si)=>`<span class="combo-wrap"><input class="skill-combo combo" data-combo="skill" data-path="personas.${k}.skills.${si}" value="${esc(s)}" placeholder="Teachable Skill ${si+1}" autocomplete="off"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span>`).join('')}
             <input class="persona-note" data-path="personas.${k}.note" value="${esc(p.note||'')}" placeholder="Notes..." autocomplete="off"/>
           </div>
@@ -1801,7 +1801,7 @@ function refreshDiscrepancies(){
     const blocked = total>0 || !iss.ok;
     eb.disabled=blocked; eb.classList.toggle('disabled', blocked);
     if(total>0) eb.title='Resolve the discrepancies before exporting.';
-    else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); eb.title='Complete the setup first — '+parts.join('; ')+'.'; }
+    else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); eb.title='Complete the setup first: '+parts.join('; ')+'.'; }
     else eb.removeAttribute('title');
   }
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
@@ -1849,7 +1849,7 @@ function actRow(a, ti, ai){
       const uniq=list.filter((v,i,arr)=>arr.indexOf(v)===i);
       const cur=a.skill||'';
       const extraSk=(cur && !uniq.includes(cur))?[cur]:[];
-      row2=`<select data-wskill="${ti}.${ai}"${a.hl?' disabled title="Highlight is selected — Wonder can\'t also use a persona skill"':''}><option value=""${cur?'':' selected'}>Skill…</option>${extraSk.concat(uniq).map(s=>`<option${cur===s?' selected':''}>${esc(s)}</option>`).join('')}</select>`;
+      row2=`<select data-wskill="${ti}.${ai}"${a.hl?' disabled title="Highlight is selected, so Wonder can\'t also use a persona skill"':''}><option value=""${cur?'':' selected'}>Skill…</option>${extraSk.concat(uniq).map(s=>`<option${cur===s?' selected':''}>${esc(s)}</option>`).join('')}</select>`;
     } else {
       row2=`<div class="act-actions">${['Atk','Gn','Gd'].map(c=>`<button type="button" class="actbtn ${a.btn===c?'on':''}" data-actset="${ti}.${ai}" data-code="${c}">${esc(btnLabel(c))}</button>`).join('')}</div>`;
     }
@@ -2246,7 +2246,7 @@ async function shortenLink(fragment){
     if(btn) btn.hidden=true;                          /* one short link per rotation is enough */
     if(hint) hint.textContent='Short link created. Use Copy or Copy for Discord below.';
   }catch(e){
-    if(hint) hint.textContent='Short-link service unavailable — using the full link. Tap “Create short link” to retry.';
+    if(hint) hint.textContent='Short-link service unavailable, using the full link. Tap “Create short link” to retry.';
     if(btn){ btn.hidden=false; btn.disabled=false; }
   }
 }
@@ -2270,7 +2270,7 @@ function openShareModal(opts){
   if(opts.discordUrl){
     if(dWrap) dWrap.hidden=false; if(dText) dText.value=opts.discordLabel||'';
     if(dBtn) dBtn.onclick=()=>{ const hint=document.getElementById('ioHint'); const masked=maskedDiscordLink(dText.value, _shareUrl); const done=()=>{ hint.textContent='Masked Discord link copied to clipboard.'; };
-      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(masked).then(done,()=>{ hint.textContent='Could not copy automatically — copy it manually.'; });
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(masked).then(done,()=>{ hint.textContent='Could not copy automatically, copy it manually.'; });
       else hint.textContent='Copying is not supported in this browser.'; };
   } else {
     if(dWrap) dWrap.hidden=true; if(dText) dText.value=''; if(dBtn) dBtn.onclick=null;
@@ -2426,7 +2426,7 @@ function popOutImportNote(text){
   const w=window.open('','vfImportedText','width=460,height=560');
   if(!w){ // pop-up blocked -> fall back to the in-tool panel so the text is never lost
     _showImportNotePanel(t);
-    const h=document.getElementById('ioHint'); if(h) h.textContent='Pop-up blocked by the browser — showing the imported text inside the tool instead.';
+    const h=document.getElementById('ioHint'); if(h) h.textContent='Pop-up blocked by the browser, showing the imported text inside the tool instead.';
     return; }
   const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   w.document.open();
@@ -2578,7 +2578,7 @@ document.getElementById('settingsFile').onchange=e=>{
 };
 document.getElementById('autoFill').onclick=()=>{
   const chars=state.units.filter(u=>(u.name||'').trim()).map(u=>u.name);
-  if(!chars.length){ alert('No characters in team slots 1–4 yet.'); return; }
+  if(!chars.length){ alert('No characters in team slots 1-4 yet.'); return; }
   if(!state.turns.length){ alert('No turns to fill yet.'); return; }
   let filled=0;
   state.turns.forEach(t=>{
@@ -2587,7 +2587,7 @@ document.getElementById('autoFill').onclick=()=>{
     t.actions=chars.map(c=>({char:c, btn:'', text:''}));
     filled++;
   });
-  if(!filled){ alert('Every turn column already has a character — nothing to fill.'); return; }
+  if(!filled){ alert('Every turn column already has a character, nothing to fill.'); return; }
   save(); renderTurns();
 };
 function esc2(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -2611,16 +2611,16 @@ function openAutoCorrectDialog(){
     h+=`<div class="ac-note">${plan.violatingTurns.length===1?'1 turn has':plan.violatingTurns.length+' turns have'} characters acting out of team order (${esc2(turns)}).</div>`;
     if(plan.orderResolvable){
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="team" checked><span><b>Reorder the team slots</b> to match the order characters act in the turns (recommended)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns"><span><b>Reorder the actions</b> inside each turn — keep both, fix the order</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns"><span><b>Reorder the actions</b> inside each turn, keep both and fix the order</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is</span></label>`;
     } else {
       h+=`<div class="ac-warn">These characters act in different orders in different turns, so no single team order can satisfy every turn: ${esc2(plan.conflicts.map(c=>c[0]+' \u2194 '+c[1]).join(', '))}. Reordering the team can't fully fix this.</div>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn — keep both, fix the order (recommended)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn, keep both and fix the order (recommended)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is — I'll fix it by hand</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is, I'll fix it by hand</span></label>`;
     }
   }
   if(plan.unmatchedChars.length) h+=`<div class="ac-warn">Cannot reassign automatically (no free team slot): ${esc2(plan.unmatchedChars.join(', '))}. Add them to the team manually.</div>`;
@@ -2886,7 +2886,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     return `<div style="${M?'flex:1 1 148px;min-width:148px;max-width:calc(50% - 6px);':'width:'+TEAMW+'px;'}background:${C.panel};border:1px solid ${C.border};border-top:4px solid ${accent};border-radius:8px;padding:8px 10px;box-sizing:border-box;">
     ${art}
     <div style="font:700 10px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;">${esc(label)}</div>
-    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(charDisp(u.name)||'—')}</div>
+    <div style="font:700 16px Oswald,sans-serif;color:${C.text};margin:2px 0 4px;">${esc(charDisp(u.name)||'-')}</div>
     <div style="font:600 12px Inter,sans-serif;color:${C.soft};">${esc(u.awareness||'')}${u.awareness&&u.rev?' · ':''}${esc(u.rev||'')}</div>
     <div style="font:500 11px Inter,sans-serif;color:${C.muted};margin-top:2px;min-height:14px;">${esc(gearText(u)||'')}</div>
     ${(u.name||'').toUpperCase()==='TWINS'&&u.role?`<div style="font:600 11px Inter,sans-serif;color:${C.gold};margin-top:2px;">Role: ${esc(u.role)}</div>`:''}
@@ -3367,12 +3367,12 @@ function renderPlay(){
     const inTurn=flat.filter(x=>x.ti===it.ti), posInTurn=inTurn.indexOf(it)+1, leftInTurn=inTurn.length-posInTurn;
     const sub='Action '+posInTurn+' / '+inTurn.length+' in this turn'+(leftInTurn>0?(' · '+leftInTurn+' to go'):' · last action');
     const nx=flat[_playAct+1];
-    const nextHtml=nx?('<div class="play-next"><span class="play-next-lab">NEXT</span><span class="play-next-actor" style="color:'+esc(cardAccent(nx.a.char,palette))+'">'+esc(charDisp(nx.a.char))+'</span><span class="play-next-detail">'+esc(actionLabel(nx.a,nx.a.char,true)||'—')+'</span></div>'):'<div class="play-next end">Fight Finished</div>';
+    const nextHtml=nx?('<div class="play-next"><span class="play-next-lab">NEXT</span><span class="play-next-actor" style="color:'+esc(cardAccent(nx.a.char,palette))+'">'+esc(charDisp(nx.a.char))+'</span><span class="play-next-detail">'+esc(actionLabel(nx.a,nx.a.char,true)||'-')+'</span></div>'):'<div class="play-next end">Fight Finished</div>';
     const _newTurnA=(it.ti!==_playLastRenderTurn);   // first action of a new turn -> gold flash on the title
     r.querySelector('#playBody').innerHTML='<div class="play-turn-name'+(it.brk?' brk':'')+(_newTurnA?' flash':'')+'">'+esc(it.turnName)+'</div>'
       +'<div class="play-turn-sub">'+esc(sub)+'</div>'
       +'<div class="play-solo">'+_playPortrait(a.char,'play-solo-portrait')
-        +'<div class="play-solo-text"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'—')+'</div>'+nextHtml+'</div>'
+        +'<div class="play-solo-text"><div class="play-solo-actor" style="color:'+esc(accent)+'">'+esc(charDisp(a.char))+'</div><div class="play-solo-detail">'+esc(actionLabel(a,a.char,true)||'-')+'</div>'+nextHtml+'</div>'
       +'</div>';
     _playLastRenderTurn=it.ti;
     r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
@@ -3633,6 +3633,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622p</div>
+<div class="version-tag">260622q</div>
 </body>
 </html>
