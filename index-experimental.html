@@ -1187,10 +1187,10 @@ function saveCharCrops(){ try{ localStorage.setItem(CHAR_CROP_KEY, JSON.stringif
 function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y) }; }
 function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:50% ${c.y}%`; }
 /* Developer Mode gate: only the SHA-256 HASH of the password lives here (not the password itself).
-   Default below is SHA-256('velvet') — CHANGE IT: run  await sha256hex('your-new-password')  in the
-   console and paste the result here, then set the worker secret CROP_SECRET to the same password.
+   To change it: run  await sha256hex('your-new-password')  in the console, paste the result here,
+   then set the worker secret CROP_SECRET to the same password.
    The real push protection is the worker secret (server-side); this hash just hides the dev UI. */
-const DEV_PW_HASH='f4c44266a2dfad9847930615218f2811c5ee3248c6df3d3921a6d2b8e67c8bf6';
+const DEV_PW_HASH='cfa3b34ceade48e19dc33c10d289ea31640e6ff6c6b12dedd58da8e13e5b1b60';
 let _devPass=null;
 async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s))); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 /* ===================== end EXPERIMENTAL-ONLY crop helpers ===================== */
@@ -3741,6 +3741,6 @@ state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622b</div>
+<div class="version-tag">260622c</div>
 </body>
 </html>
