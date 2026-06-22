@@ -1129,6 +1129,23 @@ function personaImg(name){
   if(!name) return '';
   return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
 }
+/* ---------- character image crop (display-only; values fetched live from the worker, /crops) ----------
+   The character art files are the full P5X cards (552x924) with a decorative frame. z zooms past the L/R
+   frame (default 112% crops it out of view), y pans vertically. The values are authored in the
+   experimental "Developer Mode" editor and pushed to the worker; this live build only reads + applies them
+   (no editor here), so changes appear without re-uploading index.html. */
+const CHAR_CROP_DEF={z:112,y:50};
+const CHAR_CROP_LIVE_KEY='vf-charcrop-live-v1';
+let charCrops={};
+function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y) }; }
+function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:50% ${c.y}%`; }
+function loadCharCropsLive(){
+  try{ const c=JSON.parse(localStorage.getItem(CHAR_CROP_LIVE_KEY)); if(c&&typeof c==='object') charCrops=c; }catch(e){}
+  try{ fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+      if(j&&typeof j==='object'){ charCrops=j; try{ localStorage.setItem(CHAR_CROP_LIVE_KEY, JSON.stringify(j)); }catch(e){}
+        try{ renderTeam(); }catch(e){} if(typeof rotationPreviewOpen!=='undefined' && rotationPreviewOpen){ try{ renderRotationPreview(); }catch(e){} } }
+    }).catch(()=>{}); }catch(e){}
+}
 const DAGGER_IMG={
   "Arc Knife":"daggers/01_Arc_Knife.webp","Cyclotron":"daggers/02_Cyclotron.webp",
   "Starry Compass":"daggers/03_Starry_Compass.webp","Glimmer":"daggers/04_Glimmer.webp",
@@ -1469,7 +1486,7 @@ function unitCard(u, path, elu, idx, backup){
   }
   const overlay = `${elu?'<span class="elu-badge">ELUCIDATOR</span>':''}${backup?'<span class="elu-badge">BACKUP</span>':''}${idx!=null?`<span class="order-badge">${idx+1}</span>`:''}${idx!=null?'<div class="grip" title="Drag to reorder">'+GRIP_DOTS+'</div>':''}`;
   const art = img
-    ? `<div class="art" style="background-image:${bgURL(img)}">${overlay}</div>`
+    ? `<div class="art" style="${cropBgStyle(u.name, bgURL(img))}">${overlay}</div>`
     : `<div class="art"><span class="ph">${esc((u.name||'?')[0]||'?')}</span>${overlay}</div>`;
   return `<div class="unit ${elu?'elu':''}" style="--ux:${col}" ${idx!=null?`data-uidx="${idx}"`:''}>
     ${art}
@@ -3027,12 +3044,13 @@ function loadImg(src){ return new Promise((res,rej)=>{
   };
   attempt(src, true);
 }); }
-function portraitDataURL(img,size){
+function portraitDataURL(img,size,crop){
+  crop=crop||CHAR_CROP_DEF;                                     /* character crop (z,y); matches the team-card background */
   const c=document.createElement('canvas'); c.width=size; c.height=size;
   const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
   const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
-  const sc=Math.max(size/iw,size/ih), dw=iw*sc, dh=ih*sc;       /* cover */
-  x.drawImage(img,(size-dw)/2,(size-dh)/2,dw,dh);               /* center crop, matches the page */
+  const dw=size*(crop.z/100), sc=dw/iw, dh=ih*sc;               /* width-driven zoom (these cards are portrait, so width is the cover dimension) */
+  x.drawImage(img,(size-dw)/2,(size-dh)*(crop.y/100),dw,dh);    /* center horizontally, pan vertically by y% (background-position semantics) */
   return c.toDataURL('image/png');
 }
 function fullDataURL(img){
@@ -3091,7 +3109,7 @@ function collectExportImages(){
   const exUnits=[...state.units, state.elucidator].concat(_bk?[_bk]:[]);
   exUnits.forEach(u=>{
     const src=imgFor(u.name); if(!src || seen['c:'+u.name]) return; seen['c:'+u.name]=1;
-    tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360); }));
+    tasks.push(loadImg(src).then(img=>{ portraits[u.name]=portraitDataURL(img,360,cropOf(u.name)); }));
   });
   exUnits.forEach(u=>{
     const dn=u.gear, src=daggerImg(dn); if(!src || seen['d:'+dn]) return; seen['d:'+dn]=1;
@@ -3611,7 +3629,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
-state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); loadCharCropsLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
