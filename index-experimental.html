@@ -1237,10 +1237,10 @@ const TWINS_ROLE_DUALS = {
   'Guardian':['Elec/Wind','Psy/Nuke']
 };
 const DUAL_ELEM_IMG = {
-  'Fire/Ice':'elements/Fire_Ice.png',
-  'Elec/Wind':'elements/Elec_Wind.png',
-  'Psy/Nuke':'elements/Psy_Nuke.png',
-  'Bless/Curse':'elements/Bless_Curse.png'
+  'Fire/Ice':'elements/Fire_Ice.webp',
+  'Elec/Wind':'elements/Elec_Wind.webp',
+  'Psy/Nuke':'elements/Psy_Nuke.webp',
+  'Bless/Curse':'elements/Bless_Curse.webp'
 };
 const ACT_SPECIAL = ['MAKOTO','YUKARI','AKIHIKO','MITSURU','JUNPEI','KOROMARU','AIGIS','FUUKA']; // the "SEES" characters (THEURGY/ASSIST); FUUKA is SEES but Elucidator rules take priority
 const MIKU_NAME='MIKU'; const MIKU_SONGS=['Heaven','Spring Storm','Play-With-Fire']; // Miku's elucidator songs (action-row dropdown)
@@ -1354,17 +1354,17 @@ function imgFor(name){
   if(!name) return '';
   return imgURL(DATA.characterImages[name.toUpperCase()] || DATA.characterImages[name] || '');
 }
-/* black-and-white face portrait for the Play mode (images/faces/<KEY>.png; middle dot -> hyphen).
+/* black-and-white face portrait for the Play mode (images/faces/<KEY>.webp; middle dot -> hyphen).
    Always returns a URL; a character without a face file 404s and the <img> turns into an invisible
    placeholder (faceFallback) so the row/solo layout stays aligned with the ones that do have a face. */
-function faceImg(name){ if(!name) return ''; const fn=String(name).toUpperCase().replace(/·/g,'-').replace(/[\\/:*?"<>|]/g,'-'); return imgURL('images/faces/'+fn+'.png'); }
+function faceImg(name){ if(!name) return ''; const fn=String(name).toUpperCase().replace(/·/g,'-').replace(/[\\/:*?"<>|]/g,'-'); return imgURL('images/faces/'+fn+'.webp'); }
 /* like imgFallback, but keeps the box (visibility:hidden, not display:none) so the missing face still
    reserves its space — same alignment as actors that have a face. */
 function faceFallback(el){ const r=imgRel(el.src); if(!el.dataset.fb && r){ el.dataset.fb='1'; el.src=r; return; } el.style.visibility='hidden'; }
 function personaImg(name){
   if(!name) return '';
   if(DATA.personaImages && DATA.personaImages[name]) return imgURL(DATA.personaImages[name]);
-  return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.png');
+  return imgURL('personas/'+String(name).replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-')+'.webp');
 }
 /* ===================== EXPERIMENTAL-ONLY: character image crop =====================
    DO NOT PROMOTE to index.html. The character art files are the full P5X cards (552x924,
@@ -3274,6 +3274,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function addVals(){ const o={}; addFields.querySelectorAll('[data-k]').forEach(i=>{ const k=i.dataset.k; if(i.type==='file') o[k]=i; else if(i.type==='checkbox') o[k]=i.checked; else o[k]=i.value; }); return o; }
   function readFile(input){ return new Promise(res=>{ const f=input&&input.files&&input.files[0]; if(!f){ res(''); return; } const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>res(''); r.readAsDataURL(f); }); }
+  function toWebp(dataURL){ return new Promise(res=>{ const img=new Image(); img.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.getContext('2d').drawImage(img,0,0); const out=c.toDataURL('image/webp',0.9); res(out&&out.indexOf('data:image/webp')===0?out:dataURL); }catch(e){ res(dataURL); } }; img.onerror=()=>res(dataURL); img.src=dataURL; }); }
   function extFromDataURL(d){ const m=/^data:image\/([a-z0-9.+-]+)/i.exec(d||''); let e=(m?m[1]:'png').toLowerCase(); if(e==='jpeg') e='jpg'; if(e==='svg+xml') e='svg'; return e.replace(/[^a-z0-9]/g,'')||'png'; }
   function safeFile(n){ return String(n).replace(/[\\/:*?"<>|\s·]+/g,'-'); }
   async function commitImg(path, dataURL){ const r=await fetch(SHORTENER+'/img',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,path,data:dataURL})}); if(!r.ok){ let d=''; try{ d=(await r.json()).error||''; }catch(e){} throw new Error(r.status+(d?(' '+d):'')); } return path; }
@@ -3283,7 +3284,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     if(!name){ addStatus('Enter a name.',true); return; }
     if(push && !_devPass){ addStatus('Unlock Developer Mode first.',true); return; }
     const aliases=(v.aliases||'').split(',').map(s=>s.trim()).filter(Boolean);
-    let imgData=''; if(v.image) imgData=await readFile(v.image);
+    let imgData=''; if(v.image){ imgData=await readFile(v.image); if(imgData) imgData=await toWebp(imgData); }
     let imgVal='';
     if(imgData){
       if(push){ const folder= type==='character'?'images' : type==='persona'?'personas' : 'daggers'; const path=folder+'/'+safeFile(name)+'.'+extFromDataURL(imgData); addStatus('Committing image to GitHub…'); try{ imgVal=await commitImg(path, imgData); }catch(e){ addStatus('Image commit failed ('+e.message+').',true); return; } }
@@ -4317,6 +4318,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622p</div>
+<div class="version-tag">260622q</div>
 </body>
 </html>
