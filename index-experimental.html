@@ -1010,7 +1010,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card dev-tool-card" role="dialog" aria-modal="true" aria-label="Short links">
     <div class="modal-head"><h2><button class="modal-back" title="Back to modules" aria-label="Back to modules">‹</button> Short Links <span class="crop-exp-tag">experimental</span></h2><button class="modal-close" id="linksClose" aria-label="Close">&times;</button></div>
     <div class="dev-tool-body">
-      <div class="dev-tool-row"><button class="btn btn-exp" id="linksLoad">Load</button><span class="dev-status" id="linksStatus"></span></div>
+      <div class="dev-tool-row"><button class="btn btn-exp" id="linksLoad">Load</button><button class="btn" id="linksSort">Newest first</button><span class="dev-status" id="linksStatus"></span></div>
       <div class="dev-links" id="linksList"></div>
     </div>
   </div>
@@ -3251,12 +3251,28 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const modal=document.getElementById('linksModal'); if(!modal) return;
   const st=document.getElementById('linksStatus'), list=document.getElementById('linksList');
   function status(m,err){ if(st){ st.textContent=m||''; st.classList.toggle('err',!!err); } }
-  function render(items){ list.innerHTML=''; if(!items||!items.length){ list.textContent='(no short links)'; return; } items.forEach(it=>{ const row=document.createElement('div'); row.className='dev-link-row'; const id=document.createElement('span'); id.className='dev-link-id'; id.textContent=it.id; const frag=document.createElement('span'); frag.className='dev-link-frag'; frag.textContent=it.frag||''; frag.title=it.frag||''; const date=document.createElement('span'); date.className='dev-link-date'; const _ts=it.ts||it.created; if(_ts){ const d=new Date(_ts); date.textContent=d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); date.title='Created '+d.toLocaleString('en-GB'); } const open=document.createElement('button'); open.className='dev-mini-btn'; open.textContent='Open'; open.onclick=()=>{ window.open(location.origin+location.pathname+'#'+(it.frag||''),'_blank'); }; const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Delete'; del.onclick=()=>{ if(!confirm('Delete short link '+it.id+'?')) return; fetch(SHORTENER+'/links-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,id:it.id})}).then(r=>{ if(r.ok){ row.remove(); } else { status('Delete failed ('+r.status+').',true); } }).catch(()=>status('Delete failed.',true)); }; row.append(id,frag,date,open,del); list.appendChild(row); }); }
-  function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/links-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ render(j.links||[]); status((j.links||[]).length+' link(s).'); } }).catch(()=>status('Could not load (is the worker /links-list deployed?).',true)); }
+  let _links=[], _sortDesc=true;
+  function _tsOf(it){ return it.ts||it.created||0; }
+  function render(){
+    list.innerHTML='';
+    if(!_links.length){ list.textContent='(no short links)'; return; }
+    const arr=_links.slice().sort((a,b)=>{ const ta=_tsOf(a), tb=_tsOf(b); if(!ta&&!tb) return 0; if(!ta) return 1; if(!tb) return -1; return _sortDesc?tb-ta:ta-tb; });   /* undated links always last */
+    arr.forEach(it=>{
+      const row=document.createElement('div'); row.className='dev-link-row';
+      const id=document.createElement('span'); id.className='dev-link-id'; id.textContent=it.id;
+      const frag=document.createElement('span'); frag.className='dev-link-frag'; frag.textContent=it.frag||''; frag.title=it.frag||'';
+      const date=document.createElement('span'); date.className='dev-link-date'; const _ts=_tsOf(it); if(_ts){ const d=new Date(_ts); date.textContent=d.toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); date.title='Created '+d.toLocaleString('en-GB'); }
+      const open=document.createElement('button'); open.className='dev-mini-btn'; open.textContent='Open'; open.onclick=()=>{ window.open(location.origin+location.pathname+'#'+(it.frag||''),'_blank'); };
+      const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Delete'; del.onclick=()=>{ if(!confirm('Delete short link '+it.id+'?')) return; fetch(SHORTENER+'/links-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,id:it.id})}).then(r=>{ if(r.ok){ _links=_links.filter(x=>x.id!==it.id); row.remove(); } else { status('Delete failed ('+r.status+').',true); } }).catch(()=>status('Delete failed.',true)); };
+      row.append(id,frag,date,open,del); list.appendChild(row);
+    });
+  }
+  function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/links-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ _links=j.links||[]; render(); status(_links.length+' link(s).'); } }).catch(()=>status('Could not load (is the worker /links-list deployed?).',true)); }
   function openLinks(){ list.innerHTML=''; status(''); modal.hidden=false; load(); }
   function close(){ modal.hidden=true; }
   DEV_MODULES.push({ name:'Short Links', desc:'List the stored short links and delete stale ones.', open:openLinks, order:7 });
   const lb=document.getElementById('linksLoad'); if(lb) lb.onclick=load;
+  const sb=document.getElementById('linksSort'); if(sb) sb.onclick=()=>{ _sortDesc=!_sortDesc; sb.textContent=_sortDesc?'Newest first':'Oldest first'; render(); };
   const c=document.getElementById('linksClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
@@ -4537,6 +4553,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622w</div>
+<div class="version-tag">260622x</div>
 </body>
 </html>
