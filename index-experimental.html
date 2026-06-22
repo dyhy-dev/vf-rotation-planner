@@ -1253,7 +1253,7 @@ const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO','C
 const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC', QUEEN:'CO'};                       // editor button text; default 'Alt'
 const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch', QUEEN:'Crash Out'}; // export text; default 'Button'
 /* element -> character colour (used by the dev "Add new" form; values are editable in the Data Editor). "Elucidator" also flags the character as a navigator. */
-const ELEM_COLOR = {Fire:'#ff391d', Ice:'#00afff', Elec:'#fcff37', Wind:'#82ec2c', Nuke:'#ff9d00', Psy:'#ffffa2', Bless:'#fe9e01', Curse:'#ff66ff', Gun:'#00fcff', Phys:'#ff0036', Almighty:'#ffffff', Elucidator:'#3a6dfa'};
+const ELEM_COLOR = {Fire:'#ff391d', Ice:'#00afff', Elec:'#fcff37', Wind:'#82ec2c', Nuke:'#00fcff', Psy:'#ff66ff', Bless:'#ffffa2', Curse:'#ff0036', Gun:'#fe9e01', Phys:'#ff9d00', Almighty:'#ffffff', Elucidator:'#3a6dfa'};
 function hasAlt(name){ return ALT_CHARS.includes((name||'').toUpperCase()); }
 function altBtnLabel(name){ return ALT_BTN_LABEL[(name||'').toUpperCase()] || 'Alt'; }
 function altExportLabel(name){ return ALT_EXPORT_LABEL[(name||'').toUpperCase()] || 'Button'; }
@@ -4316,6 +4316,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622n</div>
+<div class="version-tag">260622o</div>
 </body>
 </html>
