@@ -2108,12 +2108,19 @@ function closeAllMenus(){
   document.querySelectorAll('.dropdown-menu').forEach(mn=>{ mn.hidden=true; });
   document.querySelectorAll('.dropdown > button[aria-haspopup]').forEach(b=>b.setAttribute('aria-expanded','false'));
 }
+/* keep an open dropdown inside the window: right-align it if it would overrun the right edge (e.g. the
+   right-most Export button on a narrow screen), then nudge it back in if even that runs off the left */
+function positionMenu(menu){ if(!menu) return; const m=8;
+  menu.style.left='0'; menu.style.right='auto'; menu.style.maxWidth=(window.innerWidth-2*m)+'px';
+  let r=menu.getBoundingClientRect();
+  if(r.right>window.innerWidth-m){ menu.style.left='auto'; menu.style.right='0'; r=menu.getBoundingClientRect(); }
+  if(r.left<m){ const wl=menu.parentElement.getBoundingClientRect().left; menu.style.right='auto'; menu.style.left=(m-wl)+'px'; } }
 document.addEventListener('click', closeAllMenus);
 (function(){
   const wrap=document.getElementById('loadExWrap'), btn=document.getElementById('loadExBtn'), menu=document.getElementById('loadExMenu');
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const key=it.dataset.example, ex=EXAMPLES[key]; close(); if(!ex) return;
     if(confirm('Load the '+key+' example? This replaces your current rotation.\n\nUse "Export JSON" first if you want to keep your work.')){
       try{ state=migrate(JSON.parse(JSON.stringify(ex))); save(); renderAll(); }catch(err){ alert('Could not load example.'); }
@@ -2133,7 +2140,7 @@ document.getElementById('importFile').onchange=e=>{
   const wrap=document.getElementById('importWrap'), btn=document.getElementById('importMenuBtn'), menu=document.getElementById('importMenu');
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.import; close();
     if(k==='json') document.getElementById('importFile').click();
     else if(k==='code') openImportCode();
@@ -3530,7 +3537,7 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
   const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.export; close();
     if(k==='json') exportJSON();
     else if(k==='png-art') exportImage(true);
@@ -3656,6 +3663,6 @@ state=load(); _loadShortCache(); loadSettings(); rotationPreviewOpen=!!settings.
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622l</div>
+<div class="version-tag">260622m</div>
 </body>
 </html>
