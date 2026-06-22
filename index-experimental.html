@@ -365,6 +365,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .crop-prev{aspect-ratio:1/1; border-radius:8px; background:#0d0b14; border:1px solid var(--line); cursor:ns-resize; touch-action:none; position:relative; overflow:hidden; user-select:none; -webkit-user-select:none}
 .crop-prev::after{content:""; position:absolute; inset:0; border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); pointer-events:none}
 .crop-name{font:700 11px Oswald,sans-serif; letter-spacing:.3px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text)}
+.crop-vals{font:600 10px ui-monospace,Menlo,Consolas,monospace; letter-spacing:.04em; text-align:center; color:var(--muted)}
+.crop-remember{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; user-select:none}
+.crop-remember input{cursor:pointer}
 .crop-mini{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
 .crop-mini input[type=range]{flex:1 1 auto; min-width:0}
 /* ===== end EXPERIMENTAL-ONLY crop editor styling ===== */
@@ -833,6 +836,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <span class="crop-hint">Drag a portrait up or down to set its vertical crop. The sides are already zoomed past the card frame; the Zoom slider fine-tunes that. Saved on this device only.</span>
       <span class="crop-status" id="cropStatus"></span>
       <span class="crop-tools-sp"></span>
+      <label class="crop-remember" title="Stay unlocked on this device so you don't re-enter the password (stores it locally on this device only)"><input type="checkbox" id="cropRemember"> Remember me</label>
       <button class="btn" id="cropResetAll">Reset all</button>
       <button class="btn" id="cropCopy" title="Copy the crop values as JSON">Copy values</button>
       <button class="btn" id="cropPull" title="Load the crops currently live (from the worker) into the editor">Pull live</button>
@@ -1191,6 +1195,7 @@ function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:
    then set the worker secret CROP_SECRET to the same password.
    The real push protection is the worker secret (server-side); this hash just hides the dev UI. */
 const DEV_PW_HASH='cfa3b34ceade48e19dc33c10d289ea31640e6ff6c6b12dedd58da8e13e5b1b60';
+const DEV_REMEMBER_KEY='vf-dev-pass';   /* "Remember me": stores the password locally on this device only (so the editor opens without re-entering it) */
 let _devPass=null;
 async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s))); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 /* ===================== end EXPERIMENTAL-ONLY crop helpers ===================== */
@@ -2749,7 +2754,8 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
 (function(){
   const modal=document.getElementById('cropModal'); if(!modal) return;
   const grid=document.getElementById('cropGrid');
-  function applyCell(prev,name){ const c=cropOf(name); prev.style.backgroundImage=bgURL(imgFor(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition='50% '+c.y+'%'; }
+  try{ const rp=localStorage.getItem(DEV_REMEMBER_KEY); if(rp) _devPass=rp; }catch(e){}   /* remembered unlock on this device */
+  function applyCell(prev,name){ const c=cropOf(name); prev.style.backgroundImage=bgURL(imgFor(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition='50% '+c.y+'%'; const v=prev.parentElement&&prev.parentElement.querySelector('.crop-vals'); if(v) v.textContent='Z '+c.z+'   Y '+c.y; }
   function entry(name){ const k=name.toUpperCase(); return charCrops[k]||(charCrops[k]={}); }
   function build(){
     grid.innerHTML='';
@@ -2758,10 +2764,11 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       const cell=document.createElement('div'); cell.className='crop-cell';
       const prev=document.createElement('div'); prev.className='crop-prev';
       const nm=document.createElement('div'); nm.className='crop-name'; nm.textContent=name;
+      const vals=document.createElement('div'); vals.className='crop-vals';
       const zlab=document.createElement('label'); zlab.className='crop-mini';
       const zoom=document.createElement('input'); zoom.type='range'; zoom.min='100'; zoom.max='170'; zoom.step='1'; zoom.value=cropOf(name).z;
       zlab.append('Zoom', zoom);
-      cell.append(prev,nm,zlab); grid.appendChild(cell);
+      cell.append(prev,nm,vals,zlab); grid.appendChild(cell);
       applyCell(prev,name);
       let dragging=false, sy=0, sV=0;
       prev.addEventListener('pointerdown', e=>{ dragging=true; sy=e.clientY; sV=cropOf(name).y; try{prev.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
@@ -2772,11 +2779,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       zoom.addEventListener('change', saveCharCrops);
     });
   }
-  const open=()=>{ loadCharCrops(); build(); modal.hidden=false; };
+  const open=()=>{ loadCharCrops(); build(); const rb=document.getElementById('cropRemember'); if(rb){ try{ rb.checked=!!localStorage.getItem(DEV_REMEMBER_KEY); }catch(e){} } modal.hidden=false; };
   const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
   function setStatus(msg, err){ const s=document.getElementById('cropStatus'); if(s){ s.textContent=msg||''; s.classList.toggle('err', !!err); } }
-  async function openDev(){ const pw=prompt('Developer password:'); if(pw==null) return; let h=''; try{ h=await sha256hex(pw); }catch(e){} if(h===DEV_PW_HASH){ _devPass=pw; open(); setStatus(''); } else { alert('Wrong password.'); } }
+  async function openDev(){ if(_devPass){ open(); setStatus(''); return; } const pw=prompt('Developer password:'); if(pw==null) return; let h=''; try{ h=await sha256hex(pw); }catch(e){} if(h===DEV_PW_HASH){ _devPass=pw; open(); setStatus(''); } else { alert('Wrong password.'); } }
   const dm=document.getElementById('devModeBtn'); if(dm) dm.onclick=openDev;
+  const rem=document.getElementById('cropRemember'); if(rem) rem.onchange=()=>{ try{ if(rem.checked && _devPass) localStorage.setItem(DEV_REMEMBER_KEY, _devPass); else localStorage.removeItem(DEV_REMEMBER_KEY); }catch(e){} };
   const cc=document.getElementById('cropClose'); if(cc) cc.onclick=close;
   modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
@@ -3741,6 +3749,6 @@ state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622c</div>
+<div class="version-tag">260622d</div>
 </body>
 </html>
