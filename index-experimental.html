@@ -398,7 +398,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-tabs{display:flex; gap:6px}
 .dev-tab{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:6px 14px; font:600 12px Inter,system-ui,sans-serif; cursor:pointer}
 .dev-tab.active{color:var(--text); border-color:#ffae42; background:var(--panel2)}
-#rosterAddPane, #rosterEditPane{display:flex; flex-direction:column; gap:11px}
+#rosterAddPane:not([hidden]), #rosterEditPane:not([hidden]), #rosterAuditPane:not([hidden]){display:flex; flex-direction:column; gap:11px}
 .dev-add-fields{display:flex; flex-direction:column; gap:10px; margin:2px 0}
 .dev-add-row{display:flex; align-items:center; gap:10px}
 .dev-add-row>label{flex:0 0 130px; font-size:12px; color:var(--muted)}
@@ -3365,7 +3365,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     _addCrop=null;
     if(type==='character'||type==='persona'){
       const fi=addFields.querySelector('input[type=file]');
-      if(fi){ const cw=buildAddCropWidget(type); addFields.appendChild(cw.el); fi.onchange=()=>{ const file=fi.files&&fi.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ const pv=fi.parentElement.querySelector('.dev-add-prev'); if(pv) pv.style.backgroundImage="url('"+r.result+"')"; cw.setImage(r.result); }; r.readAsDataURL(file); }; }
+      if(fi){ const cw=buildAddCropWidget(type); const fr=fi.closest('.dev-add-row'); if(fr) fr.after(cw.el); else addFields.appendChild(cw.el); fi.onchange=()=>{ const file=fi.files&&fi.files[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ const pv=fi.parentElement.querySelector('.dev-add-prev'); if(pv) pv.style.backgroundImage="url('"+r.result+"')"; cw.setImage(r.result); }; r.readAsDataURL(file); }; }
     }
   }
   function buildAddCropWidget(type){
@@ -3924,7 +3924,7 @@ function _pngTextChunk(keyword, text){
   const crcIn=new Uint8Array(4+data.length); crcIn.set(type,0); crcIn.set(data,4);
   dv.setUint32(8+data.length, _crc32(crcIn)); return out;
 }
-const PNG_META=[['Software','Velvet Frequency Rotation Planner by Koduck from 1AM'],['Author','Koduck from 1AM'],['Source','https://discord.gg/velvetfrequency'],['Comment','Velvet Frequency. https://discord.gg/velvetfrequency']];
+const PNG_META=[['Software','Velvet Frequency Rotation Planner by Koduck from 1AM'],['Author','Velvet Frequency Rotation Planner'],['Source','https://discord.gg/velvetfrequency'],['Comment','Velvet Frequency. https://discord.gg/velvetfrequency']];
 async function pngWithMeta(blob){
   try{
     const buf=new Uint8Array(await blob.arrayBuffer());
@@ -4522,6 +4522,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622u</div>
+<div class="version-tag">260622v</div>
 </body>
 </html>
