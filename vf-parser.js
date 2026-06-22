@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A101   (bumped +1 on every change; A199 -> B001)
+   Version: A102   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -691,6 +691,10 @@ function parseRotationText(text, opts){
     let best='',bestLen=0; for(const b of DATA.bossNames){ const re=new RegExp('\\b'+b.split(/\s+/).map(esc).join('\\s+')+'\\b','i');
       if(re.test(line) && b.length>bestLen){ best=b; bestLen=b.length; } }
     if(best) return best;
+    // 1b) common boss abbreviations that aren't a prefix of the full name ("SD" -> Slaughter Drive).
+    // Whole-word only; checked after full names so a spelt-out boss always wins.
+    const BOSS_ALIASES={sd:'SLAUGHTER DRIVE'};
+    for(const k in BOSS_ALIASES){ if(new RegExp('\\b'+esc(k)+'\\b','i').test(line)) return BOSS_ALIASES[k]; }
     // 2) fallback: a boss referenced by only its leading word (first match in list order)
     for(const b of DATA.bossNames){ if(new RegExp('\\b'+esc(b.split(' ')[0])+'\\b','i').test(line)) return b; } return ''; }
   function boggWord(line,boss){ return boss.split(' ')[0]; }
@@ -912,5 +916,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A101';
+  _g.VF_PARSER_VERSION = 'A102';
 })();
