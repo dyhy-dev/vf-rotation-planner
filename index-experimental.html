@@ -360,7 +360,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .crop-statusline{padding:10px 22px 0; min-height:22px; text-align:right; font:600 13px Inter,system-ui,sans-serif; color:#8de28d}
 .crop-statusline.err{color:#ff6b6b}
 .dev-card{max-width:min(560px,94vw)}
-.dev-modules{display:grid; grid-template-columns:1fr; gap:10px; padding:16px 22px 24px}
+.dev-modules{display:grid; grid-template-columns:1fr; gap:10px; padding:16px 22px 14px}
+.dev-remember{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; user-select:none; padding:0 22px 20px}
+.dev-remember input{cursor:pointer}
 .dev-module{display:flex; flex-direction:column; gap:3px; text-align:left; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:13px 16px; cursor:pointer; color:var(--text); font:inherit}
 .dev-module:hover{border-color:#ffae42}
 .dev-module-name{font:700 14px Oswald,sans-serif; letter-spacing:.02em}
@@ -392,6 +394,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-row{display:flex; gap:6px; align-items:center}
 .dev-inp{flex:1 1 auto; min-width:0; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:5px 8px; font:12px ui-monospace,Menlo,Consolas,monospace}
 .dev-inp.dev-key{flex:0 0 140px}
+.dev-swatch{width:24px; height:24px; border-radius:5px; border:1px solid var(--line); flex:0 0 auto}
 .dev-links{display:flex; flex-direction:column; gap:6px; max-height:54vh; overflow:auto}
 .dev-link-row{display:flex; align-items:center; gap:8px; font:12px ui-monospace,Menlo,Consolas,monospace; background:var(--field); border:1px solid var(--line); border-radius:7px; padding:6px 10px}
 .dev-link-id{font-weight:700; color:#ffae42; flex:0 0 auto}
@@ -488,9 +491,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
 .app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
 .app-banner-x:hover{color:#fff}
-.app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c}
-.app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232}
-.app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161}
+.app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c; background:linear-gradient(90deg,#21331f,#18261a)}
+.app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232; background:linear-gradient(90deg,#332f1a,#262216)}
+.app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161; background:linear-gradient(90deg,#331a1f,#261619)}
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
 body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
@@ -886,6 +889,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="modal-close" id="devClose" aria-label="Close">&times;</button>
     </div>
     <div class="dev-modules" id="devModules"></div>
+    <label class="dev-remember" title="Stay unlocked on this device so you don't re-enter the password (stores it locally on this device only)"><input type="checkbox" id="cropRemember"> Remember me on this device</label>
   </div>
 </div>
 
@@ -899,7 +903,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="crop-tools">
       <span class="crop-hint">Drag a portrait to position it (up/down and left/right); the Zoom slider sets how far it is zoomed in. The sides start zoomed past the card frame. Saved on this device only.</span>
       <span class="crop-tools-sp"></span>
-      <label class="crop-remember" title="Stay unlocked on this device so you don't re-enter the password (stores it locally on this device only)"><input type="checkbox" id="cropRemember"> Remember me</label>
       <button class="btn" id="cropResetAll">Reset all</button>
       <button class="btn" id="cropCopy" title="Copy the crop values as JSON">Copy values</button>
       <button class="btn" id="cropPull" title="Load the crops currently live (from the worker) into the editor">Pull live</button>
@@ -1377,6 +1380,7 @@ function applyDataOverrides(o){
   ['characterNames','personaNames','charColors','characterImages'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
   if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
   if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
+  if(o.PERSONA_SIGNATURES&&typeof o.PERSONA_SIGNATURES==='object'){ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,o.PERSONA_SIGNATURES); }
 }
 function loadDataLive(){
   try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
@@ -2953,7 +2957,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const modal=document.getElementById('cropModal'); if(!modal) return;
   const grid=document.getElementById('cropGrid');
   try{ const rp=localStorage.getItem(DEV_REMEMBER_KEY); if(rp) _devPass=rp; }catch(e){}   /* remembered unlock on this device */
-  function applyCell(prev,name){ const c=cropOf(name); prev.style.backgroundImage=bgURL(imgFor(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition=c.x+'% '+c.y+'%'; const v=prev.parentElement&&prev.parentElement.querySelector('.crop-vals'); if(v) v.textContent='Z '+c.z+'   X '+c.x+'   Y '+c.y; }
+  function applyCell(prev,name){ const c=cropOf(name); prev.style.backgroundImage=bgURL(imgFor(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition=c.x+'% '+c.y+'%'; const v=prev.parentElement&&prev.parentElement.querySelector('.crop-vals'); if(v) v.textContent='X '+c.x+'   Y '+c.y+'   Z '+c.z; }
   function entry(name){ const k=name.toUpperCase(); return charCrops[k]||(charCrops[k]={}); }
   function build(){
     grid.innerHTML='';
@@ -2978,13 +2982,14 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     });
   }
   /* the crop editor is one Developer-Mode MODULE (see DEV_MODULES); open/close just toggle its modal */
-  const openCrops=()=>{ loadCharCrops(); build(); const rb=document.getElementById('cropRemember'); if(rb){ try{ rb.checked=!!localStorage.getItem(DEV_REMEMBER_KEY); }catch(e){} } modal.hidden=false; };
+  const openCrops=()=>{ loadCharCrops(); build(); modal.hidden=false; };
   const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
   /* ---- Developer Mode hub: an extensible launcher. Add a new tool by appending one entry here. ---- */
   DEV_MODULES.push({ name:'Image Crops', desc:'Choose how each character image is cropped, then push it live for everyone.', open:openCrops });
   const devModal=document.getElementById('devModal'), devModules=document.getElementById('devModules');
   function openHub(){
     if(devModules){ devModules.innerHTML=''; DEV_MODULES.forEach(m=>{ const b=document.createElement('button'); b.className='dev-module'; const n=document.createElement('span'); n.className='dev-module-name'; n.textContent=m.name; const d=document.createElement('span'); d.className='dev-module-desc'; d.textContent=m.desc; b.append(n,d); b.onclick=()=>{ closeHub(); m.open(); }; devModules.appendChild(b); }); }
+    const rb=document.getElementById('cropRemember'); if(rb){ try{ rb.checked=!!localStorage.getItem(DEV_REMEMBER_KEY); }catch(e){} }
     if(devModal) devModal.hidden=false;
   }
   function closeHub(){ if(devModal) devModal.hidden=true; }
@@ -3127,7 +3132,8 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     {k:'charColors', type:'map', get:()=>DATA.charColors, set:v=>{ DATA.charColors=v; }},
     {k:'characterImages', type:'map', get:()=>DATA.characterImages, set:v=>{ DATA.characterImages=v; }},
     {k:'CHAR_ALIASES', type:'aliasmap', get:()=>CHAR_ALIASES, set:v=>{ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,v); }},
-    {k:'PERSONA_ALIASES', type:'aliasmap', get:()=>PERSONA_ALIASES, set:v=>{ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,v); }}
+    {k:'PERSONA_ALIASES', type:'aliasmap', get:()=>PERSONA_ALIASES, set:v=>{ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,v); }},
+    {k:'PERSONA_SIGNATURES', type:'map', get:()=>PERSONA_SIGNATURES, set:v=>{ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,v); }}
   ];
   let working=[], jsonMode=false;
   function cur(){ return TABLES[sel.selectedIndex]||TABLES[0]; }
@@ -3144,7 +3150,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     working.forEach((row,i)=>{
       const r=document.createElement('div'); r.className='dev-row';
       if(t==='array'){ const inp=document.createElement('input'); inp.className='dev-inp'; inp.value=row; inp.oninput=()=>{ working[i]=inp.value; }; r.append(inp); }
-      else { const k=document.createElement('input'); k.className='dev-inp dev-key'; k.value=row[0]; k.oninput=()=>{ working[i][0]=k.value; }; const v=document.createElement('input'); v.className='dev-inp'; v.value=row[1]; v.placeholder=(t==='aliasmap'?'comma, separated':'value'); v.oninput=()=>{ working[i][1]=v.value; }; r.append(k,v); }
+      else { const k=document.createElement('input'); k.className='dev-inp dev-key'; k.value=row[0]; k.oninput=()=>{ working[i][0]=k.value; }; const v=document.createElement('input'); v.className='dev-inp'; v.value=row[1]; v.placeholder=(t==='aliasmap'?'comma, separated':'value'); v.oninput=()=>{ working[i][1]=v.value; }; if(cur().k==='charColors'){ const sw=document.createElement('span'); sw.className='dev-swatch'; sw.style.background=row[1]||'transparent'; v.addEventListener('input',()=>{ sw.style.background=v.value||'transparent'; }); r.append(k,sw,v); } else { r.append(k,v); } }
       const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='×'; del.title='Remove'; del.onclick=()=>{ working.splice(i,1); renderForm(); }; r.append(del);
       form.appendChild(r);
     });
@@ -3173,7 +3179,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   let timer=null;
   function status(m,err){ const s=document.getElementById('pcropStatus'); if(!s) return; if(timer){clearTimeout(timer);timer=null;} s.textContent=m||''; s.classList.toggle('err',!!err); if(m){ timer=setTimeout(()=>{ s.textContent=''; s.classList.remove('err'); },5000); } }
   function entry(name){ return personaCrops[name]||(personaCrops[name]={}); }
-  function applyCell(prev,name){ const c=pCropOf(name); prev.style.backgroundImage=bgURL(personaImg(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition=c.x+'% '+c.y+'%'; const v=prev.parentElement&&prev.parentElement.querySelector('.crop-vals'); if(v) v.textContent='Z '+c.z+'   X '+c.x+'   Y '+c.y; }
+  function applyCell(prev,name){ const c=pCropOf(name); prev.style.backgroundImage=bgURL(personaImg(name)); prev.style.backgroundRepeat='no-repeat'; prev.style.backgroundSize=c.z+'% auto'; prev.style.backgroundPosition=c.x+'% '+c.y+'%'; const v=prev.parentElement&&prev.parentElement.querySelector('.crop-vals'); if(v) v.textContent='X '+c.x+'   Y '+c.y+'   Z '+c.z; }
   function build(){
     grid.innerHTML='';
     DATA.personaNames.slice().sort().forEach(name=>{
@@ -4162,6 +4168,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622h</div>
+<div class="version-tag">260622i</div>
 </body>
 </html>
