@@ -423,6 +423,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
 .app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
 .app-banner-x:hover{color:#fff}
+.app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c}
+.app-banner.acc-gold{border-color:#7a6a2a; border-left:4px solid #f1c232}
+.app-banner.acc-red{border-color:#7a3a44; border-left:4px solid #ff5161}
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
 body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
@@ -1166,12 +1169,25 @@ function loadPersonaCropsLive(){
   try{ const c=JSON.parse(localStorage.getItem(PERSONA_CROP_LIVE_KEY)); if(c&&typeof c==='object') personaCrops=c; }catch(e){}
   try{ fetch(SHORTENER+'/personacrops',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&typeof j==='object'){ personaCrops=j; try{ localStorage.setItem(PERSONA_CROP_LIVE_KEY, JSON.stringify(j)); }catch(e){} try{ renderTeam(); }catch(e){} if(typeof rotationPreviewOpen!=='undefined'&&rotationPreviewOpen){ try{ renderRotationPreview(); }catch(e){} } } }).catch(()=>{}); }catch(e){}
 }
+/* ---------- live data overrides (roster/data editor "Push to live"; merged into DATA + aliases at load, no re-upload) ---------- */
+const DATA_LIVE_KEY='vf-data-live-v1';
+function applyDataOverrides(o){
+  if(!o||typeof o!=='object') return;
+  ['characterNames','personaNames','charColors','characterImages'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
+  if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
+  if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
+}
+function loadDataLive(){
+  try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
+  try{ fetch(SHORTENER+'/data',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(o=>{ if(o&&typeof o==='object'){ applyDataOverrides(o); try{ localStorage.setItem(DATA_LIVE_KEY, JSON.stringify(o)); }catch(e){} try{ renderAll(); }catch(e){} } }).catch(()=>{}); }catch(e){}
+}
 /* ---------- live announcement banner (text pushed from the experimental Developer Mode, shown to everyone) ---------- */
 const BANNER_KEY='vf-banner-cache-v1', BANNER_DISMISS='vf-banner-dismissed';
 function showBanner(b){
   const bar=document.getElementById('appBanner'), txt=document.getElementById('appBannerText'); if(!bar||!txt) return;
-  const text=((b&&b.text)||'').trim(), id=String((b&&b.id)||'');
+  const text=((b&&b.text)||'').trim(), id=String((b&&b.id)||''), color=(b&&b.color)||'';
   let dismissed=''; try{ dismissed=localStorage.getItem(BANNER_DISMISS)||''; }catch(e){}
+  bar.classList.remove('acc-green','acc-gold','acc-red'); if(color==='green'||color==='gold'||color==='red') bar.classList.add('acc-'+color);
   if(text && id!==dismissed){ txt.textContent=text; bar.dataset.id=id; bar.hidden=false; } else { bar.hidden=true; }
 }
 function loadBannerLive(){
@@ -3663,7 +3679,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
-state=load(); _loadShortCache(); loadSettings(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
