@@ -518,6 +518,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .notes-row textarea{width:100%; min-height:54px; background:var(--panel2); border:1px solid var(--line);
   border-radius:10px; padding:10px; color:var(--text); font-family:inherit; font-size:16px; resize:vertical}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
+.koduck-pet{height:30px; width:auto; vertical-align:middle; margin:0 5px; image-rendering:pixelated; image-rendering:crisp-edges}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
 .app-banners{display:flex; flex-direction:column; gap:8px; margin-bottom:14px}
@@ -870,7 +871,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="rot-preview-body" id="rotPreviewBody" hidden></div>
     </div>
   </div>
-  <div class="foot">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener">Discord</a><br>Autosave is on (stored locally in your browser) · Export JSON to save your work as a file.</div>
+  <div class="foot">Made by Koduck<img class="koduck-pet" src="images/kdck.gif" alt="" aria-hidden="true"> from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener">Discord</a><br>Autosave is on (stored locally in your browser) · Export JSON to save your work as a file.</div>
   <!-- ===== EXPERIMENTAL-ONLY: Developer Mode entry (password-gated character crop editor) — DO NOT PROMOTE ===== -->
   <div class="dev-foot"><button class="dev-link" id="devModeBtn" title="Developer tools (password protected)">Developer Mode</button></div>
 </div>
@@ -4153,7 +4154,7 @@ function enterViewMode(){
       </div>
     </div>
     <div id="viewStage"><div class="view-loading">Loading view\u2026</div></div>
-    <div id="viewFooter"><div id="viewFooterText">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div><button type="button" class="btn" id="viewThemeToggle" title="Switch theme"></button></div>`;
+    <div id="viewFooter"><div id="viewFooterText">Made by Koduck<img class="koduck-pet" src="images/kdck.gif" alt="" aria-hidden="true"> from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div><button type="button" class="btn" id="viewThemeToggle" title="Switch theme"></button></div>`;
   const stage=document.getElementById('viewStage');
   document.getElementById('viewDownload').onclick=()=>{ try{ exportViewPNG(); }catch(e){ _settleExport(); } };
   { const vp=document.getElementById('viewPlay'); if(vp) vp.onclick=openPlayMode; }
@@ -4193,6 +4194,7 @@ let _playTurn=0, _playAct=0, _playMode='turn', _playLayout='vertical', _playDone
 const _playTouch = (function(){ try{ return (window.matchMedia&&window.matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window); }catch(e){ return false; } })();
 function _playLandscape(){ return (window.innerWidth||0) > (window.innerHeight||0); }   /* direct dimensions are more reliable than the orientation media query on iOS Safari */
 const _isIphone = /iPhone|iPod/.test(navigator.userAgent||'');
+const _playForceOrient = _isIphone;   /* only iPhone forces the player layout to follow device orientation (Safari fullscreen limits); iPad/tablets/desktop pick Vertical/Horizontal freely */
 function _isStandalone(){ return !!(window.navigator&&window.navigator.standalone) || (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches); }
 function _iosSafariLandscape(){ return _isIphone && !_isStandalone() && _playLandscape(); }
 function _playWantsHorizontal(){ return _playLandscape() && !(_isIphone && !_isStandalone()); }   /* iPhone Safari can't run the horizontal player well -> stay vertical */
@@ -4250,7 +4252,7 @@ function openPlayMode(){
     if(_playTouch) root.classList.add('play-touch');
   }
   _playMode='turn'; _playTurn=0; _playAct=0; _playDone=0; _playLastRenderTurn=_playTurn;   // start on turn 1 without a flash
-  _playLayout = _playTouch ? (_playWantsHorizontal()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
+  _playLayout = _playForceOrient ? (_playWantsHorizontal()?'horizontal':'vertical') : ((state.rotationView==='horizontal')?'horizontal':'vertical');
   playCloseInfo();
   root.hidden=false; document.body.classList.add('play-open');
   renderPlay();
@@ -4342,7 +4344,7 @@ function renderPlay(){
   const turns=state.turns||[], n=turns.length, s=state.setup||{}, dod=(s.type||'').toUpperCase()==='DOD';
   r.querySelector('#playTitle').textContent=[(s.boss||'').trim(),(s.type||'').trim()].filter(Boolean).join(' · ')||((s.rotationName||'').trim()||'Rotation');
   r.querySelectorAll('#playModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.pmode===_playMode));
-  r.querySelector('#playLayoutSeg').style.display=(!_playTouch && _playMode==='turn')?'':'none';
+  r.querySelector('#playLayoutSeg').style.display=(!_playForceOrient && _playMode==='turn')?'':'none';
   r.classList.toggle('is-horiz', _playMode==='turn' && _playLayout==='horizontal');
   r.querySelectorAll('#playLayoutSeg button').forEach(b=>b.classList.toggle('on',b.dataset.playlayout===_playLayout));
   const mkDots=(curTi)=>{ const dots=turns.map((tt,k)=>{ const brk=dod&&n>=DOD_BREAKS&&k>=n-DOD_BREAKS; return '<button class="play-dot'+(k===curTi?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
@@ -4399,7 +4401,7 @@ document.addEventListener('keydown',e=>{ const r=document.getElementById('playRo
   else if(e.key==='Home'){ e.preventDefault(); playFirst(); }
   else if(e.key==='End'){ e.preventDefault(); playLast(); }
   else if(/^[1-9]$/.test(e.key)){ e.preventDefault(); playGoTurn(+e.key-1); } });
-function _playOrient(){ const r=document.getElementById('playRoot'); if(r&&!r.hidden&&_playTouch){
+function _playOrient(){ const r=document.getElementById('playRoot'); if(r&&!r.hidden&&_playForceOrient){
     const want=_playWantsHorizontal()?'horizontal':'vertical'; if(want!==_playLayout){ _playLayout=want; renderPlay(); } }
   _updateIosRotate(); }
 // full-page notice on iPhone Safari (not the Home-Screen web app) in landscape: the horizontal player needs
@@ -4622,6 +4624,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622Z</div>
+<div class="version-tag">260623A</div>
 </body>
 </html>
