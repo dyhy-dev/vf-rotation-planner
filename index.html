@@ -235,6 +235,8 @@ body.touch-dragging, body.touch-dragging *{cursor:grabbing !important}
 .pcol-fields select, .pcol-fields input.persona-name{margin-top:0}
 .pcol-img{flex:0 0 auto}
 .pcol-img img{height:100%; max-height:200px; width:auto; max-width:130px; display:block; border-radius:6px; background:var(--field); object-fit:contain}
+.pcol-img .pcol-pic{width:120px; height:200px; border-radius:6px; background:var(--field) center/cover no-repeat; cursor:grab; -webkit-touch-callout:none}
+@container persona (max-width:320px){ .pcol-img .pcol-pic{width:96px; height:160px} }
 body.persona-img-left .pcol-body{flex-direction:row-reverse}
 /* when the persona COLUMN itself gets too narrow (regardless of window width — the grid widens columns again
    when it drops to one), the image squeezes the fields, so drop it below them instead */
@@ -416,6 +418,11 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .foot a{color:var(--blue)}
 @media (max-width:560px){ .rot-name input{font-size:22px} }
+.app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; margin-bottom:14px; color:#e9e4ff}
+.app-banner[hidden]{display:none}
+.app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
+.app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
+.app-banner-x:hover{color:#fff}
 .version-tag{position:absolute; right:10px; top:8px; font:500 11px "JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,Menlo,monospace; color:#5a5470; letter-spacing:.04em; z-index:-1; pointer-events:none; user-select:none}
 body.view-mode .version-tag{z-index:1000}   /* the read-only viewer covers the page with an opaque root, so keep the tag on top there */
 .combo-panel{position:absolute; z-index:1200; max-height:240px; overflow-y:auto; background:#1b1825; border:1px solid var(--blue-strong); border-radius:8px; box-shadow:0 8px 24px #000a; padding:4px}
@@ -689,6 +696,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </head>
 <body>
 <div class="wrap">
+  <div class="app-banner" id="appBanner" hidden role="status"><span class="app-banner-text" id="appBannerText"></span><button class="app-banner-x" id="appBannerClose" aria-label="Dismiss">&times;</button></div>
   <div class="toolbar">
     <div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div>
     <div class="toolbar-actions">
@@ -1146,6 +1154,32 @@ function loadCharCropsLive(){
         try{ renderTeam(); }catch(e){} if(typeof rotationPreviewOpen!=='undefined' && rotationPreviewOpen){ try{ renderRotationPreview(); }catch(e){} } }
     }).catch(()=>{}); }catch(e){}
 }
+/* ---------- persona image crop (display-only; values fetched live from the worker, /personacrops). Only personas
+   that actually have a crop use the cropped box; the rest render as the normal <img>, so nothing changes by default. */
+const PERSONA_CROP_DEF={z:100,y:50,x:50};
+const PERSONA_CROP_LIVE_KEY='vf-personacrop-live-v1';
+let personaCrops={};
+function pCropOf(name){ const c=personaCrops[name]||{}; return { z:(c.z!=null?+c.z:PERSONA_CROP_DEF.z), y:(c.y!=null?+c.y:PERSONA_CROP_DEF.y), x:(c.x!=null?+c.x:PERSONA_CROP_DEF.x) }; }
+function hasPersonaCrop(name){ const c=personaCrops[name]; return !!(c && (c.z!=null||c.y!=null||c.x!=null)); }
+function pCropBgStyle(name, urlVal){ const c=pCropOf(name); return `background-color:var(--field);background-image:${urlVal};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:${c.x}% ${c.y}%`; }
+function loadPersonaCropsLive(){
+  try{ const c=JSON.parse(localStorage.getItem(PERSONA_CROP_LIVE_KEY)); if(c&&typeof c==='object') personaCrops=c; }catch(e){}
+  try{ fetch(SHORTENER+'/personacrops',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&typeof j==='object'){ personaCrops=j; try{ localStorage.setItem(PERSONA_CROP_LIVE_KEY, JSON.stringify(j)); }catch(e){} try{ renderTeam(); }catch(e){} if(typeof rotationPreviewOpen!=='undefined'&&rotationPreviewOpen){ try{ renderRotationPreview(); }catch(e){} } } }).catch(()=>{}); }catch(e){}
+}
+/* ---------- live announcement banner (text pushed from the experimental Developer Mode, shown to everyone) ---------- */
+const BANNER_KEY='vf-banner-cache-v1', BANNER_DISMISS='vf-banner-dismissed';
+function showBanner(b){
+  const bar=document.getElementById('appBanner'), txt=document.getElementById('appBannerText'); if(!bar||!txt) return;
+  const text=((b&&b.text)||'').trim(), id=String((b&&b.id)||'');
+  let dismissed=''; try{ dismissed=localStorage.getItem(BANNER_DISMISS)||''; }catch(e){}
+  if(text && id!==dismissed){ txt.textContent=text; bar.dataset.id=id; bar.hidden=false; } else { bar.hidden=true; }
+}
+function loadBannerLive(){
+  let cached=null; try{ cached=JSON.parse(localStorage.getItem(BANNER_KEY)); }catch(e){}
+  if(cached) showBanner(cached);
+  try{ fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ if(b&&typeof b==='object'){ try{ localStorage.setItem(BANNER_KEY, JSON.stringify(b)); }catch(e){} showBanner(b); } }).catch(()=>{}); }catch(e){}
+}
+document.addEventListener('DOMContentLoaded', ()=>{ const x=document.getElementById('appBannerClose'); if(x) x.onclick=()=>{ const bar=document.getElementById('appBanner'); if(bar){ try{ localStorage.setItem(BANNER_DISMISS, bar.dataset.id||''); }catch(e){} bar.hidden=true; } }; });
 const DAGGER_IMG={
   "Arc Knife":"daggers/01_Arc_Knife.webp","Cyclotron":"daggers/02_Cyclotron.webp",
   "Starry Compass":"daggers/03_Starry_Compass.webp","Glimmer":"daggers/04_Glimmer.webp",
@@ -1520,7 +1554,7 @@ function renderTeam(){
             <input class="persona-note" data-path="personas.${k}.note" value="${esc(p.note||'')}" placeholder="Notes..." autocomplete="off"/>
           </div>
         </div>
-        <div class="pcol-img">${p.name?`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" title="Drag to reorder" onerror="imgFallback(this)" loading="lazy"/>`:''}</div>
+        <div class="pcol-img">${p.name?(hasPersonaCrop(p.name)?`<div class="pcol-pic" style="${pCropBgStyle(p.name, bgURL(personaImg(p.name)))}" title="Drag to reorder"></div>`:`<img src="${personaImg(p.name)}" alt="${esc(p.name)}" title="Drag to reorder" onerror="imgFallback(this)" loading="lazy"/>`):''}</div>
       </div>
     </div>`).join('');
   const _w=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
@@ -2925,7 +2959,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   if(withImages){
     const pCard=(p,wide)=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
       return `<div style="${M?'box-sizing:border-box;min-width:0;':(wide?'flex:1 1 0;min-width:0;':'width:174px;')+'box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
-        ${img?`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`:''}
+        ${img?(hasPersonaCrop(nm)?`<div style="width:53px;height:88px;border-radius:5px;flex:0 0 auto;${pCropBgStyle(nm,"url('"+img+"')")}"></div>`:`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`):''}
         <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(personaLabel(p.name))}</div>
         ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillDisplay(sig))}</div>`:''}
         ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillDisplay(s))).join('<br>')}</div>`:''}</div>
@@ -3629,7 +3663,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
-state=load(); _loadShortCache(); loadSettings(); loadCharCropsLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
