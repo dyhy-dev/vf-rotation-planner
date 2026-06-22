@@ -1377,10 +1377,12 @@ function savePersonaCrops(){ try{ localStorage.setItem(PERSONA_CROP_KEY, JSON.st
 const DATA_LIVE_KEY='vf-data-live-v1';
 function applyDataOverrides(o){
   if(!o||typeof o!=='object') return;
-  ['characterNames','personaNames','charColors','characterImages'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
+  ['characterNames','personaNames','charColors','characterImages','bossNames','daggerNames','elucidatorNames','spaceCards','sunSkyCards','revSets'].forEach(k=>{ if(o[k]!=null) DATA[k]=o[k]; });
   if(o.CHAR_ALIASES&&typeof o.CHAR_ALIASES==='object'){ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,o.CHAR_ALIASES); }
   if(o.PERSONA_ALIASES&&typeof o.PERSONA_ALIASES==='object'){ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,o.PERSONA_ALIASES); }
   if(o.PERSONA_SIGNATURES&&typeof o.PERSONA_SIGNATURES==='object'){ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,o.PERSONA_SIGNATURES); }
+  if(o.DAGGER_IMG&&typeof o.DAGGER_IMG==='object'){ Object.keys(DAGGER_IMG).forEach(x=>delete DAGGER_IMG[x]); Object.assign(DAGGER_IMG,o.DAGGER_IMG); }
+  if(o.SKILL_ALIASES&&typeof o.SKILL_ALIASES==='object'){ Object.keys(SKILL_ALIASES).forEach(x=>delete SKILL_ALIASES[x]); Object.assign(SKILL_ALIASES,o.SKILL_ALIASES); }
 }
 function loadDataLive(){
   try{ const c=JSON.parse(localStorage.getItem(DATA_LIVE_KEY)); if(c) applyDataOverrides(c); }catch(e){}
@@ -3133,8 +3135,29 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     {k:'characterImages', type:'map', get:()=>DATA.characterImages, set:v=>{ DATA.characterImages=v; }},
     {k:'CHAR_ALIASES', type:'aliasmap', get:()=>CHAR_ALIASES, set:v=>{ Object.keys(CHAR_ALIASES).forEach(x=>delete CHAR_ALIASES[x]); Object.assign(CHAR_ALIASES,v); }},
     {k:'PERSONA_ALIASES', type:'aliasmap', get:()=>PERSONA_ALIASES, set:v=>{ Object.keys(PERSONA_ALIASES).forEach(x=>delete PERSONA_ALIASES[x]); Object.assign(PERSONA_ALIASES,v); }},
-    {k:'PERSONA_SIGNATURES', type:'map', get:()=>PERSONA_SIGNATURES, set:v=>{ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,v); }}
+    {k:'PERSONA_SIGNATURES', type:'map', get:()=>PERSONA_SIGNATURES, set:v=>{ Object.keys(PERSONA_SIGNATURES).forEach(x=>delete PERSONA_SIGNATURES[x]); Object.assign(PERSONA_SIGNATURES,v); }},
+    {k:'bossNames', type:'array', get:()=>DATA.bossNames, set:v=>{ DATA.bossNames=v; }},
+    {k:'daggerNames', type:'array', get:()=>DATA.daggerNames, set:v=>{ DATA.daggerNames=v; }},
+    {k:'DAGGER_IMG', type:'map', get:()=>DAGGER_IMG, set:v=>{ Object.keys(DAGGER_IMG).forEach(x=>delete DAGGER_IMG[x]); Object.assign(DAGGER_IMG,v); }},
+    {k:'elucidatorNames', type:'array', get:()=>DATA.elucidatorNames, set:v=>{ DATA.elucidatorNames=v; }},
+    {k:'SKILL_ALIASES', type:'aliasmap', get:()=>SKILL_ALIASES, set:v=>{ Object.keys(SKILL_ALIASES).forEach(x=>delete SKILL_ALIASES[x]); Object.assign(SKILL_ALIASES,v); }},
+    {k:'spaceCards', type:'array', get:()=>DATA.spaceCards, set:v=>{ DATA.spaceCards=v; }},
+    {k:'sunSkyCards', type:'array', get:()=>DATA.sunSkyCards, set:v=>{ DATA.sunSkyCards=v; }},
+    {k:'revSets', type:'array', get:()=>DATA.revSets, set:v=>{ DATA.revSets=v; }}
   ];
+  /* adding/removing a character or persona (or dagger) keeps the linked tables in sync */
+  const GROUPS={
+    characterNames:[{k:'characterImages',def:''},{k:'charColors',def:''},{k:'CHAR_ALIASES',def:[]}],
+    personaNames:[{k:'PERSONA_SIGNATURES',def:''},{k:'PERSONA_ALIASES',def:[]}],
+    daggerNames:[{k:'DAGGER_IMG',def:''}]
+  };
+  function tableByKey(k){ return TABLES.find(t=>t.k===k); }
+  function syncGroup(masterKey, names){
+    const deps=GROUPS[masterKey]; if(!deps) return [];
+    const touched=[];
+    deps.forEach(d=>{ const t=tableByKey(d.k); if(!t) return; const old=t.get()||{}; const out={}; names.forEach(n=>{ out[n]=(old[n]!=null?old[n]:(Array.isArray(d.def)?d.def.slice():d.def)); }); t.set(out); touched.push(d.k); });
+    return touched;
+  }
   let working=[], jsonMode=false;
   function cur(){ return TABLES[sel.selectedIndex]||TABLES[0]; }
   function toWorking(v,t){ if(t==='array') return (v||[]).slice(); if(t==='map') return Object.entries(v||{}).map(([k,x])=>[k,x]); return Object.entries(v||{}).map(([k,x])=>[k,(x||[]).join(', ')]); }
@@ -3164,8 +3187,8 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   if(sel) sel.onchange=show;
   const jb=document.getElementById('rosterJson'); if(jb) jb.onclick=()=>{ if(jsonMode){ let v; try{ v=JSON.parse(ta.value); }catch(e){ status('Invalid JSON: '+e.message,true); return; } working=toWorking(v,cur().type); jsonMode=false; } else { try{ ta.value=JSON.stringify(realValue(),null,2); }catch(e){ status('Error: '+e.message,true); return; } jsonMode=true; } renderView(); };
   const cp=document.getElementById('rosterCopy'); if(cp) cp.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ navigator.clipboard.writeText(JSON.stringify(v,null,2)); status('Copied.'); }catch(e){ status('Copy failed.',true); } };
-  const ap=document.getElementById('rosterApply'); if(ap) ap.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ cur().set(v); }catch(e){ status('Apply failed: '+e.message,true); return; } try{ renderAll(); }catch(e){} status('Applied to this session (not saved).'); };
-  const pu=document.getElementById('rosterPush'); if(pu) pu.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ cur().set(v); renderAll(); }catch(e){} status('Pushing…'); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:{[cur().k]:v}})}).then(r=>{ if(r.ok){ status('Pushed. '+cur().k+' is now live for everyone.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (is the worker /data deployed?).',true)); };
+  const ap=document.getElementById('rosterApply'); if(ap) ap.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } let synced=[]; try{ cur().set(v); synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; }catch(e){ status('Apply failed: '+e.message,true); return; } try{ renderAll(); }catch(e){} status(synced.length?('Applied + synced '+synced.join(', ')+' (session only).'):'Applied to this session (not saved).'); };
+  const pu=document.getElementById('rosterPush'); if(pu) pu.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } const data={[cur().k]:v}; try{ cur().set(v); const synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; synced.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); renderAll(); }catch(e){} status('Pushing…'); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed '+Object.keys(data).join(', ')+' live.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (is the worker /data deployed?).',true)); };
   const c=document.getElementById('rosterClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
@@ -4064,9 +4087,9 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   function optionsFor(input){
     const k=input.dataset.combo;
     if(k==='boss') return bossListFor(state.setup.type);
-    if(k==='persona') return DATA.personaNames;
+    if(k==='persona') return DATA.personaNames.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
     if(k==='skill') return SKILL_LIST;
-    if(k==='char') return input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>n!=='WONDER' && !(DATA.elucidatorNames||[]).includes(n));
+    if(k==='char') return (input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>n!=='WONDER' && !(DATA.elucidatorNames||[]).includes(n))).slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
     return [];
   }
   function position(){ if(!active) return; const r=active.getBoundingClientRect();
@@ -4168,6 +4191,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622i</div>
+<div class="version-tag">260622j</div>
 </body>
 </html>
