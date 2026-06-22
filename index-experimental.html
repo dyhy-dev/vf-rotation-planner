@@ -350,10 +350,15 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .modal-close:hover{color:var(--text); background:var(--panel2)}
 /* ===== EXPERIMENTAL-ONLY: character image crop editor styling — DO NOT PROMOTE ===== */
 .btn-exp{border-style:dashed}
+.dev-foot{display:flex; justify-content:center; padding:2px 0 18px}
+.dev-link{background:transparent; border:1px dashed #4a4560; color:#6a6480; font:600 11px Inter,system-ui,sans-serif; letter-spacing:.06em; text-transform:uppercase; padding:4px 12px; border-radius:7px; cursor:pointer}
+.dev-link:hover{color:#ffae42; border-color:#ffae42}
 .crop-card{max-width:min(1120px,95vw)}
 .crop-tools{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 22px 0}
 .crop-tools-sp{flex:1 1 auto}
-.crop-hint{color:var(--muted); font-size:12.5px; line-height:1.45; max-width:620px}
+.crop-hint{color:var(--muted); font-size:12.5px; line-height:1.45; max-width:520px}
+.crop-status{font:600 12px Inter,system-ui,sans-serif; color:#8de28d}
+.crop-status.err{color:#ff6b6b}
 .crop-exp-tag{font:600 11px Inter,system-ui,sans-serif; color:#ffae42; border:1px dashed #ffae42; border-radius:6px; padding:1px 7px; vertical-align:middle; margin-left:8px; letter-spacing:0}
 .crop-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:14px; max-height:70vh; overflow:auto; padding:14px 22px 24px}
 .crop-cell{display:flex; flex-direction:column; gap:5px}
@@ -739,7 +744,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="btn" id="settingsBtn" title="Open settings (local display options)">Settings</button>
       <button class="btn" id="resetBtn">Reset</button>
       <button class="btn" id="playBtn" title="Play the rotation turn by turn">Play</button>
-      <button class="btn btn-exp" id="cropBtn" title="EXPERIMENTAL (this device only, not in the official tool): choose how each character image is cropped">Image Crops</button>
       <input type="file" id="importFile" accept="application/json" hidden/>
     </div>
   </div>
@@ -766,6 +770,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
   </div>
   <div class="foot">Made by Koduck from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener">Discord</a><br>Autosave is on (stored locally in your browser) · Export JSON to save your work as a file.</div>
+  <!-- ===== EXPERIMENTAL-ONLY: Developer Mode entry (password-gated character crop editor) — DO NOT PROMOTE ===== -->
+  <div class="dev-foot"><button class="dev-link" id="devModeBtn" title="Developer tools (password protected)">Developer Mode</button></div>
 </div>
 
 <div class="modal" id="guideModal" hidden>
@@ -825,9 +831,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     </div>
     <div class="crop-tools">
       <span class="crop-hint">Drag a portrait up or down to set its vertical crop. The sides are already zoomed past the card frame; the Zoom slider fine-tunes that. Saved on this device only.</span>
+      <span class="crop-status" id="cropStatus"></span>
       <span class="crop-tools-sp"></span>
       <button class="btn" id="cropResetAll">Reset all</button>
-      <button class="btn" id="cropCopy" title="Copy the crop values as JSON (to bake into the official tool later)">Copy values</button>
+      <button class="btn" id="cropCopy" title="Copy the crop values as JSON">Copy values</button>
+      <button class="btn" id="cropPull" title="Load the crops currently live (from the worker) into the editor">Pull live</button>
+      <button class="btn btn-exp" id="cropPush" title="Push these crops live for everyone (via the worker)">Push to live</button>
     </div>
     <div class="crop-grid" id="cropGrid"></div>
   </div>
@@ -1177,6 +1186,13 @@ function loadCharCrops(){ try{ const o=JSON.parse(localStorage.getItem(CHAR_CROP
 function saveCharCrops(){ try{ localStorage.setItem(CHAR_CROP_KEY, JSON.stringify(charCrops)); }catch(e){} }
 function cropOf(name){ const c=charCrops[(name||'').toUpperCase()]||{}; return { z:(c.z!=null?+c.z:CHAR_CROP_DEF.z), y:(c.y!=null?+c.y:CHAR_CROP_DEF.y) }; }
 function cropBgStyle(name, url){ const c=cropOf(name); return `background-color:#0d0b14;background-image:${url};background-repeat:no-repeat;background-size:${c.z}% auto;background-position:50% ${c.y}%`; }
+/* Developer Mode gate: only the SHA-256 HASH of the password lives here (not the password itself).
+   Default below is SHA-256('velvet') — CHANGE IT: run  await sha256hex('your-new-password')  in the
+   console and paste the result here, then set the worker secret CROP_SECRET to the same password.
+   The real push protection is the worker secret (server-side); this hash just hides the dev UI. */
+const DEV_PW_HASH='f4c44266a2dfad9847930615218f2811c5ee3248c6df3d3921a6d2b8e67c8bf6';
+let _devPass=null;
+async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s))); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 /* ===================== end EXPERIMENTAL-ONLY crop helpers ===================== */
 const DAGGER_IMG={
   "Arc Knife":"daggers/01_Arc_Knife.webp","Cyclotron":"daggers/02_Cyclotron.webp",
@@ -2758,12 +2774,16 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   const open=()=>{ loadCharCrops(); build(); modal.hidden=false; };
   const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
-  const cb=document.getElementById('cropBtn'); if(cb) cb.onclick=open;
+  function setStatus(msg, err){ const s=document.getElementById('cropStatus'); if(s){ s.textContent=msg||''; s.classList.toggle('err', !!err); } }
+  async function openDev(){ const pw=prompt('Developer password:'); if(pw==null) return; let h=''; try{ h=await sha256hex(pw); }catch(e){} if(h===DEV_PW_HASH){ _devPass=pw; open(); setStatus(''); } else { alert('Wrong password.'); } }
+  const dm=document.getElementById('devModeBtn'); if(dm) dm.onclick=openDev;
   const cc=document.getElementById('cropClose'); if(cc) cc.onclick=close;
   modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
   const ra=document.getElementById('cropResetAll'); if(ra) ra.onclick=()=>{ charCrops={}; saveCharCrops(); build(); };
   const cp=document.getElementById('cropCopy'); if(cp) cp.onclick=()=>{ const out=JSON.stringify(charCrops); const ok=()=>{ cp.textContent='Copied'; setTimeout(()=>cp.textContent='Copy values',1200); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(out).then(ok,()=>prompt('Crop values:',out)); else prompt('Crop values:',out); };
+  const pull=document.getElementById('cropPull'); if(pull) pull.onclick=()=>{ setStatus('Loading the live crops…'); fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(j=>{ charCrops=(j&&typeof j==='object')?j:{}; saveCharCrops(); build(); setStatus('Loaded the live crops into the editor.'); }).catch(()=>setStatus('Could not load the live crops.', true)); };
+  const push=document.getElementById('cropPush'); if(push) push.onclick=()=>{ if(!_devPass){ setStatus('Unlock Developer Mode first.', true); return; } setStatus('Pushing to live…'); fetch(SHORTENER+'/crops',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass:_devPass, data:charCrops})}).then(r=>{ if(r.ok){ setStatus('Pushed. The crops are now live in the main tool.'); } else if(r.status===403){ setStatus('Rejected by the worker (wrong password).', true); } else { setStatus('Push failed ('+r.status+').', true); } }).catch(()=>setStatus('Push failed (network or worker).', true)); };
 })();
 /* ===================== end EXPERIMENTAL-ONLY crop editor wiring ===================== */
 
@@ -3721,6 +3741,6 @@ state=load(); _loadShortCache(); loadSettings(); loadCharCrops()/*EXPERIMENTAL c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260622a</div>
+<div class="version-tag">260622b</div>
 </body>
 </html>
