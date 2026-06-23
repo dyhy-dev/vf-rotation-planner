@@ -382,6 +382,9 @@ function parseRotationText(text, opts){
           else if(h.lab==='patch'){ const pm=(val.match(/\d{1,2}\.\d+/)||[])[0]; if(pm && !setup.patch){ setup.patch=pm; got.patch=1; } } });
         line=line.slice(0,hits[0].at).trim();
         if(!line) continue;   // line was nothing but labels
+        // the run-in text before the labels is title-area prose ("A0 Mont F w/ Low Howler"); if the real title
+        // line gave no name (e.g. it was just "SoS 3.2 Melchizedek"), use it as the rotation name.
+        if(!setup.rotationName){ setup.rotationName=line; continue; }
       }
     }
 
@@ -655,8 +658,10 @@ function parseRotationText(text, opts){
         const pm=(at && +at[1]>=1 && +at[1]<20) ? at[1] : ([...t2.matchAll(/\b(\d{1,2}\.\d+)\b/g)].map(x=>x[1]).find(v=>+v>=1 && +v<20)||'');
         if(pm){ setup.patch=pm; got.patch=1; t2=t2.replace(pm,' '); } }
       // boss + mode
-      const bm=matchBoss(t2); if(bm){ setup.boss=bm; got.boss=1; t2=t2.replace(new RegExp('\\b'+bm.split(' ').join('\\s+')+'\\b','i'),' '); }
+      // mode first, so an SOS title can match its own boss list (persona-bosses like Melchizedek aren't in DATA.bossNames)
       const mm=t2.match(/\b(MLD|DOD|NOD|SOS)\b/i); if(mm){ setup.type=mm[1].toUpperCase(); got.mode=1; t2=t2.replace(/\b(MLD|DOD|NOD|SOS)\b/i,' '); }
+      let bm=matchBoss(t2); if(!bm && setup.type==='SOS') bm=matchSosBoss(t2);
+      if(bm){ setup.boss=bm; got.boss=1; t2=t2.replace(new RegExp('\\b'+bm.split(' ').join('\\s+')+'\\b','i'),' '); }
       let rn=t2.replace(/\s+/g,' ').trim().replace(/^[:\s]+|[:\s]+$/g,'').trim();
       // credit: an unknown name after "by" (1-2 words) or a single unknown word after "-"
       const cmBy=rn.match(/^(.*?)\bby\s+(.+)$/i); const cmDash=rn.match(/^(.*?)\s*[-–]\s*(\S+)$/);
@@ -713,6 +718,10 @@ function parseRotationText(text, opts){
         const cm=line.match(/^(\S+)\s+(.*)$/); if(cm && /\//.test(cm[2])){ nameStr=cm[1]; skillStr=cm[2]; }
       }
     }
+    // an Overclock level on the persona ("Vishnu OC3", "OC III") belongs in the persona note, not the name
+    { const ocm=nameStr.match(/\bOC\s*([1-3]|I{1,3})\b/i);
+      if(ocm){ const lvl=/^[1-3]$/.test(ocm[1])?ocm[1]:String(ocm[1].length);
+        noteStr=[noteStr,'OC'+lvl].filter(Boolean).join(', '); nameStr=nameStr.replace(ocm[0],' ').replace(/\s+/g,' ').trim(); } }
     const tok=nameStr.split(/\s+/)[0];
     const a=resolveActor(tok);
     if(a&&a.type==='persona'){ const sig=(PERSONA_SIGNATURES[a.name]||'').toLowerCase();
@@ -756,6 +765,11 @@ function parseRotationText(text, opts){
     for(const k in BOSS_ALIASES){ if(new RegExp('\\b'+esc(k)+'\\b','i').test(line)) return BOSS_ALIASES[k]; }
     // 2) fallback: a boss referenced by only its leading word (first match in list order)
     for(const b of DATA.bossNames){ if(new RegExp('\\b'+esc(b.split(' ')[0])+'\\b','i').test(line)) return b; } return ''; }
+  // SOS rotations fight a separate set of (often persona) bosses kept in the main tool's SOS_BOSSES list.
+  // Only consulted in SOS mode, so loose entries like "POWER" can't hijack a normal title. Full-name match only.
+  function matchSosBoss(line){ if(typeof SOS_BOSSES==='undefined') return ''; const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    let best='',bestLen=0; for(const b of SOS_BOSSES){ const re=new RegExp('\\b'+b.split(/\s+/).map(esc).join('\\s+')+'\\b','i');
+      if(re.test(line) && b.length>bestLen){ best=b; bestLen=b.length; } } return best; }
   function boggWord(line,boss){ return boss.split(' ')[0]; }
 
   // turns (parse first, so we can fill the team from turn actors if the header is sparse)
@@ -991,5 +1005,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A112';
+  _g.VF_PARSER_VERSION = 'A113';
 })();
