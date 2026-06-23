@@ -60,6 +60,8 @@ function codeOf(token){
 }
 // common stat-note words that aren't cards but collide with one (notably "pierce" fuzz-matches "Peace").
 const CARD_STOP=/^(pierce|crit|critical|percent|pct|reset|resets)$/;
+// per-character pierce/crit requirements ("Makoto: 7.4% Pierce, or 0%") belong in that unit's note, not the team notes.
+const STAT_NOTE=/\b(pierce|crit|critical)\b/i;
 function cardPair(str){
   // when several card options are listed (comma- or "or"-separated), only the first pair counts
   str=String(str==null?'':str).split(/\s*,\s*|\s+or\s+/i)[0]||'';
@@ -482,7 +484,10 @@ function parseRotationText(text, opts){
       // middle, so the words left after the name are the card pair.
       if(!cp2.space && !cp2.sunsky && info.awareness && a2 && a2.type==='char'){
         const restToks=namePart.split(/\s+/).slice(1).join(' '); if(restToks) cp2=cardPair(restToks); }
-      if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky)){
+      // a non-card leftover after the colon that is a pierce/crit stat ("A6R6 Makoto: 7.4% Pierce") is the unit's note
+      const statNote=(!cp2.space && !cp2.sunsky && !note && cardsPart && STAT_NOTE.test(cardsPart)) ? cardsPart : '';
+      if(statNote) note=statNote;
+      if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote)){
         if(a2.name==='TWINS'){ (cardsPart.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
         const ci={}; if(info.awareness)ci.awareness=info.awareness; if(info.rev)ci.rev=info.rev; if(cp2.space)ci.space=cp2.space; if(cp2.sunsky)ci.sunsky=cp2.sunsky; if(note)ci.note=note;
         addChar(a2.name, ci);
@@ -500,6 +505,8 @@ function parseRotationText(text, opts){
         if(a && a.type==='char'){ const cp=cardPair(rest);
           if(a.name==='TWINS'){ (rest.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
           if(cp.space||cp.sunsky){ const info={}; if(cp.space)info.space=cp.space; if(cp.sunsky)info.sunsky=cp.sunsky; addChar(a.name,info); got.cards=1; continue; }
+          // pierce/crit info for a character is that unit's note, not a team note ("Makoto: 7.4% Pierce, or 0%")
+          if(STAT_NOTE.test(rest)){ const prev=(charData[a.name]||{}).note; addChar(a.name,{note:prev?prev+' '+rest:rest}); continue; }
           noteLines.push(line); continue; } } }
 
     // "<name> - <space> <sun/sky>" revelation line (dash separator), e.g. "Chord - Trust Prosperity".
@@ -921,5 +928,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A104';
+  _g.VF_PARSER_VERSION = 'A105';
 })();
