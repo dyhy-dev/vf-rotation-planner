@@ -1,18 +1,9 @@
-/* ============================================================================
-   Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A103   (bumped +1 on every change; A199 -> B001)
-   ----------------------------------------------------------------------------
-   Loaded by index.html as a classic <script> AFTER the main script. Keep this
-   file in the SAME folder as index.html (works on GitHub Pages and locally via
-   file://). Edit and re-upload this file alone to improve the text-import
-   parser — no new build of the tool is needed; just reload the page.
-
-   This is a PURE parser: text in -> { state, warnings, got } out. It reads the
-   shared game-data tables defined in the main tool (DATA, CHAR_ALIASES,
-   SKILL_ALIASES, SKILL_ALIAS_MAP, PERSONA_SIGNATURES, DOD_BREAKS,
-   TWINS_ROLES, TWINS_ROLE_DUALS)
-   and touches no DOM. The tool calls window.parseRotationText(text, opts).
-   ============================================================================ */
+/* Velvet Frequency — Rotation Text Parser (external, separately editable).
+   Pure: text in -> { state, warnings, got } out, no DOM. Loaded by index.html as
+   a classic <script> AFTER the main script; reads its shared DATA tables. Edit
+   and re-upload this file alone — no rebuild needed. Version lives in the
+   VF_PARSER_VERSION constant (bottom of file). Contract, bump rule & the full
+   list of shared tables: see CLAUDE.md. */
 (function(){
 const _n = s => String(s||'').trim().toLowerCase();
 /* reforge rank: "F" is an accepted alternate spelling of "R" (e.g. "A6F6" == "A6 R6"). Normalise to R. */
@@ -929,5 +920,6 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A103';
+  // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
+  _g.VF_PARSER_VERSION = 'A104';
 })();
