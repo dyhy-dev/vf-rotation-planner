@@ -443,7 +443,7 @@ function parseRotationText(text, opts){
       if(bkm){ let s2=bkm[1].trim(), info={};
         const am2=s2.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\s+/i);
         if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
-        let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/);
+        let note=''; const nm2=s2.match(/\s*\(([^)]*(?:\([^)]*\)[^)]*)*)\)\s*$/);   // trailing note; tolerates one level of nested parens ("(7.4% Pierce (or 0%))")
       if(nm2){ const inside=nm2[1].trim(); const awm=inside.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?$/i);
         // a trailing "(A6R0)" is the unit's build, not a note ("Luce: Creation + Reconciliation (A6R0)")
         if(awm && !info.awareness){ info.awareness=awm[1].toUpperCase(); if(awm[2])info.rev=_rev(awm[2]); }
@@ -470,7 +470,7 @@ function parseRotationText(text, opts){
     { let s2=line, info={};
       const am2=s2.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\s+/i);
       if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
-      let note=''; const nm2=s2.match(/\s*\(([^)]*)\)\s*$/);
+      let note=''; const nm2=s2.match(/\s*\(([^)]*(?:\([^)]*\)[^)]*)*)\)\s*$/);   // trailing note; tolerates one level of nested parens ("(7.4% Pierce (or 0%))")
       if(nm2){ const inside=nm2[1].trim(); const awm=inside.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?$/i);
         // a trailing "(A6R0)" is the unit's build, not a note ("Luce: Creation + Reconciliation (A6R0)")
         if(awm && !info.awareness){ info.awareness=awm[1].toUpperCase(); if(awm[2])info.rev=_rev(awm[2]); }
@@ -913,13 +913,17 @@ function parseRotationText(text, opts){
 
   // floating crit/pierce stat requirements (no character prefix) default to the team's Assassin/Sweeper unit's
   // note; with no such unit they stay team notes. Stats meant for other roles are written attributed already.
-  { const carrier=[...units,elucidator].find(u=>/^(assassin|sweeper)$/i.test(u.role||''));
+  // Every character has a fixed role (DATA.classTags); only the Twins vary, so their picked role wins for them.
+  { const _cls=DATA.classTags||{};
+    const roleOf=u=>{ const nm=(u.name||'').toUpperCase(); if(!nm)return ''; return nm==='TWINS' ? (u.role||'') : (_cls[nm]||''); };
+    const carrier=[...units,elucidator].find(u=>/^(assassin|sweeper)$/i.test(roleOf(u)));
     if(carrier){ const keep=[],moved=[];
       noteLines.forEach(ln=>{ (STAT_REQ.test(ln)?moved:keep).push(ln); });
       if(moved.length){ carrier.note=(carrier.note?carrier.note+' ':'')+moved.join(' '); noteLines.length=0; noteLines.push(...keep); } } }
 
   if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
-  const teamNotes=noteLines.join('\n');
+  // a literal "Notes" label on a line going into the notes field is redundant ("Notes: foo" -> "foo")
+  const teamNotes=noteLines.map(l=>l.replace(/^\s*notes?\b\s*[:\-–—]?\s*/i,'')).filter(l=>l.trim()).join('\n');
 
   return { state:{setup,units,elucidator,backup,personas:pslots,teamNotes,turns}, warnings:warn, got };
 }
@@ -946,5 +950,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A107';
+  _g.VF_PARSER_VERSION = 'A108';
 })();
