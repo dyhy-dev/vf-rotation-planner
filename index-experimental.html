@@ -363,8 +363,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .crop-hint{color:var(--muted); font-size:12.5px; line-height:1.45; max-width:520px}
 .crop-statusline{padding:10px 22px 0; min-height:22px; text-align:right; font:600 13px Inter,system-ui,sans-serif; color:#8de28d}
 .crop-statusline.err{color:#ff6b6b}
-.dev-card{max-width:min(560px,94vw)}
-.dev-modules{display:grid; grid-template-columns:1fr; gap:10px; padding:16px 22px 14px}
+.dev-card{max-width:min(740px,94vw)}
+.dev-modules{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:16px 22px 14px}
+@media (max-width:640px){ .dev-modules{grid-template-columns:1fr} }
 .dev-remember{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; user-select:none; padding:0 22px 20px}
 .dev-remember input{cursor:pointer}
 .dev-module{display:flex; flex-direction:column; gap:3px; text-align:left; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:13px 16px; cursor:pointer; color:var(--text); font:inherit}
@@ -455,6 +456,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-mini{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer}
 .lib-mini:hover{border-color:var(--blue-strong)}
 .lib-empty{color:var(--muted); font-size:13px; text-align:center; padding:24px}
+@media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
 .guide p{margin:6px 0}
@@ -1053,6 +1055,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <p class="crop-hint">Generate a sync code for a user. They enter it in Settings (Cloud sync) and their settings + rotation library then stay in step across all their devices. One code per person; anyone with the code can read and overwrite that slot.</p>
       <div class="dev-tool-row"><button class="btn btn-exp" id="synccodeGen">Generate a code</button><button class="btn" id="synccodeLoad">Refresh list</button><span class="dev-status" id="synccodeStatus"></span></div>
       <div class="dev-links" id="synccodeList"></div>
+      <div class="dev-tool-row" style="margin-top:14px;align-items:center"><span class="dev-label">Message to send the user</span><button class="btn" id="synccodeCopyMsg">Copy message</button></div>
+      <textarea id="synccodeMsg" class="dev-textarea" rows="11" readonly spellcheck="false"></textarea>
     </div>
   </div>
 </div>
@@ -3250,7 +3254,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const openCrops=()=>{ loadCharCrops(); build(); modal.hidden=false; };
   const close=()=>{ modal.hidden=true; saveCharCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); };
   /* ---- Developer Mode hub: an extensible launcher. Add a new tool by appending one entry here. ---- */
-  DEV_MODULES.push({ name:'Character Image Crops', desc:'Choose how each character image is cropped, then push it live for everyone.', open:openCrops, order:1 });
+  DEV_MODULES.push({ name:'Character Image Crops', desc:'Crop character art, push live.', open:openCrops, order:1 });
   const devModal=document.getElementById('devModal'), devModules=document.getElementById('devModules');
   function openHub(){
     if(devModules){ devModules.innerHTML=''; DEV_MODULES.slice().sort((a,b)=>(a.order||99)-(b.order||99)).forEach(m=>{ const b=document.createElement('button'); b.className='dev-module'; const n=document.createElement('span'); n.className='dev-module-name'; n.textContent=m.name; const d=document.createElement('span'); d.className='dev-module-desc'; d.textContent=m.desc; b.append(n,d); b.onclick=()=>{ closeHub(); m.open(); }; devModules.appendChild(b); }); }
@@ -3294,7 +3298,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     L.push(''); L.push('PARSED STATE:'); L.push(JSON.stringify(res.state||{}, null, 2));
     out.textContent=L.join('\n');
   }
-  DEV_MODULES.push({ name:'Parser Console', desc:'Paste rotation text and see what vf-parser.js recognizes (import debugging).', open:openParser, order:4 });
+  DEV_MODULES.push({ name:'Parser Console', desc:'Debug what the text parser reads.', open:openParser, order:4 });
   const r=document.getElementById('parserRun'); if(r) r.onclick=run;
   const c=document.getElementById('parserClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
@@ -3339,7 +3343,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function openDiag(){ renderBuild(); renderStorage(); const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent=''; s.className='dev-worker-status'; } modal.hidden=false; }
   function close(){ modal.hidden=true; }
   const wb=document.getElementById('diagWorker'); if(wb) wb.onclick=()=>{ const s=document.getElementById('diagWorkerStatus'); if(s){ s.textContent='checking…'; s.className='dev-worker-status'; } fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>{ if(s){ s.textContent='/crops  '+r.status+(r.ok?' OK':''); s.className='dev-worker-status '+(r.ok?'ok':'err'); } }).catch(()=>{ if(s){ s.textContent='unreachable'; s.className='dev-worker-status err'; } }); };
-  DEV_MODULES.push({ name:'Diagnostics & Storage', desc:'Worker status, build info, and local storage (view, copy or clear vf- keys).', open:openDiag, order:6 });
+  DEV_MODULES.push({ name:'Diagnostics & Storage', desc:'Worker status and local storage.', open:openDiag, order:6 });
   const c=document.getElementById('diagClose'); if(c) c.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
@@ -3358,7 +3362,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function openBanner(){ status(''); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ fill(b); }).catch(()=>{}); modal.hidden=false; setTimeout(()=>{ try{ ins.green.focus(); }catch(e){} },50); }
   function close(){ modal.hidden=true; }
   function push(data){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} _loaded={}; BANNER_ORDER.forEach(c=>{ _loaded[c]={text:(data[c]&&data[c].text)||'', id:(data[c]&&data[c].id)||0}; }); showBanner(data); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
-  DEV_MODULES.push({ name:'Live Banner', desc:'Show up to three announcements (green, gold, red) to everyone on the live tool.', open:openBanner, order:5 });
+  DEV_MODULES.push({ name:'Live Banner', desc:'Post up to three live banners.', open:openBanner, order:5 });
   const pb=document.getElementById('bannerPush'); if(pb) pb.onclick=()=>push(collect());
   const cl=document.getElementById('bannerClear'); if(cl) cl.onclick=()=>{ if(confirm('Remove all live banners for everyone?')){ BANNER_ORDER.forEach(c=>{ if(ins[c]) ins[c].value=''; }); push(collect()); } };
   const pl=document.getElementById('bannerPull'); if(pl) pl.onclick=()=>{ status('Loading…'); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(b=>{ fill(b); status('Loaded the live banners.'); }).catch(()=>status('Could not load the live banners.',true)); };
@@ -3393,7 +3397,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/links-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ _links=j.links||[]; render(); status(_links.length+' link(s).'); } }).catch(()=>status('Could not load (is the worker /links-list deployed?).',true)); }
   function openLinks(){ list.innerHTML=''; status(''); modal.hidden=false; load(); }
   function close(){ modal.hidden=true; }
-  DEV_MODULES.push({ name:'Short Links', desc:'List the stored short links and delete stale ones.', open:openLinks, order:7 });
+  DEV_MODULES.push({ name:'Short Links', desc:'List and delete short links.', open:openLinks, order:7 });
   const lb=document.getElementById('linksLoad'); if(lb) lb.onclick=load;
   const sb=document.getElementById('linksSort'); if(sb) sb.onclick=()=>{ _sortDesc=!_sortDesc; sb.textContent=_sortDesc?'Newest first':'Oldest first'; render(); };
   const c=document.getElementById('linksClose'); if(c) c.onclick=close;
@@ -3425,9 +3429,22 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/sync-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ _codes=j.codes||[]; render(); status(_codes.length+' code(s).'); } }).catch(()=>status('Could not load (is the worker /sync-list deployed?).',true)); }
   function gen(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Generating…'); fetch(SHORTENER+'/sync-new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j&&j.code){ _codes.unshift({code:j.code, ts:0}); render(); status('New code: '+j.code+' (copy it from the list).'); } }).catch(()=>status('Could not generate (is the worker /sync-new deployed?).',true)); }
-  function openMod(){ list.innerHTML=''; status(''); modal.hidden=false; load(); }
+  const MSG=[
+    'Here is your personal cloud sync code for the Velvet Frequency Rotation Planner. It keeps your settings and saved rotations (your library) in sync across all your devices.',
+    '',
+    'How to turn it on:',
+    '1. Open the planner and click "Import" at the top, then choose "Import Code".',
+    '2. Paste your code and click Import. You will see "Cloud sync activated on this device."',
+    '3. A "Cloud sync" section now appears in Settings, where you can Sync now or Disconnect.',
+    '',
+    'Do the same on every device you want kept in sync, using the same code. Keep the code to yourself.',
+    '',
+    'Your code: '
+  ].join('\n');
+  function openMod(){ list.innerHTML=''; status(''); const ta=document.getElementById('synccodeMsg'); if(ta) ta.value=MSG; modal.hidden=false; load(); }
   function close(){ modal.hidden=true; }
-  DEV_MODULES.push({ name:'Sync Codes', desc:'Generate and manage cross-device sync codes for users.', open:openMod, order:9 });
+  DEV_MODULES.push({ name:'Sync Codes', desc:'Issue cross-device sync codes.', open:openMod, order:9 });
+  const cm=document.getElementById('synccodeCopyMsg'); if(cm) cm.onclick=()=>{ const ta=document.getElementById('synccodeMsg'); if(!ta) return; try{ navigator.clipboard.writeText(ta.value); status('Message copied. Add the code at the end.'); }catch(e){ ta.select(); status('Select-and-copy the message.',true); } };
   const g=document.getElementById('synccodeGen'); if(g) g.onclick=gen;
   const lb=document.getElementById('synccodeLoad'); if(lb) lb.onclick=load;
   const c=document.getElementById('synccodeClose'); if(c) c.onclick=close;
@@ -3504,7 +3521,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function show(){ jsonMode=false; working=toWorking(cur().get(), cur().type); renderView(); status(''); }
   function openRoster(){ if(!sel.options.length){ TABLES.forEach(t=>{ const o=document.createElement('option'); o.textContent=t.k; sel.appendChild(o); }); } show(); showTab(true); modal.hidden=false; }
   function close(){ modal.hidden=true; }
-  DEV_MODULES.push({ name:'Roster / Data Editor', desc:'Edit the character/persona/alias tables in a form or as JSON; apply to test, push live, or copy to bake in.', open:openRoster, order:3 });
+  DEV_MODULES.push({ name:'Roster / Data Editor', desc:'Add or edit roster and data tables.', open:openRoster, order:3 });
   if(sel) sel.onchange=show;
   const jb=document.getElementById('rosterJson'); if(jb) jb.onclick=()=>{ if(jsonMode){ let v; try{ v=JSON.parse(ta.value); }catch(e){ status('Invalid JSON: '+e.message,true); return; } working=toWorking(v,cur().type); jsonMode=false; } else { try{ ta.value=JSON.stringify(realValue(),null,2); }catch(e){ status('Error: '+e.message,true); return; } jsonMode=true; } renderView(); };
   const cp=document.getElementById('rosterCopy'); if(cp) cp.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ navigator.clipboard.writeText(JSON.stringify(v,null,2)); status('Copied.'); }catch(e){ status('Copy failed.',true); } };
@@ -3684,7 +3701,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function openPCrops(){ loadPersonaCrops(); build(); modal.hidden=false; }
   function close(){ modal.hidden=true; savePersonaCrops(); renderTeam(); if(rotationPreviewOpen) renderRotationPreview(); }
-  DEV_MODULES.push({ name:'Persona Image Crops', desc:'Crop and position persona images, then push them live for everyone.', open:openPCrops, order:2 });
+  DEV_MODULES.push({ name:'Persona Image Crops', desc:'Crop persona art, push live.', open:openPCrops, order:2 });
   const cc=document.getElementById('pcropClose'); if(cc) cc.onclick=close;
   /* clicking the backdrop does NOT close a module (intentional) */
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
@@ -3719,7 +3736,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     for(const [k,p] of EP){ if(obj[k]==null) continue; try{ const r=await fetch(SHORTENER+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:obj[k]})}); if(r.ok) okc++; else failc++; }catch(e){ failc++; } }
     status(failc? ('Restored '+okc+', '+failc+' failed.') : ('Restored '+okc+' live data set(s).'), !!failc);
   }
-  DEV_MODULES.push({ name:'Live Data Backup', desc:'Export all worker-stored live data (crops, banner, data) as one JSON, or restore it.', open:openMod, order:8 });
+  DEV_MODULES.push({ name:'Live Data Backup', desc:'Back up or restore live data.', open:openMod, order:8 });
   const eb=document.getElementById('livebkExport'); if(eb) eb.onclick=doExport;
   const rb=document.getElementById('livebkRestore'); if(rb) rb.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } document.getElementById('livebkFile').click(); };
   const fi=document.getElementById('livebkFile'); if(fi) fi.onchange=e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return; if(!confirm('Restore live data from this file? It overwrites the current live crops/banner/data for everyone.')) return; const r=new FileReader(); r.onload=()=>{ let o; try{ o=JSON.parse(r.result); }catch(err){ status('Invalid JSON file.',true); return; } doRestore(o); }; r.readAsText(f); };
@@ -4711,6 +4728,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623d</div>
+<div class="version-tag">260623e</div>
 </body>
 </html>
