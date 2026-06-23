@@ -324,6 +324,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .abbr-check{display:flex; gap:8px; align-items:flex-start; font:500 12px Inter,sans-serif; color:var(--muted); margin:6px 0 2px; cursor:pointer; line-height:1.4}
 .abbr-check input{margin:2px 0 0; flex:0 0 auto}
 .set-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line)}
+#syncSection[hidden]{display:none}
 /* narrow screens: rows with a wide segmented switch (Theme, Orientation) wrap the switch onto its own line so it isn't clipped */
 @media (max-width:560px){ .set-row-seg{flex-wrap:wrap} .set-row-seg>div:first-child{flex:1 1 100%} }
 .set-row:last-of-type{border-bottom:none}
@@ -417,6 +418,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-link-id{font-weight:700; color:#ffae42; flex:0 0 auto}
 .dev-link-frag{flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted)}
 .dev-link-date{flex:0 0 auto; color:var(--muted); font-size:11px; white-space:nowrap}
+.sync-name-in{flex:1 1 110px; min-width:80px; background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 7px; font-size:12px; font-family:Inter,system-ui,sans-serif}
 .pcol-img .pcol-pic{width:120px; height:200px; border-radius:6px; background:var(--field) center/cover no-repeat; cursor:grab; -webkit-touch-callout:none}
 @container persona (max-width:320px){ .pcol-img .pcol-pic{width:96px; height:160px} }
 .modal-back{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:6px; font:600 16px/1 Inter,system-ui,sans-serif; padding:2px 9px; cursor:pointer; vertical-align:middle; margin-right:6px}
@@ -1230,15 +1232,10 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Backup file</div><div class="set-sub">Export your settings and your saved rotations (library) to a JSON file, or import one to restore them</div></div>
         <div class="set-backup-btns"><button class="btn" id="settingsExport">Export</button><button class="btn" id="settingsImport">Import</button></div>
       </div>
-      <div class="set-row">
-        <div><div class="set-label">Cloud sync</div><div class="set-sub">Enter the sync code Koduck gave you. Your settings and rotation library then stay in step on every device where you use the same code.</div></div>
-        <div class="set-backup-btns"><input type="text" id="syncCodeIn" class="set-input" placeholder="Sync code" autocomplete="off" spellcheck="false"/><button class="btn" id="syncConnect">Connect</button></div>
-      </div>
-      <div class="set-row" id="syncConnectedRow" hidden>
-        <div><div class="set-sub" id="syncWho"></div></div>
+      <div class="set-row" id="syncSection" hidden>
+        <div><div class="set-label">Cloud sync</div><div class="set-sub">Your settings and rotation library stay in step on every device where you use the same code.</div><div class="set-sub" id="syncWho" style="margin-top:4px"></div><div class="set-sub" id="syncStatus" style="margin-top:4px"></div></div>
         <div class="set-backup-btns"><button class="btn" id="syncNowBtn">Sync now</button><button class="btn" id="syncDisconnect">Disconnect</button></div>
       </div>
-      <div class="set-sub" id="syncStatus" style="margin-top:4px"></div>
       <div class="set-status" id="settingsStatus" hidden></div>
       <input type="file" id="settingsFile" accept="application/json,.json" hidden/>
       <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports. Hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
@@ -2690,6 +2687,9 @@ function syncPull(silent){ return new Promise(resolve=>{ if(!_syncCode){ if(!sil
 function syncPush(){ if(!_syncCode) return; const data=_syncSnapshot();
   fetch(SHORTENER+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:_syncCode,data})}).then(r=>{ if(r.ok){ _setSyncMetaTs(data.ts); _syncStatus('Saved to the cloud.'); } else if(r.status===403){ _syncStatus('This sync code is not active.',true); } else { _syncStatus('Cloud save failed ('+r.status+').',true); } }).catch(()=>_syncStatus('Could not reach the sync service.',true)); }
 function syncSchedulePush(){ if(!_syncCode||_syncApplying) return; clearTimeout(_syncPushT); _syncPushT=setTimeout(syncPush, 2500); }
+/* a 12-char alphanumeric string entered in "Import Code" may be a cloud-sync code: probe the worker and, if the slot exists, activate sync on this device. returns true if it was a sync code. */
+function syncLooksLikeCode(v){ return /^[A-Za-z0-9]{12}$/.test(v||''); }
+function syncTryActivate(v){ return fetch(SHORTENER+'/sync?code='+encodeURIComponent(v),{cache:'no-store'}).then(r=>{ if(!r.ok) return false; syncCodeSet(v); _setSyncMetaTs(0); if(typeof syncRefreshUI==='function') syncRefreshUI(); return syncPull(true).then(res=>{ if(res==='empty') syncPush(); return true; }); }).catch(()=>false); }
 let _shareUrl='';                                   /* current full URL shown in the share modal (updated when shortened) */
 let _shortCache={};                                 /* fragment -> short URL, so an unchanged rotation reuses the same link */
 function _loadShortCache(){ try{ (JSON.parse(localStorage.getItem(_SHORT_KEY))||[]).forEach(e=>{ if(e&&e.f&&e.u) _shortCache[e.f]=e.u; }); }catch(e){} }
@@ -2864,6 +2864,7 @@ async function importAnyShare(input){
 function openImportCode(){ openShareModal({title:'Import Code', text:'', readonly:false, placeholder:'Paste a rotation code, share link or short link…', primaryLabel:'Import', onPrimary:async (t,hint,close)=>{
   const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a code or link first.'; return; }
   hint.textContent='Reading…';
+  if(syncLooksLikeCode(v)){ const ok=await syncTryActivate(v); if(ok){ hint.textContent='Cloud sync activated on this device.'; setTimeout(close, 1300); return; } }
   let st; try{ st=await importAnyShare(v); }catch(e){ hint.textContent=(e&&e.message==='lib')?'Decoding needs a newer browser (built-in compression).':'That code/link could not be read.'; return; }
   try{ state=migrate(st); save(); renderAll(); close(); }catch(e){ hint.textContent='That code/link is not a valid rotation.'; }
 }}); }
@@ -3044,13 +3045,11 @@ function applyImportedSettings(text){
 document.getElementById('settingsExport').onclick=exportSettings;
 document.getElementById('settingsImport').onclick=()=>document.getElementById('settingsFile').click();
 /* cloud sync controls */
-function syncRefreshUI(){ const row=document.getElementById('syncConnectedRow'), inp=document.getElementById('syncCodeIn'), who=document.getElementById('syncWho'); const c=getSyncCode();
-  if(inp && document.activeElement!==inp) inp.value=c;
-  if(row) row.hidden=!c;
-  if(who) who.textContent = c ? ('Connected with code '+c+'. Settings and library sync automatically.') : ''; }
-{ const cn=document.getElementById('syncConnect'); if(cn) cn.onclick=()=>{ const v=(document.getElementById('syncCodeIn').value||'').trim(); if(!v){ _syncStatus('Enter a sync code first.',true); return; } syncCodeSet(v); _setSyncMetaTs(0); syncRefreshUI(); syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
-  const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
-  const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ syncCodeSet(''); _setSyncMetaTs(0); syncRefreshUI(); _syncStatus('Disconnected. This device no longer syncs.'); };
+function syncRefreshUI(){ const sec=document.getElementById('syncSection'), who=document.getElementById('syncWho'); const c=getSyncCode();
+  if(sec) sec.hidden=!c;
+  if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; }
+{ const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
+  const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ if(!confirm('Stop syncing on this device? Your settings and library stay here, but they will no longer update across devices.')) return; syncCodeSet(''); _setSyncMetaTs(0); syncRefreshUI(); };
   syncRefreshUI(); }
 document.getElementById('settingsFile').onchange=e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value='';
@@ -3412,10 +3411,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     _codes.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).forEach(it=>{
       const row=document.createElement('div'); row.className='dev-link-row';
       const id=document.createElement('span'); id.className='dev-link-id'; id.textContent=it.code;
-      const date=document.createElement('span'); date.className='dev-link-frag'; date.textContent='last sync: '+fmt(it.ts); date.title=date.textContent;
+      const name=document.createElement('input'); name.type='text'; name.className='sync-name-in'; name.placeholder='user name'; name.value=it.name||''; name.title='Who this code belongs to (so you can re-send it)';
+      name.onchange=()=>{ const nm=name.value.trim(); fetch(SHORTENER+'/sync-name',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,code:it.code,name:nm})}).then(r=>{ if(r.ok){ it.name=nm; status('Saved name for '+it.code+'.'); } else status('Save failed ('+r.status+').',true); }).catch(()=>status('Save failed.',true)); };
+      const date=document.createElement('span'); date.className='dev-link-date'; date.textContent='last sync: '+fmt(it.ts); date.title=date.textContent;
       const copy=document.createElement('button'); copy.className='dev-mini-btn'; copy.textContent='Copy'; copy.onclick=()=>{ try{ navigator.clipboard.writeText(it.code); status('Copied "'+it.code+'".'); }catch(e){ status('Copy failed.',true); } };
       const del=document.createElement('button'); del.className='dev-mini-btn'; del.textContent='Delete'; del.onclick=()=>{ if(!confirm('Delete sync code '+it.code+'? That user can no longer sync.')) return; fetch(SHORTENER+'/sync-del',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,code:it.code})}).then(r=>{ if(r.ok){ _codes=_codes.filter(x=>x.code!==it.code); row.remove(); } else status('Delete failed ('+r.status+').',true); }).catch(()=>status('Delete failed.',true)); };
-      row.append(id,date,copy,del); list.appendChild(row);
+      row.append(id,name,date,copy,del); list.appendChild(row);
     });
   }
   function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/sync-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ _codes=j.codes||[]; render(); status(_codes.length+' code(s).'); } }).catch(()=>status('Could not load (is the worker /sync-list deployed?).',true)); }
@@ -4706,6 +4707,6 @@ if(_syncCode) syncPull(true);   /* pull the latest settings + library from the c
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623b</div>
+<div class="version-tag">260623c</div>
 </body>
 </html>
