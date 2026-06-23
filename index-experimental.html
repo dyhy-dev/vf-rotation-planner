@@ -2828,7 +2828,14 @@ function buildTextExport(){
       line=titleCase(nm)+(u.rev?' '+u.rev:'')+(u.gear?' '+u.gear:'');
     } else {
       const prefix=((u.awareness||'').trim()+(u.rev||'').trim());
-      const cards=[u.space,u.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
+      let cards=[u.space,u.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
+      // the Twins' role isn't a card, so serialize it as its two dual-elements ("… - Fire/Ice + Psy/Nuke");
+      // the parser reads those back and re-infers the role, which otherwise only survives if both duals also
+      // appear as turn HLs.
+      if(nm.toUpperCase()==='TWINS' && u.role && TWINS_ROLE_DUALS[u.role]){
+        const duals=TWINS_ROLE_DUALS[u.role].join(' + ');
+        cards = cards ? (cards+' - '+duals) : duals;
+      }
       line=(prefix?prefix+' ':'')+(nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm))+(cards?': '+cards:'');
     }
     if((u.note||'').trim()) line+=' ('+u.note.trim()+')';
@@ -4753,6 +4760,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623g</div>
+<div class="version-tag">260623h</div>
 </body>
 </html>
