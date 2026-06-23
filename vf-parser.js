@@ -106,7 +106,7 @@ function matchDagger(str){ const t=_n(str);
 function stripReforge(s){ return String(s||'').replace(/\b[RF][0-6X]\b/ig,' ').replace(/\b[RF]\d+\b/ig,' ').replace(/\s+/g,' ').trim(); }
 /* find a known dagger anywhere in a short line via exact (normalized) word-window match — no fuzzy, to avoid false hits in prose */
 function findDaggerIn(base){
-  base=String(base||'').trim(); if(!base) return '';
+  base=String(base||'').replace(/[^A-Za-z0-9·\s]/g,' ').replace(/\s+/g,' ').trim(); if(!base) return '';   // drop stray punctuation ("Arc Knife;" -> "Arc Knife")
   let dg=DATA.daggerNames.find(d=>_n(d)===_n(base)); if(dg) return dg;
   const words=base.split(/\s+/).filter(Boolean); if(words.length>5) return '';
   for(let wlen=Math.min(4,words.length); wlen>=1; wlen--){
@@ -365,7 +365,7 @@ function parseRotationText(text, opts){
     { const sm=line.match(/^(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])?\s*(\d.*)$/i)
             // tolerate a leading prefix before the label ("June 18 Expected Score: 2,700,000,000"); a
             // colon/dash separator is then required, and the prefix must carry no colon of its own.
-            || line.match(/^[^:]*?\b(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])\s*(\d.*)$/i);
+            || (hi>0 && line.match(/^[^:]*?\b(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])\s*(\d.*)$/i));
       if(sm){ const v=sm[2].trim(); if(v && (sm[1] || !setup.score)){ setup.score=v; got.score=1; } continue; } }
 
     // Wonder line: "Wonder [R#] [Dagger] [, persona (skills), …]"
@@ -589,6 +589,8 @@ function parseRotationText(text, opts){
             else if(h.lab==='boss'){ const b=matchBoss(val); if(b && !setup.boss){ setup.boss=b; got.boss=1; } }
             else if(h.lab==='patch'){ const pm=(val.match(/\d{1,2}\.\d+/)||[])[0]; if(pm && !setup.patch){ setup.patch=pm; got.patch=1; } } });
           t2=t2.slice(0,hits[0].at).trim();
+          // a score qualifier left dangling once "Score: …" was peeled ("Fleuret Est. Score: 20-28 mils")
+          t2=t2.replace(/[\s,;:.\-–—]*\b(est\.?|estimated|expected)\s*$/i,'').trim();
         }
       }
       // builds written into the title -> remember per unit (applied at the end only to real team members, never
@@ -922,8 +924,12 @@ function parseRotationText(text, opts){
       if(moved.length){ carrier.note=(carrier.note?carrier.note+' ':'')+moved.join(' '); noteLines.length=0; noteLines.push(...keep); } } }
 
   if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
-  // a literal "Notes" label on a line going into the notes field is redundant ("Notes: foo" -> "foo")
-  const teamNotes=noteLines.map(l=>l.replace(/^\s*notes?\b\s*[:\-–—]?\s*/i,'')).filter(l=>l.trim()).join('\n');
+  // drop a standalone notes header ("Notes", "Build Notes :"), then strip a leading "Notes" label from a
+  // content line ("Notes: foo" -> "foo").
+  const teamNotes=noteLines
+    .filter(l=>!/^\s*(?:\w+\s+)?notes?\s*[:\-–—]?\s*$/i.test(l))
+    .map(l=>l.replace(/^\s*notes?\b\s*[:\-–—]?\s*/i,''))
+    .filter(l=>l.trim()).join('\n');
 
   return { state:{setup,units,elucidator,backup,personas:pslots,teamNotes,turns}, warnings:warn, got };
 }
@@ -950,5 +956,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A108';
+  _g.VF_PARSER_VERSION = 'A109';
 })();
