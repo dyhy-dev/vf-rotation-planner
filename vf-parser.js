@@ -66,6 +66,15 @@ const STAT_NOTE=/\b(pierce|crit|critical|cr|cm)\b/i;
 // a *floating* (no character prefix) stat requirement pairs a number with such a keyword ("15.7 Pierce",
 // "25.3 CR min"); a number is required so a plain instruction like "Adjust Pierce & Crit" stays a team note.
 const STAT_REQ=/\d[\d.,]*\s*%?\s*\b(?:pierce|crit(?:ical)?|cr|cm)\b|\b(?:pierce|crit(?:ical)?|cr|cm)\b\s*[:=]?\s*%?\s*\d/i;
+// import-only abbreviations for passive skills the skill-alias map doesn't carry.
+const SKILL_ABBR={'atk master':'Attack Master','agi master':'Agility Master','def master':'Defense Master'};
+// passive skills (a persona can stack several) go in the persona NOTE, not a skill slot. They follow the
+// regular "X Boost / X Master / X Reduction" and "Auto-X" families, plus a few irregular passive lines.
+// Anything not in the skill list at all is also very likely a passive (handled at the call site).
+function isPassiveSkill(name){ name=String(name||'');
+  if(/^auto-/i.test(name)) return true;
+  if(/\b(boost|master|reduction)\b/i.test(name)) return true;
+  return /^(adverse resolve|ironclad resolve|fortified moxy|battle acumen|apt pupil|sharp student|divine grace|divine guidance|nurture|life aid|ambient aid|regenerate|resist (?:forget|sleep)|pinpoint|power surge)\b/i.test(name); }
 function cardPair(str){
   // when several card options are listed (comma- or "or"-separated), only the first pair counts
   str=String(str==null?'':str).split(/\s*,\s*|\s+or\s+/i)[0]||'';
@@ -569,7 +578,7 @@ function parseRotationText(text, opts){
     // bare Wonder-persona list ("Koumokuten, Yurl (Wild Thunder + Taru), Kohryu (Agi)") —
     // the boss is in the title now, so the persona line carries no "Boss:" prefix. Only fires
     // when every comma chunk begins with a known persona, to avoid catching notes/team lines.
-    if(hi>0){ const chunks=line.split(/,(?![^(]*\))/).map(x=>x.trim()).filter(Boolean);
+    if(hi>0){ const chunks=line.split(/,(?![^(\[]*[)\]])/).map(x=>x.trim()).filter(Boolean);   // keep commas inside (skills) and [notes] together
       if(chunks.length && chunks.every(c=>{ const w=(c.replace(/\(.*$/,'').trim().split(/\s+/)[0]||''); const a=resolveActor(w); return a && a.type==='persona'; })){
         const before=personas.length; parsePersonaList(line); if(personas.length>before){ got.personas=1; continue; } } }
 
@@ -684,16 +693,19 @@ function parseRotationText(text, opts){
     const tok=nameStr.split(/\s+/)[0];
     const a=resolveActor(tok);
     if(a&&a.type==='persona'){ const sig=(PERSONA_SIGNATURES[a.name]||'').toLowerCase();
-      // each comma/slash/plus item is a recognised skill (kept) or a non-skill -> persona note. A multi-word
-      // item that is not a known skill is prose ("can add damage passives") -> note; a single token (e.g.
-      // "Agi", not in the alias map) is still treated as a skill.
+      // each comma/slash/plus item is sorted into the two ACTIVE skill slots or the persona note. Recognition
+      // is space/hyphen tolerant ("Auto Mataru" == "Auto-Mataru"). A passive skill, or anything not in the
+      // skill list at all (very likely a passive), goes to the note — under its canonical name when known.
       const skills=[], noteParts=noteStr?[noteStr]:[];
       skillStr.split(/[\/,+]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{
         if(/^(sig|signature)$/i.test(s)) return;
-        const canon=SKILL_ALIAS_MAP[s.toLowerCase()]||s;
-        if(canon.toLowerCase()===sig) return;   // own signature is innate
-        const isSkill=!!SKILL_ALIAS_MAP[s.toLowerCase()] || s.split(/\s+/).length<=1;
-        if(isSkill && skills.length<2) skills.push(canon); else noteParts.push(s);
+        const k=s.toLowerCase();
+        const canon=SKILL_ALIAS_MAP[k]||SKILL_ABBR[k]||SKILL_ALIAS_MAP[k.replace(/[\s-]+/g,'-')]||SKILL_ALIAS_MAP[k.replace(/[\s-]+/g,' ')]||'';
+        if(canon){ if(canon.toLowerCase()===sig) return;   // own signature is innate
+          if(!isPassiveSkill(canon) && skills.length<2) skills.push(canon);   // active -> a skill slot
+          else noteParts.push(canon); }                                       // passive (or slots full) -> note
+        else if(s.split(/\s+/).length<=1 && skills.length<2) skills.push(s);  // a lone token is a shorthand for an active skill ("Agi"), kept in a slot
+        else noteParts.push(s);                                               // multi-word unknown -> very likely a passive -> note
       });
       const exist=personas.find(p=>(p.name||'').toLowerCase()===a.name.toLowerCase());   // merge into an already-listed persona (e.g. a names line then a per-persona skill line) instead of duplicating
       if(exist){ if(skills.length) exist.skills=[skills[0]||exist.skills[0]||'',skills[1]||exist.skills[1]||''];
@@ -956,5 +968,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A109';
+  _g.VF_PARSER_VERSION = 'A110';
 })();
