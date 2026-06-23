@@ -326,6 +326,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .abbr-check{display:flex; gap:8px; align-items:flex-start; font:500 12px Inter,sans-serif; color:var(--muted); margin:6px 0 2px; cursor:pointer; line-height:1.4}
 .abbr-check input{margin:2px 0 0; flex:0 0 auto}
 .set-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line)}
+#syncSection[hidden]{display:none}
 /* narrow screens: rows with a wide segmented switch (Theme, Orientation) wrap the switch onto its own line so it isn't clipped */
 @media (max-width:560px){ .set-row-seg{flex-wrap:wrap} .set-row-seg>div:first-child{flex:1 1 100%} }
 .set-row:last-of-type{border-bottom:none}
@@ -369,6 +370,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-mini{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer}
 .lib-mini:hover{border-color:var(--blue-strong)}
 .lib-empty{color:var(--muted); font-size:13px; text-align:center; padding:24px}
+@media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
 .guide p{margin:6px 0}
@@ -976,6 +978,10 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Backup file</div><div class="set-sub">Export your settings and your saved rotations (library) to a JSON file, or import one to restore them</div></div>
         <div class="set-backup-btns"><button class="btn" id="settingsExport">Export</button><button class="btn" id="settingsImport">Import</button></div>
       </div>
+      <div class="set-row" id="syncSection" hidden>
+        <div><div class="set-label">Cloud sync</div><div class="set-sub">Your settings and rotation library stay in step on every device where you use the same code.</div><div class="set-sub" id="syncWho" style="margin-top:4px"></div><div class="set-sub" id="syncStatus" style="margin-top:4px"></div></div>
+        <div class="set-backup-btns"><button class="btn" id="syncNowBtn">Sync now</button><button class="btn" id="syncDisconnect">Disconnect</button></div>
+      </div>
       <div class="set-status" id="settingsStatus" hidden></div>
       <input type="file" id="settingsFile" accept="application/json,.json" hidden/>
       <div class="set-note">These settings are saved only on this device. They never change your rotation, share links or exports. Hiding a notes field just hides it for you. If you open a shared rotation that has notes you've turned off, you'll see it with those notes hidden.</div>
@@ -1376,7 +1382,7 @@ function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
 function loadLib(){ try{ const a=JSON.parse(localStorage.getItem(LIB_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-function saveLib(a){ try{ localStorage.setItem(LIB_KEY, JSON.stringify(a)); }catch(e){} }
+function saveLib(a){ try{ localStorage.setItem(LIB_KEY, JSON.stringify(a)); }catch(e){} syncSchedulePush(); }
 function _libId(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:(String(name||state.setup.rotationName||'Rotation').trim()||'Rotation'), ts:Date.now(), state:JSON.parse(JSON.stringify(state)) }); saveLib(a); return a; }
 function libDelete(id){ saveLib(loadLib().filter(e=>e.id!==id)); }
@@ -1389,7 +1395,7 @@ const _SET_KEY='vf-settings-v1';
 const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false, defaultCredit:'' };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
-function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} }
+function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} syncSchedulePush(); }
 let _effTheme='dark';
 function _systemPrefersLight(){ try{ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches); }catch(e){ return false; } }
 function effectiveTheme(){ const t=settings.theme||'dark'; if(t==='light') return 'light'; if(t==='dark') return 'dark'; return _systemPrefersLight()?'light':'dark'; }
@@ -2402,6 +2408,31 @@ let _ioPrimary=null;
 function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
 const SHORTENER='https://vfrp.dyhy.workers.dev';   /* Cloudflare Worker short-link service */
 const _SHORT_KEY='vf-shortlinks-v1';
+
+/* ---------- cloud sync: keep settings + library in step across devices via a sync code (codes are issued from the Dev hub) ---------- */
+const SYNC_KEY='vf-sync-code-v1', SYNC_META='vf-sync-meta-v1', SYNC_SIG='vf-sync-sig-v1';
+let _syncCode=''; try{ _syncCode=localStorage.getItem(SYNC_KEY)||''; }catch(e){}
+let _syncApplying=false, _syncPushT=0;
+function getSyncCode(){ return _syncCode; }
+function _hashStr(str){ let h1=0xdeadbeef,h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909); return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }   /* cyrb53 */
+function _syncSavedSig(){ try{ return localStorage.getItem(SYNC_SIG)||''; }catch(e){ return ''; } }
+function _setSyncSavedSig(s){ try{ if(s) localStorage.setItem(SYNC_SIG,s); else localStorage.removeItem(SYNC_SIG); }catch(e){} }
+function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib); }   /* content fingerprint (no ts) so we only push when something actually changed */
+function _syncMetaTs(){ try{ return +localStorage.getItem(SYNC_META)||0; }catch(e){ return 0; } }
+function _setSyncMetaTs(t){ try{ localStorage.setItem(SYNC_META, String(t||0)); }catch(e){} }
+function _syncStatus(m,err){ const el=document.getElementById('syncStatus'); if(el){ el.textContent=m||''; el.classList.toggle('err',!!err); } }
+function syncCodeSet(code){ _syncCode=(code||'').trim(); try{ if(_syncCode) localStorage.setItem(SYNC_KEY,_syncCode); else localStorage.removeItem(SYNC_KEY); }catch(e){} }
+function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib() }; }
+function _syncApply(d){ _syncApplying=true; try{ applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
+/* resolves with: 'applied' (server was newer, taken), 'empty' (valid slot, nothing newer -> caller may push local up), 'unknown' (bad code), 'error' */
+function syncPull(silent){ return new Promise(resolve=>{ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); resolve('error'); return; } if(!silent) _syncStatus('Syncing…');
+  fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return '__404__'; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(d==='__404__'){ resolve('unknown'); return; } if(!d){ resolve('error'); return; } if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); resolve('applied'); } else { if(!silent) _syncStatus('Already up to date.'); resolve('empty'); } }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); resolve('error'); }); }); }
+function syncPush(force){ if(!_syncCode) return; const sig=_syncSig(); if(!force && sig===_syncSavedSig()) return;   /* nothing changed since the last push -> no KV write */ const data=_syncSnapshot();
+  fetch(SHORTENER+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:_syncCode,data})}).then(r=>{ if(r.ok){ _setSyncSavedSig(sig); _setSyncMetaTs(data.ts); _syncStatus('Saved to the cloud.'); } else if(r.status===403){ _syncStatus('This sync code is not active.',true); } else { _syncStatus('Cloud save failed ('+r.status+').',true); } }).catch(()=>_syncStatus('Could not reach the sync service.',true)); }
+function syncSchedulePush(){ if(!_syncCode||_syncApplying) return; clearTimeout(_syncPushT); _syncPushT=setTimeout(syncPush, 2500); }
+/* a 12-char alphanumeric string entered in "Import Code" may be a cloud-sync code: probe the worker and, if the slot exists, activate sync on this device. returns true if it was a sync code. */
+function syncLooksLikeCode(v){ return /^[A-Za-z0-9]{12}$/.test(v||''); }
+function syncTryActivate(v){ return fetch(SHORTENER+'/sync?code='+encodeURIComponent(v),{cache:'no-store'}).then(r=>{ if(!r.ok) return false; syncCodeSet(v); _setSyncMetaTs(0); _setSyncSavedSig(''); if(typeof syncRefreshUI==='function') syncRefreshUI(); return syncPull(true).then(res=>{ if(res==='empty') syncPush(); return true; }); }).catch(()=>false); }
 let _shareUrl='';                                   /* current full URL shown in the share modal (updated when shortened) */
 let _shortCache={};                                 /* fragment -> short URL, so an unchanged rotation reuses the same link */
 function _loadShortCache(){ try{ (JSON.parse(localStorage.getItem(_SHORT_KEY))||[]).forEach(e=>{ if(e&&e.f&&e.u) _shortCache[e.f]=e.u; }); }catch(e){} }
@@ -2576,6 +2607,7 @@ async function importAnyShare(input){
 function openImportCode(){ openShareModal({title:'Import Code', text:'', readonly:false, placeholder:'Paste a rotation code, share link or short link…', primaryLabel:'Import', onPrimary:async (t,hint,close)=>{
   const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a code or link first.'; return; }
   hint.textContent='Reading…';
+  if(syncLooksLikeCode(v)){ const ok=await syncTryActivate(v); if(ok){ hint.textContent='Cloud sync activated on this device.'; setTimeout(close, 1300); return; } }
   let st; try{ st=await importAnyShare(v); }catch(e){ hint.textContent=(e&&e.message==='lib')?'Decoding needs a newer browser (built-in compression).':'That code/link could not be read.'; return; }
   try{ state=migrate(st); save(); renderAll(); close(); }catch(e){ hint.textContent='That code/link is not a valid rotation.'; }
 }}); }
@@ -2755,6 +2787,13 @@ function applyImportedSettings(text){
 }
 document.getElementById('settingsExport').onclick=exportSettings;
 document.getElementById('settingsImport').onclick=()=>document.getElementById('settingsFile').click();
+/* cloud sync controls (activated from Import Code; section stays hidden until a code is set) */
+function syncRefreshUI(){ const sec=document.getElementById('syncSection'), who=document.getElementById('syncWho'); const c=getSyncCode();
+  if(sec) sec.hidden=!c;
+  if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; }
+{ const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
+  const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ if(!confirm('Stop syncing on this device? Your settings and library stay here, but they will no longer update across devices.')) return; syncCodeSet(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); };
+  syncRefreshUI(); }
 document.getElementById('settingsFile').onchange=e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value='';
   if(!f) return;
@@ -3878,6 +3917,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
 })();
 
 state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPush(); });   /* pull on start, then push only if local changed since the last sync (e.g. edits made offline) */
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
   if(vm){
@@ -3899,6 +3939,6 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCropsLi
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623A</div>
+<div class="version-tag">260623D</div>
 </body>
 </html>
