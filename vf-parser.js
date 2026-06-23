@@ -63,6 +63,9 @@ const CARD_STOP=/^(pierce|crit|critical|percent|pct|reset|resets)$/;
 // per-character damage-stat requirements ("Makoto: 7.4% Pierce", "Twins: 25% CR", "30 CM") belong in that
 // unit's note, not the team notes. Covers pierce, crit, and the CR (crit rate) / CM (crit mult) abbreviations.
 const STAT_NOTE=/\b(pierce|crit|critical|cr|cm)\b/i;
+// a *floating* (no character prefix) stat requirement pairs a number with such a keyword ("15.7 Pierce",
+// "25.3 CR min"); a number is required so a plain instruction like "Adjust Pierce & Crit" stays a team note.
+const STAT_REQ=/\d[\d.,]*\s*%?\s*\b(?:pierce|crit(?:ical)?|cr|cm)\b|\b(?:pierce|crit(?:ical)?|cr|cm)\b\s*[:=]?\s*%?\s*\d/i;
 function cardPair(str){
   // when several card options are listed (comma- or "or"-separated), only the first pair counts
   str=String(str==null?'':str).split(/\s*,\s*|\s+or\s+/i)[0]||'';
@@ -908,6 +911,13 @@ function parseRotationText(text, opts){
         .filter(a=>!(a&&a.guardSolo)); });
   }
 
+  // floating crit/pierce stat requirements (no character prefix) default to the team's Assassin/Sweeper unit's
+  // note; with no such unit they stay team notes. Stats meant for other roles are written attributed already.
+  { const carrier=[...units,elucidator].find(u=>/^(assassin|sweeper)$/i.test(u.role||''));
+    if(carrier){ const keep=[],moved=[];
+      noteLines.forEach(ln=>{ (STAT_REQ.test(ln)?moved:keep).push(ln); });
+      if(moved.length){ carrier.note=(carrier.note?carrier.note+' ':'')+moved.join(' '); noteLines.length=0; noteLines.push(...keep); } } }
+
   if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
   const teamNotes=noteLines.join('\n');
 
@@ -936,5 +946,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A106';
+  _g.VF_PARSER_VERSION = 'A107';
 })();
