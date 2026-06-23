@@ -353,7 +353,7 @@ function parseRotationText(text, opts){
   let inNotesSection=false;
   const reNotesSection=/^\**\s*(stats|crit\s*rate|pierce\s*rate|(?:\w+\s+)?calcs?|alternatives?|damage)\s*:?\s*\**\s*$/i;
   for(let hi=0; hi<headerLines.length; hi++){
-    const line=headerLines[hi];
+    let line=headerLines[hi];
     const low=line.toLowerCase();
     if(line==='\u0000') continue;
     if(inNotesSection){
@@ -364,6 +364,24 @@ function parseRotationText(text, opts){
       noteLines.push(line); continue;
     }
     if(reNotesSection.test(line)){ inNotesSection=true; noteLines.push(line); continue; }
+
+    // peel inline labels from a packed non-title header line ("A0 Mont F … credit : X - Est score : 60-70 mils
+    // Notes :") so the credit + score survive instead of the whole line being read as one unit's build. Only
+    // fires when the line carries SEVERAL labels; a single-label line ("Expected Score: 600 Mil", "Credit: X")
+    // keeps its own dedicated (verbatim) branch below so it still round-trips exactly.
+    if(hi>0){ const labRe=/\b(credits?|score|notes?|boss|patch|tier)\s*:\s*/ig; const hits=[]; let lm;
+      while((lm=labRe.exec(line))) hits.push({lab:lm[1].toLowerCase(), valAt:labRe.lastIndex, at:lm.index});
+      if(hits.length>=2){
+        hits.forEach((h,k)=>{ const val=line.slice(h.valAt, k+1<hits.length?hits[k+1].at:line.length).trim().replace(/[-–—;,\s]+$/,'').trim();
+          if(/^credit/.test(h.lab)){ const cv=val.split(/\s+[-–—]\s+/)[0].trim(); if(cv && !setup.credits){ setup.credits=cv; got.credit=1; } }
+          else if(h.lab==='score'){ const sc=scoreHigh(val); if(sc && !setup.score){ setup.score=sc; got.score=1; } }
+          else if(/^note/.test(h.lab)){ if(val) noteLines.push(val); }
+          else if(h.lab==='boss'){ const b=matchBoss(val); if(b && !setup.boss){ setup.boss=b; got.boss=1; } }
+          else if(h.lab==='patch'){ const pm=(val.match(/\d{1,2}\.\d+/)||[])[0]; if(pm && !setup.patch){ setup.patch=pm; got.patch=1; } } });
+        line=line.slice(0,hits[0].at).trim();
+        if(!line) continue;   // line was nothing but labels
+      }
+    }
 
     // Credit line ("Credit: A + B from C + D") -> Credits field (may list several people), never the title
     { const cm=line.match(/^credits?\s*[:\u2013\u2014\-]\s*(.+)$/i);
@@ -968,5 +986,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A110';
+  _g.VF_PARSER_VERSION = 'A111';
 })();
