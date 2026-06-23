@@ -60,8 +60,9 @@ function codeOf(token){
 }
 // common stat-note words that aren't cards but collide with one (notably "pierce" fuzz-matches "Peace").
 const CARD_STOP=/^(pierce|crit|critical|percent|pct|reset|resets)$/;
-// per-character pierce/crit requirements ("Makoto: 7.4% Pierce, or 0%") belong in that unit's note, not the team notes.
-const STAT_NOTE=/\b(pierce|crit|critical)\b/i;
+// per-character damage-stat requirements ("Makoto: 7.4% Pierce", "Twins: 25% CR", "30 CM") belong in that
+// unit's note, not the team notes. Covers pierce, crit, and the CR (crit rate) / CM (crit mult) abbreviations.
+const STAT_NOTE=/\b(pierce|crit|critical|cr|cm)\b/i;
 function cardPair(str){
   // when several card options are listed (comma- or "or"-separated), only the first pair counts
   str=String(str==null?'':str).split(/\s*,\s*|\s+or\s+/i)[0]||'';
@@ -394,6 +395,10 @@ function parseRotationText(text, opts){
           // the line may also carry the Twins' build cards before the duals ("Twins: Harmony + Victory - Fire/Ice + Psy/Nuke");
           // cardPair stops at the first complete space+sun/sky pair, so the trailing duals don't interfere.
           const cpt=cardPair(body); if(cpt.space&&cpt.sunsky){ addChar('TWINS',{space:cpt.space,sunsky:cpt.sunsky}); got.cards=1; }
+          // a pierce/crit stat segment ("Twins: 25% CR - Fire/Ice + Psy/Nuke") is the Twins' note — skip the
+          // dual segments (they carry a "/") and any card pair, keep the stat leftover.
+          const statSeg=body.split(/\s+[-–—]\s+/).map(s=>s.trim()).find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s));
+          if(statSeg){ const prev=(charData['TWINS']||{}).note; addChar('TWINS',{note:prev?prev+' '+statSeg:statSeg}); }
           got.team=1; continue; }
       } }
     if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1);
@@ -484,8 +489,11 @@ function parseRotationText(text, opts){
       // middle, so the words left after the name are the card pair.
       if(!cp2.space && !cp2.sunsky && info.awareness && a2 && a2.type==='char'){
         const restToks=namePart.split(/\s+/).slice(1).join(' '); if(restToks) cp2=cardPair(restToks); }
-      // a non-card leftover after the colon that is a pierce/crit stat ("A6R6 Makoto: 7.4% Pierce") is the unit's note
-      const statNote=(!cp2.space && !cp2.sunsky && !note && cardsPart && STAT_NOTE.test(cardsPart)) ? cardsPart : '';
+      // a pierce/crit/CR/CM stat in the card portion is the unit's note ("A6R6 Makoto: 7.4% Pierce",
+      // "A6R6 Twins: Harmony + Victory - 30 CM - Fire/Ice + Psy/Nuke"): skip card pairs and dual ("/") segments.
+      let statNote='';
+      if(!note && cardsPart){ statNote=cardsPart.split(/\s+[-–—]\s+/).map(s=>s.trim())
+        .find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s)) || ''; }
       if(statNote) note=statNote;
       if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote)){
         if(a2.name==='TWINS'){ (cardsPart.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
@@ -928,5 +936,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A105';
+  _g.VF_PARSER_VERSION = 'A106';
 })();
