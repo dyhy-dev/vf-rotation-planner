@@ -3444,7 +3444,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function load(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Loading…'); fetch(SHORTENER+'/sync-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j){ _codes=j.codes||[]; render(); status(_codes.length+' code(s).'); } }).catch(()=>status('Could not load (is the worker /sync-list deployed?).',true)); }
   function gen(){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Generating…'); fetch(SHORTENER+'/sync-new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>{ if(r.status===403){ status('Rejected by the worker (wrong password).',true); return null; } return r.ok?r.json():Promise.reject(); }).then(j=>{ if(j&&j.code){ _codes.unshift({code:j.code, ts:0}); render(); status('New code: '+j.code+' (copy it from the list).'); } }).catch(()=>status('Could not generate (is the worker /sync-new deployed?).',true)); }
   const MSG=[
-    'Here is your personal cloud sync code for the Velvet Frequency Rotation Planner. It keeps your settings and saved rotations (your library) in sync across all your devices.',
+    'Here is your personal cloud sync code for the Velvet Frequency Rotation Planner. It keeps your settings and saved rotations (your library) in sync across all your devices, and keeps a copy in the cloud so they are safe even if you clear your browser data.',
     '',
     'How to turn it on:',
     '1. Open the planner and click "Import" at the top, then choose "Import Code".',
@@ -4753,6 +4753,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623D</div>
+<div class="version-tag">260623g</div>
 </body>
 </html>
