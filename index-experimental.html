@@ -420,6 +420,11 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .dev-link-frag{flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted)}
 .dev-link-date{flex:0 0 auto; color:var(--muted); font-size:11px; white-space:nowrap}
 .sync-name-in{flex:1 1 110px; min-width:80px; background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 7px; font-size:12px; font-family:Inter,system-ui,sans-serif}
+.livebk-confirm{margin-top:12px; padding:12px 14px; border:1px solid #ff5161; border-radius:9px; background:rgba(255,81,97,.08)}
+.livebk-confirm[hidden]{display:none}
+.livebk-confirm-text{font-size:13px; color:var(--text); margin-bottom:9px; line-height:1.4}
+.livebk-confirm-chk{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); cursor:pointer; margin-bottom:11px}
+.livebk-confirm-btns{display:flex; gap:8px; justify-content:flex-end}
 .pcol-img .pcol-pic{width:120px; height:200px; border-radius:6px; background:var(--field) center/cover no-repeat; cursor:grab; -webkit-touch-callout:none}
 @container persona (max-width:320px){ .pcol-img .pcol-pic{width:96px; height:160px} }
 .modal-back{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:6px; font:600 16px/1 Inter,system-ui,sans-serif; padding:2px 9px; cursor:pointer; vertical-align:middle; margin-right:6px}
@@ -1117,6 +1122,13 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <p class="crop-hint">Download everything stored on the worker (character crops, persona crops, banner, data overrides) as one JSON, or restore it from a file. A safety net if the KV is lost or something is pushed by mistake.</p>
       <div class="dev-tool-row"><span class="dev-status" id="livebkStatus"></span><span class="crop-tools-sp"></span><button class="btn" id="livebkExport">Export live data</button><button class="btn btn-exp" id="livebkRestore">Restore from file</button></div>
       <input type="file" id="livebkFile" accept="application/json,.json" hidden/>
+      <div class="dev-tool-row" style="margin-top:16px;align-items:center"><span class="dev-label">Cloud backups</span><button class="btn" id="livebkCloudLoad">Refresh</button><span class="crop-hint" style="margin:0">Saved on the worker automatically when live data changes (max 10, up to 3 per day).</span></div>
+      <div class="dev-links" id="livebkCloudList"></div>
+      <div id="livebkConfirm" class="livebk-confirm" hidden>
+        <div class="livebk-confirm-text" id="livebkConfirmText"></div>
+        <label class="livebk-confirm-chk"><input type="checkbox" id="livebkConfirmChk"> Yes, overwrite the current live data with this backup</label>
+        <div class="livebk-confirm-btns"><button class="btn" id="livebkConfirmCancel">Cancel</button><button class="btn btn-exp" id="livebkConfirmGo" disabled>Restore this backup</button></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2673,6 +2685,8 @@ let _ioPrimary=null;
 function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
 const SHORTENER='https://vfrp.dyhy.workers.dev';   /* Cloudflare Worker short-link service */
 const _SHORT_KEY='vf-shortlinks-v1';
+/* after any live-data push, ask the worker to snapshot a cloud backup (it dedupes by content + caps at 3/day, keeps 10) */
+function pingLiveBackup(){ if(!_devPass) return; try{ fetch(SHORTENER+'/databackup-snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).catch(()=>{}); }catch(e){} }
 
 /* ---------- cloud sync: keep settings + library in step across devices via a sync code (codes are issued from the Dev hub) ---------- */
 const SYNC_KEY='vf-sync-code-v1', SYNC_META='vf-sync-meta-v1', SYNC_SIG='vf-sync-sig-v1';
@@ -3277,7 +3291,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const ra=document.getElementById('cropResetAll'); if(ra) ra.onclick=()=>{ charCrops={}; saveCharCrops(); build(); };
   const cp=document.getElementById('cropCopy'); if(cp) cp.onclick=()=>{ const out=JSON.stringify(charCrops); const ok=()=>{ cp.textContent='Copied'; setTimeout(()=>cp.textContent='Copy values',1200); }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(out).then(ok,()=>prompt('Crop values:',out)); else prompt('Crop values:',out); };
   const pull=document.getElementById('cropPull'); if(pull) pull.onclick=()=>{ setStatus('Loading the live crops…'); fetch(SHORTENER+'/crops',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(j=>{ charCrops=(j&&typeof j==='object')?j:{}; saveCharCrops(); build(); setStatus('Loaded the live crops into the editor.'); }).catch(()=>setStatus('Could not load the live crops.', true)); };
-  const push=document.getElementById('cropPush'); if(push) push.onclick=()=>{ if(!_devPass){ setStatus('Unlock Developer Mode first.', true); return; } setStatus('Pushing to live…'); fetch(SHORTENER+'/crops',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass:_devPass, data:charCrops})}).then(r=>{ if(r.ok){ setStatus('Pushed. The crops are now live in the main tool.'); } else if(r.status===403){ setStatus('Rejected by the worker (wrong password).', true); } else { setStatus('Push failed ('+r.status+').', true); } }).catch(()=>setStatus('Push failed (network or worker).', true)); };
+  const push=document.getElementById('cropPush'); if(push) push.onclick=()=>{ if(!_devPass){ setStatus('Unlock Developer Mode first.', true); return; } setStatus('Pushing to live…'); fetch(SHORTENER+'/crops',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass:_devPass, data:charCrops})}).then(r=>{ if(r.ok){ setStatus('Pushed. The crops are now live in the main tool.'); pingLiveBackup(); } else if(r.status===403){ setStatus('Rejected by the worker (wrong password).', true); } else { setStatus('Push failed ('+r.status+').', true); } }).catch(()=>setStatus('Push failed (network or worker).', true)); };
 })();
 /* ===================== end EXPERIMENTAL-ONLY crop editor wiring ===================== */
 
@@ -3361,7 +3375,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function collect(){ const now=Date.now(); const out={}; BANNER_ORDER.forEach((c,i)=>{ const t=((ins[c]&&ins[c].value)||'').trim(); let id=0; if(t) id=(_loaded[c] && _loaded[c].text===t && _loaded[c].id) ? _loaded[c].id : (now+i); out[c]={text:t, id}; }); return out; }
   function openBanner(){ status(''); fetch(SHORTENER+'/banner',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{ fill(b); }).catch(()=>{}); modal.hidden=false; setTimeout(()=>{ try{ ins.green.focus(); }catch(e){} },50); }
   function close(){ modal.hidden=true; }
-  function push(data){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} _loaded={}; BANNER_ORDER.forEach(c=>{ _loaded[c]={text:(data[c]&&data[c].text)||'', id:(data[c]&&data[c].id)||0}; }); showBanner(data); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
+  function push(data){ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); fetch(SHORTENER+'/banner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed. It is now live for everyone.'); try{ localStorage.setItem(BANNER_KEY, JSON.stringify(data)); }catch(e){} _loaded={}; BANNER_ORDER.forEach(c=>{ _loaded[c]={text:(data[c]&&data[c].text)||'', id:(data[c]&&data[c].id)||0}; }); showBanner(data); pingLiveBackup(); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); }
   DEV_MODULES.push({ name:'Live Banner', desc:'Post up to three live banners.', open:openBanner, order:5 });
   const pb=document.getElementById('bannerPush'); if(pb) pb.onclick=()=>push(collect());
   const cl=document.getElementById('bannerClear'); if(cl) cl.onclick=()=>{ if(confirm('Remove all live banners for everyone?')){ BANNER_ORDER.forEach(c=>{ if(ins[c]) ins[c].value=''; }); push(collect()); } };
@@ -3526,7 +3540,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const jb=document.getElementById('rosterJson'); if(jb) jb.onclick=()=>{ if(jsonMode){ let v; try{ v=JSON.parse(ta.value); }catch(e){ status('Invalid JSON: '+e.message,true); return; } working=toWorking(v,cur().type); jsonMode=false; } else { try{ ta.value=JSON.stringify(realValue(),null,2); }catch(e){ status('Error: '+e.message,true); return; } jsonMode=true; } renderView(); };
   const cp=document.getElementById('rosterCopy'); if(cp) cp.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } try{ navigator.clipboard.writeText(JSON.stringify(v,null,2)); status('Copied.'); }catch(e){ status('Copy failed.',true); } };
   const ap=document.getElementById('rosterApply'); if(ap) ap.onclick=()=>{ let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } let synced=[]; try{ cur().set(v); synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; }catch(e){ status('Apply failed: '+e.message,true); return; } try{ renderAll(); }catch(e){} status(synced.length?('Applied + synced '+synced.join(', ')+' (session only).'):'Applied to this session (not saved).'); };
-  const pu=document.getElementById('rosterPush'); if(pu) pu.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } const data={[cur().k]:v}; try{ cur().set(v); const synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; synced.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); renderAll(); }catch(e){} status('Pushing…'); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed '+Object.keys(data).join(', ')+' live.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (is the worker /data deployed?).',true)); };
+  const pu=document.getElementById('rosterPush'); if(pu) pu.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } let v; try{ v=realValue(); }catch(e){ status('Invalid JSON: '+e.message,true); return; } const data={[cur().k]:v}; try{ cur().set(v); const synced=GROUPS[cur().k]?syncGroup(cur().k, v):[]; synced.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); renderAll(); }catch(e){} status('Pushing…'); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ status('Pushed '+Object.keys(data).join(', ')+' live.'); pingLiveBackup(); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (is the worker /data deployed?).',true)); };
   /* ---- "Add new" form: file a Character / Persona / Dagger / Skill into all the right tables at once ---- */
   const addTypeSel=document.getElementById('addType'), addFields=document.getElementById('addFields'), addStatusEl=document.getElementById('addStatus');
   let addTimer=null, _addCrop=null;
@@ -3628,7 +3642,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       else { personaCrops[name]=Object.assign({},_addCrop); try{ savePersonaCrops(); }catch(e){} }
     }
     try{ renderAll(); }catch(e){}
-    if(push){ const data={}; touched.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok) addStatus('Added "'+name+'" and pushed it live.'); else if(r.status===403) addStatus('Rejected (wrong password).',true); else addStatus('Saved locally, but push failed ('+r.status+').',true); }).catch(()=>addStatus('Saved locally, but push failed (worker).',true));
+    if(push){ const data={}; touched.forEach(k=>{ const t=tableByKey(k); if(t) data[k]=t.get(); }); fetch(SHORTENER+'/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data})}).then(r=>{ if(r.ok){ addStatus('Added "'+name+'" and pushed it live.'); pingLiveBackup(); } else if(r.status===403) addStatus('Rejected (wrong password).',true); else addStatus('Saved locally, but push failed ('+r.status+').',true); }).catch(()=>addStatus('Saved locally, but push failed (worker).',true));
       if(imgData && _addCrop && (type==='character'||type==='persona')){ const ep=type==='character'?'/crops':'/personacrops'; fetch(SHORTENER+ep,{cache:'no-store'}).then(r=>r.ok?r.json():{}).then(live=>{ if(!live||typeof live!=='object') live={}; live[name]=Object.assign({},_addCrop); return fetch(SHORTENER+ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:live})}); }).catch(()=>{}); } }
     else addStatus('Added "'+name+'" to this session.');
   }
@@ -3708,7 +3722,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const ra=document.getElementById('pcropResetAll'); if(ra) ra.onclick=()=>{ personaCrops={}; savePersonaCrops(); build(); };
   const cpv=document.getElementById('pcropCopy'); if(cpv) cpv.onclick=()=>{ const out=JSON.stringify(personaCrops); try{ navigator.clipboard.writeText(out); status('Copied.'); }catch(e){ prompt('Persona crops:',out); } };
   const pull=document.getElementById('pcropPull'); if(pull) pull.onclick=()=>{ status('Loading live…'); fetch(SHORTENER+'/personacrops',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(j=>{ personaCrops=(j&&typeof j==='object')?j:{}; savePersonaCrops(); build(); status('Loaded the live persona crops.'); }).catch(()=>status('Could not load live persona crops.',true)); };
-  const push=document.getElementById('pcropPush'); if(push) push.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); fetch(SHORTENER+'/personacrops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:personaCrops})}).then(r=>{ if(r.ok){ status('Pushed. Live for everyone now.'); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); };
+  const push=document.getElementById('pcropPush'); if(push) push.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } status('Pushing…'); fetch(SHORTENER+'/personacrops',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,data:personaCrops})}).then(r=>{ if(r.ok){ status('Pushed. Live for everyone now.'); pingLiveBackup(); } else if(r.status===403){ status('Rejected by the worker (wrong password).',true); } else { status('Push failed ('+r.status+').',true); } }).catch(()=>status('Push failed (network or worker).',true)); };
 })();
 /* ===================== end Persona Image Crops ===================== */
 
@@ -3718,7 +3732,14 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const st=document.getElementById('livebkStatus'); let timer=null;
   function status(m,err){ if(!st) return; if(timer){clearTimeout(timer);timer=null;} st.textContent=m||''; st.classList.toggle('err',!!err); if(m){ timer=setTimeout(()=>{ st.textContent=''; st.classList.remove('err'); },6000); } }
   const EP=[['crops','/crops'],['personacrops','/personacrops'],['banner','/banner'],['data','/data']];
-  function openMod(){ status(''); modal.hidden=false; }
+  let _pendingTs=0;
+  function fmtTs(ts){ try{ return new Date(+ts).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''+ts; } }
+  function hideConfirm(){ _pendingTs=0; const c=document.getElementById('livebkConfirm'); if(c) c.hidden=true; const chk=document.getElementById('livebkConfirmChk'); if(chk) chk.checked=false; const go=document.getElementById('livebkConfirmGo'); if(go) go.disabled=true; }
+  function renderCloud(backups){ const list=document.getElementById('livebkCloudList'); if(!list) return; list.innerHTML=''; if(!backups||!backups.length){ list.textContent='(no cloud backups yet)'; return; } backups.forEach(b=>{ const row=document.createElement('div'); row.className='dev-link-row'; const d=document.createElement('span'); d.className='dev-link-frag'; d.textContent=fmtTs(b.ts); d.title=d.textContent; const rb=document.createElement('button'); rb.className='dev-mini-btn'; rb.textContent='Restore'; rb.onclick=()=>askRestore(b.ts); row.append(d,rb); list.appendChild(row); }); }
+  function loadCloud(){ const list=document.getElementById('livebkCloudList'); if(!_devPass){ if(list) list.textContent='Unlock Developer Mode to see cloud backups.'; return; } if(list) list.textContent='Loading…'; fetch(SHORTENER+'/databackup-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).then(r=>r.ok?r.json():Promise.reject()).then(j=>{ renderCloud(j.backups||[]); }).catch(()=>{ if(list) list.textContent='Could not load (is the worker /databackup-list deployed?).'; }); }
+  function askRestore(ts){ _pendingTs=ts; const t=document.getElementById('livebkConfirmText'); if(t) t.textContent='Restore the cloud backup from '+fmtTs(ts)+'? This overwrites the current live crops, persona crops, banner and data overrides for everyone.'; const chk=document.getElementById('livebkConfirmChk'); if(chk) chk.checked=false; const go=document.getElementById('livebkConfirmGo'); if(go) go.disabled=true; const c=document.getElementById('livebkConfirm'); if(c){ c.hidden=false; c.scrollIntoView({block:'nearest'}); } }
+  function doCloudRestore(){ if(!_pendingTs||!_devPass){ hideConfirm(); return; } const ts=_pendingTs; status('Restoring…'); fetch(SHORTENER+'/databackup-restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass,ts:ts})}).then(r=>{ if(r.ok){ status('Restored the backup to live data. Reload the tool to apply it.'); } else if(r.status===403){ status('Rejected (wrong password).',true); } else if(r.status===404){ status('That backup no longer exists.',true); loadCloud(); } else { status('Restore failed ('+r.status+').',true); } }).catch(()=>status('Restore failed (worker unreachable).',true)); hideConfirm(); }
+  function openMod(){ status(''); hideConfirm(); modal.hidden=false; loadCloud(); }
   function close(){ modal.hidden=true; }
   async function doExport(){
     status('Fetching live data…');
@@ -3741,6 +3762,10 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const rb=document.getElementById('livebkRestore'); if(rb) rb.onclick=()=>{ if(!_devPass){ status('Unlock Developer Mode first.',true); return; } document.getElementById('livebkFile').click(); };
   const fi=document.getElementById('livebkFile'); if(fi) fi.onchange=e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return; if(!confirm('Restore live data from this file? It overwrites the current live crops/banner/data for everyone.')) return; const r=new FileReader(); r.onload=()=>{ let o; try{ o=JSON.parse(r.result); }catch(err){ status('Invalid JSON file.',true); return; } doRestore(o); }; r.readAsText(f); };
   const c=document.getElementById('livebkClose'); if(c) c.onclick=close;
+  const cl=document.getElementById('livebkCloudLoad'); if(cl) cl.onclick=loadCloud;
+  const chk=document.getElementById('livebkConfirmChk'); if(chk) chk.onchange=()=>{ const go=document.getElementById('livebkConfirmGo'); if(go) go.disabled=!chk.checked; };
+  const cancel=document.getElementById('livebkConfirmCancel'); if(cancel) cancel.onclick=hideConfirm;
+  const go=document.getElementById('livebkConfirmGo'); if(go) go.onclick=doCloudRestore;
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&!modal.hidden) close(); });
 })();
 /* ===================== end Live Data Backup ===================== */
@@ -4728,6 +4753,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623e</div>
+<div class="version-tag">260623f</div>
 </body>
 </html>
