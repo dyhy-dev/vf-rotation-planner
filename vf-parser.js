@@ -19,6 +19,8 @@ function resolveActor(token){
   for(const c in CHAR_ALIASES){ if(CHAR_ALIASES[c].some(a=>a.toLowerCase()===t)) return {type:'char',name:c}; }
   h=pers.find(p=>p.toLowerCase()===t); if(h) return {type:'persona',name:h};
   for(const p in PERSONA_ALIASES){ if(PERSONA_ALIASES[p].some(a=>a.toLowerCase()===t)) return {type:'persona',name:p}; }
+  // a "·"-variant roster name written without the separator ("MontF" -> MONT·F, "JokerS" -> JOKER·S)
+  { const dh=chars.find(c=>c.indexOf('·')>=0 && c.toLowerCase().replace(/·/g,'')===t); if(dh) return {type:'char',name:dh}; }
   if(t.length>=3){
     h=chars.find(c=>c.toLowerCase().startsWith(t)); if(h) return {type:'char',name:h,fuzzy:true};
     h=pers.find(p=>p.toLowerCase().startsWith(t)); if(h) return {type:'persona',name:h,fuzzy:true};
@@ -513,7 +515,10 @@ function parseRotationText(text, opts){
           if(cpx.space && cpx.sunsky){ cardsPart=pm[1];
             const after=namePart.slice(pm.index+pm[0].length).trim(); if(after) note=after;
             namePart=namePart.slice(0,pm.index).trim(); } } }
-      const a2=resolveActor((namePart.split(/\s+/)[0]||''));
+      const _np=namePart.split(/\s+/);
+      let a2=resolveActor(_np[0]||'');
+      // a "·"-variant written with a space ("Mont F" -> MONT·F): join the first two tokens
+      if(_np[1]){ const v=resolveActor((_np[0]||'')+_np[1]); if(v && !v.fuzzy && v.type==='char' && v.name.indexOf('·')>=0) a2=v; }
       let cp2=cardPair(cardsPart);
       // inline team line with no separator ("Chord A6R6 Trust/Prosp"): awareness was pulled out of the
       // middle, so the words left after the name are the card pair.
@@ -986,5 +991,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A111';
+  _g.VF_PARSER_VERSION = 'A112';
 })();
