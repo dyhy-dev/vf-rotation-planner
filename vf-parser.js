@@ -1,6 +1,6 @@
 /* ============================================================================
    Velvet Frequency — Rotation Text Parser  (external, separately editable)
-   Version: A102   (bumped +1 on every change; A199 -> B001)
+   Version: A103   (bumped +1 on every change; A199 -> B001)
    ----------------------------------------------------------------------------
    Loaded by index.html as a classic <script> AFTER the main script. Keep this
    file in the SAME folder as index.html (works on GitHub Pages and locally via
@@ -67,13 +67,15 @@ function codeOf(token){
   m=t.match(/^(s[123]|hl)(x?\d+)?$/); if(m&&CODE[m[1]]) return {btn:CODE[m[1]],extra:(m[2]||'')};
   return null;
 }
+// common stat-note words that aren't cards but collide with one (notably "pierce" fuzz-matches "Peace").
+const CARD_STOP=/^(pierce|crit|critical|percent|pct|reset|resets)$/;
 function cardPair(str){
   // when several card options are listed (comma- or "or"-separated), only the first pair counts
   str=String(str==null?'':str).split(/\s*,\s*|\s+or\s+/i)[0]||'';
   const parts=str.split(/[\/+\s]+/).map(s=>s.trim()).filter(Boolean);
   let space='',sunsky='';
-  const findSp=p=>{ const t=_n(p); if(t.length<3)return ''; return DATA.spaceCards.find(c=>c.toLowerCase()===t)||DATA.spaceCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.spaceCards.find(c=>lev(c,t)<=2))||''; };
-  const findSs=p=>{ const t=_n(p); if(t.length<3)return ''; return DATA.sunSkyCards.find(c=>c.toLowerCase()===t)||DATA.sunSkyCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.sunSkyCards.find(c=>lev(c,t)<=2))||''; };
+  const findSp=p=>{ const t=_n(p); if(t.length<3||CARD_STOP.test(t))return ''; return DATA.spaceCards.find(c=>c.toLowerCase()===t)||DATA.spaceCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.spaceCards.find(c=>lev(c,t)<=2))||''; };
+  const findSs=p=>{ const t=_n(p); if(t.length<3||CARD_STOP.test(t))return ''; return DATA.sunSkyCards.find(c=>c.toLowerCase()===t)||DATA.sunSkyCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.sunSkyCards.find(c=>lev(c,t)<=2))||''; };
   for(const part of parts){ if(space&&sunsky)break; const sp=findSp(part),ss=findSs(part);
     if(sp&&!ss){ if(!space)space=sp; } else if(ss&&!sp){ if(!sunsky)sunsky=ss; }
     else if(sp&&ss){ if(!space)space=sp; else if(!sunsky)sunsky=ss; } }
@@ -243,13 +245,17 @@ function parseTurnContent(content,warn){
           actions.push({char:MIKU,btn,song:ls.song,text:txt.join(' ').trim(),_fuzzy:false});
           cur={type:'char',name:MIKU}; lastActor=cur; continue; } }
       let actor=null,rest=toks;
-      if(_n(toks[0])==='wonder'){ const pa=toks[1]?resolveActor(toks[1]):null;
-        if(pa&&pa.type==='persona'){actor={type:'persona',name:pa.name,fuzzy:pa.fuzzy};rest=toks.slice(2);}
+      // a two-word persona name ("Nian Shou", "Neko Shogun", "King Frost", "Cu Chulainn") must consume BOTH
+      // tokens, else the second word leaks into the skill text. Only exact, space-containing persona matches
+      // qualify, so two unrelated tokens are never collapsed.
+      const twoPersona=(i)=>{ if(!toks[i+1]) return null; const m=resolveActor(toks[i]+' '+toks[i+1]); return (m&&!m.fuzzy&&m.type==='persona'&&m.name.includes(' '))?m:null; };
+      if(_n(toks[0])==='wonder'){ const tw=twoPersona(1); const pa=tw||(toks[1]?resolveActor(toks[1]):null);
+        if(pa&&pa.type==='persona'){actor={type:'persona',name:pa.name,fuzzy:!!pa.fuzzy};rest=toks.slice(tw?3:2);}
         else{actor={type:'char',name:'WONDER'};rest=toks.slice(1);} }
-      else{ const a0=resolveActor(toks[0]);
+      else{ const tw=twoPersona(0); const a0=tw||resolveActor(toks[0]);
         const sk0=SKILL_ALIAS_MAP[_n(toks[0]).replace(/[().]/g,'')];
         if(sk0 && !(a0 && !a0.fuzzy)){ actor={type:'char',name:'WONDER'}; rest=toks; }  // leading known skill, no exact actor -> Wonder persona action ("Maraku", "Suku Twins")
-        else if(a0 && !(a0.fuzzy && cur)){actor=a0;rest=toks.slice(1);} }
+        else if(a0 && !(a0.fuzzy && cur)){actor=a0;rest=toks.slice(tw?2:1);} }
       if(actor)cur=actor; else{actor=cur;rest=toks;}
       if(actor)lastActor=actor;
       // flush any leading bare buttons ("Alt + ...") onto this actor, in order
@@ -359,7 +365,10 @@ function parseRotationText(text, opts){
 
     // "Expected Score: 600 Mil" / "Score: ..." / bare "Score 175m" (no colon) -> score field; line is consumed either way.
     // The colon form keeps the verbatim value (so "600 Mil" round-trips); a bare form just defers to the pre-scanned value.
-    { const sm=line.match(/^(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])?\s*(\d.*)$/i);
+    { const sm=line.match(/^(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])?\s*(\d.*)$/i)
+            // tolerate a leading prefix before the label ("June 18 Expected Score: 2,700,000,000"); a
+            // colon/dash separator is then required, and the prefix must carry no colon of its own.
+            || line.match(/^[^:]*?\b(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])\s*(\d.*)$/i);
       if(sm){ const v=sm[2].trim(); if(v && (sm[1] || !setup.score)){ setup.score=v; got.score=1; } continue; } }
 
     // Wonder line: "Wonder [R#] [Dagger] [, persona (skills), …]"
@@ -388,7 +397,11 @@ function parseRotationText(text, opts){
         // duals written with "and"/"+"/"/" joiners ("Fire and Ice", "Elec+Wind", "P/N") -> collect, normalised
         const norm=body.replace(/\b(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\s*(?:and|\+|\/)\s*(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\b/ig,'$1/$2');
         const duals=[]; (norm.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(t=>{ const d=normDual(t); if(d&&!duals.includes(d))duals.push(d); });
-        if(foundRole||duals.length){ duals.forEach(d=>{ if(!headerDuals.includes(d))headerDuals.push(d); }); if(foundRole)twinsRole=foundRole; got.team=1; continue; }
+        if(foundRole||duals.length){ duals.forEach(d=>{ if(!headerDuals.includes(d))headerDuals.push(d); }); if(foundRole)twinsRole=foundRole;
+          // the line may also carry the Twins' build cards before the duals ("Twins: Harmony + Victory - Fire/Ice + Psy/Nuke");
+          // cardPair stops at the first complete space+sun/sky pair, so the trailing duals don't interfere.
+          const cpt=cardPair(body); if(cpt.space&&cpt.sunsky){ addChar('TWINS',{space:cpt.space,sunsky:cpt.sunsky}); got.cards=1; }
+          got.team=1; continue; }
       } }
     if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1);
       const rfm=val.match(/\b[RF]([0-6X])\b/i); if(rfm) addChar('WONDER',{rev:('R'+rfm[1]).toUpperCase()});   // a lone "R5" on the dagger line is Wonder's reforge (Wonder has no awareness prefix)
@@ -916,5 +929,5 @@ function parseRotationText(text, opts){
   _g.ELEM_MAP          = ELEM_MAP;
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
-  _g.VF_PARSER_VERSION = 'A102';
+  _g.VF_PARSER_VERSION = 'A103';
 })();
