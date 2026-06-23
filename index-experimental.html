@@ -1548,7 +1548,7 @@ function showBanner(raw){
     const row=document.createElement('div'); row.className='app-banner acc-'+color; row.dataset.color=color; row.dataset.id=id;
     const span=document.createElement('span'); span.className='app-banner-text'; span.textContent=text;
     const x=document.createElement('button'); x.className='app-banner-x'; x.setAttribute('aria-label','Dismiss'); x.innerHTML='&times;';
-    x.onclick=()=>{ const m=_bannerDismissed(); m[color]=id; try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(m)); }catch(_){} row.remove(); if(!wrap.children.length) wrap.hidden=true; };
+    x.onclick=()=>{ const m=_bannerDismissed(); m[color]=id; try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(m)); }catch(_){} row.remove(); if(!wrap.children.length) wrap.hidden=true; if(typeof syncSchedulePush==='function') syncSchedulePush(); };
     row.append(span,x); wrap.appendChild(row);
   });
   wrap.hidden=!any;
@@ -2696,13 +2696,13 @@ function getSyncCode(){ return _syncCode; }
 function _hashStr(str){ let h1=0xdeadbeef,h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909); return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }   /* cyrb53 */
 function _syncSavedSig(){ try{ return localStorage.getItem(SYNC_SIG)||''; }catch(e){ return ''; } }
 function _setSyncSavedSig(s){ try{ if(s) localStorage.setItem(SYNC_SIG,s); else localStorage.removeItem(SYNC_SIG); }catch(e){} }
-function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib); }   /* content fingerprint (no ts) so we only push when something actually changed */
+function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib+JSON.stringify(_bannerDismissed())); }   /* content fingerprint (no ts) so we only push when something actually changed */
 function _syncMetaTs(){ try{ return +localStorage.getItem(SYNC_META)||0; }catch(e){ return 0; } }
 function _setSyncMetaTs(t){ try{ localStorage.setItem(SYNC_META, String(t||0)); }catch(e){} }
 function _syncStatus(m,err){ const el=document.getElementById('syncStatus'); if(el){ el.textContent=m||''; el.classList.toggle('err',!!err); } }
 function syncCodeSet(code){ _syncCode=(code||'').trim(); try{ if(_syncCode) localStorage.setItem(SYNC_KEY,_syncCode); else localStorage.removeItem(SYNC_KEY); }catch(e){} }
-function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib() }; }
-function _syncApply(d){ _syncApplying=true; try{ applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
+function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib(), bannerDismissed:_bannerDismissed() }; }
+function _syncApply(d){ _syncApplying=true; try{ applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); if(d.bannerDismissed && typeof d.bannerDismissed==='object' && !Array.isArray(d.bannerDismissed)){ try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(d.bannerDismissed)); }catch(e){} try{ const c=JSON.parse(localStorage.getItem(BANNER_KEY)); if(c) showBanner(c); }catch(e){} } }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
 /* resolves with: 'applied' (server was newer, taken), 'empty' (valid slot, nothing newer -> caller may push local up), 'unknown' (bad code), 'error' */
 function syncPull(silent){ return new Promise(resolve=>{ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); resolve('error'); return; } if(!silent) _syncStatus('Syncing…');
   fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return '__404__'; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(d==='__404__'){ resolve('unknown'); return; } if(!d){ resolve('error'); return; } if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); resolve('applied'); } else { if(!silent) _syncStatus('Already up to date.'); resolve('empty'); } }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); resolve('error'); }); }); }
@@ -4760,6 +4760,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623i</div>
+<div class="version-tag">260623j</div>
 </body>
 </html>
