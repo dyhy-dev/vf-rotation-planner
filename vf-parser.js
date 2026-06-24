@@ -146,6 +146,9 @@ function buildActions(actor,toks,raw,warn){
   { const t2=[]; for(let i=0;i<toks.length;i++){ if(i+1<toks.length && /^(da|de)$/i.test(toks[i]) && /^capo$/i.test(toks[i+1].replace(/[().]/g,''))){ t2.push('DC'); i++; }
       else if(i+1<toks.length && /^x$/i.test(toks[i]) && /^\d+$/.test(toks[i+1])){ t2.push('x'+toks[i+1]); i++; }
       else t2.push(toks[i]); } toks=t2; }
+  // for SEES members, a lone "T" means Theurgy (the HL button), e.g. "Makoto T"
+  if(typeof ACT_SPECIAL!=='undefined' && ACT_SPECIAL.includes((actor.name||'').toUpperCase())){
+    toks=toks.map(t=>/^t$/i.test(String(t).replace(/[().]/g,''))?'TH':t); }
   const isW=actor.type==='persona'||actor.name==='WONDER';
   if(isW){ const hl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
     const pname=actor.type==='persona'?actor.name:'';
@@ -1017,5 +1020,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A116';
+  _g.VF_PARSER_VERSION = 'A117';
 })();
