@@ -6,6 +6,11 @@
    list of shared tables: see CLAUDE.md. */
 (function(){
 const _n = s => String(s||'').trim().toLowerCase();
+/* Renamed skills: old names that still appear in shared rotations, folded into the shared input-alias
+   map so every lookup site resolves them. Input-only — they never appear in exports. "Fury Incarnate"
+   was Zaou-Gongen's signature before it was renamed "Exorcising Flames". Add new old->current pairs here. */
+try{ if(typeof SKILL_ALIAS_MAP==='object'&&SKILL_ALIAS_MAP){ const _LEGACY_SKILLS={'fury incarnate':'Exorcising Flames'};
+  for(const k in _LEGACY_SKILLS) if(!SKILL_ALIAS_MAP[k]) SKILL_ALIAS_MAP[k]=_LEGACY_SKILLS[k]; } }catch(e){}
 /* reforge rank: "F" is an accepted alternate spelling of "R" (e.g. "A6F6" == "A6 R6"). Normalise to R. */
 const _rev = s => String(s||'').toUpperCase().replace(/^F/,'R');
 function lev(a,b){ a=_n(a);b=_n(b);const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
@@ -1022,5 +1027,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A118';
+  _g.VF_PARSER_VERSION = 'A119';
 })();
