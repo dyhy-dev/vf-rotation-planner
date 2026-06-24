@@ -50,7 +50,9 @@ function _matchDualAt(toks,i){ const t=toks[i]; if(t==null) return null;
   if(toks[i+1]!=null){ d=_dual2(t,toks[i+1]); if(d) return {dual:d,len:2}; }         // Fire Ice, Wind Elec, F I
   return null; }
 function _findDual(toks){ for(let i=0;i<toks.length;i++){ const m=_matchDualAt(toks,i); if(m) return {dual:m.dual,start:i,len:m.len}; } return null; }
-const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',th:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT'};
+// "sig"/"signature" on a (non-Wonder) character means its Masquerade / special move — the ALT button.
+// Wonder personas resolve "sig" to the persona's signature skill earlier, so this only catches the character case.
+const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',th:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT',sig:'ALT',signature:'ALT'};
 function codeOf(token){
   const t=_n(token).replace(/[().]/g,'');
   if(CODE[t]) return {btn:CODE[t],extra:''};
@@ -172,7 +174,7 @@ function buildActions(actor,toks,raw,warn){
   if(!acts.length) acts.push({char:actor.name,btn:'',text:pending.join(' ').trim(),_fuzzy:!!actor.fuzzy,_uncertain:true});
   // drop "auto-cast" skills: some tools list skills a unit casts automatically ("Auto S3", "Auto S1", "Auto TH2").
   // they aren't part of a hand-played rotation, so skip them — but only an "Auto" paired with a skill, never a plain note.
-  const _isAuto=a=>{ const t=(a.text||'').trim(); return /^auto\b/i.test(t) && (/^S[123]$/i.test(a.btn||'') || /^auto\s+(s[123]|th\d*|hl)\b/i.test(t)); };
+  const _isAuto=a=>{ const t=(a.text||'').trim(); return /^auto\b/i.test(t) && (/^(S[123]|Atk)$/i.test(a.btn||'') || /^auto\s+(s[123]|th\d*|hl|atk|attack|melee)\b/i.test(t)); };
   return acts.filter(a=>!_isAuto(a));
 }
 // split a segment at mid-segment actor boundaries (compensates a missing comma): an exact character
@@ -677,7 +679,7 @@ function parseRotationText(text, opts){
       const mm=t2.match(/\b(MLD|DOD|NOD|SOS)\b/i); if(mm){ setup.type=mm[1].toUpperCase(); got.mode=1; t2=t2.replace(/\b(MLD|DOD|NOD|SOS)\b/i,' '); }
       let bm=matchBoss(t2); if(!bm && setup.type==='SOS') bm=matchSosBoss(t2);
       if(bm){ setup.boss=bm; got.boss=1; t2=t2.replace(new RegExp('\\b'+bm.split(' ').join('\\s+')+'\\b','i'),' '); }
-      let rn=t2.replace(/\s+/g,' ').trim().replace(/^[:\s]+|[:\s]+$/g,'').trim();
+      let rn=t2.replace(/\(\s*\)/g,' ').replace(/\s+/g,' ').trim().replace(/^[:\s]+|[:\s]+$/g,'').trim();   // drop parens emptied by boss/mode removal ("Fafnir (MLD)" -> "")
       // credit: an unknown name after "by" (1-2 words) or a single unknown word after "-"
       const cmBy=rn.match(/^(.*?)\bby\s+(.+)$/i); const cmDash=rn.match(/^(.*?)\s*[-–]\s*(\S+)$/);
       const _notSide=s=>!/^(side|weak|strong)$/i.test(s);
@@ -1020,5 +1022,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A117';
+  _g.VF_PARSER_VERSION = 'A118';
 })();
