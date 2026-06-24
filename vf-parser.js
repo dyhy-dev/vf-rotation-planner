@@ -80,7 +80,7 @@ function isPassiveSkill(name){ name=String(name||'');
 function cardPair(str){
   // when several card options are listed (comma- or "or"-separated), only the first pair counts
   str=String(str==null?'':str).split(/\s*,\s*|\s+or\s+/i)[0]||'';
-  const parts=str.split(/[\/+\s]+/).map(s=>s.trim()).filter(Boolean);
+  const parts=str.split(/[\/+\s;]+/).map(s=>s.trim()).filter(Boolean);
   let space='',sunsky='';
   const findSp=p=>{ const t=_n(p); if(t.length<3||CARD_STOP.test(t))return ''; return DATA.spaceCards.find(c=>c.toLowerCase()===t)||DATA.spaceCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.spaceCards.find(c=>lev(c,t)<=2))||''; };
   const findSs=p=>{ const t=_n(p); if(t.length<3||CARD_STOP.test(t))return ''; return DATA.sunSkyCards.find(c=>c.toLowerCase()===t)||DATA.sunSkyCards.find(c=>c.toLowerCase().startsWith(t))||(t.length>=6&&DATA.sunSkyCards.find(c=>lev(c,t)<=2))||''; };
@@ -167,7 +167,10 @@ function buildActions(actor,toks,raw,warn){
     paren+=(tok.match(/[(\[]/g)||[]).length-(tok.match(/[)\]]/g)||[]).length; if(paren<0)paren=0; }
   if(cur) acts.push(cur);
   if(!acts.length) acts.push({char:actor.name,btn:'',text:pending.join(' ').trim(),_fuzzy:!!actor.fuzzy,_uncertain:true});
-  return acts;
+  // drop "auto-cast" skills: some tools list skills a unit casts automatically ("Auto S3", "Auto S1", "Auto TH2").
+  // they aren't part of a hand-played rotation, so skip them — but only an "Auto" paired with a skill, never a plain note.
+  const _isAuto=a=>{ const t=(a.text||'').trim(); return /^auto\b/i.test(t) && (/^S[123]$/i.test(a.btn||'') || /^auto\s+(s[123]|th\d*|hl)\b/i.test(t)); };
+  return acts.filter(a=>!_isAuto(a));
 }
 // split a segment at mid-segment actor boundaries (compensates a missing comma): an exact character
 // (or Wonder) name that is directly followed by an action code — or, for Wonder, by a persona — starts
@@ -537,8 +540,10 @@ function parseRotationText(text, opts){
       // a pierce/crit/CR/CM stat in the card portion is the unit's note ("A6R6 Makoto: 7.4% Pierce",
       // "A6R6 Twins: Harmony + Victory - 30 CM - Fire/Ice + Psy/Nuke"): skip card pairs and dual ("/") segments.
       let statNote='';
-      if(!note && cardsPart){ statNote=cardsPart.split(/\s+[-–—]\s+/).map(s=>s.trim())
-        .find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s)) || ''; }
+      if(!note && cardsPart){ const semi=cardsPart.indexOf(';');
+        if(semi>=0 && /\d/.test(cardsPart.slice(semi+1))){ statNote=cardsPart.slice(semi+1).trim(); }   // "Worry + Creation; 3053 ATK, 8.8% CR, …" -> the stats after ; are the unit's note
+        else { statNote=cardsPart.split(/\s+[-–—]\s+/).map(s=>s.trim())
+          .find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s)) || ''; } }
       if(statNote) note=statNote;
       if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote)){
         if(a2.name==='TWINS'){ (cardsPart.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
@@ -1012,5 +1017,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A114';
+  _g.VF_PARSER_VERSION = 'A115';
 })();
