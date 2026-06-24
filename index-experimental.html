@@ -4758,6 +4758,17 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
     try{ const st=await decodeShare(vm[1]); state=migrate(st); ok=true; }catch(e){ /* unreadable view link */ }
     if(ok){ enterViewMode(); return; }   /* read-only view; do NOT save() or clear the hash */
   }
+  // #t=<base64url(plain rotation text)> -> parse it with vf-parser.js and open it in the editor.
+  // lets external tools deep-link a rotation into VFRP using the same text format the Import Text reads.
+  // vf-parser.js loads after this script, so wait until parseRotationText exists before parsing.
+  const tm=(location.hash||'').match(/[#&]t=([^&]+)/);
+  if(tm){
+    const loadText=()=>{ try{ const txt=b64urlDecode(tm[1]); if(txt){ const res=parseRotationText(txt,{}); state=migrate(res.state); save(); renderAll(); } }catch(e){ /* unreadable text link */ }
+      try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; } };
+    if(typeof parseRotationText==='function') loadText();
+    else { let n=0; const iv=setInterval(()=>{ if(typeof parseRotationText==='function'){ clearInterval(iv); loadText(); } else if(++n>80){ clearInterval(iv); } }, 25); }
+    return;
+  }
   const m=(location.hash||'').match(/[#&]r=([^&]+)/);
   if(!m) return;
   try{ const st=await decodeShare(m[1]); state=migrate(st); save(); renderAll(); }catch(e){ /* ignore an unreadable link */ }
@@ -4772,6 +4783,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260623m</div>
+<div class="version-tag">260623o</div>
 </body>
 </html>
