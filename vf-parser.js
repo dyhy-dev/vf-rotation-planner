@@ -213,13 +213,16 @@ function parseTurnContent(content,warn){
     const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
     for(const seg of segs){
       const toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
+      // split a no-space actor+highlight token ("NianHL" -> "Nian" "HL", "MatoiTG" -> "Matoi" "TG")
+      for(let ti=0;ti<toks.length;ti++){ const hm=toks[ti].match(/^(.{2,}?)(hl|tg)$/i);
+        if(hm && !codeOf(toks[ti])){ const pa=resolveActor(hm[1]); if(pa && (pa.type==='char'||pa.type==='persona')){ toks.splice(ti,1,hm[1],hm[2].toUpperCase()); } } }
       // "Guard All" / "All Guard": every non-elucidator team unit guards; expanded after the team is known.
       if(/^(g(?:ua|au)rd\s+all|all\s+g(?:ua|au)rd)$/i.test(seg)){ actions.push({guardAll:true}); cur=null; continue; }
       // a lone "Guard" (no actor) -> resolved after the team is known, to the next due actor idle this turn.
       // BUT a "+Guard" chained onto an actor whose only action so far is a (free) HL belongs to that actor
       // ("Haru HL+Guard" = Haru pops HL and guards), mirroring how "+Gun" attaches. After a full action
       // (S1/S2/S3/Atk/Gn) the "+Guard" stays a floating guard for an idle team-mate ("Futaba S2+Guard").
-      if(/^g(?:ua|au)rds?$/i.test(seg)){
+      if(/^g(?:(?:ua|au)rds?)?$/i.test(seg)){   // "Guard", "Gaurd", or a bare "G"
         const tgtName=cur?(cur.type==='persona'?'WONDER':cur.name):null;
         const curActs=tgtName?actions.slice(unitStart).filter(a=>a.char===tgtName&&!a.guardAll&&!a.guardSolo):[];
         if(cur && curActs.length && curActs.every(a=>a.btn==='HL')){
@@ -301,13 +304,17 @@ function parseRotationText(text, opts){
   // a divider meaning every following turn is a break turn. Tolerates decorative wrapping
   // ("--BREAK--", "== BREAK ==", "** Break Phase **"), but still rejects "Break 1" (a turn).
   const reBreakDiv=/^[\s\-=~*_#.–—]*breaks?(?:\s+(?:phase|turns?))?[\s\-=~*_#.:–—]*$/i;
+  // also accept the letter-spaced emphasis form ("B R E A K") — only when every token is a single letter.
+  const isBreakDiv=ln=>{ if(reBreakDiv.test(ln)) return true;
+    const toks=String(ln||'').trim().split(/\s+/);
+    return toks.length>=3 && toks.every(t=>t.length<=1) && reBreakDiv.test(toks.join('')); };
   const isTurnStart=s=>reInline.test(s)||reAlone.test(s)||reWInline.test(s)||reWAlone.test(s);
   // classify lines: turn vs header  (a "Break N" line is a turn too, flagged brk)
   const turnEntries=[]; const headerLines=[]; const lineIsTurn=new Array(lines.length).fill(false);
   let afterBreak=false;
-  const grabContent=(i)=>{ let j=i+1,content=''; while(j<lines.length){ if(isTurnStart(lines[j])||reBreakDiv.test(lines[j]))break; if(lines[j].trim()){content=lines[j].trim();lineIsTurn[j]=true;break;} j++; } return content; };
+  const grabContent=(i)=>{ let j=i+1,content=''; while(j<lines.length){ if(isTurnStart(lines[j])||isBreakDiv(lines[j]))break; if(lines[j].trim()){content=lines[j].trim();lineIsTurn[j]=true;break;} j++; } return content; };
   for(let i=0;i<lines.length;i++){
-    if(reBreakDiv.test(lines[i])){ afterBreak=true; lineIsTurn[i]=true; continue; }   // divider, consumed
+    if(isBreakDiv(lines[i])){ afterBreak=true; lineIsTurn[i]=true; continue; }   // divider, consumed
     let m=lines[i].match(reInline);
     if(m){ turnEntries.push({num:+m[2],content:m[3],brk:/^b/i.test(m[1])||afterBreak}); lineIsTurn[i]=true; continue; }
     if(afterBreak){ m=lines[i].match(reWInline); if(m){ turnEntries.push({num:+m[2],content:m[3],brk:true}); lineIsTurn[i]=true; continue; } }
@@ -1005,5 +1012,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A113';
+  _g.VF_PARSER_VERSION = 'A114';
 })();
