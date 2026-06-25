@@ -211,7 +211,7 @@ function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
   out.push(buf); return out; }
 /* Hatsune Miku's songs (elucidator). Recognised in turns and mapped to Miku, with abbreviations. */
 const MIKU='MIKU';
-const SONG_ALIAS_MAP={'heaven':'Heaven','song 1':'Heaven','song1':'Heaven','spring storm':'Spring Storm','ss':'Spring Storm','spring':'Spring Storm','storm':'Spring Storm','song 2':'Spring Storm','song2':'Spring Storm','play-with-fire':'Play-With-Fire','play with fire':'Play-With-Fire','playwithfire':'Play-With-Fire','play':'Play-With-Fire','pwf':'Play-With-Fire','song 3':'Play-With-Fire','song3':'Play-With-Fire','dance':'Dance'};
+const SONG_ALIAS_MAP={'heaven':'Heaven','song 1':'Heaven','song1':'Heaven','spring storm':'Spring Storm','ss':'Spring Storm','spring':'Spring Storm','storm':'Spring Storm','song 2':'Spring Storm','song2':'Spring Storm','play-with-fire':'Play-With-Fire','play with fire':'Play-With-Fire','playwithfire':'Play-With-Fire','play':'Play-With-Fire','pwf':'Play-With-Fire','song 3':'Play-With-Fire','song3':'Play-With-Fire','dance':'Heaven'};
 const isSong=t=>!!SONG_ALIAS_MAP[_n(t).replace(/[().]/g,'')];
 function leadingSong(toks){ for(let k=Math.min(2,toks.length);k>=1;k--){ const p=_n(toks.slice(0,k).join(' ')).replace(/[().]/g,''); if(SONG_ALIAS_MAP[p]) return {song:SONG_ALIAS_MAP[p],len:k}; } return null; }
 function _hasMiku(){ try{ return DATA.characterNames.indexOf(MIKU)>=0; }catch(e){ return false; } }
@@ -806,10 +806,15 @@ function parseRotationText(text, opts){
   const breakTE=turnEntries.filter(te=>te.brk).sort((a,b)=>a.num-b.num);
   const normalTE=turnEntries.filter(te=>!te.brk).sort((a,b)=>a.num-b.num);
   const hasExplicitBreaks=breakTE.length>0;
-  // a Break/Weak divider implies DOD only when the post-break turns fit DOD_BREAKS. More than that means it
+  // parse each turn's actions once (so we can detect Miku before naming) and cache them
+  const _acts=new Map(); turnEntries.forEach(te=>_acts.set(te,parseTurnContent(te.content,warn)));
+  // Hatsune Miku's kit grants two extra break turns, so a DOD with Miku may have up to 4 (else DOD_BREAKS).
+  const mikuPresent=[...turnEntries].some(te=>(_acts.get(te)||[]).some(a=>(a.char||'').toUpperCase()===MIKU));
+  const maxBreaks=mikuPresent?4:DOD_BREAKS;
+  // a Break/Weak divider implies DOD only when the post-break turns fit maxBreaks. More than that means it
   // isn't a standard DOD (e.g. a long fight with a stagger phase), so keep every turn — never drop the extras.
-  const isDod=forceDod||(hasExplicitBreaks && breakTE.length<=DOD_BREAKS);
-  const mkTurn=(te,name)=>({name,note:'',actions:parseTurnContent(te.content,warn)});
+  const isDod=forceDod||(hasExplicitBreaks && breakTE.length<=maxBreaks);
+  const mkTurn=(te,name)=>({name,note:'',actions:_acts.get(te)||[]});
   if(isDod){
     setup.type='DOD'; got.mode=1;
     let normal=normalTE, breaks=breakTE;
@@ -1039,5 +1044,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A120';
+  _g.VF_PARSER_VERSION = 'A121';
 })();
