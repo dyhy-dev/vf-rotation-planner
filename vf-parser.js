@@ -974,13 +974,15 @@ function parseRotationText(text, opts){
   // same turn keeps that action instead of guarding (e.g. "Guard All, Chord S3 Wonder").
   { const slotNames=units.filter(u=>u&&u.name).map(u=>u.name);
     const eluName=(elucidator&&elucidator.name)||'';
-    turns.forEach(t=>{ if(!(t.actions||[]).some(a=>a&&a.guardAll))return;
-      const explicit=t.actions.filter(a=>a&&!a.guardAll);
-      const rebuilt=[];
-      slotNames.forEach(nm=>{ const own=explicit.filter(a=>a.char===nm);
-        if(own.length) rebuilt.push(...own);
-        else if(nm!==eluName) rebuilt.push({char:nm,btn:'Gd',text:''}); });
-      explicit.forEach(a=>{ if(!a.char||!slotNames.includes(a.char)) rebuilt.push(a); });
+    turns.forEach(t=>{ const acts=t.actions||[]; if(!acts.some(a=>a&&a.guardAll))return;
+      // every non-elucidator slot that has no explicit action this turn guards, in team-slot order
+      const explicitChars=new Set(acts.filter(a=>a&&!a.guardAll&&a.char).map(a=>a.char));
+      const guards=slotNames.filter(nm=>nm!==eluName && !explicitChars.has(nm)).map(nm=>({char:nm,btn:'Gd',text:''}));
+      // expand the marker in place so explicit actions (incl. the elucidator's, e.g. "Miku Dance S1 all guard")
+      // keep their written position — the guards slot in where "Guard All" was, not at the front or back
+      const rebuilt=[]; let placed=false;
+      acts.forEach(a=>{ if(a&&a.guardAll){ if(!placed){ rebuilt.push(...guards); placed=true; } } else if(a) rebuilt.push(a); });
+      if(!placed) rebuilt.push(...guards);
       t.actions=rebuilt; });
   }
   // a lone "Guard" -> the next due team member with no action this turn. Order is the team-slot order
@@ -1044,5 +1046,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A121';
+  _g.VF_PARSER_VERSION = 'A122';
 })();
