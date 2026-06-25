@@ -255,6 +255,8 @@ body.persona-img-left .pcol-body{flex-direction:row-reverse}
 .turns{display:flex; gap:12px; overflow-x:auto; padding-bottom:8px}
 .turn{flex:0 0 280px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column}
 .turn.order-bad{ border-color:#e0445e; background:rgba(224,68,94,.12); box-shadow:0 0 0 1px #e0445e; }
+.turn.excess-break{ border-color:#e0445e; background:rgba(224,68,94,.28); box-shadow:0 0 0 2px #e0445e; }
+.turn.excess-break .turn-head input{ color:#ffd2da }
 .turn-head{display:flex; align-items:center; gap:6px; background:linear-gradient(180deg,#34507a,#26405f);
   padding:8px 10px; border-radius:11px 11px 0 0}
 .turn-head input.break{color:#e0445e; font-weight:700}
@@ -2399,8 +2401,10 @@ function renumberTurns(){
 }
 function turnHtml(t,ti,isBreak,delBreak){
   const ordBad=turnOrderViolation(t);
+  const excess=excessBreakTurns().includes(ti);   // an extra break turn (3rd/4th) with Miku no longer on the team
+  const title=excess?' title="This break turn requires Hatsune Miku on the team. Add Miku or delete it."':(ordBad?' title="Character order in this turn differs from the team order"':'');
   return `
-    <div class="turn${ordBad?' order-bad':''}" data-tidx="${ti}"${ordBad?' title="Character order in this turn differs from the team order"':''}>
+    <div class="turn${ordBad?' order-bad':''}${excess?' excess-break':''}" data-tidx="${ti}"${title}>
       <div class="turn-head">
         ${isBreak?'':`<span class="tgrip" title="Drag to reorder">${GRIP_DOTS}</span>`}
         <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
@@ -4833,6 +4837,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625b</div>
+<div class="version-tag">260625c</div>
 </body>
 </html>
