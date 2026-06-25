@@ -192,7 +192,8 @@ function splitMidActor(seg){
     depth+=(toks[i-1].match(/[(\[]/g)||[]).length-(toks[i-1].match(/[)\]]/g)||[]).length; if(depth<0)depth=0;
     if(depth>0) continue;
     const isWonder=_n(toks[i])==='wonder'; const a=isWonder?null:resolveActor(toks[i]);
-    const isActor=isWonder || (a && !a.fuzzy && a.type==='char');
+    // a Miku song word ("Dance" is also a RIN·F alias) belongs to Miku, never starts a new actor
+    const isActor=(isWonder || (a && !a.fuzzy && a.type==='char')) && !isSong(toks[i]);
     if(!isActor) continue;
     const nxt=toks[i+1]; if(!nxt) continue;
     const boundary = !!codeOf(nxt) || (isWonder && resolveActor(nxt) && resolveActor(nxt).type==='persona');
@@ -210,7 +211,8 @@ function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
   out.push(buf); return out; }
 /* Hatsune Miku's songs (elucidator). Recognised in turns and mapped to Miku, with abbreviations. */
 const MIKU='MIKU';
-const SONG_ALIAS_MAP={'heaven':'Heaven','song 1':'Heaven','song1':'Heaven','spring storm':'Spring Storm','ss':'Spring Storm','spring':'Spring Storm','storm':'Spring Storm','song 2':'Spring Storm','song2':'Spring Storm','play-with-fire':'Play-With-Fire','play with fire':'Play-With-Fire','playwithfire':'Play-With-Fire','play':'Play-With-Fire','pwf':'Play-With-Fire','song 3':'Play-With-Fire','song3':'Play-With-Fire'};
+const SONG_ALIAS_MAP={'heaven':'Heaven','song 1':'Heaven','song1':'Heaven','spring storm':'Spring Storm','ss':'Spring Storm','spring':'Spring Storm','storm':'Spring Storm','song 2':'Spring Storm','song2':'Spring Storm','play-with-fire':'Play-With-Fire','play with fire':'Play-With-Fire','playwithfire':'Play-With-Fire','play':'Play-With-Fire','pwf':'Play-With-Fire','song 3':'Play-With-Fire','song3':'Play-With-Fire','dance':'Dance'};
+const isSong=t=>!!SONG_ALIAS_MAP[_n(t).replace(/[().]/g,'')];
 function leadingSong(toks){ for(let k=Math.min(2,toks.length);k>=1;k--){ const p=_n(toks.slice(0,k).join(' ')).replace(/[().]/g,''); if(SONG_ALIAS_MAP[p]) return {song:SONG_ALIAS_MAP[p],len:k}; } return null; }
 function _hasMiku(){ try{ return DATA.characterNames.indexOf(MIKU)>=0; }catch(e){ return false; } }
 function parseTurnContent(content,warn){
@@ -266,8 +268,13 @@ function parseTurnContent(content,warn){
         if(ls && (mikuLed || !(a0&&!a0.fuzzy))){
           const after=stoks.slice(ls.len); let btn=''; const txt=[];
           after.forEach(t=>{ const c=codeOf(t); if(c&&!btn) btn=c.btn; else txt.push(t); });
-          actions.push({char:MIKU,btn,song:ls.song,text:txt.join(' ').trim(),_fuzzy:false});
-          cur={type:'char',name:MIKU}; lastActor=cur; continue; } }
+          let textStr=txt.join(' ').trim();
+          // a trailing "all guard" / "guard all" in the same segment guards the rest of the team
+          const gTail=/^(all\s+g(?:ua|au)rd|g(?:ua|au)rd\s+all)$/i.test(textStr); if(gTail) textStr='';
+          actions.push({char:MIKU,btn,song:ls.song,text:textStr,_fuzzy:false});
+          cur={type:'char',name:MIKU}; lastActor=cur;
+          if(gTail) actions.push({guardAll:true});
+          continue; } }
       let actor=null,rest=toks;
       // a two-word persona name ("Nian Shou", "Neko Shogun", "King Frost", "Cu Chulainn") must consume BOTH
       // tokens, else the second word leaks into the skill text. Only exact, space-containing persona matches
@@ -796,18 +803,23 @@ function parseRotationText(text, opts){
 
   // turns (parse first, so we can fill the team from turn actors if the header is sparse)
   const turns=[];
-  const hasExplicitBreaks=turnEntries.some(te=>te.brk);
-  const isDod=forceDod||hasExplicitBreaks;
+  const breakTE=turnEntries.filter(te=>te.brk).sort((a,b)=>a.num-b.num);
+  const normalTE=turnEntries.filter(te=>!te.brk).sort((a,b)=>a.num-b.num);
+  const hasExplicitBreaks=breakTE.length>0;
+  // a Break/Weak divider implies DOD only when the post-break turns fit DOD_BREAKS. More than that means it
+  // isn't a standard DOD (e.g. a long fight with a stagger phase), so keep every turn — never drop the extras.
+  const isDod=forceDod||(hasExplicitBreaks && breakTE.length<=DOD_BREAKS);
   const mkTurn=(te,name)=>({name,note:'',actions:parseTurnContent(te.content,warn)});
   if(isDod){
     setup.type='DOD'; got.mode=1;
-    const normal=turnEntries.filter(te=>!te.brk).sort((a,b)=>a.num-b.num);
-    let breaks=turnEntries.filter(te=>te.brk).sort((a,b)=>a.num-b.num);
-    let normalForTurns=normal;
+    let normal=normalTE, breaks=breakTE;
     // no explicitly-labelled breaks -> the last DOD_BREAKS normal turns are the breaks
-    if(!breaks.length && normal.length>=DOD_BREAKS){ breaks=normal.slice(-DOD_BREAKS); normalForTurns=normal.slice(0,-DOD_BREAKS); }
-    normalForTurns.forEach((te,i)=>turns.push(mkTurn(te,'TURN '+(i+1))));
-    breaks.slice(0,DOD_BREAKS).forEach((te,i)=>turns.push(mkTurn(te,'Break '+(i+1))));   // breaks pinned at the end
+    if(!breaks.length && normal.length>=DOD_BREAKS){ breaks=normal.slice(-DOD_BREAKS); normal=normal.slice(0,-DOD_BREAKS); }
+    normal.forEach((te,i)=>turns.push(mkTurn(te,'TURN '+(i+1))));
+    breaks.forEach((te,i)=>turns.push(mkTurn(te,'Break '+(i+1))));   // breaks pinned at the end
+  } else if(hasExplicitBreaks){
+    // more break turns than a DOD allows -> number everything sequentially so no turn is dropped
+    [...normalTE,...breakTE].forEach((te,i)=>turns.push(mkTurn(te,'TURN '+(i+1))));
   } else {
     turnEntries.sort((a,b)=>a.num-b.num);
     turnEntries.forEach(te=>turns.push(mkTurn(te,'TURN '+te.num)));
@@ -865,7 +877,7 @@ function parseRotationText(text, opts){
   // non-elucidator unit variant (WIND·T = "Wind Tempest", PUPPET·S = "Puppet Summer"). If a
   // different elucidator (Ange/Fuuka/Oracle/Phoebe/Okyann) is present, Wind/Puppet must mean
   // their unit variants — there is only one elucidator slot.
-  { const REAL_ELU=['ANGE','FUUKA','ORACLE','PHOEBE','OKYANN'];
+  { const REAL_ELU=['ANGE','FUUKA','ORACLE','PHOEBE','OKYANN','MIKU'];
     const present=new Set(charOrder); turns.forEach(t=>t.actions.forEach(a=>{ if(a.char)present.add(a.char); }));
     if(REAL_ELU.some(n=>present.has(n))){ const remap={'WIND':'WIND\u00b7T','PUPPET':'PUPPET\u00b7S'};
       Object.keys(remap).forEach(src=>{ const dst=remap[src]; if(!present.has(src)||!DATA.characterNames.includes(dst))return;
@@ -1027,5 +1039,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A119';
+  _g.VF_PARSER_VERSION = 'A120';
 })();
