@@ -853,8 +853,10 @@ function parseRotationText(text, opts){
       if(words[0] && /[^/]\/[^/]/.test(words[0])){ const parts=words[0].split('/');
         const ln=norm(parts[0]); let leftCanon=SKILL_ALIAS_MAP[ln]||SKILL_ALIAS_MAP[_n(parts[0])]||(set.has(_n(parts[0]))?set.get(_n(parts[0])):'');
         if(!leftCanon){ for(const [lc,canon] of set){ if(lc.indexOf(' ')<0 && norm(lc)===ln){ leftCanon=canon; break; } } }
-        if(leftCanon){ noteSuffix=parts.slice(1).join('/'); words[0]=leftCanon; } }
-      for(const [lc,canon] of set){ const cw=lc.split(/\s+/); if(cw.length>words.length||cw.length<=bestLen) continue;
+        // resolve the slashed token directly (its canonical form may be multi-word, e.g. SI -> "Sonic
+        // Interference", which the word-by-word match below would miss); the rest after "/" becomes the note
+        if(leftCanon){ best=leftCanon; bestLen=1; noteSuffix=parts.slice(1).join('/'); } }
+      if(!best) for(const [lc,canon] of set){ const cw=lc.split(/\s+/); if(cw.length>words.length||cw.length<=bestLen) continue;
         let ok=true; for(let i=0;i<cw.length;i++){ if(norm(words[i])!==norm(cw[i])){ ok=false; break; } }
         if(ok){ best=canon; bestLen=cw.length; } }
       if(best){ a.skill=best; a.text=(words.slice(bestLen).join(' ')+(noteSuffix?(' '+noteSuffix):'')).trim(); } })); }
@@ -1046,5 +1048,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A122';
+  _g.VF_PARSER_VERSION = 'A123';
 })();
