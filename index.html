@@ -257,6 +257,8 @@ body.persona-img-left .pcol-body{flex-direction:row-reverse}
 .turns{display:flex; gap:12px; overflow-x:auto; padding-bottom:8px}
 .turn{flex:0 0 280px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column}
 .turn.order-bad{ border-color:#e0445e; background:rgba(224,68,94,.12); box-shadow:0 0 0 1px #e0445e; }
+.turn.excess-break{ border-color:#e0445e; background:rgba(224,68,94,.28); box-shadow:0 0 0 2px #e0445e; }
+.turn.excess-break .turn-head input{ color:#ffd2da }
 .turn-head{display:flex; align-items:center; gap:6px; background:linear-gradient(180deg,#34507a,#26405f);
   padding:8px 10px; border-radius:11px 11px 0 0}
 .turn-head input.break{color:#e0445e; font-weight:700}
@@ -434,6 +436,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .add-turn{flex:0 0 60px; align-self:stretch; background:transparent; border:2px dashed var(--line);
   color:var(--muted); border-radius:12px; font-size:26px; font-family:"Oswald"}
 .add-turn:hover{border-color:var(--gold); color:var(--gold)}
+.add-turn.add-break:hover{border-color:#e0445e; color:#e0445e}
 .notes-row{margin:12px 0}
 .notes-row textarea{width:100%; min-height:54px; background:var(--panel2); border:1px solid var(--line);
   border-radius:10px; padding:10px; color:var(--text); font-family:inherit; font-size:16px; resize:vertical}
@@ -1038,8 +1041,16 @@ const SKILL_ALIAS_MAP = {"absolute obedience":"Absolute Obedience","abyssal fiel
 
 
 /* Number of break turns in a DOD rotation. They are always the LAST turns, pinned at the end.
-   Change this single constant to support a different count (e.g. 3) — all turn logic derives from it. */
-const DOD_BREAKS = 2;
+   DOD_BREAKS is the default/minimum (2). Hatsune Miku's kit grants two extra break turns, so a DOD with
+   Miku may have up to 4; the actual count lives in state.setup.breaks (materialised by migrate from the
+   trailing "Break N" turn names). dodBreaks() returns the effective count — use it instead of the constant. */
+const DOD_BREAKS = 2, MAX_DOD_BREAKS = 4;
+function dodBreaks(s){ s=s||state; let b=+(((s&&s.setup)||{}).breaks)||DOD_BREAKS; return Math.max(DOD_BREAKS, Math.min(MAX_DOD_BREAKS, b)); }
+function teamHasMiku(s){ s=s||state; return (((s&&s.elucidator)||{}).name||'').toUpperCase()===MIKU_NAME || ((s&&s.units)||[]).some(u=>(u.name||'').toUpperCase()===MIKU_NAME); }
+/* the extra break turns (the last b-2, i.e. Break 3/4) when Miku is NOT on the team -> indices into state.turns (a discrepancy) */
+function excessBreakTurns(s){ s=s||state; if((s.setup||{}).type!=='DOD' || teamHasMiku(s)) return [];
+  const b=dodBreaks(s), n=(s.turns||[]).length; if(b<=DOD_BREAKS || n<b) return [];
+  const out=[]; for(let i=n-(b-DOD_BREAKS); i<n; i++) out.push(i); return out; }
 
 /* Internal class tags (lufel.net character "position") — data only, no UI.
    All 8 positions; lufel names mapped to the planner roster (e.g. MONT·Frostgale -> MONT·F,
@@ -1366,6 +1377,17 @@ function migrate(st){
   if(st.rotationView!=='horizontal' && st.rotationView!=='vertical') st.rotationView='vertical';
   if(st.setup && st.setup.credits===undefined) st.setup.credits='';
   if(st.setup){ if(!String(st.setup.boss||'').trim()) st.setup.boss=''; if(!String(st.setup.credits||'').trim()) st.setup.credits=''; }
+  // DOD break count: trust a stored value, else derive it from the trailing "Break N" turn names (the share
+  // encoding keeps turn names, so this recovers 2-4 from old/decoded/parsed states). Non-DOD stays at 2.
+  if(st.setup){ let b=+st.setup.breaks;
+    if(!(b>=DOD_BREAKS && b<=MAX_DOD_BREAKS)){
+      if((st.setup.type||'')==='DOD'){ let c=0; const tn=st.turns||[];
+        for(let i=tn.length-1;i>=0;i--){ if(/^break\s+\d+$/i.test(((tn[i]||{}).name||'').trim())) c++; else break; }
+        b=Math.max(DOD_BREAKS, Math.min(MAX_DOD_BREAKS, c||DOD_BREAKS));
+      } else b=DOD_BREAKS;
+    }
+    st.setup.breaks=b;
+  }
   normalizeActions(st.turns);
   return st;
 }
@@ -1865,9 +1887,11 @@ function autoCorrectPlan(){
   const hasOrderIssue=violatingTurns.length>0;
   const orderResolvable=hasOrderIssue && conflicts.length===0;   // team-reorder can satisfy all turns
 
-  const actionable=charReplacements.length||personaReplacements.length||personaIntoEmpty.length||hasOrderIssue;
+  // extra DOD break turns (3rd/4th) that need Hatsune Miku, who is no longer on the team -> deletable
+  const excessBreaks=excessBreakTurns();
+  const actionable=charReplacements.length||personaReplacements.length||personaIntoEmpty.length||hasOrderIssue||excessBreaks.length;
   return {charReplacements, unmatchedChars, personaReplacements, personaIntoEmpty, unmatchedPersonas,
-          violatingTurns, conflicts, hasOrderIssue, orderResolvable, actionable};
+          violatingTurns, conflicts, hasOrderIssue, orderResolvable, excessBreaks, actionable};
 }
 /* sel = {charReplacements:[…], personaReplacements:[…], personaIntoEmpty:[…], order:'team'|'turns'|'none'} */
 function autoCorrectApply(sel){
@@ -1909,14 +1933,20 @@ function autoCorrectApply(sel){
       if(drop.size) t.actions=acts.filter((a,i)=>!drop.has(i));
     });
   }
+  // delete the extra (Miku-only) break turns and reset the count to the base 2
+  if((sel.excessBreaks||[]).length){
+    [...sel.excessBreaks].sort((a,b)=>b-a).forEach(ti=>state.turns.splice(ti,1));
+    if(state.setup) state.setup.breaks=DOD_BREAKS;
+  }
 }
 let _discBannerTimer=null, _prevDiscCount=0;
-function showDiscBanner(nChar,nOrd){
+function showDiscBanner(nChar,nOrd,nExcess){
   const b=document.getElementById('discBanner'); if(!b) return;
   const msg=b.querySelector('.disc-msg');
   const parts=[];
   if(nChar) parts.push((nChar===1?'1 action references':nChar+' actions reference')+' a character or persona that is no longer on the team');
   if(nOrd) parts.push((nOrd===1?'1 turn has':nOrd+' turns have')+' characters acting out of team order');
+  if(nExcess) parts.push((nExcess===1?'1 extra break turn requires':nExcess+' extra break turns require')+' Hatsune Miku on the team');
   msg.textContent=parts.join('; ')+'. Fix the highlighted items to re-enable export.';
   // surface Auto Correct right in the banner when it has something it can fix
   { const acBtn=b.querySelector('#discAutoCorrect'); if(acBtn){ let act=false; try{ act=!!autoCorrectPlan().actionable; }catch(e){} acBtn.hidden=!act; } }
@@ -1990,7 +2020,8 @@ function paintSetupValidity(){
 function refreshDiscrepancies(){
   const nChar=countDiscrepancies();
   const nOrd=countOrderViolations();
-  const total=nChar+nOrd;
+  const nExcess=excessBreakTurns().length;
+  const total=nChar+nOrd+nExcess;
   const iss=setupIssues();
   const eb=document.getElementById('exportMenuBtn');
   if(eb){
@@ -2001,7 +2032,7 @@ function refreshDiscrepancies(){
     else eb.removeAttribute('title');
   }
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
-  if(total>0){ if(total>_prevDiscCount) showDiscBanner(nChar,nOrd); }
+  if(total>0){ if(total>_prevDiscCount) showDiscBanner(nChar,nOrd,nExcess); }
   else { hideDiscBanner(); }
   _prevDiscCount=total;
 }
@@ -2081,7 +2112,7 @@ function actRow(a, ti, ai){
 }
 function renumberTurns(){
   let changed=false;
-  const dod=state.setup.type==='DOD', n=state.turns.length, B=DOD_BREAKS;
+  const dod=state.setup.type==='DOD', n=state.turns.length, B=dodBreaks(state);
   const auto=/^(TURN\s+\d+|Break\s+\d+)$/i;
   state.turns.forEach((t,i)=>{
     let want, force=false;
@@ -2091,14 +2122,16 @@ function renumberTurns(){
   });
   if(changed) save();
 }
-function turnHtml(t,ti,isBreak){
+function turnHtml(t,ti,isBreak,delBreak){
   const ordBad=turnOrderViolation(t);
+  const excess=excessBreakTurns().includes(ti);   // an extra break turn (3rd/4th) with Miku no longer on the team
+  const title=excess?' title="This break turn requires Hatsune Miku on the team. Add Miku or delete it."':(ordBad?' title="Character order in this turn differs from the team order"':'');
   return `
-    <div class="turn${ordBad?' order-bad':''}" data-tidx="${ti}"${ordBad?' title="Character order in this turn differs from the team order"':''}>
+    <div class="turn${ordBad?' order-bad':''}${excess?' excess-break':''}" data-tidx="${ti}"${title}>
       <div class="turn-head">
         ${isBreak?'':`<span class="tgrip" title="Drag to reorder">${GRIP_DOTS}</span>`}
         <input class="${isBreak?'break':''}" value="${esc(t.name)}" data-tname="${ti}" ${isBreak?'readonly':''}/>
-        ${isBreak?'':`<button class="dup" data-dupturn="${ti}" title="Duplicate turn">\u29c9</button><button class="del" data-delturn="${ti}" title="Remove turn">\u00d7</button>`}
+        ${isBreak ? (delBreak?`<button class="del" data-delturn="${ti}" title="Remove this extra break turn">\u00d7</button>`:'') : `<button class="dup" data-dupturn="${ti}" title="Duplicate turn">\u29c9</button><button class="del" data-delturn="${ti}" title="Remove turn">\u00d7</button>`}
       </div>
       <input class="turn-note" value="${esc(t.note||'')}" data-tnote="${ti}" placeholder="Turn note…"/>
       <div class="acts" data-ti="${ti}">${t.actions.map((a,ai)=>actRow(a,ti,ai)).join('')}</div>
@@ -2160,10 +2193,12 @@ function renderTurns(){
   renumberTurns();
   const wrap=document.getElementById('turns');
   const sl=wrap.scrollLeft;
-  const dod=state.setup.type==='DOD', n=state.turns.length, B=DOD_BREAKS;
+  const dod=state.setup.type==='DOD', n=state.turns.length, B=dodBreaks(state);
   const addBtn=`<button class="add-turn" id="addTurn" title="Add turn">+</button>`;
+  // with Miku, a DOD may grow to MAX_DOD_BREAKS break turns; this button (right of the last break) adds one
+  const addBreakBtn=(dod && teamHasMiku() && B<MAX_DOD_BREAKS)?`<button class="add-turn add-break" id="addBreak" title="Add break turn (Hatsune Miku)">+</button>`:'';
   if(dod && n>=B){
-    wrap.innerHTML = state.turns.slice(0,n-B).map((t,i)=>turnHtml(t,i,false)).join('') + addBtn + state.turns.slice(n-B).map((t,i)=>turnHtml(t,n-B+i,true)).join('');
+    wrap.innerHTML = state.turns.slice(0,n-B).map((t,i)=>turnHtml(t,i,false)).join('') + addBtn + state.turns.slice(n-B).map((t,i)=>turnHtml(t,n-B+i,true,i>=DOD_BREAKS)).join('') + addBreakBtn;
   } else {
     wrap.innerHTML = state.turns.map((t,ti)=>turnHtml(t,ti,false)).join('') + addBtn;
   }
@@ -2202,7 +2237,12 @@ function renderTurns(){
   wrap.querySelectorAll('[data-addabove]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addabove.split('.');state.turns[t].actions.splice(+a,0,{char:'',btn:'',text:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-addbelow]').forEach(el=>el.onclick=()=>{const[t,a]=el.dataset.addbelow.split('.');state.turns[t].actions.splice(+a+1,0,{char:'',btn:'',text:''}); save(); renderTurns();});
   wrap.querySelectorAll('[data-addact]').forEach(el=>el.onclick=()=>{state.turns[+el.dataset.addact].actions.push({char:'',btn:'',text:''}); save(); renderTurns();});
-  wrap.querySelectorAll('[data-delturn]').forEach(el=>el.onclick=()=>{if(confirm('Remove this turn?')){state.turns.splice(+el.dataset.delturn,1); save(); renderTurns();}});
+  wrap.querySelectorAll('[data-delturn]').forEach(el=>el.onclick=()=>{if(confirm('Remove this turn?')){
+    const ti=+el.dataset.delturn, dd=state.setup.type==='DOD', nn=state.turns.length, BB=dodBreaks(state);
+    const wasBreak=dd && nn>=BB && ti>=nn-BB;   // deleting an extra (3rd/4th) break turn lowers the stored break count
+    state.turns.splice(ti,1);
+    if(wasBreak && (+state.setup.breaks)>DOD_BREAKS) state.setup.breaks=(+state.setup.breaks)-1;
+    save(); renderTurns();}});
   wrap.querySelectorAll('[data-dupturn]').forEach(el=>el.onclick=()=>{
     const ti=+el.dataset.dupturn;
     const copy=JSON.parse(JSON.stringify(state.turns[ti]));
@@ -2210,11 +2250,19 @@ function renderTurns(){
     save(); renderTurns();             /* renumberTurns() in renderTurns keeps 1,2,3,…,Break 1,Break 2 */
   });
   document.getElementById('addTurn').onclick=()=>{
-    if(state.setup.type==='DOD' && state.turns.length>=DOD_BREAKS){
-      state.turns.splice(state.turns.length-DOD_BREAKS,0,{name:'TURN '+(state.turns.length-DOD_BREAKS+1),note:'',actions:[{char:'',btn:'',text:''}]});
+    const B=dodBreaks(state);
+    if(state.setup.type==='DOD' && state.turns.length>=B){
+      state.turns.splice(state.turns.length-B,0,{name:'TURN '+(state.turns.length-B+1),note:'',actions:[{char:'',btn:'',text:''}]});
     } else {
       state.turns.push({name:'TURN '+(state.turns.length+1),note:'',actions:[{char:'',btn:'',text:''}]});
     }
+    save(); renderTurns();
+  };
+  const addBreakEl=document.getElementById('addBreak');
+  if(addBreakEl) addBreakEl.onclick=()=>{
+    if(state.setup.type!=='DOD' || !teamHasMiku() || dodBreaks(state)>=MAX_DOD_BREAKS) return;
+    state.setup.breaks=dodBreaks(state)+1;
+    state.turns.push({name:'Break '+(dodBreaks(state)),note:'',actions:[{char:'',btn:'',text:''}]});
     save(); renderTurns();
   };
 
@@ -2857,6 +2905,11 @@ function openAutoCorrectDialog(){
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is, I'll fix it by hand</span></label>`;
     }
   }
+  if(plan.excessBreaks && plan.excessBreaks.length){
+    const turns=plan.excessBreaks.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))).join(', ');
+    h+='<h3>Extra break turns</h3>';
+    h+=`<label class="ac-row"><input type="checkbox" data-ac="exbreak" checked><span>Delete the ${plan.excessBreaks.length} extra break turn${plan.excessBreaks.length>1?'s':''} (${esc2(turns)}) — more than 2 break turns require <b>Hatsune Miku</b> on the team</span></label>`;
+  }
   if(plan.unmatchedChars.length) h+=`<div class="ac-warn">Cannot reassign automatically (no free team slot): ${esc2(plan.unmatchedChars.join(', '))}. Add them to the team manually.</div>`;
   if(plan.unmatchedPersonas.length) h+=`<div class="ac-warn">Cannot place automatically (no free persona slot): ${esc2(plan.unmatchedPersonas.join(', '))}. Add them to a persona slot manually.</div>`;
   if(!plan.actionable && !h) h=`<div class="ac-note">Nothing can be auto-corrected. Any remaining discrepancy needs a manual fix.</div>`;
@@ -2867,11 +2920,12 @@ function openAutoCorrectDialog(){
 function applyAutoCorrectFromDialog(){
   const plan=_acPlan; if(!plan) return;
   const body=document.getElementById('acBody');
-  const sel={charReplacements:[], personaReplacements:[], personaIntoEmpty:[], order:'none'};
+  const sel={charReplacements:[], personaReplacements:[], personaIntoEmpty:[], excessBreaks:[], order:'none'};
   body.querySelectorAll('input[data-ac]').forEach(inp=>{ if(!inp.checked) return; const i=+inp.dataset.i;
     if(inp.dataset.ac==='char') sel.charReplacements.push(plan.charReplacements[i]);
     else if(inp.dataset.ac==='prep') sel.personaReplacements.push(plan.personaReplacements[i]);
-    else if(inp.dataset.ac==='pempty') sel.personaIntoEmpty.push(plan.personaIntoEmpty[i]); });
+    else if(inp.dataset.ac==='pempty') sel.personaIntoEmpty.push(plan.personaIntoEmpty[i]);
+    else if(inp.dataset.ac==='exbreak') sel.excessBreaks=(plan.excessBreaks||[]).slice(); });
   const od=body.querySelector('input[name="acOrder"]:checked'); if(od) sel.order=od.value;
   _acSnapshot=JSON.stringify(state);
   autoCorrectApply(sel);
@@ -3090,7 +3144,7 @@ async function exportSheet(){
   for(let b=0;b<nT;b+=perBand){
     const band=state.turns.slice(b,b+perBand).map((t,j)=>({t,gi:b+j,j}));
     // header row
-    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const isBreak=dodX&&nT>=DOD_BREAKS&&gi>=nT-DOD_BREAKS; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
+    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const _B=dodBreaks(state); const isBreak=dodX&&nT>=_B&&gi>=nT-_B; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
     row++;
     const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
     for(let ai=0;ai<maxA;ai++){
@@ -3117,7 +3171,7 @@ function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
   const tc=c=>cardAccent(c, C);
   const dodX=s.type==='DOD', nT=state.turns.length;
-  const turnBox=(t,ti,cssW)=>{ const isBreak=dodX&&nT>=DOD_BREAKS&&ti>=nT-DOD_BREAKS; return `<div style="width:${cssW};box-sizing:border-box;background:${C.panel2};border:1px solid ${C.border};border-radius:8px;padding:8px;">
+  const turnBox=(t,ti,cssW)=>{ const _B=dodBreaks(state); const isBreak=dodX&&nT>=_B&&ti>=nT-_B; return `<div style="width:${cssW};box-sizing:border-box;background:${C.panel2};border:1px solid ${C.border};border-radius:8px;padding:8px;">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid ${C.border};padding-bottom:5px;margin-bottom:6px;">
       <span style="font:700 13px Oswald,sans-serif;color:${isBreak?C.red:C.blue};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</span>
       ${t.note?`<span style="font:500 11px Inter,sans-serif;color:${C.soft};text-align:right;flex:1;min-width:0;">${esc(t.note)}</span>`:''}</div>
@@ -3140,7 +3194,7 @@ function turnsBlockHorizontal(mobile, C){ C=C||EX_DARK;
       <span style="position:absolute;top:2px;left:4px;font:700 9px Oswald,sans-serif;color:#6f6a85;line-height:1;">${i+1}</span>
       <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(charDisp(a.char))}</div>
       <div style="font:600 11px Inter,sans-serif;color:${C.text};text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char, true))}</div></div>`;
-  const turnRow=(t,ti)=>{ const isBreak=dodX&&nT>=DOD_BREAKS&&ti>=nT-DOD_BREAKS;
+  const turnRow=(t,ti)=>{ const _B=dodBreaks(state); const isBreak=dodX&&nT>=_B&&ti>=nT-_B;
     const acts=(t.actions||[]).map(block).join('');
     return `<div style="display:flex;gap:8px;align-items:stretch;background:${C.panel2};border:1px solid ${C.border};border-radius:8px;padding:8px;width:${mobile?'100%':teamRowW+'px'};box-sizing:border-box;">
       <div style="flex:0 0 84px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1px solid ${C.border};padding-right:8px;">
@@ -3526,7 +3580,7 @@ function _playEnterFs(){ const r=document.getElementById('playRoot'); if(!r||!_f
 function _playExitFs(){ try{ if(_fsEl()) (document.exitFullscreen||document.webkitExitFullscreen).call(document); }catch(e){} }
 function playToggleFs(){ if(_fsEl()) _playExitFs(); else _playEnterFs(); }
 function _playFlat(){ const f=[], turns=state.turns||[], n=turns.length, dod=(state.setup.type||'').toUpperCase()==='DOD';
-  turns.forEach((t,ti)=>{ const brk=dod&&n>=DOD_BREAKS&&ti>=n-DOD_BREAKS; (t.actions||[]).filter(a=>a&&a.char).forEach(a=>f.push({ti:ti,a:a,turnName:t.name||('Turn '+(ti+1)),brk:brk})); }); return f; }
+  const _B=dodBreaks(state); turns.forEach((t,ti)=>{ const brk=dod&&n>=_B&&ti>=n-_B; (t.actions||[]).filter(a=>a&&a.char).forEach(a=>f.push({ti:ti,a:a,turnName:t.name||('Turn '+(ti+1)),brk:brk})); }); return f; }
 function openPlayMode(){
   const turns=(state.turns||[]); if(!turns.length){ alert('There are no turns to play yet.'); return; }
   let root=document.getElementById('playRoot');
@@ -3669,7 +3723,7 @@ function renderPlay(){
   r.querySelector('#playLayoutSeg').style.display=(!_playForceOrient && _playMode==='turn')?'':'none';
   r.classList.toggle('is-horiz', _playMode==='turn' && _playLayout==='horizontal');
   r.querySelectorAll('#playLayoutSeg button').forEach(b=>b.classList.toggle('on',b.dataset.playlayout===_playLayout));
-  const mkDots=(curTi)=>{ const dots=turns.map((tt,k)=>{ const brk=dod&&n>=DOD_BREAKS&&k>=n-DOD_BREAKS; return '<button class="play-dot'+(k===curTi?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
+  const mkDots=(curTi)=>{ const _B=dodBreaks(state); const dots=turns.map((tt,k)=>{ const brk=dod&&n>=_B&&k>=n-_B; return '<button class="play-dot'+(k===curTi?' on':'')+(brk?' brk':'')+'" data-pi="'+k+'" aria-label="Turn '+(k+1)+'"></button>'; }).join('');
     const dw=r.querySelector('#playDots'); dw.innerHTML=dots; dw.querySelectorAll('.play-dot').forEach(d=>d.onclick=()=>playGoTurn(+d.dataset.pi)); };
   if(_playMode==='action'){
     const flat=_playFlat();
@@ -3691,7 +3745,7 @@ function renderPlay(){
     r.querySelector('#playPrev').disabled=(_playAct<=0); r.querySelector('#playNext').disabled=(_playAct>=flat.length-1);
     mkDots(it.ti); return;
   }
-  const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const t=turns[i]||{actions:[]}, isBreak=dod&&n>=DOD_BREAKS&&i>=n-DOD_BREAKS, horiz=_playLayout==='horizontal';
+  const i=Math.max(0,Math.min(_playTurn,n-1)); _playTurn=i; const _B=dodBreaks(state); const t=turns[i]||{actions:[]}, isBreak=dod&&n>=_B&&i>=n-_B, horiz=_playLayout==='horizontal';
   r.querySelector('#playPos').textContent=(i+1)+' / '+n;
   _playSetProgress(i+1, n, isBreak);
   const acts=(t.actions||[]).filter(a=>a&&a.char);
@@ -3752,7 +3806,7 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     { handle:'.persona-col .pgrip, .persona-col .pcol-img', item:'.persona-col[data-pidx]', attr:'pidx', scroll:null,
       drop(f,t){ if(f===t) return; const[m]=state.personas.splice(f,1); state.personas.splice(t,0,m); save(); renderTeam(); renderTurns(); } },
     { handle:'.turn-head', item:'.turn[data-tidx]', attr:'tidx', scroll:'turns',
-      drop(f,t){ const dd=state.setup.type==='DOD', nn=state.turns.length, mx=(dd&&nn>=DOD_BREAKS)?nn-DOD_BREAKS:nn;
+      drop(f,t){ const dd=state.setup.type==='DOD', nn=state.turns.length, _B=dodBreaks(state), mx=(dd&&nn>=_B)?nn-_B:nn;
         if(f>=mx||f===t) return; t=Math.max(0,Math.min(t,mx-1)); const[m]=state.turns.splice(f,1); state.turns.splice(t,0,m); save(); renderTurns(); } },
   ];
   let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, over=null, offX=0, offY=0, fx=0, fy=0, raf=0, mouse=false, lastTouch=0;
@@ -3843,7 +3897,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
     const k=input.dataset.combo;
     if(k==='boss') return bossListFor(state.setup.type);
     if(k==='persona') return DATA.personaNames.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
-    if(k==='skill') return SKILL_LIST;
+    if(k==='skill') return SKILL_LIST.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
     if(k==='char') return (input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>n!=='WONDER' && !(DATA.elucidatorNames||[]).includes(n))).slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
     return [];
   }
@@ -3958,6 +4012,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260624F</div>
+<div class="version-tag">260625C</div>
 </body>
 </html>
