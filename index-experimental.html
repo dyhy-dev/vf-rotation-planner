@@ -4668,7 +4668,7 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
     const k=input.dataset.combo;
     if(k==='boss') return bossListFor(state.setup.type);
     if(k==='persona') return DATA.personaNames.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
-    if(k==='skill') return SKILL_LIST;
+    if(k==='skill') return SKILL_LIST.slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
     if(k==='char') return (input.dataset.elu ? DATA.elucidatorOpts : DATA.characterNames.filter(n=>n!=='WONDER' && !(DATA.elucidatorNames||[]).includes(n))).slice().sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
     return [];
   }
@@ -4783,6 +4783,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260624F</div>
+<div class="version-tag">260625a</div>
 </body>
 </html>
