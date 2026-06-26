@@ -1004,11 +1004,18 @@ function parseRotationText(text, opts){
   // normally; for DOD it is taken (as a fallback when the slot order is ambiguous) from the order actors
   // first act in the post-break phases, where Guards are rare so the true turn order shows. Slot members
   // not seen in the breaks keep their slot order at the end.
+  // order-relevant = the actions the app's turn-order check sees: S1/S2/S3/Atk/Gn/Gd, plus any Wonder
+  // skill/btn/text (HL, ALT and Assist don't establish turn position).
+  const _orderRelevant=a=>{ if(!a||!a.char) return false;
+    if(a.char==='WONDER') return !!((a.skill||'').trim()||(a.btn||'').trim()||(a.text||'').trim());
+    return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn); };
   { const slotNames=units.filter(u=>u&&u.name).map(u=>u.name);
     const eluName=(elucidator&&elucidator.name)||'';
     let dueOrder=slotNames;
     if((setup.type||'').toUpperCase()==='DOD'){ const seen=[];
-      turns.forEach(t=>{ if(!/break/i.test(t.name))return; (t.actions||[]).forEach(a=>{ if(a&&a.char&&!seen.includes(a.char))seen.push(a.char); }); });
+      // count only order-relevant actions so the guard order matches the violation check (a stray "Makoto HL"
+      // before "Dion" must not slot Makoto ahead of Wonder)
+      turns.forEach(t=>{ if(!/break/i.test(t.name))return; (t.actions||[]).forEach(a=>{ if(_orderRelevant(a)&&!seen.includes(a.char))seen.push(a.char); }); });
       if(seen.length) dueOrder=seen.filter(n=>slotNames.includes(n)).concat(slotNames.filter(n=>!seen.includes(n))); }
     turns.forEach(t=>{ const acts=t.actions||[]; if(!acts.some(a=>a&&a.guardSolo))return;
       // a unit whose only actions are free (HL / Assist) hasn't used its main action yet, so it's still idle and can take a lone Guard
@@ -1016,6 +1023,16 @@ function parseRotationText(text, opts){
       const idle=dueOrder.filter(nm=>nm!==eluName && !acting.has(nm)); let gi=0;
       t.actions=acts.map(a=>{ if(!a||!a.guardSolo)return a; const nm=idle[gi++]; return nm?{char:nm,btn:'Gd',text:''}:a; })
         .filter(a=>!(a&&a.guardSolo)); });
+  }
+
+  // final slot order: by when each unit first takes an order-relevant action in the now-resolved turns,
+  // matching the app's buildActionOrder. Done after the guards are resolved so a guard-heavy opening (where
+  // Wonder's only early "action" is a persona skill while everyone guards) doesn't mis-slot Wonder and trip
+  // the import turn-order check. Order-relevant = S1/S2/S3/Atk/Gn/Gd (and any Wonder skill/btn/text; HL/ALT/Assist don't count).
+  { const eluU=(elucidator&&elucidator.name)||'';
+    const order=[]; turns.forEach(t=>(t.actions||[]).forEach(a=>{ if(_orderRelevant(a)&&a.char!==eluU&&!order.includes(a.char)) order.push(a.char); }));
+    if(order.length){ const rank=u=>{ const nm=(u&&u.name)||''; const i=nm?order.indexOf(nm):-1; return i>=0?i:order.length+1; };
+      units.sort((a,b)=>rank(a)-rank(b)); }
   }
 
   // floating crit/pierce stat requirements (no character prefix) default to the team's Assassin/Sweeper unit's
@@ -1061,5 +1078,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A126';
+  _g.VF_PARSER_VERSION = 'A127';
 })();
