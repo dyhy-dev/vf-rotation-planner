@@ -138,6 +138,8 @@ button{cursor:pointer}
 .meta-big .field textarea#f_credits:focus{outline:none; border-color:var(--blue-strong)}
 .meta-big .type-field{flex:0 0 112px}
 .meta-big .patch-field{flex:0 0 112px}
+.meta-big .score-field{flex:0 1 165px}   /* 25% narrower than the 220px base, and it no longer grows */
+.meta-big .credits-field{flex:3 1 220px} /* soaks up the freed space so Credits is the widest field */
 .type-field label{display:block; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
 .type-field .tier{display:block}
 .type-field .tier select{width:100%; height:56px; padding:0 14px}
@@ -1864,7 +1866,7 @@ function renderHead(){
       <div class="type-field"><label>Mode</label><div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div></div>
       <div class="field"><label>Boss</label><span class="combo-wrap"><input id="f_boss" class="combo" data-combo="boss" autocomplete="off" placeholder="Choose Boss" value="${esc(s.boss)}"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span></div>
       <div class="field patch-field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
-      <div class="field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
+      <div class="field score-field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
       <div class="field credits-field"><label>Credits</label><textarea id="f_credits" rows="1" spellcheck="false">${esc(s.credits||'')}</textarea></div>
     </div>
     <datalist id="bossList"></datalist>`;
@@ -4943,6 +4945,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625i</div>
+<div class="version-tag">260625j</div>
 </body>
 </html>
