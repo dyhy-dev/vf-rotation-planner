@@ -835,7 +835,6 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 <script>/* lz-string 1.5.0 (MIT, pieroxy.net) — inlined, no CDN */
 var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -1409,8 +1408,8 @@ function hlLabel(special){ if(special){ const t=settings.theurgyLabel; return (t
 const _SIG_SET = new Set(Object.values(PERSONA_SIGNATURES));
 const SIG_EXCLUDE = new Set(['Cohesion','Revolution','Rebellion','Tarunda','Rakunda','Matarunda','Matarukaja','Marakunda']);
 function skillDisplay(n){ if(!n) return n; if(settings.sigAsSig && _SIG_SET.has(n) && !(settings.sigExclude && SIG_EXCLUDE.has(n))) return 'Sig'; return skillLabel(n); }
-/* like skillDisplay but WITHOUT the user-set abbreviation — for the persona boxes, where the full skill name must always show (abbreviations stay only in the rotation) */
-function skillFull(n){ if(!n) return n; if(settings.sigAsSig && _SIG_SET.has(n) && !(settings.sigExclude && SIG_EXCLUDE.has(n))) return 'Sig'; return n; }
+/* the persona boxes always show the full skill name: neither the user-set abbreviation nor the Sig substitution apply (those stay only in the rotation) */
+function skillFull(n){ return n||''; }
 function personaLabel(n){ if(!n) return n; const m=settings.personaAbbr||{}; const a=m[n]; return (a && PERSONA_ALIASES[n] && PERSONA_ALIASES[n].indexOf(a)>=0) ? a : n; }
 function wonderBody(a, abbr){ return [(abbr?skillDisplay(a.skill||''):(a.skill||'')), a.btn?btnLabel(a.btn):'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' '); }
 function actionLabel(a, name, abbr){
@@ -3999,108 +3998,6 @@ function exportCSV(){
 }
 function sheetTextOn(hex){ const h=(hex||'').replace('#',''); if(h.length<6) return 'FFFFFFFF'; const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16); return (0.299*r+0.587*g+0.114*b)>140?'FF14121C':'FFFFFFFF'; }
 function argbOf(hex){ return 'FF'+(hex||'#666').replace('#','').toUpperCase(); }
-async function exportSheet(){
-  if(typeof ExcelJS==='undefined'){ alert('Sheet export needs the spreadsheet library (requires an internet connection the first time it is used).'); return; }
-  const s=state.setup;
-  const INK='FF14121C', PANEL='FF1F1C2B', PANEL2='FF23202F', LINE='FF3A3550', TEXT='FFF3F1F7', MUTED='FF9D97B3', GOLD='FFF1C232', RED='FFE0445E', BLUE='FF9FC5E8', CYAN='FFCFE2F3';
-  const NCOL=8, FONT='Arial';
-  const wb=new ExcelJS.Workbook();
-  const ws=wb.addWorksheet('Rotation',{views:[{showGridLines:false}]});
-  [16,18,14,14,16,16,16,18].forEach((w,i)=>ws.getColumn(i+1).width=w);
-  const fillOf=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
-  const thin={style:'thin',color:{argb:LINE}};
-  const box={top:thin,left:thin,bottom:thin,right:thin};
-  let row=1;
-  const set=(r,c,val,o)=>{ const cell=ws.getCell(r,c); cell.value=val; o=o||{}; cell.font={name:FONT,size:o.size||10,bold:!!o.bold,color:{argb:o.color||TEXT}}; cell.fill=fillOf(o.fill||PANEL2); cell.alignment={vertical:'middle',horizontal:o.align||'left',wrapText:!!o.wrap}; if(o.border!==false) cell.border=box; return cell; };
-  const merge=(r,c1,c2)=>ws.mergeCells(r,c1,r,c2);
-
-  // Title block
-  merge(row,1,NCOL); set(row,1,'VELVET FREQUENCY',{size:20,bold:true,color:RED,fill:INK,border:false}); ws.getRow(row).height=28; row++;
-  merge(row,1,NCOL); set(row,1,'ROTATION PLANNER',{size:10,bold:true,color:MUTED,fill:INK,border:false}); row++;
-  merge(row,1,NCOL); set(row,1,rotName(s),{size:18,bold:true,color:TEXT,fill:INK,border:false}); ws.getRow(row).height=26; row++;
-  // Meta row
-  const tl=(s.type||'').toLowerCase(); const typeBg={mld:'FFF1C232',dod:'FF9B5DE5',nod:'FFE0445E',sos:'FF151DA6'}[tl]||PANEL2; const typeFg={mld:'FF3A2C00',dod:'FFFFFFFF',nod:'FFFFFFFF',sos:'FFFFFFFF'}[tl]||TEXT;
-  set(row,1,s.type||'',{bold:true,align:'center',fill:typeBg,color:typeFg});
-  const meta=[['Patch',s.patch],['Boss',s.boss],['Score',s.score],['Credits',s.credits]].filter(m=>String(m[1]||'').trim());
-  let mc=2; meta.forEach(m=>{ if(mc>NCOL) return; set(row,mc,m[0]+': '+m[1],{color:CYAN,fill:PANEL}); mc++; });
-  for(;mc<=NCOL;mc++) set(row,mc,'',{fill:PANEL});
-  ws.getRow(row).height=20; row+=2;
-
-  const sectionHeader=(label)=>{ merge(row,1,NCOL); set(row,1,label,{bold:true,color:MUTED,fill:INK,border:false}); row++; };
-  const headerCell=(r,c,val)=>set(r,c,val,{bold:true,color:MUTED,fill:PANEL});
-
-  // TEAM
-  sectionHeader('TEAM');
-  headerCell(row,1,'Slot'); headerCell(row,2,'Character'); headerCell(row,3,'Awareness'); headerCell(row,4,'Rev'); merge(row,5,6); headerCell(row,5,'Gear'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box; merge(row,7,8); headerCell(row,7,'Role / Backup'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box; row++;
-  const _bkRow=backupUnit();
-  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]).concat(_bkRow?[{u:_bkRow,label:'Backup'}]:[]);
-  teamRows.forEach(({u,label})=>{
-    set(row,1,label,{bold:true,color:MUTED,fill:PANEL});
-    const nm=u.name||''; const col=nm?charColor(nm):null;
-    set(row,2,nm,{bold:true,fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT});
-    set(row,3,u.awareness||'',{align:'center'}); set(row,4,u.rev||'',{align:'center'});
-    merge(row,5,6); set(row,5,gearText(u)||'',{color:CYAN}); ws.getCell(row,6).fill=fillOf(PANEL2); ws.getCell(row,6).border=box;
-    const extra=(nm.toUpperCase()==='TWINS'&&u.role)?('Role: '+u.role):((nm.toUpperCase()==='FUUKA'&&u.companion)?('Backup: '+u.companion):'');
-    merge(row,7,8); set(row,7,extra,{color:BLUE}); ws.getCell(row,8).fill=fillOf(PANEL2); ws.getCell(row,8).border=box;
-    row++;
-  });
-  row++;
-
-  // PERSONAS (with images via Google Sheets IMAGE() formulas, using the hosted page URL)
-  const baseURL=location.href.replace(/[?#].*$/,'').replace(/[^/]*$/,'');
-  const canImg=/^https?:$/.test(location.protocol);
-  sectionHeader('PERSONAS');
-  headerCell(row,1,'Image'); headerCell(row,2,'Persona');
-  merge(row,3,4); headerCell(row,3,'Skill 1'); ws.getCell(row,4).fill=fillOf(PANEL); ws.getCell(row,4).border=box;
-  merge(row,5,6); headerCell(row,5,'Skill 2'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box;
-  merge(row,7,8); headerCell(row,7,'Skill 3'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box;
-  row++;
-  state.personas.forEach(p=>{
-    const nm=(p.name||'').trim();
-    if(nm && canImg){ const c=ws.getCell(row,1); c.value={formula:`IMAGE("${baseURL+personaImg(nm)}",1)`}; c.fill=fillOf(PANEL2); c.border=box; c.alignment={vertical:'middle',horizontal:'center'}; }
-    else { set(row,1,'',{}); }
-    set(row,2,nm,{bold:true,color:GOLD});
-    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],skillFull(p.skills[k]||''),{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
-    if(nm) ws.getRow(row).height=90;
-    row++;
-  });
-  row++;
-
-  // TEAM NOTES
-  if((state.teamNotes||'').trim()){ sectionHeader('TEAM NOTES'); merge(row,1,NCOL); const c=set(row,1,state.teamNotes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(state.teamNotes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
-
-  // ROTATION NOTES
-  if((s.notes||'').trim()){ sectionHeader('ROTATION NOTES'); merge(row,1,NCOL); set(row,1,s.notes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(s.notes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
-
-  // ROTATION (turns) in bands of 4, each turn = 2 columns
-  sectionHeader('ROTATION');
-  const dodX=s.type==='DOD', nT=state.turns.length;
-  const perBand=4;
-  for(let b=0;b<nT;b+=perBand){
-    const band=state.turns.slice(b,b+perBand).map((t,j)=>({t,gi:b+j,j}));
-    // header row
-    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const _B=dodBreaks(state); const isBreak=dodX&&nT>=_B&&gi>=nT-_B; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
-    row++;
-    const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
-    for(let ai=0;ai<maxA;ai++){
-      band.forEach(({t,j})=>{ const c1=2*j+1; const a=(t.actions||[])[ai];
-        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,charDisp(a.char),{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char,true)||'',{}); }
-        else { set(row,c1,'',{}); set(row,c1+1,'',{}); }
-      });
-      row++;
-    }
-    row++;
-  }
-
-  // backfill any empty cells in the used range with the dark background
-  const maxRow=row;
-  for(let r=1;r<=maxRow;r++){ for(let c=1;c<=NCOL;c++){ const cell=ws.getCell(r,c); if(!cell.fill || !cell.fill.fgColor){ cell.fill=fillOf(INK); } } }
-
-  const buf=await wb.xlsx.writeBuffer();
-  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  deliverImage(URL.createObjectURL(blob), exportBaseName()+'.xlsx');
-}
-
 function exportTurnsBlock(mobile, C){ return state.rotationView==='horizontal' ? turnsBlockHorizontal(mobile, C) : turnsBlockVertical(mobile, C); }
 function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
@@ -4947,6 +4844,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625k</div>
+<div class="version-tag">260625l</div>
 </body>
 </html>
