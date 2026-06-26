@@ -660,7 +660,9 @@ function parseRotationText(text, opts){
         while((lm=labRe.exec(t2))) hits.push({lab:lm[1].toLowerCase(), valAt:labRe.lastIndex, at:lm.index});
         if(hits.length){
           hits.forEach((h,k)=>{ const val=t2.slice(h.valAt, k+1<hits.length?hits[k+1].at:t2.length).trim().replace(/[-–—;,\s]+$/,'').trim();
-            if(/^credit/.test(h.lab)){ if(val && !setup.credits){ setup.credits=val; got.credit=1; } }
+            if(/^credit/.test(h.lab)){ const cp=val.split(/\s+[-–—]\s+/);   // "Arcto/MikeP - 5bil+" -> credit + trailing score
+              if(cp[0].trim() && !setup.credits){ setup.credits=cp[0].trim(); got.credit=1; }
+              for(let i=1;i<cp.length;i++){ if(!setup.score){ const sc=scoreHigh(cp[i]); if(sc){ setup.score=sc; got.score=1; } } } }
             else if(h.lab==='score'){ const sc=scoreHigh(val); if(sc && !setup.score){ setup.score=sc; got.score=1; } }
             else if(/^note/.test(h.lab)){ if(val) noteLines.push(val); }
             else if(h.lab==='boss'){ const b=matchBoss(val); if(b && !setup.boss){ setup.boss=b; got.boss=1; } }
@@ -1078,5 +1080,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A127';
+  _g.VF_PARSER_VERSION = 'A128';
 })();
