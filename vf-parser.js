@@ -196,7 +196,10 @@ function splitMidActor(seg){
     const isActor=(isWonder || (a && !a.fuzzy && a.type==='char')) && !isSong(toks[i]);
     if(!isActor) continue;
     const nxt=toks[i+1]; if(!nxt) continue;
-    const boundary = !!codeOf(nxt) || (isWonder && resolveActor(nxt) && resolveActor(nxt).type==='persona');
+    // the Twins followed by a dual element starts a Twins dual-HL action ("… Makoto Twins Psy/Nuke HL" with a
+    // missing comma), so it's an actor boundary even though a dual isn't an action code.
+    const boundary = !!codeOf(nxt) || (isWonder && resolveActor(nxt) && resolveActor(nxt).type==='persona')
+      || (a && !a.fuzzy && a.name==='TWINS' && !!_matchDualAt(toks, i+1));
     if(boundary){ out.push(toks.slice(start,i).join(' ')); start=i; }
   }
   out.push(toks.slice(start).join(' '));
@@ -1092,5 +1095,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A130';
+  _g.VF_PARSER_VERSION = 'A131';
 })();
