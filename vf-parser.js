@@ -825,7 +825,7 @@ function parseRotationText(text, opts){
     if(best) return best;
     // 1b) common boss abbreviations that aren't a prefix of the full name ("SD" -> Slaughter Drive).
     // Whole-word only; checked after full names so a spelt-out boss always wins.
-    const BOSS_ALIASES={sd:'SLAUGHTER DRIVE'};
+    const BOSS_ALIASES={sd:'SLAUGHTER DRIVE',rockman:'OUMITSUNU'};
     for(const k in BOSS_ALIASES){ if(new RegExp('\\b'+esc(k)+'\\b','i').test(line)) return BOSS_ALIASES[k]; }
     // 2) fallback: a boss referenced by only its leading word (first match in list order)
     for(const b of DATA.bossNames){ if(new RegExp('\\b'+esc(b.split(' ')[0])+'\\b','i').test(line)) return b; } return ''; }
@@ -1108,5 +1108,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A134';
+  _g.VF_PARSER_VERSION = 'A135';
 })();
