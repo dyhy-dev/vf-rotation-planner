@@ -265,13 +265,21 @@ function parseTurnContent(content,warn){
       if(_hasMiku()){ let stoks=toks, mikuLed=false;
         while(stoks.length){ const am=resolveActor(stoks[0]); if(am&&!am.fuzzy&&am.name===MIKU){ stoks=stoks.slice(1); mikuLed=true; } else break; }
         const ls=leadingSong(stoks); const a0=resolveActor(toks[0]);
-        if(ls && (mikuLed || !(a0&&!a0.fuzzy))){
-          const after=stoks.slice(ls.len); let btn=''; const txt=[];
+        let song='', songLen=0;
+        if(ls){ song=ls.song; songLen=ls.len; }
+        else if(mikuLed && stoks.length && !codeOf(stoks[0])){
+          // an unrecognised song explicitly led by "Miku" (e.g. "Feel the Fire") -> custom song = the leading
+          // non-code words up to the first action code; guard against a real actor following Miku ("Miku Twins S2")
+          const lead=resolveActor(stoks[0]);
+          if(!(lead && !lead.fuzzy)){ let k=0; while(k<stoks.length && !codeOf(stoks[k])) k++; if(k>0){ song=stoks.slice(0,k).join(' '); songLen=k; } }
+        }
+        if(song && (mikuLed || !(a0&&!a0.fuzzy))){
+          const after=stoks.slice(songLen); let btn=''; const txt=[];
           after.forEach(t=>{ const c=codeOf(t); if(c&&!btn) btn=c.btn; else txt.push(t); });
           let textStr=txt.join(' ').trim();
           // a trailing "all guard" / "guard all" in the same segment guards the rest of the team
           const gTail=/^(all\s+g(?:ua|au)rd|g(?:ua|au)rd\s+all)$/i.test(textStr); if(gTail) textStr='';
-          actions.push({char:MIKU,btn,song:ls.song,text:textStr,_fuzzy:false});
+          actions.push({char:MIKU,btn,song,text:textStr,_fuzzy:false});
           cur={type:'char',name:MIKU}; lastActor=cur;
           if(gTail) actions.push({guardAll:true});
           continue; } }
@@ -310,7 +318,9 @@ function parseTurnContent(content,warn){
 function parseRotationText(text, opts){
   const warn=[];
   const forceDod=!!(opts&&opts.dod);
-  const lines=text.split(/\r?\n/).map(s=>s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,''));
+  const lines=text.split(/\r?\n/).map(s=>s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'')
+    // strip a leading "Action N -" running-count annotation, but only when a turn marker follows ("Action 21 - T5: \u2026")
+    .replace(/^\s*action\s+\d+\s*[-\u2013\u2014:]\s*(?=(?:turn|break|t|b|w)\s*\d)/i,''));
   // "B1"/"B2" are break turns (the common short form of "Break 1"/"Break 2"), just as "T1" is a normal
   // turn; the brk flag below keys off the leading "b". Same false-positive risk as the accepted "t" prefix.
   const reInline=/^\s*(turn|break|t|b)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
@@ -1020,7 +1030,7 @@ function parseRotationText(text, opts){
   // content line ("Notes: foo" -> "foo").
   const teamNotes=noteLines
     .filter(l=>!/^\s*(?:\w+\s+)?notes?\s*[:\-–—]?\s*$/i.test(l))
-    .map(l=>l.replace(/^\s*notes?\b\s*[:\-–—]?\s*/i,''))
+    .map(l=>l.replace(/^\s*notes?\b\s*\d*\s*[:\-–—]?\s*/i,''))   // also a numbered label ("Note 2: foo" -> "foo")
     .filter(l=>l.trim()).join('\n');
 
   return { state:{setup,units,elucidator,backup,personas:pslots,teamNotes,turns}, warnings:warn, got };
@@ -1048,5 +1058,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A123';
+  _g.VF_PARSER_VERSION = 'A124';
 })();
