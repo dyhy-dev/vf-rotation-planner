@@ -58,6 +58,8 @@ function _findDual(toks){ for(let i=0;i<toks.length;i++){ const m=_matchDualAt(t
 // "sig"/"signature" on a (non-Wonder) character means its Masquerade / special move — the ALT button.
 // Wonder personas resolve "sig" to the persona's signature skill earlier, so this only catches the character case.
 const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',th:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT',boom:'ALT',sig:'ALT',signature:'ALT'};
+// order-relevant "main" action: S1/S2/S3/Atk/Gn/Gd, plus Ryuji's BOOM (his ALT counts as a real action like an S-skill)
+function _mainBtn(a){ return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) || (a.btn==='ALT' && (a.char||'').toUpperCase()==='SKULL'); }
 function codeOf(token){
   const t=_n(token).replace(/[().]/g,'');
   if(CODE[t]) return {btn:CODE[t],extra:''};
@@ -953,8 +955,8 @@ function parseRotationText(text, opts){
   const hasWonder = charOrder.includes('WONDER') || dagger || personas.length || turnHasWonder;
   const actionOrder=[];
   turns.forEach(t=>t.actions.forEach(a=>{
-    if(a.char==='WONDER'){ if(((a.text||'').trim()||(a.skill||'').trim()||['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn)) && !actionOrder.includes('WONDER')) actionOrder.push('WONDER'); }
-    else if(a.char && ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) && !actionOrder.includes(a.char)) actionOrder.push(a.char); }));
+    if(a.char==='WONDER'){ if(((a.text||'').trim()||(a.skill||'').trim()||_mainBtn(a)) && !actionOrder.includes('WONDER')) actionOrder.push('WONDER'); }
+    else if(a.char && _mainBtn(a) && !actionOrder.includes(a.char)) actionOrder.push(a.char); }));
   const ordered=[]; const addOrd=c=>{ if(c&&!ordered.includes(c)) ordered.push(c); };
   // TURBO's kit makes her the fastest unit on the field, so wherever she appears she always acts first —
   // pin her to the front of the order regardless of when her first scripted skill happens to show up.
@@ -1034,7 +1036,7 @@ function parseRotationText(text, opts){
   // skill/btn/text (HL, ALT and Assist don't establish turn position).
   const _orderRelevant=a=>{ if(!a||!a.char) return false;
     if(a.char==='WONDER') return !!((a.skill||'').trim()||(a.btn||'').trim()||(a.text||'').trim());
-    return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn); };
+    return _mainBtn(a); };
   { const slotNames=units.filter(u=>u&&u.name).map(u=>u.name);
     const eluName=(elucidator&&elucidator.name)||'';
     let dueOrder=slotNames;
@@ -1104,5 +1106,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A132';
+  _g.VF_PARSER_VERSION = 'A133';
 })();

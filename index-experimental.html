@@ -2091,11 +2091,12 @@ function countOrderViolations(){
   let n=0; (state.turns||[]).forEach((t,ti)=>{ if(turnOrderViolation(t,ti)) n++; }); return n;
 }
 /* ---------- turn order check: characters should act in team order ---------- */
-/* Order-relevant = a real action (Skill/Attack/Gun/Guard, or a Wonder persona-skill).
-   HL/Theurgy/Assist, ALT, and the elucidator are ignored — same actions ignored when deriving the order. */
+/* Order-relevant = a real action (Skill/Attack/Gun/Guard, or a Wonder persona-skill). HL/Theurgy/Assist and the
+   elucidator are ignored. ALT is ignored too, EXCEPT Ryuji's BOOM, which counts as a real action like S1/S2/S3. */
+function _isMainBtn(a){ return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) || (a.btn==='ALT' && (a.char||'').toUpperCase()==='SKULL'); }
 function isOrderRelevant(a){
   if((a.char||'').toUpperCase()==='WONDER') return !!wonderBody(a);
-  return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn);
+  return _isMainBtn(a);
 }
 function _slotIdxMap(){ const idx={}; (state.units||[]).forEach((u,i)=>{ if(u.name) idx[u.name.toUpperCase()]=i; }); return idx; }
 function _isBreakTurn(ti){ if(ti==null || (state.setup||{}).type!=='DOD') return false; const n=(state.turns||[]).length, B=dodBreaks(state); return n>=B && ti>=n-B; }
@@ -2107,7 +2108,7 @@ function _breakActionOrder(){ const order=[]; if((state.setup||{}).type!=='DOD')
   const n=(state.turns||[]).length, B=dodBreaks(state); if(n<B) return order;
   for(let ti=n-B; ti<n; ti++) (state.turns[ti].actions||[]).forEach(a=>{
     if((a.char||'').toUpperCase()==='WONDER'){ if(wonderBody(a)&&!order.includes('WONDER')) order.push('WONDER'); }
-    else { const cn=(a.char||'').toUpperCase(); if(cn && ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) && !order.includes(cn)) order.push(cn); } });
+    else { const cn=(a.char||'').toUpperCase(); if(cn && _isMainBtn(a) && !order.includes(cn)) order.push(cn); } });
   return order; }
 function _breakIdxMap(){ const idx={}; _breakActionOrder().forEach((nm,i)=>idx[nm]=i); return idx; }
 function _orderIdxForTurn(ti){ return _isBreakTurn(ti)?_breakIdxMap():_slotIdxMap(); }
@@ -2130,7 +2131,7 @@ function buildActionOrder(){
   const order=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{
     if((a.char||'').toUpperCase()==='WONDER'){ if(wonderBody(a) && !order.includes('WONDER')) order.push('WONDER'); }
-    else { const cn=(a.char||'').toUpperCase(); if(cn && ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) && !order.includes(cn)) order.push(cn); }
+    else { const cn=(a.char||'').toUpperCase(); if(cn && _isMainBtn(a) && !order.includes(cn)) order.push(cn); }
   }));
   return order;
 }
@@ -4824,6 +4825,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260627a</div>
+<div class="version-tag">260627b</div>
 </body>
 </html>
