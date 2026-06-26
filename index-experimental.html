@@ -110,9 +110,11 @@ button{cursor:pointer}
 .rot-name input{flex:1; min-width:0; background:transparent; border:none; border-bottom:2px solid var(--line);
   font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
 .rot-name input:focus{outline:none; border-color:var(--gold)}
-.name-sug{flex:0 0 auto; background:transparent; border:1px solid var(--line); border-radius:7px; padding:3px 6px;
-  font-size:16px; line-height:1; cursor:pointer; opacity:.65; transition:opacity .12s, border-color .12s}
-.name-sug:hover{opacity:1; border-color:var(--gold)}
+.name-sug{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; background:transparent;
+  border:1px solid var(--line); border-radius:7px; padding:5px; cursor:pointer; color:var(--muted);
+  opacity:.7; transition:opacity .12s, border-color .12s, color .12s}
+.name-sug svg{width:17px; height:17px; display:block}
+.name-sug:hover{opacity:1; border-color:var(--gold); color:var(--gold)}
 .rot-name input:not(:placeholder-shown) ~ .name-sug{display:none}
 .tier{display:flex; align-items:center; gap:8px}
 .tier select{border:none; border-radius:8px; font-family:"Oswald"; font-weight:700; letter-spacing:.1em;
@@ -1850,7 +1852,7 @@ function renderHead(){
   refreshNameSug(false);
   document.getElementById('headPanel').innerHTML=`
     <div class="head-top">
-      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="${esc(_nameSug||'Rotation Name')}"/><button type="button" id="nameSug" class="name-sug" title="Suggest a name" aria-label="Suggest a random name"${_nameSug?'':' hidden'}>\u{1F3B2}</button></div>
+      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="${esc(_nameSug||'Rotation Name')}"/><button type="button" id="nameSug" class="name-sug" title="Suggest another name" aria-label="Suggest another name"${_nameSug?'':' hidden'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 4l3 3l-3 3"/><path d="M18 14l3 3l-3 3"/><path d="M3 7h3a5 5 0 0 1 5 5a5 5 0 0 0 5 5h4"/><path d="M21 7h-4a4.978 4.978 0 0 0 -3 1"/><path d="M3 17h3a4.978 4.978 0 0 0 3 -1"/></svg></button></div>
       <div class="head-actions">
         <button type="button" class="btn" id="setupShowImport" title="Show the imported text again"${_lastImportText?'':' hidden'}>Imported text</button>
         <button type="button" class="btn" id="setupSaveBtn" title="Save the current rotation to your library">Save</button>
@@ -2771,7 +2773,7 @@ function compactEncode(st){
     return e;
   };
   return [1,
-    [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
+    [ rotName(s), s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
     (st.units||[]).map(unit),
     unit(st.elucidator||{}),
     (st.personas||[]).map(p=>{ const e=[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]; if((p.note||'').trim()) e.push(p.note.trim()); return e; }),
@@ -3962,7 +3964,7 @@ function gearText(u){ // Wonder shows its dagger (in gear); everyone else shows 
 function buildCSV(){
   const s=state.setup, rows=[];
   const q=v=>{ v=(v==null?'':String(v)); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
-  rows.push(['Rotation', s.rotationName]); rows.push(['Type', s.type]); rows.push(['Patch', s.patch]);
+  rows.push(['Rotation', rotName(s)]); rows.push(['Type', s.type]); rows.push(['Patch', s.patch]);
   rows.push(['Boss', s.boss]); rows.push(['Expected Score', s.score]); rows.push(['Credits', s.credits||'']);
   rows.push([]); rows.push(['TEAM']);
   rows.push(['Slot','Name','Awareness','Rev','Gear / Space & Sun-Sky','Extra']);
@@ -4941,6 +4943,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625f</div>
+<div class="version-tag">260625g</div>
 </body>
 </html>
