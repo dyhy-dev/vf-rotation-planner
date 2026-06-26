@@ -2112,19 +2112,24 @@ function _breakActionOrder(){ const order=[]; if((state.setup||{}).type!=='DOD')
   return order; }
 function _breakIdxMap(){ const idx={}; _breakActionOrder().forEach((nm,i)=>idx[nm]=i); return idx; }
 function _orderIdxForTurn(ti){ return _isBreakTurn(ti)?_breakIdxMap():_slotIdxMap(); }
+/* A turn respects the team order if the units CAN act in slot order using their action positions. A unit may
+   act more than once (a follow-up, or a 1More extra action that lands out of its normal slot), so we only
+   require each unit to have ONE action in a valid slot-order spot — not that its FIRST action is in order. */
+function _orderViolates(actions, idx, elu){
+  const pos={};   // slot index -> the action positions (in written order) where that unit acts
+  (actions||[]).forEach((a,p)=>{ if(!isOrderRelevant(a)) return;
+    const cn=(a.char||'').toUpperCase(); if(!cn||cn===elu) return;
+    const s=idx[cn]; if(s===undefined) return; (pos[s]=pos[s]||[]).push(p); });
+  let last=-1;   // walk the slots in order; each must have an action after the previous slot's chosen action
+  for(const s of Object.keys(pos).map(Number).sort((a,b)=>a-b)){
+    const nxt=pos[s].find(x=>x>last); if(nxt===undefined) return true; last=nxt; }
+  return false;
+}
 function turnOrderViolation(t, ti){
   const idx=_orderIdxForTurn(ti);
   if(!Object.keys(idx).length) return false;
   const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
-  const seq=[]; const seen=new Set();
-  for(const a of (t.actions||[])){
-    if(!isOrderRelevant(a)) continue;
-    const cn=(a.char||'').toUpperCase(); if(!cn||cn===elu) continue;
-    const ix=idx[cn]; if(ix===undefined) continue;      // not on the team -> handled by the character discrepancy check
-    if(seen.has(cn)) continue; seen.add(cn); seq.push(ix);
-  }
-  for(let i=1;i<seq.length;i++){ if(seq[i]<seq[i-1]) return true; }
-  return false;
+  return _orderViolates(t.actions, idx, elu);
 }
 /* ---------- auto-correct: replace missing characters + reorder team to match the turns ---------- */
 function buildActionOrder(){
@@ -2209,7 +2214,7 @@ function autoCorrectPlan(){
     return Object.assign({},a,{char:cmap[cn]||a.char}); })}));
   const breakIdx=_breakIdxMap();   // break turns are checked against the break-phase order, not the slot order
   const idxFor=ti=>_isBreakTurn(ti)?breakIdx:idx;
-  const violatingTurns=[]; projTurns.forEach((t,ti)=>{ const ix=idxFor(ti); if(_seqViolates(_orderSeq(t.actions,ix,elu),ix)) violatingTurns.push(ti); });
+  const violatingTurns=[]; projTurns.forEach((t,ti)=>{ const ix=idxFor(ti); if(_orderViolates(t.actions,ix,elu)) violatingTurns.push(ti); });
   // cross-turn conflicts: A before B in one turn, B before A in another -> no single team order satisfies all.
   // Only the normal (slot-order) turns participate; break turns have their own derived order.
   const before={};
@@ -4825,6 +4830,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260627b</div>
+<div class="version-tag">260627c</div>
 </body>
 </html>
