@@ -1409,6 +1409,8 @@ function hlLabel(special){ if(special){ const t=settings.theurgyLabel; return (t
 const _SIG_SET = new Set(Object.values(PERSONA_SIGNATURES));
 const SIG_EXCLUDE = new Set(['Cohesion','Revolution','Rebellion','Tarunda','Rakunda','Matarunda','Matarukaja','Marakunda']);
 function skillDisplay(n){ if(!n) return n; if(settings.sigAsSig && _SIG_SET.has(n) && !(settings.sigExclude && SIG_EXCLUDE.has(n))) return 'Sig'; return skillLabel(n); }
+/* like skillDisplay but WITHOUT the user-set abbreviation — for the persona boxes, where the full skill name must always show (abbreviations stay only in the rotation) */
+function skillFull(n){ if(!n) return n; if(settings.sigAsSig && _SIG_SET.has(n) && !(settings.sigExclude && SIG_EXCLUDE.has(n))) return 'Sig'; return n; }
 function personaLabel(n){ if(!n) return n; const m=settings.personaAbbr||{}; const a=m[n]; return (a && PERSONA_ALIASES[n] && PERSONA_ALIASES[n].indexOf(a)>=0) ? a : n; }
 function wonderBody(a, abbr){ return [(abbr?skillDisplay(a.skill||''):(a.skill||'')), a.btn?btnLabel(a.btn):'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' '); }
 function actionLabel(a, name, abbr){
@@ -3011,9 +3013,9 @@ function buildTextExport(){
   // Wonder personas as a bare comma list (the boss is already in the title)
   const pers=state.personas.map(p=>{
     const nm=(p.name||'').trim(); if(!nm) return null;
-    const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean).map(skillDisplay);
+    const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean).map(skillFull);
     const note=(p.note||'').trim();
-    return personaLabel(nm)+(sk.length?` (${sk.join(' + ')})`:'')+(note?` [${note}]`:'');
+    return nm+(sk.length?` (${sk.join(' + ')})`:'')+(note?` [${note}]`:'');
   }).filter(Boolean);
   if(pers.length){ L.push(''); L.push(pers.join(', ')); }
   const tn=(state.teamNotes||'').trim();
@@ -4057,8 +4059,8 @@ async function exportSheet(){
     const nm=(p.name||'').trim();
     if(nm && canImg){ const c=ws.getCell(row,1); c.value={formula:`IMAGE("${baseURL+personaImg(nm)}",1)`}; c.fill=fillOf(PANEL2); c.border=box; c.alignment={vertical:'middle',horizontal:'center'}; }
     else { set(row,1,'',{}); }
-    set(row,2,personaLabel(nm),{bold:true,color:GOLD});
-    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],skillDisplay(p.skills[k]||''),{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
+    set(row,2,nm,{bold:true,color:GOLD});
+    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],skillFull(p.skills[k]||''),{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
     if(nm) ws.getRow(row).height=90;
     row++;
   });
@@ -4180,9 +4182,9 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     const pCard=(p,wide)=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
       return `<div style="${M?'box-sizing:border-box;min-width:0;':(wide?'flex:1 1 0;min-width:0;':'width:174px;')+'box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
         ${img?(hasPersonaCrop(nm)?`<div style="width:53px;height:88px;border-radius:5px;flex:0 0 auto;${pCropBgStyle(nm,"url('"+img+"')")}"></div>`:`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`):''}
-        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(personaLabel(p.name))}</div>
-        ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillDisplay(sig))}</div>`:''}
-        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillDisplay(s))).join('<br>')}</div>`:''}</div>
+        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
+        ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillFull(sig))}</div>`:''}
+        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillFull(s))).join('<br>')}</div>`:''}</div>
       </div>`; };
     const personaCards=persona.map(p=>pCard(p,false)).join('');
     const _wEx=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
@@ -4237,7 +4239,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     const personaBlock=persona.length?`<div style="flex:0 1 auto;min-width:0;display:flex;flex-direction:column;">
       <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
       <div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;line-height:1.6;">
-        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(personaLabel(p.name))}</span>${sk.length?` <span style="color:${C.blue};">(${sk.map(s=>esc(skillDisplay(s))).join(', ')})</span>`:''}</div>`; }).join('')}
+        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:${C.blue};">(${sk.map(s=>esc(skillFull(s))).join(', ')})</span>`:''}</div>`; }).join('')}
       </div></div>`:'';
     const notesBlock=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
       <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
@@ -4945,6 +4947,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625j</div>
+<div class="version-tag">260625k</div>
 </body>
 </html>
