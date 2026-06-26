@@ -2686,7 +2686,7 @@ async function openShareLink(){ let url; try{ url=await shareLinkURL(); }catch(e
   openShareModal({title:'Share Editor Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, discordUrl:url, discordLabel:discordLabel(), shortenFragment:(url.split('#')[1]||'')});  }
 function titleCase(s){ return String(s||'').toLowerCase().replace(/(^|[\s·.\-/'])([a-z])/g,(m,p,c)=>p+c.toUpperCase()); }
 /* display name in the preview/exports: Hatsune Miku is always shown short as "Miku" */
-function charDisp(name){ return (name||'').toUpperCase()===MIKU_NAME ? 'Miku' : (name||''); }
+function charDisp(name){ return name||''; }   /* show every character (incl. MIKU) in its raw roster casing, e.g. uppercase in the rotation/image; the text export keeps its own titleCase */
 function textAction(a){
   const isW=(a.char||'').toUpperCase()==='WONDER';
   if(isW){
