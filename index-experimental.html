@@ -3952,7 +3952,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
 })();
 /* ===================== end Live Data Backup ===================== */
 
-/* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
+/* ---------- exports: image (PNG) ---------- */
 function exportBaseName(){
   const s=state.setup;
   let name=[s.patch, s.type, rotName(s)].map(x=>(x||'').trim()).filter(Boolean).join('_');
@@ -3964,40 +3964,6 @@ function gearText(u){ // Wonder shows its dagger (in gear); everyone else shows 
   const cards=[u.space,u.sunsky].filter(Boolean).join(' & ');
   return cards || (u.gear && u.gear.indexOf(' & ')>-1 ? u.gear : ''); }
 
-function buildCSV(){
-  const s=state.setup, rows=[];
-  const q=v=>{ v=(v==null?'':String(v)); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
-  rows.push(['Rotation', rotName(s)]); rows.push(['Type', s.type]); rows.push(['Patch', s.patch]);
-  rows.push(['Boss', s.boss]); rows.push(['Expected Score', s.score]); rows.push(['Credits', s.credits||'']);
-  rows.push([]); rows.push(['TEAM']);
-  rows.push(['Slot','Name','Awareness','Rev','Gear / Space & Sun-Sky','Extra']);
-  state.units.forEach((u,i)=>{
-    const extra=(u.name||'').toUpperCase()==='TWINS' && u.role ? 'Role: '+u.role : '';
-    rows.push([i+1, u.name, u.awareness, u.rev, gearText(u), extra]);
-  });
-  const e=state.elucidator;
-  const ee=(e.name||'').toUpperCase()==='FUUKA' && e.companion ? 'Backup: '+e.companion : '';
-  rows.push(['Elucidator', e.name, e.awareness, e.rev, gearText(e), ee]);
-  const _bk=backupUnit();
-  if(_bk) rows.push(['Backup', _bk.name, _bk.awareness, _bk.rev, gearText(_bk), '']);
-  rows.push([]); rows.push(['PERSONAS']); rows.push(['#','Persona','Skill 1','Skill 2','Skill 3']);
-  state.personas.forEach((p,i)=>rows.push([i+1, p.name, p.skills[0]||'', p.skills[1]||'', p.skills[2]||'']));
-  if((state.teamNotes||'').trim()){ rows.push([]); rows.push(['Team Notes', state.teamNotes]); }
-  rows.push([]); rows.push(['ROTATION']);
-  const maxA=Math.max(0,...state.turns.map(t=>t.actions.length));
-  const h1=[''], h2=['#'];
-  state.turns.forEach(t=>{ h1.push(t.name,''); h2.push('Char','Action'); });
-  rows.push(h1); rows.push(h2);
-  for(let i=0;i<maxA;i++){ const r=[i+1]; state.turns.forEach(t=>{ const a=t.actions[i]; r.push(a?a.char:'', a?a.action:''); }); rows.push(r); }
-  if((s.notes||'').trim()){ rows.push([]); rows.push(['Notes', s.notes]); }
-  return '\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n');
-}
-function exportCSV(){
-  const blob=new Blob([buildCSV()],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.csv'; a.click();
-}
-function sheetTextOn(hex){ const h=(hex||'').replace('#',''); if(h.length<6) return 'FFFFFFFF'; const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16); return (0.299*r+0.587*g+0.114*b)>140?'FF14121C':'FFFFFFFF'; }
-function argbOf(hex){ return 'FF'+(hex||'#666').replace('#','').toUpperCase(); }
 function exportTurnsBlock(mobile, C){ return state.rotationView==='horizontal' ? turnsBlockHorizontal(mobile, C) : turnsBlockVertical(mobile, C); }
 function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
@@ -4844,6 +4810,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625l</div>
+<div class="version-tag">260625m</div>
 </body>
 </html>
