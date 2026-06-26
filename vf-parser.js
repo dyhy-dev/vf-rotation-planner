@@ -859,8 +859,9 @@ function parseRotationText(text, opts){
       const sig=PERSONA_SIGNATURES[pname]; if(sig) add(sig);
       const p=personas.find(x=>(x.name||'').toLowerCase()===(pname||'').toLowerCase()); if(p)(p.skills||[]).forEach(add);
       Object.keys(SKILL_ALIASES).forEach(add); Object.values(SKILL_ALIAS_MAP).forEach(add); return set; };
-    turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER'||!a.persona||a.hl) return;
-      const body=String(a.text||'').trim(); if(!body){ a.skill=a.skill||''; return; }
+    turns.forEach(t=>{ const out=[]; (t.actions||[]).forEach(a=>{
+      if((a.char||'').toUpperCase()!=='WONDER'||!a.persona){ out.push(a); return; }
+      const body=String(a.text||'').trim(); if(!body){ if(!a.hl) a.skill=a.skill||''; out.push(a); return; }
       const words=body.split(/\s+/); const set=skillSetFor(a.persona); let best='',bestLen=0;
       // a slashed first token ("Reb/Mataru") is a choice, not a separator: resolve the part before
       // the slash as the skill, the rest goes to the note.
@@ -874,7 +875,14 @@ function parseRotationText(text, opts){
       if(!best) for(const [lc,canon] of set){ const cw=lc.split(/\s+/); if(cw.length>words.length||cw.length<=bestLen) continue;
         let ok=true; for(let i=0;i<cw.length;i++){ if(norm(words[i])!==norm(cw[i])){ ok=false; break; } }
         if(ok){ best=canon; bestLen=cw.length; } }
-      if(best){ a.skill=best; a.text=(words.slice(bestLen).join(' ')+(noteSuffix?(' '+noteSuffix):'')).trim(); } })); }
+      if(!best){ out.push(a); return; }
+      const rest=(words.slice(bestLen).join(' ')+(noteSuffix?(' '+noteSuffix):'')).trim();
+      // HL and a persona skill are mutually exclusive in one action, so "Nian HL Sonic" is two actions:
+      // pop HL, then cast the skill (keeping the written HL-first order).
+      if(a.hl){ out.push(Object.assign({},a,{text:'',skill:''}));
+        out.push({char:'WONDER',persona:a.persona,hl:false,skill:best,text:rest,btn:''}); }
+      else { a.skill=best; a.text=rest; out.push(a); }
+    }); t.actions=out; }); }
   // a Wonder action with no explicit persona whose leading skill belongs to a known Wonder persona
   // (its signature or a header-listed skill) -> select that persona and put the skill in the dropdown.
   { const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9\u00b7]/g,'');
@@ -1080,5 +1088,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A128';
+  _g.VF_PARSER_VERSION = 'A129';
 })();
