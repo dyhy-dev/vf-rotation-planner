@@ -57,7 +57,7 @@ function _matchDualAt(toks,i){ const t=toks[i]; if(t==null) return null;
 function _findDual(toks){ for(let i=0;i<toks.length;i++){ const m=_matchDualAt(toks,i); if(m) return {dual:m.dual,start:i,len:m.len}; } return null; }
 // "sig"/"signature" on a (non-Wonder) character means its Masquerade / special move — the ALT button.
 // Wonder personas resolve "sig" to the persona's signature skill earlier, so this only catches the character case.
-const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',th:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT',sig:'ALT',signature:'ALT'};
+const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',th:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT',boom:'ALT',sig:'ALT',signature:'ALT'};
 function codeOf(token){
   const t=_n(token).replace(/[().]/g,'');
   if(CODE[t]) return {btn:CODE[t],extra:''};
@@ -156,6 +156,15 @@ function buildActions(actor,toks,raw,warn){
   // for SEES members, a lone "T" means Theurgy (the HL button), e.g. "Makoto T"
   if(typeof ACT_SPECIAL!=='undefined' && ACT_SPECIAL.includes((actor.name||'').toUpperCase())){
     toks=toks.map(t=>/^t$/i.test(String(t).replace(/[().]/g,''))?'TH':t); }
+  // Ryuji's auto-cast S3 is BOOM, his ALT button — the ONE auto-cast that is kept (only when SKULL has its Alt
+  // button, i.e. the build defines it). Fold "Auto S3" (any spacing/hyphenation) into one BOOM token so it
+  // becomes the ALT action instead of being dropped by the auto-cast filter below.
+  if(typeof ALT_CHARS!=='undefined' && ALT_CHARS.indexOf('SKULL')>=0 && (actor.name||'').toUpperCase()==='SKULL'){
+    const t3=[]; for(let i=0;i<toks.length;i++){ const a=String(toks[i]).replace(/[().]/g,'');
+      if(/^auto$/i.test(a) && i+1<toks.length && /^s3$/i.test(String(toks[i+1]).replace(/[().]/g,''))){ t3.push('BOOM'); i++; }
+      else if(/^auto-?s3$/i.test(a)){ t3.push('BOOM'); }
+      else t3.push(toks[i]); }
+    toks=t3; }
   const isW=actor.type==='persona'||actor.name==='WONDER';
   if(isW){ const hl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
     const pname=actor.type==='persona'?actor.name:'';
@@ -1095,5 +1104,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A131';
+  _g.VF_PARSER_VERSION = 'A132';
 })();

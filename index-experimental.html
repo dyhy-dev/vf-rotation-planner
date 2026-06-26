@@ -1384,9 +1384,9 @@ const ACT_CODES = ['S1','S2','S3','HL','Atk','Gn','Gd','Ast'];
 const ACT_LABEL_TO_CODE = {theurgy:'HL', highlight:'HL', attack:'Atk', gun:'Gn', guard:'Gd', assist:'Ast'};
 const BTN_LABEL = {Atk:'Attack', Gn:'Gun', Gd:'Guard', Ast:'Assist'}; // written-out button labels; S1/S2/S3/HL show as-is
 function btnLabel(c){ return BTN_LABEL[c]||c||''; }
-const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO','CROW','QUEEN','MONT·F','LUCE']; // get a separate button next to the character select
-const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC', QUEEN:'CO'};                       // editor button text; default 'Alt'
-const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch', QUEEN:'Crash Out'}; // export text; default 'Button'
+const ALT_CHARS = ['MESSA','VIOLET','RIN·F','TURBO','TWINS','ANGE','AKIHIKO','CROW','QUEEN','MONT·F','LUCE','SKULL']; // get a separate button next to the character select
+const ALT_BTN_LABEL = {VIOLET:'MSQ', ANGE:'DC', QUEEN:'CO', SKULL:'💥'};            // editor button text; default 'Alt'
+const ALT_EXPORT_LABEL = {VIOLET:'Masquerade', ANGE:'Da Capo', AKIHIKO:'Punch', QUEEN:'Crash Out', SKULL:'BOOM'}; // export text; default 'Button'
 /* element -> character colour (used by the dev "Add new" form; values are editable in the Data Editor). "Elucidator" also flags the character as a navigator. */
 const ELEM_COLOR = {Fire:'#ff391d', Ice:'#00afff', Elec:'#fcff37', Wind:'#82ec2c', Nuke:'#00fcff', Psy:'#ff66ff', Bless:'#ffffa2', Curse:'#ff0036', Gun:'#fe9e01', Phys:'#ff9d00', Almighty:'#ffffff', Elucidator:'#3a6dfa'};
 function hasAlt(name){ return ALT_CHARS.includes((name||'').toUpperCase()); }
@@ -2974,7 +2974,7 @@ function textAction(a){
     return [actor, rest].filter(Boolean).join(' ');
   }
   const special=ACT_SPECIAL.includes((a.char||'').toUpperCase());
-  const lbl=c=>!c?'':(c==='ALT'?altBtnLabel(a.char):(c==='HL'?(special?'TG':'HL'):(BTN_LABEL[c]||c)));
+  const lbl=c=>{ if(!c) return ''; if(c==='ALT'){ const b=altBtnLabel(a.char); return /[^\x00-\x7F]/.test(b)?altExportLabel(a.char):b; } return c==='HL'?(special?'TG':'HL'):(BTN_LABEL[c]||c); };  /* the editor button label round-trips through the text export, except an emoji label (e.g. SKULL's 💥) falls back to the readable export label (BOOM) */
   const isMiku=(a.char||'').toUpperCase()===MIKU_NAME;
   const rest=[isMiku?(a.song||''):'', lbl(a.btn||''), a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' ');
   // Miku uses the short single-token label so "Miku Heaven" round-trips cleanly (the full two-word name would not)
@@ -4824,6 +4824,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625o</div>
+<div class="version-tag">260627a</div>
 </body>
 </html>
