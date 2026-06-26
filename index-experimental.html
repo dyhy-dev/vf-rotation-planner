@@ -805,6 +805,13 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-row span b{color:var(--text)}
 .ac-note{color:var(--muted); font-size:13px; margin:8px 0}
 .ac-warn{color:#ffb3c0; font-size:13px; margin:8px 0; padding:8px 10px; background:rgba(224,68,94,.12); border:1px solid #6e2b38; border-radius:8px; line-height:1.45}
+.ac-warn .ac-list{margin:6px 0 6px; padding-left:18px}
+.ac-warn .ac-list li{margin:2px 0}
+.ac-fix{margin:10px 0}
+.ac-fix-lbl{margin-bottom:5px; font-size:13px}
+.ac-fix-lbl b{color:var(--text)}
+.ac-select{width:100%; background:var(--field); border:1px solid var(--line); border-radius:7px; padding:7px 9px; color:var(--text); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer}
+.ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
 .ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
@@ -2112,26 +2119,45 @@ function _orderSeq(actions, idx, elu){
 function _seqViolates(seq, idx){ for(let i=1;i<seq.length;i++){ if(idx[seq[i]]<idx[seq[i-1]]) return true; } return false; }
 function _blankUnit(){ return {name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:'',note:''}; }
 
+/* Build the list of fix options for ONE missing item. The first option is the best default
+   (kept verlustfrei: prefer adding it back / the swapped elucidator over rewriting actions). */
+function _fixOptions(from, kind, ctx){
+  const opts=[];
+  if(kind==='char'){
+    if(ctx.eluBudget>0 && ctx.isElu(from)){ opts.push({value:'elu', label:'Use the current elucidator '+ctx.eluNm+' instead'}); }
+    if(ctx.emptyBudget>0){ opts.push({value:'empty', label:'Add '+from+' to the team (empty slot)'}); }
+    ctx.free.forEach(f=>opts.push({value:'replace:'+f, label:'Use '+f+' instead ('+f+' is on the team but acts nowhere)'}));
+  } else {
+    if(ctx.emptyBudget>0){ opts.push({value:'empty', label:'Add '+from+' to an empty persona slot'}); }
+    ctx.free.forEach(f=>opts.push({value:'replace:'+f, label:'Use '+f+' instead ('+f+' is in a slot but never used)'}));
+  }
+  return opts;
+}
 function autoCorrectPlan(){
   const team=teamChars(), teamUp=team.map(c=>c.toUpperCase());
-  // ---- character replacements: missing acting character -> a team character that acts nowhere ----
+  // ---- missing acting characters: in the turns but not on the team ----
   const missing=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ const cn=a.char; if(!cn) return;
     if(cn.toUpperCase()==='WONDER') return;
     if(!teamUp.includes(cn.toUpperCase()) && !missing.includes(cn)) missing.push(cn); }));
   const acting=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char) acting.add(a.char.toUpperCase()); }));
+  // candidates to take a missing character: named team slots that act nowhere, plus empty slots
   const free=[]; (state.units||[]).forEach(u=>{ const nm=u.name; if(nm && nm.toUpperCase()!=='WONDER' && !acting.has(nm.toUpperCase()) && !free.includes(nm)) free.push(nm); });
-  // the elucidator slot can also receive a replacement: when it was swapped in the team, the OLD elucidator
-  // name still appears in the actions and should map to the current elucidator (which now acts nowhere).
+  const emptyTeamSlots=(state.units||[]).filter((u,i)=>i>0 && !(u.name||'').trim()).length;
   const eluNm=(state.elucidator&&state.elucidator.name)||'';
-  let eluFree = !!eluNm && !acting.has(eluNm.toUpperCase());
   const isElu=n=>(DATA.elucidatorNames||[]).includes((n||'').toUpperCase());
-  const charReplacements=[]; const restMiss=[];
-  missing.forEach(m=>{ if(eluFree && isElu(m)){ charReplacements.push({from:m, to:eluNm}); eluFree=false; } else restMiss.push(m); });
-  { const n=Math.min(restMiss.length, free.length); for(let i=0;i<n;i++) charReplacements.push({from:restMiss[i], to:free[i]}); }
-  const unmatchedChars=restMiss.slice(Math.min(restMiss.length, free.length));
+  // per missing char: a list of fix options (best first) the user can pick from in a dropdown.
+  // the empty-slot / elucidator defaults are budgeted so the suggested choices don't overcommit.
+  const charFixes=[]; const unmatchedChars=[];
+  { const ctx={isElu, eluNm, free, emptyBudget:emptyTeamSlots, eluBudget:(eluNm && !acting.has(eluNm.toUpperCase()))?1:0};
+    missing.forEach(m=>{ const opts=_fixOptions(m,'char',ctx);
+      if(!opts.length){ unmatchedChars.push(m); return; }
+      charFixes.push({from:m, options:opts, best:opts[0].value});
+      // consume the budget the suggested (first) option would use, so the next char's default differs
+      if(opts[0].value==='elu') ctx.eluBudget--; else if(opts[0].value==='empty') ctx.emptyBudget--; });
+  }
 
-  // ---- persona replacements: Wonder persona used in turns but not in a slot ----
+  // ---- missing Wonder personas: used in the turns but not in a persona slot ----
   const slotPersUp=state.personas.map(p=>(p.name||'').trim().toUpperCase()).filter(Boolean);
   const missP=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER') return;
@@ -2139,17 +2165,18 @@ function autoCorrectPlan(){
     if(!slotPersUp.includes(p.toUpperCase()) && !missP.includes(p)) missP.push(p); }));
   const usedP=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && a.persona) usedP.add(a.persona.toUpperCase()); }));
   const freeP=[]; state.personas.forEach(p=>{ const nm=(p.name||'').trim(); if(nm && !usedP.has(nm.toUpperCase()) && !freeP.includes(nm)) freeP.push(nm); });
-  const emptySlots=state.personas.filter(p=>!(p.name||'').trim()).length;
-  const personaIntoEmpty=missP.slice(0, emptySlots);          // fill empty slots first (keeps the action's persona)
-  let restP=missP.slice(personaIntoEmpty.length);
-  const personaReplacements=[]; { const n=Math.min(restP.length, freeP.length);
-    for(let i=0;i<n;i++) personaReplacements.push({from:restP[i], to:freeP[i]}); }
-  const unmatchedPersonas=restP.slice(personaReplacements.length);
+  const emptyPersonaSlots=state.personas.filter(p=>!(p.name||'').trim()).length;
+  const personaFixes=[]; const unmatchedPersonas=[];
+  { const ctx={free:freeP, emptyBudget:emptyPersonaSlots};
+    missP.forEach(m=>{ const opts=_fixOptions(m,'persona',ctx);
+      if(!opts.length){ unmatchedPersonas.push(m); return; }
+      personaFixes.push({from:m, options:opts, best:opts[0].value});
+      if(opts[0].value==='empty') ctx.emptyBudget--; });
+  }
 
-  // ---- order: project char/persona replacements, then detect violations & cross-turn conflicts ----
-  const cmap={}; charReplacements.forEach(r=>cmap[r.from.toUpperCase()]=r.to);
+  // ---- order: project the suggested char fixes, then detect violations & cross-turn conflicts ----
+  const cmap={}; charFixes.forEach(f=>{ if(f.best.indexOf('replace:')===0) cmap[f.from.toUpperCase()]=f.best.slice(8); else if(f.best==='elu') cmap[f.from.toUpperCase()]=eluNm; });
   const idx={}; state.units.forEach((u,i)=>{ if(u.name){ const up=u.name.toUpperCase(); idx[up]=i; } });
-  // characters that will exist on the team after replacement still map to their current slot; that is what idx already holds
   const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
   const projTurns=(state.turns||[]).map(t=>({actions:(t.actions||[]).map(a=>{ const cn=(a.char||'').toUpperCase();
     return Object.assign({},a,{char:cmap[cn]||a.char}); })}));
@@ -2161,23 +2188,37 @@ function autoCorrectPlan(){
   const conflicts=[]; const seenPair=new Set();
   Object.keys(before).forEach(k=>{ const p=k.split('>'); const key=[p[0],p[1]].sort().join('|');
     if(seenPair.has(key)) return; if(before[p[1]+'>'+p[0]]){ seenPair.add(key); conflicts.push([p[0],p[1]]); } });
+  // for each conflicting pair, which turns put A before B and which put B before A (for a concrete explanation)
+  const conflictDetails=conflicts.map(([a,b])=>{ const ab=[], ba=[];
+    projTurns.forEach((t,ti)=>{ const seq=_orderSeq(t.actions,idx,elu); const ia=seq.indexOf(a), ib=seq.indexOf(b);
+      if(ia>=0&&ib>=0){ (ia<ib?ab:ba).push(ti); } });
+    return {a, b, ab, ba}; });
   const hasOrderIssue=violatingTurns.length>0;
   const orderResolvable=hasOrderIssue && conflicts.length===0;   // team-reorder can satisfy all turns
 
   // extra DOD break turns (3rd/4th) that need Hatsune Miku, who is no longer on the team -> deletable
   const excessBreaks=excessBreakTurns();
-  const actionable=charReplacements.length||personaReplacements.length||personaIntoEmpty.length||hasOrderIssue||excessBreaks.length;
-  return {charReplacements, unmatchedChars, personaReplacements, personaIntoEmpty, unmatchedPersonas,
-          violatingTurns, conflicts, hasOrderIssue, orderResolvable, excessBreaks, actionable};
+  const actionable=charFixes.length||personaFixes.length||hasOrderIssue||excessBreaks.length;
+  return {charFixes, unmatchedChars, personaFixes, unmatchedPersonas,
+          discChars:missing, discPersonas:missP,
+          violatingTurns, conflicts, conflictDetails, hasOrderIssue, orderResolvable, excessBreaks, actionable};
 }
-/* sel = {charReplacements:[…], personaReplacements:[…], personaIntoEmpty:[…], order:'team'|'turns'|'none'} */
+/* sel = {charFixes:[{from,choice}], personaFixes:[{from,choice}], order:'team'|'turns'|'delEarly'|'delLate'|'none', excessBreaks:[…]}
+   choice: 'empty' (add to a free slot) | 'elu' (current elucidator, char only) | 'replace:<NAME>' | 'skip' */
 function autoCorrectApply(sel){
   sel=sel||{};
-  const cmap={}; (sel.charReplacements||[]).forEach(r=>cmap[r.from.toUpperCase()]=r.to);
-  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char && cmap[a.char.toUpperCase()]) a.char=cmap[a.char.toUpperCase()]; }));
-  const pmap={}; (sel.personaReplacements||[]).forEach(r=>pmap[r.from.toUpperCase()]=r.to);
-  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && a.persona && pmap[a.persona.toUpperCase()]) a.persona=pmap[a.persona.toUpperCase()]; }));
-  (sel.personaIntoEmpty||[]).forEach(name=>{ const slot=state.personas.find(p=>!(p.name||'').trim()); if(slot){ slot.name=name; if(!Array.isArray(slot.skills)) slot.skills=['','']; } });
+  // character fixes
+  (sel.charFixes||[]).forEach(f=>{ const c=f.choice; if(!c||c==='skip') return;
+    if(c==='empty'){ const slot=(state.units||[]).find((u,i)=>i>0 && !(u.name||'').trim()); if(slot) slot.name=f.from; }
+    else { const to = c==='elu' ? ((state.elucidator&&state.elucidator.name)||'') : (c.indexOf('replace:')===0 ? c.slice(8) : '');
+      if(to){ const up=f.from.toUpperCase(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()===up) a.char=to; })); } }
+  });
+  // persona fixes (Wonder only)
+  (sel.personaFixes||[]).forEach(f=>{ const c=f.choice; if(!c||c==='skip') return;
+    if(c==='empty'){ const slot=state.personas.find(p=>!(p.name||'').trim()); if(slot){ slot.name=f.from; if(!Array.isArray(slot.skills)) slot.skills=['','']; } }
+    else if(c.indexOf('replace:')===0){ const to=c.slice(8); const up=f.from.toUpperCase();
+      (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && (a.persona||'').toUpperCase()===up) a.persona=to; })); }
+  });
   if(sel.order==='team'){
     const order=buildActionOrder();
     const rank=u=>{ const i=order.indexOf((u.name||'').toUpperCase()); return i<0?999:i; };
@@ -2217,16 +2258,23 @@ function autoCorrectApply(sel){
   }
 }
 let _discBannerTimer=null, _prevDiscCount=0;
-function showDiscBanner(nChar,nOrd,nExcess){
+/* short name list for the banner: first few, then "+N more" */
+function _acNames(list,max){ max=max||3; const a=list.slice(0,max).join(', '); return list.length>max?a+' +'+(list.length-max)+' more':a; }
+function _turnNames(idxs){ return idxs.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))); }
+function showDiscBanner(){
   const b=document.getElementById('discBanner'); if(!b) return;
   const msg=b.querySelector('.disc-msg');
+  let plan=null; try{ plan=autoCorrectPlan(); }catch(e){}
   const parts=[];
-  if(nChar) parts.push((nChar===1?'1 action references':nChar+' actions reference')+' a character or persona that is no longer on the team');
-  if(nOrd) parts.push((nOrd===1?'1 turn has':nOrd+' turns have')+' characters acting out of team order');
-  if(nExcess) parts.push((nExcess===1?'1 extra break turn requires':nExcess+' extra break turns require')+' Hatsune Miku on the team');
-  msg.textContent=parts.join('; ')+'. Fix the highlighted items to re-enable export.';
+  if(plan){
+    if(plan.discChars.length) parts.push(_acNames(plan.discChars)+(plan.discChars.length===1?" isn't on the team":" aren't on the team"));
+    if(plan.discPersonas.length) parts.push('persona '+_acNames(plan.discPersonas)+' not in a slot');
+    if(plan.violatingTurns.length) parts.push('out of team order: '+_acNames(_turnNames(plan.violatingTurns)));
+    if(plan.excessBreaks.length) parts.push(plan.excessBreaks.length+' break turn'+(plan.excessBreaks.length>1?'s':'')+' need'+(plan.excessBreaks.length===1?'s':'')+' Hatsune Miku');
+  }
+  msg.textContent=(parts.join(' • ')||'There are discrepancies')+'. Fix the highlighted items to re-enable export.';
   // surface Auto Correct right in the banner when it has something it can fix
-  { const acBtn=b.querySelector('#discAutoCorrect'); if(acBtn){ let act=false; try{ act=!!autoCorrectPlan().actionable; }catch(e){} acBtn.hidden=!act; } }
+  { const acBtn=b.querySelector('#discAutoCorrect'); if(acBtn) acBtn.hidden=!(plan&&plan.actionable); }
   b.hidden=false;
   clearTimeout(_discBannerTimer);
   _discBannerTimer=setTimeout(()=>{ b.hidden=true; }, 10000);
@@ -2309,7 +2357,7 @@ function refreshDiscrepancies(){
     else eb.removeAttribute('title');
   }
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
-  if(total>0){ if(total>_prevDiscCount) showDiscBanner(nChar,nOrd,nExcess); }
+  if(total>0){ if(total>_prevDiscCount) showDiscBanner(); }
   else { hideDiscBanner(); }
   _prevDiscCount=total;
 }
@@ -3164,19 +3212,25 @@ function openAutoCorrectDialog(){
   const plan=autoCorrectPlan(); _acPlan=plan;
   const body=document.getElementById('acBody'); if(!body) return;
   let h='';
-  if(plan.charReplacements.length){
-    h+='<h3>Replace characters</h3>';
-    plan.charReplacements.forEach((r,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="char" data-i="${i}" checked><span>Use <b>${esc2(r.to)}</b> in every action that currently uses <b>${esc2(r.from)}</b> (no longer on the team)</span></label>`; });
+  const fixSelect=(f,i,kind)=>{
+    const optsHtml=f.options.map(o=>`<option value="${esc2(o.value)}"${o.value===f.best?' selected':''}>${esc2(o.label)}</option>`).join('')
+      +'<option value="skip">Leave it unfixed</option>';
+    return `<select class="ac-select" data-acfix="${kind}" data-i="${i}">${optsHtml}</select>`;
+  };
+  if(plan.charFixes.length){
+    h+='<h3>Characters not on the team</h3>';
+    plan.charFixes.forEach((f,i)=>{ const many=f.options.length>1;
+      h+=`<div class="ac-fix"><div class="ac-fix-lbl"><b>${esc2(f.from)}</b> acts in the turns but is not on the team.${many?' Pick how to fix it:':''}</div>${fixSelect(f,i,'char')}</div>`; });
   }
-  if(plan.personaReplacements.length||plan.personaIntoEmpty.length){
-    h+='<h3>Fix Wonder personas</h3>';
-    plan.personaReplacements.forEach((r,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="prep" data-i="${i}" checked><span>Use <b>${esc2(r.to)}</b> in every Wonder action that currently uses <b>${esc2(r.from)}</b> (not in a persona slot)</span></label>`; });
-    plan.personaIntoEmpty.forEach((nm,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="pempty" data-i="${i}" checked><span>Add <b>${esc2(nm)}</b> to an empty persona slot</span></label>`; });
+  if(plan.personaFixes.length){
+    h+='<h3>Wonder personas not in a slot</h3>';
+    plan.personaFixes.forEach((f,i)=>{ const many=f.options.length>1;
+      h+=`<div class="ac-fix"><div class="ac-fix-lbl">Wonder uses <b>${esc2(f.from)}</b>, which is not in a persona slot.${many?' Pick how to fix it:':''}</div>${fixSelect(f,i,'persona')}</div>`; });
   }
   if(plan.hasOrderIssue){
-    const turns=plan.violatingTurns.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))).join(', ');
+    const turns=_turnNames(plan.violatingTurns).join(', ');
     h+='<h3>Turn order</h3>';
-    h+=`<div class="ac-note">${plan.violatingTurns.length===1?'1 turn has':plan.violatingTurns.length+' turns have'} characters acting out of team order (${esc2(turns)}).</div>`;
+    h+=`<div class="ac-note">${plan.violatingTurns.length===1?'1 turn has':plan.violatingTurns.length+' turns have'} characters acting out of team order (${esc2(turns)}). Order-relevant actions should follow the team slot order.</div>`;
     if(plan.orderResolvable){
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="team" checked><span><b>Reorder the team slots</b> to match the order characters act in the turns (recommended)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns"><span><b>Reorder the actions</b> inside each turn, keep both and fix the order</span></label>`;
@@ -3184,20 +3238,22 @@ function openAutoCorrectDialog(){
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is</span></label>`;
     } else {
-      h+=`<div class="ac-warn">These characters act in different orders in different turns, so no single team order can satisfy every turn: ${esc2(plan.conflicts.map(c=>c[0]+' \u2194 '+c[1]).join(', '))}. Reordering the team can't fully fix this.</div>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn, keep both and fix the order (recommended)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
+      const lis=plan.conflictDetails.map(d=>{ const ab=_turnNames(d.ab).join(', ')||'(none)', ba=_turnNames(d.ba).join(', ')||'(none)';
+        return `<li><b>${esc2(d.a)}</b> acts before <b>${esc2(d.b)}</b> in ${esc2(ab)}, but after in ${esc2(ba)}</li>`; }).join('');
+      h+=`<div class="ac-warn">No single team order can satisfy every turn, because some characters act in opposite orders in different turns:<ul class="ac-list">${lis}</ul>Reordering the team slots can't fix this on its own, so choose what to do inside the turns:</div>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn to match the current team order (recommended, keeps every action)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each turn (the one that should have come earlier)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each turn (the one that jumped ahead)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is, I'll fix it by hand</span></label>`;
     }
   }
   if(plan.excessBreaks && plan.excessBreaks.length){
     const turns=plan.excessBreaks.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))).join(', ');
     h+='<h3>Extra break turns</h3>';
-    h+=`<label class="ac-row"><input type="checkbox" data-ac="exbreak" checked><span>Delete the ${plan.excessBreaks.length} extra break turn${plan.excessBreaks.length>1?'s':''} (${esc2(turns)}) — more than 2 break turns require <b>Hatsune Miku</b> on the team</span></label>`;
+    h+=`<label class="ac-row"><input type="checkbox" data-ac="exbreak" checked><span>Delete the ${plan.excessBreaks.length} extra break turn${plan.excessBreaks.length>1?'s':''} (${esc2(turns)}). More than 2 break turns require <b>Hatsune Miku</b> on the team, and she is not on it.</span></label>`;
   }
-  if(plan.unmatchedChars.length) h+=`<div class="ac-warn">Cannot reassign automatically (no free team slot): ${esc2(plan.unmatchedChars.join(', '))}. Add them to the team manually.</div>`;
-  if(plan.unmatchedPersonas.length) h+=`<div class="ac-warn">Cannot place automatically (no free persona slot): ${esc2(plan.unmatchedPersonas.join(', '))}. Add them to a persona slot manually.</div>`;
+  if(plan.unmatchedChars.length) h+=`<div class="ac-warn"><b>${esc2(plan.unmatchedChars.join(', '))}</b> cannot be placed automatically: every team slot is filled and already acts, and none is empty. Add a team slot or remove the action.</div>`;
+  if(plan.unmatchedPersonas.length) h+=`<div class="ac-warn"><b>${esc2(plan.unmatchedPersonas.join(', '))}</b> cannot be placed automatically: all persona slots are filled with personas that are used elsewhere. Free a slot or remove the action.</div>`;
   if(!plan.actionable && !h) h=`<div class="ac-note">Nothing can be auto-corrected. Any remaining discrepancy needs a manual fix.</div>`;
   body.innerHTML=h;
   const applyBtn=document.getElementById('acApply'); if(applyBtn) applyBtn.disabled=!plan.actionable;
@@ -3206,12 +3262,11 @@ function openAutoCorrectDialog(){
 function applyAutoCorrectFromDialog(){
   const plan=_acPlan; if(!plan) return;
   const body=document.getElementById('acBody');
-  const sel={charReplacements:[], personaReplacements:[], personaIntoEmpty:[], excessBreaks:[], order:'none'};
-  body.querySelectorAll('input[data-ac]').forEach(inp=>{ if(!inp.checked) return; const i=+inp.dataset.i;
-    if(inp.dataset.ac==='char') sel.charReplacements.push(plan.charReplacements[i]);
-    else if(inp.dataset.ac==='prep') sel.personaReplacements.push(plan.personaReplacements[i]);
-    else if(inp.dataset.ac==='pempty') sel.personaIntoEmpty.push(plan.personaIntoEmpty[i]);
-    else if(inp.dataset.ac==='exbreak') sel.excessBreaks=(plan.excessBreaks||[]).slice(); });
+  const sel={charFixes:[], personaFixes:[], excessBreaks:[], order:'none'};
+  body.querySelectorAll('select[data-acfix]').forEach(s=>{ const i=+s.dataset.i;
+    if(s.dataset.acfix==='char'){ const f=plan.charFixes[i]; if(f) sel.charFixes.push({from:f.from, choice:s.value}); }
+    else if(s.dataset.acfix==='persona'){ const f=plan.personaFixes[i]; if(f) sel.personaFixes.push({from:f.from, choice:s.value}); } });
+  const ex=body.querySelector('input[data-ac="exbreak"]'); if(ex && ex.checked) sel.excessBreaks=(plan.excessBreaks||[]).slice();
   const od=body.querySelector('input[name="acOrder"]:checked'); if(od) sel.order=od.value;
   _acSnapshot=JSON.stringify(state);
   autoCorrectApply(sel);
@@ -4837,6 +4892,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625d</div>
+<div class="version-tag">260625e</div>
 </body>
 </html>
