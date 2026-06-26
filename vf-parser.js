@@ -207,7 +207,9 @@ function splitMidActor(seg){
 function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
   for(let i=0;i<s.length;i++){ const ch=s[i];
     if(ch==='('||ch==='[') depth++; else if(ch===')'||ch===']'){ if(depth>0)depth--; }
-    if(depth===0 && sepChars.indexOf(ch)>=0){ out.push(buf); buf=''; } else buf+=ch; }
+    // a "." only separates when followed by whitespace/end ("Wind S2. Dio Reb"); a decimal like 1.3 is kept
+    const isSep = depth===0 && sepChars.indexOf(ch)>=0 && (ch!=='.' || i+1>=s.length || /\s/.test(s[i+1]));
+    if(isSep){ out.push(buf); buf=''; } else buf+=ch; }
   out.push(buf); return out; }
 /* Hatsune Miku's songs (elucidator). Recognised in turns and mapped to Miku, with abbreviations. */
 const MIKU='MIKU';
@@ -223,7 +225,7 @@ function parseTurnContent(content,warn){
   // a leading separator dash/colon left over from the turn label ("T2 - Yurl ..." -> content "- Yurl ...")
   // or written before a unit; strip it so the first action isn't lost as an unrecognised "- Actor".
   let lastActor=null;
-  for(const unit of splitTop(content,',|>\u203a\u2192').map(u=>u.trim().replace(/^[-\u2013\u2014:]\s*/,'').trim()).filter(Boolean)){
+  for(const unit of splitTop(content,',.|>\u203a\u2192').map(u=>u.trim().replace(/^[-\u2013\u2014:]\s*/,'').trim()).filter(Boolean)){
     let cur=null, pendingLead=[]; const unitStart=actions.length;
     const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
     for(const seg of segs){
@@ -326,8 +328,10 @@ function parseRotationText(text, opts){
     .replace(/^\s*action\s+\d+\s*[-\u2013\u2014:]\s*(?=(?:turn|break|t|b|w)\s*\d)/i,''));
   // "B1"/"B2" are break turns (the common short form of "Break 1"/"Break 2"), just as "T1" is a normal
   // turn; the brk flag below keys off the leading "b". Same false-positive risk as the accepted "t" prefix.
-  const reInline=/^\s*(turn|break|t|b)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
-  const reAlone=/^\s*(turn|break|t|b)\s*(\d+)\s*[:.)]?\s*$/i;
+  // the number may be negative ("T-2"/"T-1": setup turns counted back from the break) and the label may be
+  // separated from its actions by a comma ("T-2, Twins S1") as well as by a colon/space.
+  const reInline=/^\s*(turn|break|t|b)\s*(-?\d+)(?:\s*[:.,)]\s*|\s+)(.+)$/i;
+  const reAlone=/^\s*(turn|break|t|b)\s*(-?\d+)\s*[:.)]?\s*$/i;
   // "W1"/"W2" (weak/break phase). Only honored AFTER a standalone BREAK divider, so the
   // "W1:/W2:" lines that often appear in Defense/Crit-calc notes are not mistaken for turns.
   const reWInline=/^\s*(w)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
@@ -1088,5 +1092,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A129';
+  _g.VF_PARSER_VERSION = 'A130';
 })();
