@@ -106,10 +106,16 @@ button{cursor:pointer}
 .head-top{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap}
 .head-actions{display:flex; gap:8px; flex:0 0 auto; align-items:center; margin-left:auto; flex-wrap:wrap; justify-content:flex-end}
 @media (max-width:620px){ .head-actions{ order:-1; width:100%; margin-left:0; justify-content:flex-end } }
-.rot-name{flex:1 1 320px}
-.rot-name input{width:100%; background:transparent; border:none; border-bottom:2px solid var(--line);
-  font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
-.rot-name input:focus{outline:none; border-color:var(--gold)}
+.rot-name{flex:1 1 320px; display:flex; align-items:flex-end; gap:6px; border-bottom:2px solid var(--line); font-size:30px}
+.rot-name:focus-within{border-color:var(--gold)}
+.rot-name input{flex:1; min-width:0; background:transparent; border:none;
+  font-family:"Oswald"; font-weight:700; font-size:inherit; letter-spacing:.03em; padding:2px 0; color:var(--text)}
+.rot-name input:focus{outline:none}
+.name-sug{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; background:transparent;
+  border:none; padding:0 2px 4px; cursor:pointer; color:var(--muted); font-size:inherit; opacity:.7; transition:opacity .12s, color .12s}
+.name-sug svg{width:1em; height:1em; display:block}
+.name-sug:hover{opacity:1; color:var(--gold)}
+.rot-name input:not(:placeholder-shown) ~ .name-sug{display:none}
 .tier{display:flex; align-items:center; gap:8px}
 .tier select{border:none; border-radius:8px; font-family:"Oswald"; font-weight:700; letter-spacing:.1em;
   font-size:20px; padding:14px 18px; text-transform:uppercase; background:var(--gold); color:#3a2c00; transition:.15s}
@@ -132,6 +138,8 @@ button{cursor:pointer}
 .meta-big .field textarea#f_credits:focus{outline:none; border-color:var(--blue-strong)}
 .meta-big .type-field{flex:0 0 112px}
 .meta-big .patch-field{flex:0 0 112px}
+.meta-big .score-field{flex:0 1 165px}   /* 25% narrower than the 220px base, and it no longer grows */
+.meta-big .credits-field{flex:3 1 220px} /* soaks up the freed space so Credits is the widest field */
 .type-field label{display:block; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
 .type-field .tier{display:block}
 .type-field .tier select{width:100%; height:56px; padding:0 14px}
@@ -443,7 +451,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .koduck-pet{height:25px; width:auto; vertical-align:middle; margin:0 5px; image-rendering:pixelated; image-rendering:crisp-edges}
 .foot a{color:var(--blue)}
-@media (max-width:560px){ .rot-name input{font-size:22px} }
+@media (max-width:560px){ .rot-name{font-size:22px} }
 .app-banners{display:flex; flex-direction:column; gap:8px; margin-bottom:14px}
 .app-banners[hidden]{display:none}
 .app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; color:#e9e4ff}
@@ -714,6 +722,13 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-row span b{color:var(--text)}
 .ac-note{color:var(--muted); font-size:13px; margin:8px 0}
 .ac-warn{color:#ffb3c0; font-size:13px; margin:8px 0; padding:8px 10px; background:rgba(224,68,94,.12); border:1px solid #6e2b38; border-radius:8px; line-height:1.45}
+.ac-warn .ac-list{margin:6px 0 6px; padding-left:18px}
+.ac-warn .ac-list li{margin:2px 0}
+.ac-fix{margin:10px 0}
+.ac-fix-lbl{margin-bottom:5px; font-size:13px}
+.ac-fix-lbl b{color:var(--text)}
+.ac-select{width:100%; background:var(--field); border:1px solid var(--line); border-radius:7px; padding:7px 9px; color:var(--text); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer}
+.ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
 .ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
@@ -729,7 +744,6 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 <script>/* lz-string 1.5.0 (MIT, pieroxy.net) — inlined, no CDN */
 var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -1124,6 +1138,8 @@ function hlLabel(special){ if(special){ const t=settings.theurgyLabel; return (t
 const _SIG_SET = new Set(Object.values(PERSONA_SIGNATURES));
 const SIG_EXCLUDE = new Set(['Cohesion','Revolution','Rebellion','Tarunda','Rakunda','Matarunda','Matarukaja','Marakunda']);
 function skillDisplay(n){ if(!n) return n; if(settings.sigAsSig && _SIG_SET.has(n) && !(settings.sigExclude && SIG_EXCLUDE.has(n))) return 'Sig'; return skillLabel(n); }
+/* the persona boxes always show the full skill name: neither the user-set abbreviation nor the Sig substitution apply (those stay only in the rotation) */
+function skillFull(n){ return n||''; }
 function personaLabel(n){ if(!n) return n; const m=settings.personaAbbr||{}; const a=m[n]; return (a && PERSONA_ALIASES[n] && PERSONA_ALIASES[n].indexOf(a)>=0) ? a : n; }
 function wonderBody(a, abbr){ return [(abbr?skillDisplay(a.skill||''):(a.skill||'')), a.btn?btnLabel(a.btn):'', a.text||''].map(s=>String(s).trim()).filter(Boolean).join(' '); }
 function actionLabel(a, name, abbr){
@@ -1411,7 +1427,7 @@ const LIB_KEY='vf-rotation-library-v1';
 function loadLib(){ try{ const a=JSON.parse(localStorage.getItem(LIB_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
 function saveLib(a){ try{ localStorage.setItem(LIB_KEY, JSON.stringify(a)); }catch(e){} syncSchedulePush(); }
 function _libId(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:(String(name||state.setup.rotationName||'Rotation').trim()||'Rotation'), ts:Date.now(), state:JSON.parse(JSON.stringify(state)) }); saveLib(a); return a; }
+function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:(String(name||rotName()).trim()||'Rotation'), ts:Date.now(), state:JSON.parse(JSON.stringify(state)) }); saveLib(a); return a; }
 function libDelete(id){ saveLib(loadLib().filter(e=>e.id!==id)); }
 function libRename(id,name){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.name=String(name||'').trim()||e.name; saveLib(a); } }
 function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
@@ -1559,9 +1575,10 @@ let _lastImportText='';   /* the raw text from the last "keep text" import, so i
 function syncImportBtn(){ const b=document.getElementById('setupShowImport'); if(b) b.hidden=!_lastImportText; }
 function renderHead(){
   const s=state.setup;
+  refreshNameSug(false);
   document.getElementById('headPanel').innerHTML=`
     <div class="head-top">
-      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="Rotation Name"/></div>
+      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="${esc(_nameSug||'Rotation Name')}"/><button type="button" id="nameSug" class="name-sug" title="Suggest a name" aria-label="Suggest a name"${_nameSug?'':' hidden'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg></button></div>
       <div class="head-actions">
         <button type="button" class="btn" id="setupShowImport" title="Show the imported text again"${_lastImportText?'':' hidden'}>Imported text</button>
         <button type="button" class="btn" id="setupSaveBtn" title="Save the current rotation to your library">Save</button>
@@ -1573,11 +1590,13 @@ function renderHead(){
       <div class="type-field"><label>Mode</label><div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div></div>
       <div class="field"><label>Boss</label><span class="combo-wrap"><input id="f_boss" class="combo" data-combo="boss" autocomplete="off" placeholder="Choose Boss" value="${esc(s.boss)}"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span></div>
       <div class="field patch-field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
-      <div class="field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
+      <div class="field score-field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
       <div class="field credits-field"><label>Credits</label><textarea id="f_credits" rows="1" spellcheck="false">${esc(s.credits||'')}</textarea></div>
     </div>
     <datalist id="bossList"></datalist>`;
   bind('f_name','setup.rotationName');
+  { const sug=document.getElementById('nameSug'); if(sug) sug.onclick=()=>{ refreshNameSug(true); const f=document.getElementById('f_name'); if(f) f.placeholder=_nameSug||'Rotation Name'; };
+    ['f_boss','f_patch','f_score'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', updateNameSugUI); }); }
   { const si=document.getElementById('setupShowImport'); if(si) si.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
     const sv=document.getElementById('setupSaveBtn'); if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
     const ld=document.getElementById('setupLoadBtn'); if(ld) ld.onclick=()=>window.openLibrary&&window.openLibrary('load');
@@ -1612,7 +1631,7 @@ function renderHead(){
     tsel.closest('.tier').className='tier type-'+newType.toLowerCase();
     renderTurns();
     renderNotes();
-    paintSetupValidity(); refreshDiscrepancies();
+    paintSetupValidity(); refreshDiscrepancies(); updateNameSugUI();
   };
   bind('f_boss','setup.boss');
   bind('f_patch','setup.patch', normalizePatch); bind('f_score','setup.score', normalizeScore);
@@ -1757,6 +1776,7 @@ function renderTeam(){
     };
   });
   paintImp();
+  updateNameSugUI();
 }
 
 /* ---------- render: turns ---------- */
@@ -1835,26 +1855,45 @@ function _orderSeq(actions, idx, elu){
 function _seqViolates(seq, idx){ for(let i=1;i<seq.length;i++){ if(idx[seq[i]]<idx[seq[i-1]]) return true; } return false; }
 function _blankUnit(){ return {name:'',awareness:'',rev:'',gear:'',space:'',sunsky:'',role:'',companion:'',note:''}; }
 
+/* Build the list of fix options for ONE missing item. The first option is the best default
+   (kept verlustfrei: prefer adding it back / the swapped elucidator over rewriting actions). */
+function _fixOptions(from, kind, ctx){
+  const opts=[];
+  if(kind==='char'){
+    if(ctx.eluBudget>0 && ctx.isElu(from)){ opts.push({value:'elu', label:'Use the current elucidator '+ctx.eluNm+' instead'}); }
+    if(ctx.emptyBudget>0){ opts.push({value:'empty', label:'Add '+from+' to the team (empty slot)'}); }
+    ctx.free.forEach(f=>opts.push({value:'replace:'+f, label:'Use '+f+' instead ('+f+' is on the team but acts nowhere)'}));
+  } else {
+    if(ctx.emptyBudget>0){ opts.push({value:'empty', label:'Add '+from+' to an empty persona slot'}); }
+    ctx.free.forEach(f=>opts.push({value:'replace:'+f, label:'Use '+f+' instead ('+f+' is in a slot but never used)'}));
+  }
+  return opts;
+}
 function autoCorrectPlan(){
   const team=teamChars(), teamUp=team.map(c=>c.toUpperCase());
-  // ---- character replacements: missing acting character -> a team character that acts nowhere ----
+  // ---- missing acting characters: in the turns but not on the team ----
   const missing=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ const cn=a.char; if(!cn) return;
     if(cn.toUpperCase()==='WONDER') return;
     if(!teamUp.includes(cn.toUpperCase()) && !missing.includes(cn)) missing.push(cn); }));
   const acting=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char) acting.add(a.char.toUpperCase()); }));
+  // candidates to take a missing character: named team slots that act nowhere, plus empty slots
   const free=[]; (state.units||[]).forEach(u=>{ const nm=u.name; if(nm && nm.toUpperCase()!=='WONDER' && !acting.has(nm.toUpperCase()) && !free.includes(nm)) free.push(nm); });
-  // the elucidator slot can also receive a replacement: when it was swapped in the team, the OLD elucidator
-  // name still appears in the actions and should map to the current elucidator (which now acts nowhere).
+  const emptyTeamSlots=(state.units||[]).filter((u,i)=>i>0 && !(u.name||'').trim()).length;
   const eluNm=(state.elucidator&&state.elucidator.name)||'';
-  let eluFree = !!eluNm && !acting.has(eluNm.toUpperCase());
   const isElu=n=>(DATA.elucidatorNames||[]).includes((n||'').toUpperCase());
-  const charReplacements=[]; const restMiss=[];
-  missing.forEach(m=>{ if(eluFree && isElu(m)){ charReplacements.push({from:m, to:eluNm}); eluFree=false; } else restMiss.push(m); });
-  { const n=Math.min(restMiss.length, free.length); for(let i=0;i<n;i++) charReplacements.push({from:restMiss[i], to:free[i]}); }
-  const unmatchedChars=restMiss.slice(Math.min(restMiss.length, free.length));
+  // per missing char: a list of fix options (best first) the user can pick from in a dropdown.
+  // the empty-slot / elucidator defaults are budgeted so the suggested choices don't overcommit.
+  const charFixes=[]; const unmatchedChars=[];
+  { const ctx={isElu, eluNm, free, emptyBudget:emptyTeamSlots, eluBudget:(eluNm && !acting.has(eluNm.toUpperCase()))?1:0};
+    missing.forEach(m=>{ const opts=_fixOptions(m,'char',ctx);
+      if(!opts.length){ unmatchedChars.push(m); return; }
+      charFixes.push({from:m, options:opts, best:opts[0].value});
+      // consume the budget the suggested (first) option would use, so the next char's default differs
+      if(opts[0].value==='elu') ctx.eluBudget--; else if(opts[0].value==='empty') ctx.emptyBudget--; });
+  }
 
-  // ---- persona replacements: Wonder persona used in turns but not in a slot ----
+  // ---- missing Wonder personas: used in the turns but not in a persona slot ----
   const slotPersUp=state.personas.map(p=>(p.name||'').trim().toUpperCase()).filter(Boolean);
   const missP=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER') return;
@@ -1862,17 +1901,18 @@ function autoCorrectPlan(){
     if(!slotPersUp.includes(p.toUpperCase()) && !missP.includes(p)) missP.push(p); }));
   const usedP=new Set(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && a.persona) usedP.add(a.persona.toUpperCase()); }));
   const freeP=[]; state.personas.forEach(p=>{ const nm=(p.name||'').trim(); if(nm && !usedP.has(nm.toUpperCase()) && !freeP.includes(nm)) freeP.push(nm); });
-  const emptySlots=state.personas.filter(p=>!(p.name||'').trim()).length;
-  const personaIntoEmpty=missP.slice(0, emptySlots);          // fill empty slots first (keeps the action's persona)
-  let restP=missP.slice(personaIntoEmpty.length);
-  const personaReplacements=[]; { const n=Math.min(restP.length, freeP.length);
-    for(let i=0;i<n;i++) personaReplacements.push({from:restP[i], to:freeP[i]}); }
-  const unmatchedPersonas=restP.slice(personaReplacements.length);
+  const emptyPersonaSlots=state.personas.filter(p=>!(p.name||'').trim()).length;
+  const personaFixes=[]; const unmatchedPersonas=[];
+  { const ctx={free:freeP, emptyBudget:emptyPersonaSlots};
+    missP.forEach(m=>{ const opts=_fixOptions(m,'persona',ctx);
+      if(!opts.length){ unmatchedPersonas.push(m); return; }
+      personaFixes.push({from:m, options:opts, best:opts[0].value});
+      if(opts[0].value==='empty') ctx.emptyBudget--; });
+  }
 
-  // ---- order: project char/persona replacements, then detect violations & cross-turn conflicts ----
-  const cmap={}; charReplacements.forEach(r=>cmap[r.from.toUpperCase()]=r.to);
+  // ---- order: project the suggested char fixes, then detect violations & cross-turn conflicts ----
+  const cmap={}; charFixes.forEach(f=>{ if(f.best.indexOf('replace:')===0) cmap[f.from.toUpperCase()]=f.best.slice(8); else if(f.best==='elu') cmap[f.from.toUpperCase()]=eluNm; });
   const idx={}; state.units.forEach((u,i)=>{ if(u.name){ const up=u.name.toUpperCase(); idx[up]=i; } });
-  // characters that will exist on the team after replacement still map to their current slot; that is what idx already holds
   const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
   const projTurns=(state.turns||[]).map(t=>({actions:(t.actions||[]).map(a=>{ const cn=(a.char||'').toUpperCase();
     return Object.assign({},a,{char:cmap[cn]||a.char}); })}));
@@ -1884,23 +1924,37 @@ function autoCorrectPlan(){
   const conflicts=[]; const seenPair=new Set();
   Object.keys(before).forEach(k=>{ const p=k.split('>'); const key=[p[0],p[1]].sort().join('|');
     if(seenPair.has(key)) return; if(before[p[1]+'>'+p[0]]){ seenPair.add(key); conflicts.push([p[0],p[1]]); } });
+  // for each conflicting pair, which turns put A before B and which put B before A (for a concrete explanation)
+  const conflictDetails=conflicts.map(([a,b])=>{ const ab=[], ba=[];
+    projTurns.forEach((t,ti)=>{ const seq=_orderSeq(t.actions,idx,elu); const ia=seq.indexOf(a), ib=seq.indexOf(b);
+      if(ia>=0&&ib>=0){ (ia<ib?ab:ba).push(ti); } });
+    return {a, b, ab, ba}; });
   const hasOrderIssue=violatingTurns.length>0;
   const orderResolvable=hasOrderIssue && conflicts.length===0;   // team-reorder can satisfy all turns
 
   // extra DOD break turns (3rd/4th) that need Hatsune Miku, who is no longer on the team -> deletable
   const excessBreaks=excessBreakTurns();
-  const actionable=charReplacements.length||personaReplacements.length||personaIntoEmpty.length||hasOrderIssue||excessBreaks.length;
-  return {charReplacements, unmatchedChars, personaReplacements, personaIntoEmpty, unmatchedPersonas,
-          violatingTurns, conflicts, hasOrderIssue, orderResolvable, excessBreaks, actionable};
+  const actionable=charFixes.length||personaFixes.length||hasOrderIssue||excessBreaks.length;
+  return {charFixes, unmatchedChars, personaFixes, unmatchedPersonas,
+          discChars:missing, discPersonas:missP,
+          violatingTurns, conflicts, conflictDetails, hasOrderIssue, orderResolvable, excessBreaks, actionable};
 }
-/* sel = {charReplacements:[…], personaReplacements:[…], personaIntoEmpty:[…], order:'team'|'turns'|'none'} */
+/* sel = {charFixes:[{from,choice}], personaFixes:[{from,choice}], order:'team'|'turns'|'delEarly'|'delLate'|'none', excessBreaks:[…]}
+   choice: 'empty' (add to a free slot) | 'elu' (current elucidator, char only) | 'replace:<NAME>' | 'skip' */
 function autoCorrectApply(sel){
   sel=sel||{};
-  const cmap={}; (sel.charReplacements||[]).forEach(r=>cmap[r.from.toUpperCase()]=r.to);
-  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(a.char && cmap[a.char.toUpperCase()]) a.char=cmap[a.char.toUpperCase()]; }));
-  const pmap={}; (sel.personaReplacements||[]).forEach(r=>pmap[r.from.toUpperCase()]=r.to);
-  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && a.persona && pmap[a.persona.toUpperCase()]) a.persona=pmap[a.persona.toUpperCase()]; }));
-  (sel.personaIntoEmpty||[]).forEach(name=>{ const slot=state.personas.find(p=>!(p.name||'').trim()); if(slot){ slot.name=name; if(!Array.isArray(slot.skills)) slot.skills=['','']; } });
+  // character fixes
+  (sel.charFixes||[]).forEach(f=>{ const c=f.choice; if(!c||c==='skip') return;
+    if(c==='empty'){ const slot=(state.units||[]).find((u,i)=>i>0 && !(u.name||'').trim()); if(slot) slot.name=f.from; }
+    else { const to = c==='elu' ? ((state.elucidator&&state.elucidator.name)||'') : (c.indexOf('replace:')===0 ? c.slice(8) : '');
+      if(to){ const up=f.from.toUpperCase(); (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()===up) a.char=to; })); } }
+  });
+  // persona fixes (Wonder only)
+  (sel.personaFixes||[]).forEach(f=>{ const c=f.choice; if(!c||c==='skip') return;
+    if(c==='empty'){ const slot=state.personas.find(p=>!(p.name||'').trim()); if(slot){ slot.name=f.from; if(!Array.isArray(slot.skills)) slot.skills=['','']; } }
+    else if(c.indexOf('replace:')===0){ const to=c.slice(8); const up=f.from.toUpperCase();
+      (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && (a.persona||'').toUpperCase()===up) a.persona=to; })); }
+  });
   if(sel.order==='team'){
     const order=buildActionOrder();
     const rank=u=>{ const i=order.indexOf((u.name||'').toUpperCase()); return i<0?999:i; };
@@ -1940,21 +1994,69 @@ function autoCorrectApply(sel){
   }
 }
 let _discBannerTimer=null, _prevDiscCount=0;
-function showDiscBanner(nChar,nOrd,nExcess){
+/* short name list for the banner: first few, then "+N more" */
+function _acNames(list,max){ max=max||3; const a=list.slice(0,max).join(', '); return list.length>max?a+' +'+(list.length-max)+' more':a; }
+function _turnNames(idxs){ return idxs.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))); }
+function showDiscBanner(){
   const b=document.getElementById('discBanner'); if(!b) return;
   const msg=b.querySelector('.disc-msg');
+  let plan=null; try{ plan=autoCorrectPlan(); }catch(e){}
   const parts=[];
-  if(nChar) parts.push((nChar===1?'1 action references':nChar+' actions reference')+' a character or persona that is no longer on the team');
-  if(nOrd) parts.push((nOrd===1?'1 turn has':nOrd+' turns have')+' characters acting out of team order');
-  if(nExcess) parts.push((nExcess===1?'1 extra break turn requires':nExcess+' extra break turns require')+' Hatsune Miku on the team');
-  msg.textContent=parts.join('; ')+'. Fix the highlighted items to re-enable export.';
+  if(plan){
+    if(plan.discChars.length) parts.push(_acNames(plan.discChars)+(plan.discChars.length===1?" isn't on the team":" aren't on the team"));
+    if(plan.discPersonas.length) parts.push('persona '+_acNames(plan.discPersonas)+' not in a slot');
+    if(plan.violatingTurns.length) parts.push('out of team order: '+_acNames(_turnNames(plan.violatingTurns)));
+    if(plan.excessBreaks.length) parts.push(plan.excessBreaks.length+' break turn'+(plan.excessBreaks.length>1?'s':'')+' need'+(plan.excessBreaks.length===1?'s':'')+' Hatsune Miku');
+  }
+  msg.textContent=(parts.join(' • ')||'There are discrepancies')+'. Fix the highlighted items to re-enable export.';
   // surface Auto Correct right in the banner when it has something it can fix
-  { const acBtn=b.querySelector('#discAutoCorrect'); if(acBtn){ let act=false; try{ act=!!autoCorrectPlan().actionable; }catch(e){} acBtn.hidden=!act; } }
+  { const acBtn=b.querySelector('#discAutoCorrect'); if(acBtn) acBtn.hidden=!(plan&&plan.actionable); }
   b.hidden=false;
   clearTimeout(_discBannerTimer);
   _discBannerTimer=setTimeout(()=>{ b.hidden=true; }, 10000);
 }
 function hideDiscBanner(){ const b=document.getElementById('discBanner'); if(b) b.hidden=true; clearTimeout(_discBannerTimer); }
+/* ---------- auto rotation-name suggestions (used as the Rotation Name placeholder + export fallback) ----------
+   No fixed scheme: build many candidate names from whatever is already filled in, then show a random one;
+   the dice button rotates through them, and an empty name falls back to the shown suggestion on export. */
+function nameSuggestions(){
+  const s=state.setup||{};
+  const tc=x=>titleCase((x||'').trim());
+  const boss=tc(s.boss), mode=(s.type||'').trim(), patch=(s.patch||'').trim(), score=(s.score||'').trim();
+  const tier=(s.tier==='F2P')?'F2P':tc(s.tier);
+  const team=(state.units||[]).map(u=>(u.name||'').trim()).filter(n=>n && n.toUpperCase()!=='WONDER').map(n=>n.toUpperCase()===MIKU_NAME?'Miku':titleCase(n));
+  const carry=team[0]||'', duo=team.slice(0,2).join(' + '), trio=team.slice(0,3).join(' + ');
+  const out=[]; const push=x=>{ x=(x||'').trim().replace(/\s+/g,' '); if(x && !out.includes(x)) out.push(x); };
+  if(boss&&mode) push(boss+' '+mode);
+  if(boss&&mode&&patch) push(boss+' '+mode+' '+patch);
+  if(carry&&boss) push(carry+' vs '+boss);
+  if(duo&&boss) push(duo+' vs '+boss);
+  if(carry&&tier) push(carry+' '+tier);
+  if(tier&&boss&&mode) push(tier+' '+boss+' '+mode);
+  if(carry&&mode) push(carry+' '+mode);
+  if(duo) push(duo);
+  if(trio&&trio!==duo) push(trio);
+  if(boss&&score) push(boss+' '+score);
+  if(mode&&boss&&score) push(mode+' '+boss+' '+score);
+  if(duo&&boss&&mode) push(duo+' '+boss+' '+mode);
+  if(boss&&!mode) push(boss);
+  return out;
+}
+let _nameSug='';
+/* keep the current suggestion stable until it goes stale; force=true rotates to a different one */
+function refreshNameSug(force){
+  const list=nameSuggestions();
+  if(!list.length){ _nameSug=''; return; }
+  if(force){ let pool=list.filter(x=>x!==_nameSug); if(!pool.length) pool=list; _nameSug=pool[Math.floor(Math.random()*pool.length)]; }
+  else if(!_nameSug || !list.includes(_nameSug)){ _nameSug=list[Math.floor(Math.random()*list.length)]; }
+}
+function updateNameSugUI(){
+  refreshNameSug(false);
+  const f=document.getElementById('f_name'); if(f) f.placeholder=_nameSug||'Rotation Name';
+  const btn=document.getElementById('nameSug'); if(btn) btn.hidden=!_nameSug;
+}
+/* the effective name for exports/filenames: explicit name, else the shown suggestion, else "Rotation" */
+function rotName(s){ s=s||state.setup||{}; const explicit=(s.rotationName||'').trim(); if(explicit) return explicit; refreshNameSug(false); return _nameSug||'Rotation'; }
 /* ---------- setup-field validation (Patch / Expected Score / required fields) ---------- */
 function normalizePatch(raw){
   let v=String(raw==null?'':raw).replace(/,/g,'.').trim();
@@ -1994,7 +2096,7 @@ function liveGroupScore(el){
 function setupIssues(){
   const s=state.setup||{};
   const missing=[];
-  if(!String(s.rotationName||'').trim()) missing.push('Rotation Name');
+  if(!String(s.rotationName||'').trim() && !nameSuggestions().length) missing.push('Rotation Name');
   if(!String(s.type||'').trim()) missing.push('Mode');
   if(!String(s.boss||'').trim()) missing.push('Boss');
   if(!String(s.patch||'').trim()) missing.push('Patch');
@@ -2032,7 +2134,7 @@ function refreshDiscrepancies(){
     else eb.removeAttribute('title');
   }
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
-  if(total>0){ if(total>_prevDiscCount) showDiscBanner(nChar,nOrd,nExcess); }
+  if(total>0){ if(total>_prevDiscCount) showDiscBanner(); }
   else { hideDiscBanner(); }
   _prevDiscCount=total;
 }
@@ -2397,7 +2499,7 @@ function compactEncode(st){
     return e;
   };
   return [1,
-    [ s.rotationName||'', s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
+    [ rotName(s), s.tier||'', s.boss||'', _io(s.type,TY), s.patch||'', s.score||'', s.notes||'', s.credits||'' ],
     (st.units||[]).map(unit),
     unit(st.elucidator||{}),
     (st.personas||[]).map(p=>{ const e=[ _io(p.name,PN), (p.skills||['','']).slice(0,2) ]; if((p.note||'').trim()) e.push(p.note.trim()); return e; }),
@@ -2559,7 +2661,7 @@ function copyShareText(t, hint){
 }
 function discordLabel(){
   const s=state.setup||{};
-  const name=(s.rotationName||'').trim()||'Rotation';
+  const name=rotName(s);
   const meta=[(s.patch||'').trim(),(s.type||'').trim()].filter(Boolean).join(' ');
   const credit=(s.credit||s.credits||'').trim();
   const parts=[]; if(meta) parts.push(meta); parts.push(name); if(credit) parts.push('by '+credit);
@@ -2588,7 +2690,7 @@ function textAction(a){
 function buildTextExport(){
   const s=state.setup, L=[];
   const boss=(s.boss||'').trim();
-  const name=((s.rotationName||'').trim()||'Rotation');
+  const name=rotName(s);
   // title: "<patch> <mode> <BOSS>: <name>"  (the boss lives in the title now)
   const head=[(s.patch||'').trim(),(s.type||'').trim()].filter(Boolean).join(' ');
   L.push((head?head+' ':'')+(boss?boss+': ':'')+name);
@@ -2624,9 +2726,9 @@ function buildTextExport(){
   // Wonder personas as a bare comma list (the boss is already in the title)
   const pers=state.personas.map(p=>{
     const nm=(p.name||'').trim(); if(!nm) return null;
-    const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean).map(skillDisplay);
+    const sk=(p.skills||[]).map(x=>(x||'').trim()).filter(Boolean).map(skillFull);
     const note=(p.note||'').trim();
-    return personaLabel(nm)+(sk.length?` (${sk.join(' + ')})`:'')+(note?` [${note}]`:'');
+    return nm+(sk.length?` (${sk.join(' + ')})`:'')+(note?` [${note}]`:'');
   }).filter(Boolean);
   if(pers.length){ L.push(''); L.push(pers.join(', ')); }
   const tn=(state.teamNotes||'').trim();
@@ -2878,19 +2980,25 @@ function openAutoCorrectDialog(){
   const plan=autoCorrectPlan(); _acPlan=plan;
   const body=document.getElementById('acBody'); if(!body) return;
   let h='';
-  if(plan.charReplacements.length){
-    h+='<h3>Replace characters</h3>';
-    plan.charReplacements.forEach((r,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="char" data-i="${i}" checked><span>Use <b>${esc2(r.to)}</b> in every action that currently uses <b>${esc2(r.from)}</b> (no longer on the team)</span></label>`; });
+  const fixSelect=(f,i,kind)=>{
+    const optsHtml=f.options.map(o=>`<option value="${esc2(o.value)}"${o.value===f.best?' selected':''}>${esc2(o.label)}</option>`).join('')
+      +'<option value="skip">Leave it unfixed</option>';
+    return `<select class="ac-select" data-acfix="${kind}" data-i="${i}">${optsHtml}</select>`;
+  };
+  if(plan.charFixes.length){
+    h+='<h3>Characters not on the team</h3>';
+    plan.charFixes.forEach((f,i)=>{ const many=f.options.length>1;
+      h+=`<div class="ac-fix"><div class="ac-fix-lbl"><b>${esc2(f.from)}</b> acts in the turns but is not on the team.${many?' Pick how to fix it:':''}</div>${fixSelect(f,i,'char')}</div>`; });
   }
-  if(plan.personaReplacements.length||plan.personaIntoEmpty.length){
-    h+='<h3>Fix Wonder personas</h3>';
-    plan.personaReplacements.forEach((r,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="prep" data-i="${i}" checked><span>Use <b>${esc2(r.to)}</b> in every Wonder action that currently uses <b>${esc2(r.from)}</b> (not in a persona slot)</span></label>`; });
-    plan.personaIntoEmpty.forEach((nm,i)=>{ h+=`<label class="ac-row"><input type="checkbox" data-ac="pempty" data-i="${i}" checked><span>Add <b>${esc2(nm)}</b> to an empty persona slot</span></label>`; });
+  if(plan.personaFixes.length){
+    h+='<h3>Wonder personas not in a slot</h3>';
+    plan.personaFixes.forEach((f,i)=>{ const many=f.options.length>1;
+      h+=`<div class="ac-fix"><div class="ac-fix-lbl">Wonder uses <b>${esc2(f.from)}</b>, which is not in a persona slot.${many?' Pick how to fix it:':''}</div>${fixSelect(f,i,'persona')}</div>`; });
   }
   if(plan.hasOrderIssue){
-    const turns=plan.violatingTurns.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))).join(', ');
+    const turns=_turnNames(plan.violatingTurns).join(', ');
     h+='<h3>Turn order</h3>';
-    h+=`<div class="ac-note">${plan.violatingTurns.length===1?'1 turn has':plan.violatingTurns.length+' turns have'} characters acting out of team order (${esc2(turns)}).</div>`;
+    h+=`<div class="ac-note">${plan.violatingTurns.length===1?'1 turn has':plan.violatingTurns.length+' turns have'} characters acting out of team order (${esc2(turns)}). Order-relevant actions should follow the team slot order.</div>`;
     if(plan.orderResolvable){
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="team" checked><span><b>Reorder the team slots</b> to match the order characters act in the turns (recommended)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns"><span><b>Reorder the actions</b> inside each turn, keep both and fix the order</span></label>`;
@@ -2898,20 +3006,22 @@ function openAutoCorrectDialog(){
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is</span></label>`;
     } else {
-      h+=`<div class="ac-warn">These characters act in different orders in different turns, so no single team order can satisfy every turn: ${esc2(plan.conflicts.map(c=>c[0]+' \u2194 '+c[1]).join(', '))}. Reordering the team can't fully fix this.</div>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn, keep both and fix the order (recommended)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each conflicting turn (the one that should have come earlier)</span></label>`;
-      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each conflicting turn (the one that jumped ahead)</span></label>`;
+      const lis=plan.conflictDetails.map(d=>{ const ab=_turnNames(d.ab).join(', ')||'(none)', ba=_turnNames(d.ba).join(', ')||'(none)';
+        return `<li><b>${esc2(d.a)}</b> acts before <b>${esc2(d.b)}</b> in ${esc2(ab)}, but after in ${esc2(ba)}</li>`; }).join('');
+      h+=`<div class="ac-warn">No single team order can satisfy every turn, because some characters act in opposite orders in different turns:<ul class="ac-list">${lis}</ul>Reordering the team slots can't fix this on its own, so choose what to do inside the turns:</div>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="turns" checked><span><b>Reorder the actions</b> inside each turn to match the current team order (recommended, keeps every action)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delLate"><span><b>Delete the too-late action</b> in each turn (the one that should have come earlier)</span></label>`;
+      h+=`<label class="ac-row"><input type="radio" name="acOrder" value="delEarly"><span><b>Delete the too-early action</b> in each turn (the one that jumped ahead)</span></label>`;
       h+=`<label class="ac-row"><input type="radio" name="acOrder" value="none"><span>Leave the order as it is, I'll fix it by hand</span></label>`;
     }
   }
   if(plan.excessBreaks && plan.excessBreaks.length){
     const turns=plan.excessBreaks.map(i=>(state.turns[i]&&state.turns[i].name)||('Turn '+(i+1))).join(', ');
     h+='<h3>Extra break turns</h3>';
-    h+=`<label class="ac-row"><input type="checkbox" data-ac="exbreak" checked><span>Delete the ${plan.excessBreaks.length} extra break turn${plan.excessBreaks.length>1?'s':''} (${esc2(turns)}) — more than 2 break turns require <b>Hatsune Miku</b> on the team</span></label>`;
+    h+=`<label class="ac-row"><input type="checkbox" data-ac="exbreak" checked><span>Delete the ${plan.excessBreaks.length} extra break turn${plan.excessBreaks.length>1?'s':''} (${esc2(turns)}). More than 2 break turns require <b>Hatsune Miku</b> on the team, and she is not on it.</span></label>`;
   }
-  if(plan.unmatchedChars.length) h+=`<div class="ac-warn">Cannot reassign automatically (no free team slot): ${esc2(plan.unmatchedChars.join(', '))}. Add them to the team manually.</div>`;
-  if(plan.unmatchedPersonas.length) h+=`<div class="ac-warn">Cannot place automatically (no free persona slot): ${esc2(plan.unmatchedPersonas.join(', '))}. Add them to a persona slot manually.</div>`;
+  if(plan.unmatchedChars.length) h+=`<div class="ac-warn"><b>${esc2(plan.unmatchedChars.join(', '))}</b> cannot be placed automatically: every team slot is filled and already acts, and none is empty. Add a team slot or remove the action.</div>`;
+  if(plan.unmatchedPersonas.length) h+=`<div class="ac-warn"><b>${esc2(plan.unmatchedPersonas.join(', '))}</b> cannot be placed automatically: all persona slots are filled with personas that are used elsewhere. Free a slot or remove the action.</div>`;
   if(!plan.actionable && !h) h=`<div class="ac-note">Nothing can be auto-corrected. Any remaining discrepancy needs a manual fix.</div>`;
   body.innerHTML=h;
   const applyBtn=document.getElementById('acApply'); if(applyBtn) applyBtn.disabled=!plan.actionable;
@@ -2920,12 +3030,11 @@ function openAutoCorrectDialog(){
 function applyAutoCorrectFromDialog(){
   const plan=_acPlan; if(!plan) return;
   const body=document.getElementById('acBody');
-  const sel={charReplacements:[], personaReplacements:[], personaIntoEmpty:[], excessBreaks:[], order:'none'};
-  body.querySelectorAll('input[data-ac]').forEach(inp=>{ if(!inp.checked) return; const i=+inp.dataset.i;
-    if(inp.dataset.ac==='char') sel.charReplacements.push(plan.charReplacements[i]);
-    else if(inp.dataset.ac==='prep') sel.personaReplacements.push(plan.personaReplacements[i]);
-    else if(inp.dataset.ac==='pempty') sel.personaIntoEmpty.push(plan.personaIntoEmpty[i]);
-    else if(inp.dataset.ac==='exbreak') sel.excessBreaks=(plan.excessBreaks||[]).slice(); });
+  const sel={charFixes:[], personaFixes:[], excessBreaks:[], order:'none'};
+  body.querySelectorAll('select[data-acfix]').forEach(s=>{ const i=+s.dataset.i;
+    if(s.dataset.acfix==='char'){ const f=plan.charFixes[i]; if(f) sel.charFixes.push({from:f.from, choice:s.value}); }
+    else if(s.dataset.acfix==='persona'){ const f=plan.personaFixes[i]; if(f) sel.personaFixes.push({from:f.from, choice:s.value}); } });
+  const ex=body.querySelector('input[data-ac="exbreak"]'); if(ex && ex.checked) sel.excessBreaks=(plan.excessBreaks||[]).slice();
   const od=body.querySelector('input[name="acOrder"]:checked'); if(od) sel.order=od.value;
   _acSnapshot=JSON.stringify(state);
   autoCorrectApply(sel);
@@ -3007,7 +3116,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
   const close=()=>{ modal.hidden=true; };
-  function doSave(){ const n=prompt('Save current rotation as:', state.setup.rotationName||'Rotation'); if(n!=null){ libSaveCurrent(n); render(); } }
+  function doSave(){ const n=prompt('Save current rotation as:', rotName()); if(n!=null){ libSaveCurrent(n); render(); } }
   window.openLibrary=open; window.saveCurrentRotation=doSave;
   const lc=document.getElementById('libClose'); if(lc) lc.onclick=close;
   const sb=document.getElementById('libSaveBtn'); if(sb) sb.onclick=doSave;
@@ -3018,10 +3127,10 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
 
-/* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
+/* ---------- exports: image (PNG) ---------- */
 function exportBaseName(){
   const s=state.setup;
-  let name=[s.patch, s.type, s.rotationName||'rotation'].map(x=>(x||'').trim()).filter(Boolean).join('_');
+  let name=[s.patch, s.type, rotName(s)].map(x=>(x||'').trim()).filter(Boolean).join('_');
   name=name.replace(/[\\/:*?"<>|\r\n\t]+/g,'-').replace(/\s+/g,' ').trim();
   return name||'rotation';
 }
@@ -3029,142 +3138,6 @@ function gearText(u){ // Wonder shows its dagger (in gear); everyone else shows 
   if((u.name||'').toUpperCase()==='WONDER') return u.gear||'';
   const cards=[u.space,u.sunsky].filter(Boolean).join(' & ');
   return cards || (u.gear && u.gear.indexOf(' & ')>-1 ? u.gear : ''); }
-
-function buildCSV(){
-  const s=state.setup, rows=[];
-  const q=v=>{ v=(v==null?'':String(v)); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
-  rows.push(['Rotation', s.rotationName]); rows.push(['Type', s.type]); rows.push(['Patch', s.patch]);
-  rows.push(['Boss', s.boss]); rows.push(['Expected Score', s.score]); rows.push(['Credits', s.credits||'']);
-  rows.push([]); rows.push(['TEAM']);
-  rows.push(['Slot','Name','Awareness','Rev','Gear / Space & Sun-Sky','Extra']);
-  state.units.forEach((u,i)=>{
-    const extra=(u.name||'').toUpperCase()==='TWINS' && u.role ? 'Role: '+u.role : '';
-    rows.push([i+1, u.name, u.awareness, u.rev, gearText(u), extra]);
-  });
-  const e=state.elucidator;
-  const ee=(e.name||'').toUpperCase()==='FUUKA' && e.companion ? 'Backup: '+e.companion : '';
-  rows.push(['Elucidator', e.name, e.awareness, e.rev, gearText(e), ee]);
-  const _bk=backupUnit();
-  if(_bk) rows.push(['Backup', _bk.name, _bk.awareness, _bk.rev, gearText(_bk), '']);
-  rows.push([]); rows.push(['PERSONAS']); rows.push(['#','Persona','Skill 1','Skill 2','Skill 3']);
-  state.personas.forEach((p,i)=>rows.push([i+1, p.name, p.skills[0]||'', p.skills[1]||'', p.skills[2]||'']));
-  if((state.teamNotes||'').trim()){ rows.push([]); rows.push(['Team Notes', state.teamNotes]); }
-  rows.push([]); rows.push(['ROTATION']);
-  const maxA=Math.max(0,...state.turns.map(t=>t.actions.length));
-  const h1=[''], h2=['#'];
-  state.turns.forEach(t=>{ h1.push(t.name,''); h2.push('Char','Action'); });
-  rows.push(h1); rows.push(h2);
-  for(let i=0;i<maxA;i++){ const r=[i+1]; state.turns.forEach(t=>{ const a=t.actions[i]; r.push(a?a.char:'', a?a.action:''); }); rows.push(r); }
-  if((s.notes||'').trim()){ rows.push([]); rows.push(['Notes', s.notes]); }
-  return '\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n');
-}
-function exportCSV(){
-  const blob=new Blob([buildCSV()],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=exportBaseName()+'.csv'; a.click();
-}
-function sheetTextOn(hex){ const h=(hex||'').replace('#',''); if(h.length<6) return 'FFFFFFFF'; const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16); return (0.299*r+0.587*g+0.114*b)>140?'FF14121C':'FFFFFFFF'; }
-function argbOf(hex){ return 'FF'+(hex||'#666').replace('#','').toUpperCase(); }
-async function exportSheet(){
-  if(typeof ExcelJS==='undefined'){ alert('Sheet export needs the spreadsheet library (requires an internet connection the first time it is used).'); return; }
-  const s=state.setup;
-  const INK='FF14121C', PANEL='FF1F1C2B', PANEL2='FF23202F', LINE='FF3A3550', TEXT='FFF3F1F7', MUTED='FF9D97B3', GOLD='FFF1C232', RED='FFE0445E', BLUE='FF9FC5E8', CYAN='FFCFE2F3';
-  const NCOL=8, FONT='Arial';
-  const wb=new ExcelJS.Workbook();
-  const ws=wb.addWorksheet('Rotation',{views:[{showGridLines:false}]});
-  [16,18,14,14,16,16,16,18].forEach((w,i)=>ws.getColumn(i+1).width=w);
-  const fillOf=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
-  const thin={style:'thin',color:{argb:LINE}};
-  const box={top:thin,left:thin,bottom:thin,right:thin};
-  let row=1;
-  const set=(r,c,val,o)=>{ const cell=ws.getCell(r,c); cell.value=val; o=o||{}; cell.font={name:FONT,size:o.size||10,bold:!!o.bold,color:{argb:o.color||TEXT}}; cell.fill=fillOf(o.fill||PANEL2); cell.alignment={vertical:'middle',horizontal:o.align||'left',wrapText:!!o.wrap}; if(o.border!==false) cell.border=box; return cell; };
-  const merge=(r,c1,c2)=>ws.mergeCells(r,c1,r,c2);
-
-  // Title block
-  merge(row,1,NCOL); set(row,1,'VELVET FREQUENCY',{size:20,bold:true,color:RED,fill:INK,border:false}); ws.getRow(row).height=28; row++;
-  merge(row,1,NCOL); set(row,1,'ROTATION PLANNER',{size:10,bold:true,color:MUTED,fill:INK,border:false}); row++;
-  merge(row,1,NCOL); set(row,1,s.rotationName||'Rotation',{size:18,bold:true,color:TEXT,fill:INK,border:false}); ws.getRow(row).height=26; row++;
-  // Meta row
-  const tl=(s.type||'').toLowerCase(); const typeBg={mld:'FFF1C232',dod:'FF9B5DE5',nod:'FFE0445E',sos:'FF151DA6'}[tl]||PANEL2; const typeFg={mld:'FF3A2C00',dod:'FFFFFFFF',nod:'FFFFFFFF',sos:'FFFFFFFF'}[tl]||TEXT;
-  set(row,1,s.type||'',{bold:true,align:'center',fill:typeBg,color:typeFg});
-  const meta=[['Patch',s.patch],['Boss',s.boss],['Score',s.score],['Credits',s.credits]].filter(m=>String(m[1]||'').trim());
-  let mc=2; meta.forEach(m=>{ if(mc>NCOL) return; set(row,mc,m[0]+': '+m[1],{color:CYAN,fill:PANEL}); mc++; });
-  for(;mc<=NCOL;mc++) set(row,mc,'',{fill:PANEL});
-  ws.getRow(row).height=20; row+=2;
-
-  const sectionHeader=(label)=>{ merge(row,1,NCOL); set(row,1,label,{bold:true,color:MUTED,fill:INK,border:false}); row++; };
-  const headerCell=(r,c,val)=>set(r,c,val,{bold:true,color:MUTED,fill:PANEL});
-
-  // TEAM
-  sectionHeader('TEAM');
-  headerCell(row,1,'Slot'); headerCell(row,2,'Character'); headerCell(row,3,'Awareness'); headerCell(row,4,'Rev'); merge(row,5,6); headerCell(row,5,'Gear'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box; merge(row,7,8); headerCell(row,7,'Role / Backup'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box; row++;
-  const _bkRow=backupUnit();
-  const teamRows=state.units.map((u,i)=>({u,label:['1st','2nd','3rd','4th'][i]||(i+1)+'th'})).concat([{u:state.elucidator,label:'Elucidator'}]).concat(_bkRow?[{u:_bkRow,label:'Backup'}]:[]);
-  teamRows.forEach(({u,label})=>{
-    set(row,1,label,{bold:true,color:MUTED,fill:PANEL});
-    const nm=u.name||''; const col=nm?charColor(nm):null;
-    set(row,2,nm,{bold:true,fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT});
-    set(row,3,u.awareness||'',{align:'center'}); set(row,4,u.rev||'',{align:'center'});
-    merge(row,5,6); set(row,5,gearText(u)||'',{color:CYAN}); ws.getCell(row,6).fill=fillOf(PANEL2); ws.getCell(row,6).border=box;
-    const extra=(nm.toUpperCase()==='TWINS'&&u.role)?('Role: '+u.role):((nm.toUpperCase()==='FUUKA'&&u.companion)?('Backup: '+u.companion):'');
-    merge(row,7,8); set(row,7,extra,{color:BLUE}); ws.getCell(row,8).fill=fillOf(PANEL2); ws.getCell(row,8).border=box;
-    row++;
-  });
-  row++;
-
-  // PERSONAS (with images via Google Sheets IMAGE() formulas, using the hosted page URL)
-  const baseURL=location.href.replace(/[?#].*$/,'').replace(/[^/]*$/,'');
-  const canImg=/^https?:$/.test(location.protocol);
-  sectionHeader('PERSONAS');
-  headerCell(row,1,'Image'); headerCell(row,2,'Persona');
-  merge(row,3,4); headerCell(row,3,'Skill 1'); ws.getCell(row,4).fill=fillOf(PANEL); ws.getCell(row,4).border=box;
-  merge(row,5,6); headerCell(row,5,'Skill 2'); ws.getCell(row,6).fill=fillOf(PANEL); ws.getCell(row,6).border=box;
-  merge(row,7,8); headerCell(row,7,'Skill 3'); ws.getCell(row,8).fill=fillOf(PANEL); ws.getCell(row,8).border=box;
-  row++;
-  state.personas.forEach(p=>{
-    const nm=(p.name||'').trim();
-    if(nm && canImg){ const c=ws.getCell(row,1); c.value={formula:`IMAGE("${baseURL+personaImg(nm)}",1)`}; c.fill=fillOf(PANEL2); c.border=box; c.alignment={vertical:'middle',horizontal:'center'}; }
-    else { set(row,1,'',{}); }
-    set(row,2,personaLabel(nm),{bold:true,color:GOLD});
-    [[3,4],[5,6],[7,8]].forEach((pair,k)=>{ merge(row,pair[0],pair[1]); set(row,pair[0],skillDisplay(p.skills[k]||''),{color:BLUE}); ws.getCell(row,pair[1]).fill=fillOf(PANEL2); ws.getCell(row,pair[1]).border=box; });
-    if(nm) ws.getRow(row).height=90;
-    row++;
-  });
-  row++;
-
-  // TEAM NOTES
-  if((state.teamNotes||'').trim()){ sectionHeader('TEAM NOTES'); merge(row,1,NCOL); const c=set(row,1,state.teamNotes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(state.teamNotes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
-
-  // ROTATION NOTES
-  if((s.notes||'').trim()){ sectionHeader('ROTATION NOTES'); merge(row,1,NCOL); set(row,1,s.notes,{color:CYAN,wrap:true}); ws.getRow(row).height=Math.min(120,18*(1+(s.notes.match(/\n/g)||[]).length)); for(let cc=2;cc<=NCOL;cc++){ ws.getCell(row,cc).fill=fillOf(PANEL2); ws.getCell(row,cc).border=box; } row+=2; }
-
-  // ROTATION (turns) in bands of 4, each turn = 2 columns
-  sectionHeader('ROTATION');
-  const dodX=s.type==='DOD', nT=state.turns.length;
-  const perBand=4;
-  for(let b=0;b<nT;b+=perBand){
-    const band=state.turns.slice(b,b+perBand).map((t,j)=>({t,gi:b+j,j}));
-    // header row
-    band.forEach(({t,gi,j})=>{ const c1=2*j+1; const _B=dodBreaks(state); const isBreak=dodX&&nT>=_B&&gi>=nT-_B; merge(row,c1,c1+1); set(row,c1,(t.name||'').toUpperCase(),{bold:true,align:'center',color:isBreak?RED:BLUE,fill:PANEL}); ws.getCell(row,c1+1).fill=fillOf(PANEL); ws.getCell(row,c1+1).border=box; });
-    row++;
-    const maxA=Math.max(0,...band.map(({t})=>(t.actions||[]).length));
-    for(let ai=0;ai<maxA;ai++){
-      band.forEach(({t,j})=>{ const c1=2*j+1; const a=(t.actions||[])[ai];
-        if(a){ const col=a.char?charColor(a.char):null; set(row,c1,charDisp(a.char),{bold:true, fill: col?argbOf(col):PANEL2, color: col?sheetTextOn(col):TEXT}); set(row,c1+1,actionLabel(a,a.char,true)||'',{}); }
-        else { set(row,c1,'',{}); set(row,c1+1,'',{}); }
-      });
-      row++;
-    }
-    row++;
-  }
-
-  // backfill any empty cells in the used range with the dark background
-  const maxRow=row;
-  for(let r=1;r<=maxRow;r++){ for(let c=1;c<=NCOL;c++){ const cell=ws.getCell(r,c); if(!cell.fill || !cell.fill.fgColor){ cell.fill=fillOf(INK); } } }
-
-  const buf=await wb.xlsx.writeBuffer();
-  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  deliverImage(URL.createObjectURL(blob), exportBaseName()+'.xlsx');
-}
 
 function exportTurnsBlock(mobile, C){ return state.rotationView==='horizontal' ? turnsBlockHorizontal(mobile, C) : turnsBlockVertical(mobile, C); }
 function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
@@ -3247,9 +3220,9 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     const pCard=(p,wide)=>{ const sk=p.skills.filter(Boolean); const nm=(p.name||'').trim(); const img=pImgs[nm]; const sig=PERSONA_SIGNATURES[nm]||'';
       return `<div style="${M?'box-sizing:border-box;min-width:0;':(wide?'flex:1 1 0;min-width:0;':'width:174px;')+'box-sizing:border-box;'}display:flex;gap:8px;align-items:flex-start;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:8px;">
         ${img?(hasPersonaCrop(nm)?`<div style="width:53px;height:88px;border-radius:5px;flex:0 0 auto;${pCropBgStyle(nm,"url('"+img+"')")}"></div>`:`<img src="${img}" style="height:88px;width:auto;border-radius:5px;display:block;flex:0 0 auto;"/>`):''}
-        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(personaLabel(p.name))}</div>
-        ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillDisplay(sig))}</div>`:''}
-        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillDisplay(s))).join('<br>')}</div>`:''}</div>
+        <div style="min-width:0;"><div style="font:700 14px Oswald,sans-serif;color:#f1c232;">${esc(p.name)}</div>
+        ${sig?`<div style="font:500 10px Inter,sans-serif;color:${C.muted};margin-top:3px;line-height:1.5;">${esc(skillFull(sig))}</div>`:''}
+        ${sk.length?`<div style="font:500 10px Inter,sans-serif;color:${C.blue};margin-top:3px;line-height:1.5;">${sk.map(s=>esc(skillFull(s))).join('<br>')}</div>`:''}</div>
       </div>`; };
     const personaCards=persona.map(p=>pCard(p,false)).join('');
     const _wEx=state.units.find(u=>(u.name||'').toUpperCase()==='WONDER');
@@ -3304,7 +3277,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
     const personaBlock=persona.length?`<div style="flex:0 1 auto;min-width:0;display:flex;flex-direction:column;">
       <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">PERSONAS</div>
       <div style="flex:1 1 auto;background:${C.panel};border:1px solid ${C.border};border-radius:8px;padding:10px 12px;box-sizing:border-box;font:500 12px Inter,sans-serif;line-height:1.6;">
-        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(personaLabel(p.name))}</span>${sk.length?` <span style="color:${C.blue};">(${sk.map(s=>esc(skillDisplay(s))).join(', ')})</span>`:''}</div>`; }).join('')}
+        ${persona.map(p=>{ const sk=p.skills.filter(Boolean); return `<div><span style="color:#f1c232;font-weight:700;">${esc(p.name)}</span>${sk.length?` <span style="color:${C.blue};">(${sk.map(s=>esc(skillFull(s))).join(', ')})</span>`:''}</div>`; }).join('')}
       </div></div>`:'';
     const notesBlock=tnText?`<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;">
       <div style="font:700 11px Inter,sans-serif;color:${C.muted};letter-spacing:.1em;margin-bottom:6px;">TEAM NOTES</div>
@@ -3321,7 +3294,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   v.innerHTML=`
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" alt=""/>
     <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:${C.red};line-height:1.15;margin-bottom:14px;${noBrand?'display:none;':''}">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:${C.muted};">ROTATION PLANNER</span></div>
-    <div style="font:700 30px Oswald,sans-serif;color:${C.text};letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
+    <div style="font:700 30px Oswald,sans-serif;color:${C.text};letter-spacing:.02em;">${esc(rotName(s))}</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:${C.soft};">
       ${s.type?`<span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type)}</span>`:''}
       ${s.patch?`<span><span style="color:${C.muted};">Patch</span> ${esc(s.patch)}</span>`:''}
@@ -3512,7 +3485,7 @@ function fitView(){
 }
 function enterViewMode(){
   try{ save=function(){}; }catch(e){}                     /* read-only: never write to the viewer's storage */
-  document.title=(function(){ const sp=state.setup||{}; const parts=[(sp.patch||'').trim(),(sp.type||'').trim(),((sp.rotationName||'').trim()||'Rotation')].filter(Boolean); return parts.join(' ')+' \u2013 VF Rotation'; })();
+  document.title=(function(){ const sp=state.setup||{}; const parts=[(sp.patch||'').trim(),(sp.type||'').trim(),rotName(sp)].filter(Boolean); return parts.join(' ')+' \u2013 VF Rotation'; })();
   document.body.classList.add('view-mode');
   let root=document.getElementById('viewRoot');
   if(!root){ root=document.createElement('div'); root.id='viewRoot'; document.body.appendChild(root); }
@@ -4012,6 +3985,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625D</div>
+<div class="version-tag">260626J</div>
 </body>
 </html>
