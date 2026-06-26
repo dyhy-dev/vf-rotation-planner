@@ -240,10 +240,13 @@ function parseTurnContent(content,warn){
       if(/^g(?:(?:ua|au)rds?)?$/i.test(seg)){   // "Guard", "Gaurd", or a bare "G"
         const tgtName=cur?(cur.type==='persona'?'WONDER':cur.name):null;
         const curActs=tgtName?actions.slice(unitStart).filter(a=>a.char===tgtName&&!a.guardAll&&!a.guardSolo):[];
-        if(cur && curActs.length && curActs.every(a=>a.btn==='HL')){
+        if(cur && curActs.length && (curActs.every(a=>a.btn==='HL') || cur.btnGuard)){   // "Haru HL+Guard", or the Twins' "Button + Guard"
           const tgt=cur.type==='persona'?{char:'WONDER',persona:cur.name}:{char:cur.name};
           actions.push(Object.assign(tgt,{btn:'Gd',text:''})); continue; }
         actions.push({guardSolo:true}); cur=null; continue; }
+      // a bare "Button"/"Btn" with no actor is the Twins' J&C button (it inflicts Shock); a following
+      // "+Guard" then belongs to the Twins too ("Button + Guard" = Twins press the button and guard).
+      if(!cur && /^(button|btn)$/i.test(seg)){ actions.push({char:'TWINS',btn:'ALT',text:''}); cur={type:'char',name:'TWINS',btnGuard:true}; lastActor=cur; continue; }
       // a leading bare button with no actor yet ("Alt + Turbo S2") belongs to the *next* actor in the unit.
       // Masquerade is excluded — it is always Violet's own ALT (handled just below), never a floating button.
       if(!cur && toks.length===1){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
@@ -1058,5 +1061,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A124';
+  _g.VF_PARSER_VERSION = 'A125';
 })();
