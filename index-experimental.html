@@ -2088,7 +2088,7 @@ function countDiscrepancies(){
   let n=0; (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(actionDiscrepant(a)) n++; })); return n;
 }
 function countOrderViolations(){
-  let n=0; (state.turns||[]).forEach(t=>{ if(turnOrderViolation(t)) n++; }); return n;
+  let n=0; (state.turns||[]).forEach((t,ti)=>{ if(turnOrderViolation(t,ti)) n++; }); return n;
 }
 /* ---------- turn order check: characters should act in team order ---------- */
 /* Order-relevant = a real action (Skill/Attack/Gun/Guard, or a Wonder persona-skill).
@@ -2097,17 +2097,30 @@ function isOrderRelevant(a){
   if((a.char||'').toUpperCase()==='WONDER') return !!wonderBody(a);
   return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn);
 }
-function turnOrderViolation(t){
-  const idx={}; let any=false;
-  (state.units||[]).forEach((u,i)=>{ if(u.name){ idx[u.name.toUpperCase()]=i; any=true; } });
-  if(!any) return false;
+function _slotIdxMap(){ const idx={}; (state.units||[]).forEach((u,i)=>{ if(u.name) idx[u.name.toUpperCase()]=i; }); return idx; }
+function _isBreakTurn(ti){ if(ti==null || (state.setup||{}).type!=='DOD') return false; const n=(state.turns||[]).length, B=dodBreaks(state); return n>=B && ti>=n-B; }
+/* A DOD break phase can have its OWN turn order: a unit that triggers the break (e.g. the Twins acting alone
+   in the last setup turn) shifts to last once the break starts. Derive that order from the break turns
+   themselves so a self-consistent break phase isn't flagged against the normal slot order — only a break turn
+   that disagrees with the other break turns is flagged. */
+function _breakActionOrder(){ const order=[]; if((state.setup||{}).type!=='DOD') return order;
+  const n=(state.turns||[]).length, B=dodBreaks(state); if(n<B) return order;
+  for(let ti=n-B; ti<n; ti++) (state.turns[ti].actions||[]).forEach(a=>{
+    if((a.char||'').toUpperCase()==='WONDER'){ if(wonderBody(a)&&!order.includes('WONDER')) order.push('WONDER'); }
+    else { const cn=(a.char||'').toUpperCase(); if(cn && ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) && !order.includes(cn)) order.push(cn); } });
+  return order; }
+function _breakIdxMap(){ const idx={}; _breakActionOrder().forEach((nm,i)=>idx[nm]=i); return idx; }
+function _orderIdxForTurn(ti){ return _isBreakTurn(ti)?_breakIdxMap():_slotIdxMap(); }
+function turnOrderViolation(t, ti){
+  const idx=_orderIdxForTurn(ti);
+  if(!Object.keys(idx).length) return false;
   const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
   const seq=[]; const seen=new Set();
   for(const a of (t.actions||[])){
     if(!isOrderRelevant(a)) continue;
     const cn=(a.char||'').toUpperCase(); if(!cn||cn===elu) continue;
-    const ti=idx[cn]; if(ti===undefined) continue;      // not on the team -> handled by the character discrepancy check
-    if(seen.has(cn)) continue; seen.add(cn); seq.push(ti);
+    const ix=idx[cn]; if(ix===undefined) continue;      // not on the team -> handled by the character discrepancy check
+    if(seen.has(cn)) continue; seen.add(cn); seq.push(ix);
   }
   for(let i=1;i<seq.length;i++){ if(seq[i]<seq[i-1]) return true; }
   return false;
@@ -2193,10 +2206,13 @@ function autoCorrectPlan(){
   const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
   const projTurns=(state.turns||[]).map(t=>({actions:(t.actions||[]).map(a=>{ const cn=(a.char||'').toUpperCase();
     return Object.assign({},a,{char:cmap[cn]||a.char}); })}));
-  const violatingTurns=[]; projTurns.forEach((t,ti)=>{ if(_seqViolates(_orderSeq(t.actions,idx,elu),idx)) violatingTurns.push(ti); });
-  // cross-turn conflicts: A before B in one turn, B before A in another -> no single team order satisfies all
+  const breakIdx=_breakIdxMap();   // break turns are checked against the break-phase order, not the slot order
+  const idxFor=ti=>_isBreakTurn(ti)?breakIdx:idx;
+  const violatingTurns=[]; projTurns.forEach((t,ti)=>{ const ix=idxFor(ti); if(_seqViolates(_orderSeq(t.actions,ix,elu),ix)) violatingTurns.push(ti); });
+  // cross-turn conflicts: A before B in one turn, B before A in another -> no single team order satisfies all.
+  // Only the normal (slot-order) turns participate; break turns have their own derived order.
   const before={};
-  projTurns.forEach(t=>{ const seq=_orderSeq(t.actions,idx,elu);
+  projTurns.forEach((t,ti)=>{ if(_isBreakTurn(ti)) return; const seq=_orderSeq(t.actions,idx,elu);
     for(let i=0;i<seq.length;i++) for(let j=i+1;j<seq.length;j++) before[seq[i]+'>'+seq[j]]=true; });
   const conflicts=[]; const seenPair=new Set();
   Object.keys(before).forEach(k=>{ const p=k.split('>'); const key=[p[0],p[1]].sort().join('|');
@@ -2240,17 +2256,15 @@ function autoCorrectApply(sel){
     while(sorted.length<4) sorted.push(_blankUnit());
     state.units=sorted.slice(0,4);
   } else if(sel.order==='turns'){
-    const idx={}; state.units.forEach((u,i)=>{ if(u.name) idx[u.name.toUpperCase()]=i; });
     const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
-    (state.turns||[]).forEach(t=>{ const acts=t.actions||[]; const relPos=[], rel=[];
+    (state.turns||[]).forEach((t,ti)=>{ const idx=_orderIdxForTurn(ti); const acts=t.actions||[]; const relPos=[], rel=[];
       acts.forEach((a,i)=>{ if(!isOrderRelevant(a)) return; const cn=(a.char||'').toUpperCase();
         if(!cn||cn===elu||idx[cn]===undefined) return; relPos.push(i); rel.push(a); });
       const sortedRel=rel.map((a,i)=>({a,i})).sort((A,B)=>{ const d=idx[(A.a.char||'').toUpperCase()]-idx[(B.a.char||'').toUpperCase()]; return d!==0?d:A.i-B.i; }).map(x=>x.a);
       relPos.forEach((pos,k)=>{ acts[pos]=sortedRel[k]; }); });
   } else if(sel.order==='delEarly' || sel.order==='delLate'){
-    const idx={}; state.units.forEach((u,i)=>{ if(u.name) idx[u.name.toUpperCase()]=i; });
     const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
-    (state.turns||[]).forEach(t=>{ const acts=t.actions||[]; const drop=new Set();
+    (state.turns||[]).forEach((t,ti)=>{ const idx=_orderIdxForTurn(ti); const acts=t.actions||[]; const drop=new Set();
       // index the order-relevant actions and their team ranks
       const rel=[]; acts.forEach((a,i)=>{ if(!isOrderRelevant(a)) return; const cn=(a.char||'').toUpperCase();
         if(!cn||cn===elu||idx[cn]===undefined) return; rel.push({i, rank:idx[cn]}); });
@@ -2419,7 +2433,7 @@ function refreshDiscrepancies(){
 function refreshDiscHints(){
   document.querySelectorAll('#turns .turn[data-tidx]').forEach(el=>{
     const t=state.turns[+el.dataset.tidx]; if(!t) return;
-    const bad=turnOrderViolation(t);
+    const bad=turnOrderViolation(t, +el.dataset.tidx);
     el.classList.toggle('order-bad', !!bad);
     if(bad) el.title='Character order in this turn differs from the team order'; else el.removeAttribute('title');
   });
@@ -2502,7 +2516,7 @@ function renumberTurns(){
   if(changed) save();
 }
 function turnHtml(t,ti,isBreak,delBreak){
-  const ordBad=turnOrderViolation(t);
+  const ordBad=turnOrderViolation(t, ti);
   const excess=excessBreakTurns().includes(ti);   // an extra break turn (3rd/4th) with Miku no longer on the team
   const title=excess?' title="This break turn requires Hatsune Miku on the team. Add Miku or delete it."':(ordBad?' title="Character order in this turn differs from the team order"':'');
   return `
@@ -4810,6 +4824,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625m</div>
+<div class="version-tag">260625n</div>
 </body>
 </html>
