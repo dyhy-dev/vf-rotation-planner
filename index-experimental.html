@@ -106,10 +106,14 @@ button{cursor:pointer}
 .head-top{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap}
 .head-actions{display:flex; gap:8px; flex:0 0 auto; align-items:center; margin-left:auto; flex-wrap:wrap; justify-content:flex-end}
 @media (max-width:620px){ .head-actions{ order:-1; width:100%; margin-left:0; justify-content:flex-end } }
-.rot-name{flex:1 1 320px}
-.rot-name input{width:100%; background:transparent; border:none; border-bottom:2px solid var(--line);
+.rot-name{flex:1 1 320px; display:flex; align-items:center; gap:8px}
+.rot-name input{flex:1; min-width:0; background:transparent; border:none; border-bottom:2px solid var(--line);
   font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
 .rot-name input:focus{outline:none; border-color:var(--gold)}
+.name-sug{flex:0 0 auto; background:transparent; border:1px solid var(--line); border-radius:7px; padding:3px 6px;
+  font-size:16px; line-height:1; cursor:pointer; opacity:.65; transition:opacity .12s, border-color .12s}
+.name-sug:hover{opacity:1; border-color:var(--gold)}
+.rot-name input:not(:placeholder-shown) ~ .name-sug{display:none}
 .tier{display:flex; align-items:center; gap:8px}
 .tier select{border:none; border-radius:8px; font-family:"Oswald"; font-weight:700; letter-spacing:.1em;
   font-size:20px; padding:14px 18px; text-transform:uppercase; background:var(--gold); color:#3a2c00; transition:.15s}
@@ -1695,7 +1699,7 @@ const LIB_KEY='vf-rotation-library-v1';
 function loadLib(){ try{ const a=JSON.parse(localStorage.getItem(LIB_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
 function saveLib(a){ try{ localStorage.setItem(LIB_KEY, JSON.stringify(a)); }catch(e){} syncSchedulePush(); }
 function _libId(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:(String(name||state.setup.rotationName||'Rotation').trim()||'Rotation'), ts:Date.now(), state:JSON.parse(JSON.stringify(state)) }); saveLib(a); return a; }
+function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:(String(name||rotName()).trim()||'Rotation'), ts:Date.now(), state:JSON.parse(JSON.stringify(state)) }); saveLib(a); return a; }
 function libDelete(id){ saveLib(loadLib().filter(e=>e.id!==id)); }
 function libRename(id,name){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.name=String(name||'').trim()||e.name; saveLib(a); } }
 function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
@@ -1843,9 +1847,10 @@ let _lastImportText='';   /* the raw text from the last "keep text" import, so i
 function syncImportBtn(){ const b=document.getElementById('setupShowImport'); if(b) b.hidden=!_lastImportText; }
 function renderHead(){
   const s=state.setup;
+  refreshNameSug(false);
   document.getElementById('headPanel').innerHTML=`
     <div class="head-top">
-      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="Rotation Name"/></div>
+      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="${esc(_nameSug||'Rotation Name')}"/><button type="button" id="nameSug" class="name-sug" title="Suggest a name" aria-label="Suggest a random name"${_nameSug?'':' hidden'}>\u{1F3B2}</button></div>
       <div class="head-actions">
         <button type="button" class="btn" id="setupShowImport" title="Show the imported text again"${_lastImportText?'':' hidden'}>Imported text</button>
         <button type="button" class="btn" id="setupSaveBtn" title="Save the current rotation to your library">Save</button>
@@ -1862,6 +1867,8 @@ function renderHead(){
     </div>
     <datalist id="bossList"></datalist>`;
   bind('f_name','setup.rotationName');
+  { const sug=document.getElementById('nameSug'); if(sug) sug.onclick=()=>{ refreshNameSug(true); const f=document.getElementById('f_name'); if(f) f.placeholder=_nameSug||'Rotation Name'; };
+    ['f_boss','f_patch','f_score'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', updateNameSugUI); }); }
   { const si=document.getElementById('setupShowImport'); if(si) si.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
     const sv=document.getElementById('setupSaveBtn'); if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
     const ld=document.getElementById('setupLoadBtn'); if(ld) ld.onclick=()=>window.openLibrary&&window.openLibrary('load');
@@ -1896,7 +1903,7 @@ function renderHead(){
     tsel.closest('.tier').className='tier type-'+newType.toLowerCase();
     renderTurns();
     renderNotes();
-    paintSetupValidity(); refreshDiscrepancies();
+    paintSetupValidity(); refreshDiscrepancies(); updateNameSugUI();
   };
   bind('f_boss','setup.boss');
   bind('f_patch','setup.patch', normalizePatch); bind('f_score','setup.score', normalizeScore);
@@ -2041,6 +2048,7 @@ function renderTeam(){
     };
   });
   paintImp();
+  updateNameSugUI();
 }
 
 /* ---------- render: turns ---------- */
@@ -2280,6 +2288,47 @@ function showDiscBanner(){
   _discBannerTimer=setTimeout(()=>{ b.hidden=true; }, 10000);
 }
 function hideDiscBanner(){ const b=document.getElementById('discBanner'); if(b) b.hidden=true; clearTimeout(_discBannerTimer); }
+/* ---------- auto rotation-name suggestions (used as the Rotation Name placeholder + export fallback) ----------
+   No fixed scheme: build many candidate names from whatever is already filled in, then show a random one;
+   the dice button rotates through them, and an empty name falls back to the shown suggestion on export. */
+function nameSuggestions(){
+  const s=state.setup||{};
+  const tc=x=>titleCase((x||'').trim());
+  const boss=tc(s.boss), mode=(s.type||'').trim(), patch=(s.patch||'').trim(), score=(s.score||'').trim();
+  const tier=(s.tier==='F2P')?'F2P':tc(s.tier);
+  const team=(state.units||[]).map(u=>(u.name||'').trim()).filter(n=>n && n.toUpperCase()!=='WONDER').map(n=>n.toUpperCase()===MIKU_NAME?'Miku':titleCase(n));
+  const carry=team[0]||'', duo=team.slice(0,2).join(' + '), trio=team.slice(0,3).join(' + ');
+  const out=[]; const push=x=>{ x=(x||'').trim().replace(/\s+/g,' '); if(x && !out.includes(x)) out.push(x); };
+  if(boss&&mode) push(boss+' '+mode);
+  if(boss&&mode&&patch) push(boss+' '+mode+' '+patch);
+  if(carry&&boss) push(carry+' vs '+boss);
+  if(duo&&boss) push(duo+' vs '+boss);
+  if(carry&&tier) push(carry+' '+tier);
+  if(tier&&boss&&mode) push(tier+' '+boss+' '+mode);
+  if(carry&&mode) push(carry+' '+mode);
+  if(duo) push(duo);
+  if(trio&&trio!==duo) push(trio);
+  if(boss&&score) push(boss+' '+score);
+  if(mode&&boss&&score) push(mode+' '+boss+' '+score);
+  if(duo&&boss&&mode) push(duo+' '+boss+' '+mode);
+  if(boss&&!mode) push(boss);
+  return out;
+}
+let _nameSug='';
+/* keep the current suggestion stable until it goes stale; force=true rotates to a different one */
+function refreshNameSug(force){
+  const list=nameSuggestions();
+  if(!list.length){ _nameSug=''; return; }
+  if(force){ let pool=list.filter(x=>x!==_nameSug); if(!pool.length) pool=list; _nameSug=pool[Math.floor(Math.random()*pool.length)]; }
+  else if(!_nameSug || !list.includes(_nameSug)){ _nameSug=list[Math.floor(Math.random()*list.length)]; }
+}
+function updateNameSugUI(){
+  refreshNameSug(false);
+  const f=document.getElementById('f_name'); if(f) f.placeholder=_nameSug||'Rotation Name';
+  const btn=document.getElementById('nameSug'); if(btn) btn.hidden=!_nameSug;
+}
+/* the effective name for exports/filenames: explicit name, else the shown suggestion, else "Rotation" */
+function rotName(s){ s=s||state.setup||{}; const explicit=(s.rotationName||'').trim(); if(explicit) return explicit; refreshNameSug(false); return _nameSug||'Rotation'; }
 /* ---------- setup-field validation (Patch / Expected Score / required fields) ---------- */
 function normalizePatch(raw){
   let v=String(raw==null?'':raw).replace(/,/g,'.').trim();
@@ -2319,7 +2368,7 @@ function liveGroupScore(el){
 function setupIssues(){
   const s=state.setup||{};
   const missing=[];
-  if(!String(s.rotationName||'').trim()) missing.push('Rotation Name');
+  if(!String(s.rotationName||'').trim() && !nameSuggestions().length) missing.push('Rotation Name');
   if(!String(s.type||'').trim()) missing.push('Mode');
   if(!String(s.boss||'').trim()) missing.push('Boss');
   if(!String(s.patch||'').trim()) missing.push('Patch');
@@ -2886,7 +2935,7 @@ function copyShareText(t, hint){
 }
 function discordLabel(){
   const s=state.setup||{};
-  const name=(s.rotationName||'').trim()||'Rotation';
+  const name=rotName(s);
   const meta=[(s.patch||'').trim(),(s.type||'').trim()].filter(Boolean).join(' ');
   const credit=(s.credit||s.credits||'').trim();
   const parts=[]; if(meta) parts.push(meta); parts.push(name); if(credit) parts.push('by '+credit);
@@ -2915,7 +2964,7 @@ function textAction(a){
 function buildTextExport(){
   const s=state.setup, L=[];
   const boss=(s.boss||'').trim();
-  const name=((s.rotationName||'').trim()||'Rotation');
+  const name=rotName(s);
   // title: "<patch> <mode> <BOSS>: <name>"  (the boss lives in the title now)
   const head=[(s.patch||'').trim(),(s.type||'').trim()].filter(Boolean).join(' ');
   L.push((head?head+' ':'')+(boss?boss+': ':'')+name);
@@ -3348,7 +3397,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   }
   function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
   const close=()=>{ modal.hidden=true; };
-  function doSave(){ const n=prompt('Save current rotation as:', state.setup.rotationName||'Rotation'); if(n!=null){ libSaveCurrent(n); render(); } }
+  function doSave(){ const n=prompt('Save current rotation as:', rotName()); if(n!=null){ libSaveCurrent(n); render(); } }
   window.openLibrary=open; window.saveCurrentRotation=doSave;
   const lc=document.getElementById('libClose'); if(lc) lc.onclick=close;
   const sb=document.getElementById('libSaveBtn'); if(sb) sb.onclick=doSave;
@@ -3901,7 +3950,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
 /* ---------- exports: image (PNG) + Google Sheets (CSV) ---------- */
 function exportBaseName(){
   const s=state.setup;
-  let name=[s.patch, s.type, s.rotationName||'rotation'].map(x=>(x||'').trim()).filter(Boolean).join('_');
+  let name=[s.patch, s.type, rotName(s)].map(x=>(x||'').trim()).filter(Boolean).join('_');
   name=name.replace(/[\\/:*?"<>|\r\n\t]+/g,'-').replace(/\s+/g,' ').trim();
   return name||'rotation';
 }
@@ -3962,7 +4011,7 @@ async function exportSheet(){
   // Title block
   merge(row,1,NCOL); set(row,1,'VELVET FREQUENCY',{size:20,bold:true,color:RED,fill:INK,border:false}); ws.getRow(row).height=28; row++;
   merge(row,1,NCOL); set(row,1,'ROTATION PLANNER',{size:10,bold:true,color:MUTED,fill:INK,border:false}); row++;
-  merge(row,1,NCOL); set(row,1,s.rotationName||'Rotation',{size:18,bold:true,color:TEXT,fill:INK,border:false}); ws.getRow(row).height=26; row++;
+  merge(row,1,NCOL); set(row,1,rotName(s),{size:18,bold:true,color:TEXT,fill:INK,border:false}); ws.getRow(row).height=26; row++;
   // Meta row
   const tl=(s.type||'').toLowerCase(); const typeBg={mld:'FFF1C232',dod:'FF9B5DE5',nod:'FFE0445E',sos:'FF151DA6'}[tl]||PANEL2; const typeFg={mld:'FF3A2C00',dod:'FFFFFFFF',nod:'FFFFFFFF',sos:'FFFFFFFF'}[tl]||TEXT;
   set(row,1,s.type||'',{bold:true,align:'center',fill:typeBg,color:typeFg});
@@ -4201,7 +4250,7 @@ function buildExportView(withImages, portraits, pImgs, rotationOnly, dImgs, deIm
   v.innerHTML=`
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" alt=""/>
     <div style="font-family:Oswald,sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em;text-transform:uppercase;color:${C.red};line-height:1.15;margin-bottom:14px;${noBrand?'display:none;':''}">Velvet Frequency<span style="display:block;font-family:Inter,sans-serif;font-weight:500;font-size:10px;letter-spacing:.18em;color:${C.muted};">ROTATION PLANNER</span></div>
-    <div style="font:700 30px Oswald,sans-serif;color:${C.text};letter-spacing:.02em;">${esc(s.rotationName||'Rotation')}</div>
+    <div style="font:700 30px Oswald,sans-serif;color:${C.text};letter-spacing:.02em;">${esc(rotName(s))}</div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px;font:600 14px Inter,sans-serif;color:${C.soft};">
       ${s.type?`<span style="background:${typeBg};color:${typeFg};font:700 14px Oswald,sans-serif;letter-spacing:.1em;padding:4px 12px;border-radius:6px;">${esc(s.type)}</span>`:''}
       ${s.patch?`<span><span style="color:${C.muted};">Patch</span> ${esc(s.patch)}</span>`:''}
@@ -4392,7 +4441,7 @@ function fitView(){
 }
 function enterViewMode(){
   try{ save=function(){}; }catch(e){}                     /* read-only: never write to the viewer's storage */
-  document.title=(function(){ const sp=state.setup||{}; const parts=[(sp.patch||'').trim(),(sp.type||'').trim(),((sp.rotationName||'').trim()||'Rotation')].filter(Boolean); return parts.join(' ')+' \u2013 VF Rotation'; })();
+  document.title=(function(){ const sp=state.setup||{}; const parts=[(sp.patch||'').trim(),(sp.type||'').trim(),rotName(sp)].filter(Boolean); return parts.join(' ')+' \u2013 VF Rotation'; })();
   document.body.classList.add('view-mode');
   let root=document.getElementById('viewRoot');
   if(!root){ root=document.createElement('div'); root.id='viewRoot'; document.body.appendChild(root); }
@@ -4892,6 +4941,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625e</div>
+<div class="version-tag">260625f</div>
 </body>
 </html>
