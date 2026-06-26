@@ -106,14 +106,14 @@ button{cursor:pointer}
 .head-top{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap}
 .head-actions{display:flex; gap:8px; flex:0 0 auto; align-items:center; margin-left:auto; flex-wrap:wrap; justify-content:flex-end}
 @media (max-width:620px){ .head-actions{ order:-1; width:100%; margin-left:0; justify-content:flex-end } }
-.rot-name{flex:1 1 320px; display:flex; align-items:flex-end; gap:4px; border-bottom:2px solid var(--line)}
+.rot-name{flex:1 1 320px; display:flex; align-items:flex-end; gap:6px; border-bottom:2px solid var(--line); font-size:30px}
 .rot-name:focus-within{border-color:var(--gold)}
 .rot-name input{flex:1; min-width:0; background:transparent; border:none;
-  font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
+  font-family:"Oswald"; font-weight:700; font-size:inherit; letter-spacing:.03em; padding:2px 0; color:var(--text)}
 .rot-name input:focus{outline:none}
 .name-sug{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; background:transparent;
-  border:none; padding:0 4px 5px; cursor:pointer; color:var(--muted); opacity:.7; transition:opacity .12s, color .12s}
-.name-sug svg{width:19px; height:19px; display:block}
+  border:none; padding:0 2px 4px; cursor:pointer; color:var(--muted); font-size:inherit; opacity:.7; transition:opacity .12s, color .12s}
+.name-sug svg{width:1em; height:1em; display:block}
 .name-sug:hover{opacity:1; color:var(--gold)}
 .rot-name input:not(:placeholder-shown) ~ .name-sug{display:none}
 .tier{display:flex; align-items:center; gap:8px}
@@ -540,7 +540,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:8px}
 .koduck-pet{height:25px; width:auto; vertical-align:middle; margin:0 5px; image-rendering:pixelated; image-rendering:crisp-edges}
 .foot a{color:var(--blue)}
-@media (max-width:560px){ .rot-name input{font-size:22px} }
+@media (max-width:560px){ .rot-name{font-size:22px} }
 .app-banners{display:flex; flex-direction:column; gap:8px; margin-bottom:14px}
 .app-banners[hidden]{display:none}
 .app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; color:#e9e4ff}
@@ -1852,7 +1852,7 @@ function renderHead(){
   refreshNameSug(false);
   document.getElementById('headPanel').innerHTML=`
     <div class="head-top">
-      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="${esc(_nameSug||'Rotation Name')}"/><button type="button" id="nameSug" class="name-sug" title="Suggest a name" aria-label="Suggest a name"${_nameSug?'':' hidden'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h3.5l9.5 -9.5a1.97 1.97 0 0 0 -2.78 -2.78l-9.5 9.5z"/><path d="M12.5 7.5l3 3"/><path d="M18.7 1.8l.83 2.27l2.27 .83l-2.27 .83l-.83 2.27l-.83 -2.27l-2.27 -.83l2.27 -.83z" fill="currentColor" stroke="none"/></svg></button></div>
+      <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="${esc(_nameSug||'Rotation Name')}"/><button type="button" id="nameSug" class="name-sug" title="Suggest a name" aria-label="Suggest a name"${_nameSug?'':' hidden'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg></button></div>
       <div class="head-actions">
         <button type="button" class="btn" id="setupShowImport" title="Show the imported text again"${_lastImportText?'':' hidden'}>Imported text</button>
         <button type="button" class="btn" id="setupSaveBtn" title="Save the current rotation to your library">Save</button>
@@ -4943,6 +4943,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260625h</div>
+<div class="version-tag">260625i</div>
 </body>
 </html>
