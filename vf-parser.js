@@ -11,6 +11,10 @@ const _n = s => String(s||'').trim().toLowerCase();
    was Zaou-Gongen's signature before it was renamed "Exorcising Flames". Add new old->current pairs here. */
 try{ if(typeof SKILL_ALIAS_MAP==='object'&&SKILL_ALIAS_MAP){ const _LEGACY_SKILLS={'fury incarnate':'Exorcising Flames'};
   for(const k in _LEGACY_SKILLS) if(!SKILL_ALIAS_MAP[k]) SKILL_ALIAS_MAP[k]=_LEGACY_SKILLS[k]; } }catch(e){}
+/* extra character nicknames the parser should resolve (input-only, folded into CHAR_ALIASES at load). "Frotone"
+   is a community nickname for Mont (Frostgale) — the Mont·F variant, not the base Mont. */
+try{ if(typeof CHAR_ALIASES==='object'&&CHAR_ALIASES){ const _LEGACY_CHARS={'MONT·F':['Frotone']};
+  for(const c in _LEGACY_CHARS){ if(CHAR_ALIASES[c]) _LEGACY_CHARS[c].forEach(a=>{ if(!CHAR_ALIASES[c].some(x=>x.toLowerCase()===a.toLowerCase())) CHAR_ALIASES[c].push(a); }); } } }catch(e){}
 /* reforge rank: "F" is an accepted alternate spelling of "R" (e.g. "A6F6" == "A6 R6"). Normalise to R. */
 const _rev = s => String(s||'').toUpperCase().replace(/^F/,'R');
 function lev(a,b){ a=_n(a);b=_n(b);const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
@@ -76,7 +80,7 @@ const CARD_STOP=/^(pierce|crit|critical|percent|pct|reset|resets)$/;
 const STAT_NOTE=/\b(pierce|crit|critical|cr|cm)\b/i;
 // a *floating* (no character prefix) stat requirement pairs a number with such a keyword ("15.7 Pierce",
 // "25.3 CR min"); a number is required so a plain instruction like "Adjust Pierce & Crit" stays a team note.
-const STAT_REQ=/\d[\d.,]*\s*%?\s*\b(?:pierce|crit(?:ical)?|cr|cm)\b|\b(?:pierce|crit(?:ical)?|cr|cm)\b\s*[:=]?\s*%?\s*\d/i;
+const STAT_REQ=/[~≈]?\d[\d.,]*\s*%?\s*\b(?:pierce|crit(?:ical)?|cr|cm)\b|\b(?:pierce|crit(?:ical)?|cr|cm)\b\s*[:=]?\s*%?\s*[~≈]?\d/i;
 // import-only abbreviations for passive skills the skill-alias map doesn't carry.
 const SKILL_ABBR={'atk master':'Attack Master','agi master':'Agility Master','def master':'Defense Master'};
 // passive skills (a persona can stack several) go in the persona NOTE, not a skill slot. They follow the
@@ -244,10 +248,14 @@ function parseTurnContent(content,warn){
     // split on "+" paren-aware (so a "+" inside a note like "(Miku A1+)" doesn't break the action), then on
     // the slash-choice patterns, then at mid-segment actor boundaries
     const segs=[]; splitTop(unit,'+').forEach(ps=>ps.split(/\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>{
-      // a leading highlight before the actor ("HL Turbo", "HL Wonder Sraosha") -> move it to the end so the
-      // actor (and its persona) parse first and the highlight attaches to it. Done before splitMidActor.
+      // a leading highlight before the actor ("HL Turbo", "HL Wonder Sraosha", "HL Wonder Jikokuten Tempest")
+      // -> move it just past the actor (and its Wonder persona) so the highlight attaches to that actor and a
+      // following target stays a target, not a new actor. Done before splitMidActor.
       const hm=s.match(/^(hl|highlight|tg|th|theurgy)\s+(.+)$/i);
-      if(hm && (/^wonder\b/i.test(hm[2])||resolveActor(hm[2].split(/\s+/)[0]))) s=hm[2].trim()+' '+hm[1];
+      if(hm){ const rest=hm[2].trim().split(/\s+/); const a0=resolveActor(rest[0]);
+        if(/^wonder$/i.test(rest[0]) || a0){
+          let take=1; if(/^wonder$/i.test(rest[0]) && rest[1] && (resolveActor(rest[1])||{}).type==='persona') take=2;
+          s=rest.slice(0,take).concat(hm[1],rest.slice(take)).join(' '); } }
       splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }); }));
     for(const seg of segs){
       let toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
@@ -354,7 +362,7 @@ function _preFormat(text){
   const isHdr=s=>/^\s*#*\s*(?:turn|t)\s*-?\d+\b/i.test(s);
   const isAct=s=>/^\s*[=–—-]\s+\S/.test(s);
   if(!L.some((l,i)=>isHdr(l)&&isAct(L[i+1]||''))) return text;
-  L=L.map(s=>s.replace(/^\s*#+\s*/,''));   // strip markdown "#" headers
+  L=L.map(s=>s.replace(/^\s*#+\s*/,'').replace(/^\s*>\s?/,''));   // strip markdown "#" headers and ">" blockquote markers
   // collapse a stat section ("DPS + Navi Pierce\n-----\n 21.4\n - 5.0 Hope Labor") into one "header: values"
   // line (before underlines are blanked) so the pierce/crit carrier routes it to the DPS/Assassin's note
   for(let i=0;i<L.length;i++){
@@ -1173,5 +1181,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A144';
+  _g.VF_PARSER_VERSION = 'A146';
 })();
