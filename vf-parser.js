@@ -257,13 +257,14 @@ function parseTurnContent(content,warn){
       // "Guard All" / "All Guard": every non-elucidator team unit guards; expanded after the team is known.
       if(/^(g(?:ua|au)rd\s+all|all\s+g(?:ua|au)rd)$/i.test(seg)){ actions.push({guardAll:true}); cur=null; continue; }
       // a lone "Guard" (no actor) -> resolved after the team is known, to the next due actor idle this turn.
-      // BUT a "+Guard" chained onto an actor whose only action so far is a (free) HL belongs to that actor
-      // ("Haru HL+Guard" = Haru pops HL and guards), mirroring how "+Gun" attaches. After a full action
-      // (S1/S2/S3/Atk/Gn) the "+Guard" stays a floating guard for an idle team-mate ("Futaba S2+Guard").
+      // BUT a "+Guard" chained onto an actor whose only actions so far are FREE ones (a HL, or an ALT/button)
+      // belongs to that actor ("Haru HL+Guard" = Haru pops HL and guards; "Twins alt + Guard" = the Twins use
+      // their button and guard), mirroring how "+Gun" attaches. After a full action (S1/S2/S3/Atk/Gn) the
+      // "+Guard" stays a floating guard for an idle team-mate ("Futaba S2+Guard").
       if(/^g(?:(?:ua|au)rds?)?$/i.test(seg)){   // "Guard", "Gaurd", or a bare "G"
         const tgtName=cur?(cur.type==='persona'?'WONDER':cur.name):null;
         const curActs=tgtName?actions.slice(unitStart).filter(a=>a.char===tgtName&&!a.guardAll&&!a.guardSolo):[];
-        if(cur && curActs.length && (curActs.every(a=>a.btn==='HL') || cur.btnGuard)){   // "Haru HL+Guard", or the Twins' "Button + Guard"
+        if(cur && curActs.length && (curActs.every(a=>a.btn==='HL'||a.btn==='ALT') || cur.btnGuard)){   // "Haru HL+Guard", "Twins alt + Guard"
           const tgt=cur.type==='persona'?{char:'WONDER',persona:cur.name}:{char:cur.name};
           actions.push(Object.assign(tgt,{btn:'Gd',text:''})); continue; }
         actions.push({guardSolo:true}); cur=null; continue; }
@@ -1172,5 +1173,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A143';
+  _g.VF_PARSER_VERSION = 'A144';
 })();
