@@ -57,7 +57,7 @@ function _matchDualAt(toks,i){ const t=toks[i]; if(t==null) return null;
 function _findDual(toks){ for(let i=0;i<toks.length;i++){ const m=_matchDualAt(toks,i); if(m) return {dual:m.dual,start:i,len:m.len}; } return null; }
 // "sig"/"signature" on a (non-Wonder) character means its Masquerade / special move — the ALT button.
 // Wonder personas resolve "sig" to the persona's signature skill earlier, so this only catches the character case.
-const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',tg:'HL',th:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT',boom:'ALT',sig:'ALT',signature:'ALT'};
+const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',highlight:'HL',tg:'HL',th:'HL',theurgy:'HL',gun:'Gn',attack:'Atk',atk:'Atk',melee:'Atk',guard:'Gd',gaurd:'Gd',gd:'Gd',g:'Gd',assist:'Ast',ast:'Ast',button:'ALT',alt:'ALT',dc:'ALT',masq:'ALT',mask:'ALT',mas:'ALT',msq:'ALT',masquerade:'ALT',punch:'ALT',boom:'ALT',sig:'ALT',signature:'ALT'};
 // order-relevant "main" action: S1/S2/S3/Atk/Gn/Gd, plus Ryuji's BOOM (his ALT counts as a real action like an S-skill)
 function _mainBtn(a){ return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) || (a.btn==='ALT' && (a.char||'').toUpperCase()==='SKULL'); }
 function codeOf(token){
@@ -243,7 +243,10 @@ function parseTurnContent(content,warn){
     let cur=null, pendingLead=[]; const unitStart=actions.length;
     const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
     for(const seg of segs){
-      const toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
+      let toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
+      // a leading highlight before the actor ("HL Turbo", "HL Wonder Sraosha") -> move HL to the end so the
+      // actor parses first and the highlight attaches to it
+      if(toks.length>=2 && (codeOf(toks[0])||{}).btn==='HL' && (_n(toks[1])==='wonder'||resolveActor(toks[1]))) toks=toks.slice(1).concat(toks[0]);
       // split a no-space actor+highlight token ("NianHL" -> "Nian" "HL", "MatoiTG" -> "Matoi" "TG")
       for(let ti=0;ti<toks.length;ti++){ const hm=toks[ti].match(/^(.{2,}?)(hl|tg)$/i);
         if(hm && !codeOf(toks[ti])){ const pa=resolveActor(hm[1]); if(pa && (pa.type==='char'||pa.type==='persona')){ toks.splice(ti,1,hm[1],hm[2].toUpperCase()); } } }
@@ -335,9 +338,40 @@ function parseTurnContent(content,warn){
   return actions;
 }
 
+/* Markdown-style rotation format: "# Tn" turn headers with one action per line ("= Turbo guard" /
+   "- Miku Heaven S1"), numbered "Order"/"Personae" lists, "-----" section underlines and a "<WEAKNESS>"
+   break marker. Only engages when that multi-line turn shape is actually present, so the normal single-line
+   formats are untouched; it rewrites the structure into the parser's canonical lines (one "Tn: a, b, c"
+   line per turn, numbered sequentially so duplicate/annotated headers like "T5 (WTL 2)" / "T5 Concert"
+   don't collide). The header annotations are dropped (turns are renamed on output anyway). */
+function _preFormat(text){
+  let L=String(text||'').split(/\r?\n/);
+  const isHdr=s=>/^\s*#*\s*(?:turn|t)\s*-?\d+\b/i.test(s);
+  const isAct=s=>/^\s*[=–—-]\s+\S/.test(s);
+  if(!L.some((l,i)=>isHdr(l)&&isAct(L[i+1]||''))) return text;
+  // strip markdown "#" headers, blank "-----"/"=====" underlines, drop leading "N." list markers, and
+  // normalise persona shorthand ("Sraosha w/ Rakunda & Mataru" -> "Sraosha - Rakunda, Mataru")
+  L=L.map(s=>s.replace(/^\s*#+\s*/,'').replace(/^\s*[-=]{3,}\s*$/,'').replace(/^\s*\d+\.\s+/,'')
+    .replace(/\sw\/\s/gi,' - ').replace(/\s&\s/g,' + '));
+  const out=[]; let tno=0;
+  for(let i=0;i<L.length;i++){
+    if(isHdr(L[i]) && isAct(L[i+1]||'')){
+      const acts=[]; let j=i+1;
+      for(; j<L.length; j++){ const ln=L[j];
+        if(!ln.trim() || isHdr(ln) || /^\s*<\s*(weak|break)/i.test(ln)) break;   // blank / next turn / break marker
+        acts.push(ln.replace(/^\s*[=–—-]\s+/,'').trim()); }
+      tno++; out.push('T'+tno+': '+acts.filter(Boolean).join(', '));
+      i=j-1; continue;
+    }
+    out.push(L[i]);
+  }
+  return out.join('\n');
+}
+
 /* ---- main ---- */
 function parseRotationText(text, opts){
   const warn=[];
+  text=_preFormat(text);
   const forceDod=!!(opts&&opts.dod);
   const lines=text.split(/\r?\n/).map(s=>s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'')
     // strip a leading "Action N -" running-count annotation, but only when a turn marker follows ("Action 21 - T5: \u2026")
@@ -359,6 +393,7 @@ function parseRotationText(text, opts){
   const reBreakDiv=/^[\s\-=~*_#.–—]*breaks?(?:\s+(?:phase|turns?))?[\s\-=~*_#.:–—]*$/i;
   // also accept the letter-spaced emphasis form ("B R E A K") — only when every token is a single letter.
   const isBreakDiv=ln=>{ if(reBreakDiv.test(ln)) return true;
+    if(/^\s*<\s*(?:weak(?:ness)?|break)\b[^>]*>\s*$/i.test(ln)) return true;   // "<WEAKNESS>" phase marker
     const toks=String(ln||'').trim().split(/\s+/);
     return toks.length>=3 && toks.every(t=>t.length<=1) && reBreakDiv.test(toks.join('')); };
   const isTurnStart=s=>reInline.test(s)||reAlone.test(s)||reWInline.test(s)||reWAlone.test(s);
@@ -1108,5 +1143,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A135';
+  _g.VF_PARSER_VERSION = 'A139';
 })();
