@@ -241,12 +241,16 @@ function parseTurnContent(content,warn){
   let lastActor=null;
   for(const unit of splitTop(content,',.|>\u203a\u2192').map(u=>u.trim().replace(/^[-\u2013\u2014:]\s*/,'').trim()).filter(Boolean)){
     let cur=null, pendingLead=[]; const unitStart=actions.length;
-    const segs=[]; unit.split(/\+|\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }));
+    // split on "+" paren-aware (so a "+" inside a note like "(Miku A1+)" doesn't break the action), then on
+    // the slash-choice patterns, then at mid-segment actor boundaries
+    const segs=[]; splitTop(unit,'+').forEach(ps=>ps.split(/\s+\/\s+|(?<![\swW])\/\s+/).map(s=>s.trim()).filter(Boolean).forEach(s=>{
+      // a leading highlight before the actor ("HL Turbo", "HL Wonder Sraosha") -> move it to the end so the
+      // actor (and its persona) parse first and the highlight attaches to it. Done before splitMidActor.
+      const hm=s.match(/^(hl|highlight|tg|th|theurgy)\s+(.+)$/i);
+      if(hm && (/^wonder\b/i.test(hm[2])||resolveActor(hm[2].split(/\s+/)[0]))) s=hm[2].trim()+' '+hm[1];
+      splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }); }));
     for(const seg of segs){
       let toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
-      // a leading highlight before the actor ("HL Turbo", "HL Wonder Sraosha") -> move HL to the end so the
-      // actor parses first and the highlight attaches to it
-      if(toks.length>=2 && (codeOf(toks[0])||{}).btn==='HL' && (_n(toks[1])==='wonder'||resolveActor(toks[1]))) toks=toks.slice(1).concat(toks[0]);
       // split a no-space actor+highlight token ("NianHL" -> "Nian" "HL", "MatoiTG" -> "Matoi" "TG")
       for(let ti=0;ti<toks.length;ti++){ const hm=toks[ti].match(/^(.{2,}?)(hl|tg)$/i);
         if(hm && !codeOf(toks[ti])){ const pa=resolveActor(hm[1]); if(pa && (pa.type==='char'||pa.type==='persona')){ toks.splice(ti,1,hm[1],hm[2].toUpperCase()); } } }
@@ -349,17 +353,29 @@ function _preFormat(text){
   const isHdr=s=>/^\s*#*\s*(?:turn|t)\s*-?\d+\b/i.test(s);
   const isAct=s=>/^\s*[=–—-]\s+\S/.test(s);
   if(!L.some((l,i)=>isHdr(l)&&isAct(L[i+1]||''))) return text;
-  // strip markdown "#" headers, blank "-----"/"=====" underlines, drop leading "N." list markers, and
-  // normalise persona shorthand ("Sraosha w/ Rakunda & Mataru" -> "Sraosha - Rakunda, Mataru")
-  L=L.map(s=>s.replace(/^\s*#+\s*/,'').replace(/^\s*[-=]{3,}\s*$/,'').replace(/^\s*\d+\.\s+/,'')
-    .replace(/\sw\/\s/gi,' - ').replace(/\s&\s/g,' + '));
+  L=L.map(s=>s.replace(/^\s*#+\s*/,''));   // strip markdown "#" headers
+  // collapse a stat section ("DPS + Navi Pierce\n-----\n 21.4\n - 5.0 Hope Labor") into one "header: values"
+  // line (before underlines are blanked) so the pierce/crit carrier routes it to the DPS/Assassin's note
+  for(let i=0;i<L.length;i++){
+    if(L[i].trim() && /\b(pierce|crit|cr|cm|dm)\b/i.test(L[i]) && /^\s*[-=]{3,}\s*$/.test(L[i+1]||'')){
+      const vals=[]; let j=i+2;
+      for(; j<L.length && L[j].trim(); j++) vals.push(L[j].replace(/^\s*[-–—]\s*/,'').trim());
+      L[i]=L[i].trim()+': '+vals.filter(Boolean).join(', '); for(let k=i+1;k<j;k++) L[k]='';
+    }
+  }
+  // blank remaining underlines, drop "N." list markers, normalise persona shorthand, map "Extra Turn" to the
+  // Alt button, and turn an inline "<...>" condition into a "(...)" note (a standalone "<WEAKNESS>" is kept)
+  L=L.map(s=>s.replace(/^\s*[-=]{3,}\s*$/,'').replace(/^\s*\d+\.\s+/,'')
+    .replace(/\sw\/\s/gi,' - ').replace(/\s&\s/g,' + ')
+    .replace(/\bextra\s+turn\b/gi,'Alt')
+    .replace(/<\s*(?!\s*(?:weak|break))([^>]*)>/gi,'($1)'));
   const out=[]; let tno=0;
   for(let i=0;i<L.length;i++){
     if(isHdr(L[i]) && isAct(L[i+1]||'')){
       const acts=[]; let j=i+1;
-      for(; j<L.length; j++){ const ln=L[j];
-        if(!ln.trim() || isHdr(ln) || /^\s*<\s*(weak|break)/i.test(ln)) break;   // blank / next turn / break marker
-        acts.push(ln.replace(/^\s*[=–—-]\s+/,'').trim()); }
+      // collect only the consecutive "=/-" action lines; stop at anything else (blank, next turn, a break
+      // marker, or a stray note line like "<Enemy turn …>") so they don't leak into the turn's actions
+      for(; j<L.length && isAct(L[j]); j++) acts.push(L[j].replace(/^\s*[=–—-]\s+/,'').trim());
       tno++; out.push('T'+tno+': '+acts.filter(Boolean).join(', '));
       i=j-1; continue;
     }
@@ -762,6 +778,10 @@ function parseRotationText(text, opts){
       let bm=matchBoss(t2); if(!bm && setup.type==='SOS') bm=matchSosBoss(t2);
       if(bm){ setup.boss=bm; got.boss=1; t2=t2.replace(new RegExp('\\b'+bm.split(' ').join('\\s+')+'\\b','i'),' '); }
       let rn=t2.replace(/\(\s*\)/g,' ').replace(/\s+/g,' ').trim().replace(/^[:\s]+|[:\s]+$/g,'').trim();   // drop parens emptied by boss/mode removal ("Fafnir (MLD)" -> "")
+      // a title left with only a parenthetical/date annotation ("Fafnir DOD (Jun 2026, patch 4.4)" -> "(Jun 2026, patch )")
+      // has no real name -> use the boss (+ mode): "Fafnir DOD". Also skips the credit heuristics that would grab a fragment.
+      if(!/[a-z0-9]/i.test(rn.replace(/\([^)]*\)/g,'')) && setup.boss){
+        setup.rotationName=setup.boss.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())+(setup.type?' '+setup.type:''); continue; }
       // credit: an unknown name after "by" (1-2 words) or a single unknown word after "-"
       const cmBy=rn.match(/^(.*?)\bby\s+(.+)$/i); const cmDash=rn.match(/^(.*?)\s*[-–]\s*(\S+)$/);
       const _notSide=s=>!/^(side|weak|strong)$/i.test(s);
@@ -1041,6 +1061,15 @@ function parseRotationText(text, opts){
     backup=Object.assign(blankUnit(),pick(charData[backupName])); }
   function pick(d){ d=d||{}; return {awareness:d.awareness||'',rev:d.rev||'',space:d.space||'',sunsky:d.sunsky||'',role:d.role||'',companion:d.companion||'',note:d.note||''}; }
 
+  // a turn whose only actions belong to the elucidator (e.g. a lone "Miku S3" turn) isn't really its own turn:
+  // fold its actions into the start of the next turn, as long as the elucidator doesn't already act there.
+  { const elu=((elucidator&&elucidator.name)||'').toUpperCase(); let merged=false;
+    if(elu) for(let i=0;i<turns.length-1;i++){ const acts=turns[i].actions||[];
+      if(acts.length && acts.every(a=>(a.char||'').toUpperCase()===elu)){
+        const next=turns[i+1]; if(next && !(next.actions||[]).some(a=>(a.char||'').toUpperCase()===elu)){
+          next.actions=acts.concat(next.actions||[]); turns.splice(i,1); i--; merged=true; } } }
+    if(merged){ let tn=0,bn=0; turns.forEach(t=>{ if(/^break/i.test(t.name)) t.name='Break '+(++bn); else t.name='TURN '+(++tn); }); } }
+
   // merge in Wonder-action personas not already listed (more sources -> more reliable), header order first, up to 3
   { const have=personas.map(p=>(p.name||'').toLowerCase());
     turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'&&a.persona){ const lc=a.persona.toLowerCase();
@@ -1143,5 +1172,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A139';
+  _g.VF_PARSER_VERSION = 'A143';
 })();
