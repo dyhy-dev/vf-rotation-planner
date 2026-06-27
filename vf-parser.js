@@ -269,6 +269,11 @@ function parseTurnContent(content,warn){
       splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }); }));
     for(const seg of segs){
       let toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
+      // an auto-cast / follow-up segment ("auto s3", "sumi auto s1", "twins auto s3") is just a consequence of
+      // another action -> ignore it (a standalone "auto" token; the hyphenated passive "Auto-Mataru" is untouched)
+      if(toks.some(t=>/^auto$/i.test(t))) continue;
+      // "activate" is a filler/link word ("activate masq", "chord s3 activate sumi HL") -> drop it
+      toks=toks.filter(t=>!/^activate$/i.test(t)); if(!toks.length)continue;
       // split a no-space actor+highlight token ("NianHL" -> "Nian" "HL", "MatoiTG" -> "Matoi" "TG")
       for(let ti=0;ti<toks.length;ti++){ const hm=toks[ti].match(/^(.{2,}?)(hl|tg)$/i);
         if(hm && !codeOf(toks[ti])){ const pa=resolveActor(hm[1]); if(pa && (pa.type==='char'||pa.type==='persona')){ toks.splice(ti,1,hm[1],hm[2].toUpperCase()); } } }
@@ -347,10 +352,21 @@ function parseTurnContent(content,warn){
       // flush any leading bare buttons ("Alt + ...") onto this actor, in order
       if(pendingLead.length && actor){ const tgt=actor.type==='persona'?{char:'WONDER',persona:actor.name}:{char:actor.name};
         pendingLead.forEach(b=>actions.push(Object.assign({},tgt,{btn:b,text:''}))); pendingLead=[]; }
-      // Twins non-HL dual-element action ("Twins Fire Ice", "Twins S2 Fire Ice", "Twins FI") -> normalise dual, keep any button
+      // "<Violet> activate Masquerade" -> Violet's Masquerade button (ALT); "activate" is just filler.
+      { const r2=rest.filter(t=>!/^activate$/i.test(t));
+        if(r2.length===1 && /^(mas|masq|msq|masquerade)$/.test(_n(r2[0]).replace(/[().]/g,''))){
+          actions.push({char:'VIOLET',btn:'ALT',text:''}); cur={type:'char',name:'VIOLET'}; lastActor=cur; continue; } }
+      // "Wonder switch to <persona>" -> a persona-switch marker: its own Wonder action with no button, the
+      // target persona kept only as a note (Dennis: no real action, just an entry in Wonder's notes).
+      if(actor && ((actor.type==='char'&&actor.name==='WONDER')||actor.type==='persona') && /^switch$/i.test(rest[0]||'')){
+        const pt=rest.slice(1).filter(t=>!/^to$/i.test(t)); const pa=pt.length?(resolveActor(pt.join(' '))||resolveActor(pt[0])):null;
+        const pname=(pa&&pa.type==='persona')?pa.name:pt.join(' ');
+        actions.push({char:'WONDER',btn:'',text:('switch to '+pname).trim()}); cur={type:'char',name:'WONDER'}; lastActor=cur; continue; }
+      // Twins dual-element action ("Twins Fire Ice", "Twins S2 Fire Ice", "Twins FI") -> normalise dual, keep any
+      // button. A bare Twins dual with no button is a Twins highlight (the "HL" is just left implied).
       if(actor && actor.type==='char' && actor.name==='TWINS'){ const fd=_findDual(rest);
         if(fd){ let btn=''; rest.forEach((t,k)=>{ if(k>=fd.start&&k<fd.start+fd.len)return; const c=codeOf(t); if(c) btn=btn||c.btn; });
-          actions.push({char:'TWINS',btn,text:fd.dual,_twinsHL:fd.dual,_fuzzy:!!actor.fuzzy}); continue; } }
+          actions.push({char:'TWINS',btn:btn||'HL',text:fd.dual,_twinsHL:fd.dual,_fuzzy:!!actor.fuzzy}); continue; } }
       buildActions(actor,rest,seg,warn).forEach(a=>actions.push(a));
     }
     // a comma-unit that was only bare button(s) with no actor of its own ("…, S3, S3") continues the
@@ -1215,5 +1231,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A150';
+  _g.VF_PARSER_VERSION = 'A151';
 })();
