@@ -1083,6 +1083,13 @@ function parseRotationText(text, opts){
   { const have=personas.map(p=>(p.name||'').toLowerCase());
     turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'&&a.persona){ const lc=a.persona.toLowerCase();
       if(!have.includes(lc) && personas.length<3){ personas.push({name:a.persona,skills:['',''],note:''}); have.push(lc); } } })); }
+  // backfill skill slots from the active skills actually used on each persona in the turns: a header may list
+  // only some ("Dion (Reb)" while the turns also use Universal Theoria) -> fill the free slots (own signature
+  // and passives excluded; explicit header skills keep their slots).
+  { const byName={}; personas.forEach(p=>byName[(p.name||'').toLowerCase()]=p);
+    turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'&&a.persona&&a.skill){ const p=byName[a.persona.toLowerCase()]; if(!p)return;
+      if(a.skill.toLowerCase()===(PERSONA_SIGNATURES[p.name]||'').toLowerCase() || isPassiveSkill(a.skill))return;
+      if(!p.skills.some(s=>(s||'').toLowerCase()===a.skill.toLowerCase())){ const i=p.skills.findIndex(s=>!s); if(i>=0)p.skills[i]=a.skill; } } })); }
   // personas -> 3 slots
   const pslots=[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}];
   personas.slice(0,3).forEach((p,i)=>pslots[i]=p);
@@ -1181,5 +1188,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A147';
+  _g.VF_PARSER_VERSION = 'A148';
 })();
