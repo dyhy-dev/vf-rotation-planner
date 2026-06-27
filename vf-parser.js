@@ -479,6 +479,14 @@ function parseRotationText(text, opts){
   const setup={rotationName:'',tier:'',boss:'',type:'MLD',patch:'',score:'',notes:'',credits:''};
   const charData={}; // name -> {awareness,rev,space,sunsky,note}
   const charOrder=[];
+  // an explicit "Turn order: …" / "Turn order top to bottom:" header pins the team-slot order (the chars in
+  // header order win over the action-derived order). An inline "A > B > C" list is captured; a bare label
+  // falls back to the order the build lines are read in (charOrder).
+  let explicitOrder=false; const explicitOrderList=[];
+  const _markTurnOrder=line=>{ const tom=line.match(/^turn\s*order\b\s*[:–—-]?\s*(.*)$/i); if(!tom) return false;
+    explicitOrder=true; const rhs=(tom[1]||'').replace(/\b(top\s+to\s+bottom|from\s+top|in\s+order)\b/ig,'').replace(/[:–—-]\s*$/,'').trim();
+    if(rhs) rhs.split(/\s*(?:>|→|»|\||,|\bthen\b)\s*/i).forEach(w=>{ const a=resolveActor((w||'').trim().split(/\s+/)[0]); if(a&&a.type==='char'&&!explicitOrderList.includes(a.name)) explicitOrderList.push(a.name); });
+    return true; };
   let dagger='', personas=[], twinsRole=''; const headerDuals=[];
   let backupName='';   // Fuuka's off-team backup character, from an explicit "Backup:" line
   const noteLines=[];
@@ -513,11 +521,18 @@ function parseRotationText(text, opts){
   const reNotesSection=/^\**\s*(stats|crit\s*rate|pierce\s*rate|(?:\w+\s+)?calcs?|alternatives?|damage)\s*:?\s*\**\s*$/i;
   for(let hi=0; hi<headerLines.length; hi++){
     let line=headerLines[hi];
-    const low=line.toLowerCase();
+    let low=line.toLowerCase();
+    // a leading team-role keyword before a char build line ("Strategist Twins a1r2 …", "Guardian Junpei R6"):
+    // the role only varies for the Twins (other chars have a fixed role), so remember it for them and strip it
+    // so the rest parses as a normal build line and the char still lands in the team order.
+    { const rm=line.match(/^(strategist|healer|medic|sweeper|assassin|saboteur|guardian|virtuoso|elucidator)\s+(\S.*)$/i);
+      if(rm){ const a=resolveActor(rm[2].split(/\s+/)[0]);
+        if(a&&a.type==='char'){ if(a.name==='TWINS'){ const RA={healer:'Medic',medic:'Medic',sweeper:'Sweeper',assassin:'Assassin',strategist:'Strategist',saboteur:'Saboteur',guardian:'Guardian',virtuoso:'Virtuoso'}; const rr=RA[rm[1].toLowerCase()]; if(rr)twinsRole=rr; }
+          line=rm[2].trim(); low=line.toLowerCase(); } } }
     if(line==='\u0000') continue;
     if(inNotesSection){
       // a redundant turn-order line ("Turbo > Wonder > Smoko > Haru" / "Turn order: …") carries no note value -> drop it
-      if(/^turn\s*order\s*[:–—-]/i.test(line)) continue;
+      if(_markTurnOrder(line)) continue;
       if(/[>›→]/.test(line)){ const og=line.split(/\s*[>›→]\s*/).map(x=>x.trim()).filter(Boolean);
         if(og.length>=2 && og.every(sg=>{ const a=resolveActor(sg.split(/\s+/)[0]); return a&&a.type==='char'; })) continue; }
       noteLines.push(line); continue;
@@ -620,8 +635,8 @@ function parseRotationText(text, opts){
     }
     // bare section headers that carry no data themselves
     if(/^(rotation|rotations|turns?|team|comp|composition|notes?|info|setup|revelations?|revs?|reves?|personae?|personas)\s*:?\s*$/i.test(line)) continue;
-    // a "Turn order: A > B > C > D" line (an optional text-export summary) is derived from the unit order — ignore it
-    if(/^turn\s*order\s*[:–—-]/i.test(line)) continue;
+    // a "Turn order: A > B > C > D" line (an optional text-export summary, or an explicit order to honor) — drop the line
+    if(_markTurnOrder(line)) continue;
     if(line==='\u0000') continue;
 
     // a per-persona skill line outside the Personae block ("Ame - Wild Thunder, Ail passives", "Jikokuten - Rebellion (…)")
@@ -1069,6 +1084,9 @@ function parseRotationText(text, opts){
   const ordered=[]; const addOrd=c=>{ if(c&&!ordered.includes(c)) ordered.push(c); };
   // TURBO's kit makes her the fastest unit on the field, so wherever she appears she always acts first —
   // pin her to the front of the order regardless of when her first scripted skill happens to show up.
+  // an explicit "Turn order" header (inline list, else the build-line order) pins the order ahead of everything.
+  const explOrder = explicitOrder ? (explicitOrderList.length?explicitOrderList:charOrder.slice()) : null;
+  if(explOrder) explOrder.forEach(addOrd);
   if(charOrder.includes('TURBO')||turnChars.includes('TURBO')||actionOrder.includes('TURBO')) addOrd('TURBO');
   actionOrder.forEach(addOrd); if(hasWonder) addOrd('WONDER'); charOrder.forEach(addOrd); turnChars.forEach(addOrd);
 
@@ -1183,7 +1201,10 @@ function parseRotationText(text, opts){
   // Wonder's only early "action" is a persona skill while everyone guards) doesn't mis-slot Wonder and trip
   // the import turn-order check. Order-relevant = S1/S2/S3/Atk/Gn/Gd (and any Wonder skill/btn/text; HL/ALT/Assist don't count).
   { const eluU=(elucidator&&elucidator.name)||'';
-    const order=[]; turns.forEach(t=>(t.actions||[]).forEach(a=>{ if(_orderRelevant(a)&&a.char!==eluU&&!order.includes(a.char)) order.push(a.char); }));
+    // an explicit "Turn order" header wins; otherwise derive from the first order-relevant action per unit
+    let order=[];
+    if(explOrder) order=explOrder.filter(n=>n!==eluU);
+    else turns.forEach(t=>(t.actions||[]).forEach(a=>{ if(_orderRelevant(a)&&a.char!==eluU&&!order.includes(a.char)) order.push(a.char); }));
     if(order.length){ const rank=u=>{ const nm=(u&&u.name)||''; const i=nm?order.indexOf(nm):-1; return i>=0?i:order.length+1; };
       units.sort((a,b)=>rank(a)-rank(b)); }
   }
@@ -1231,5 +1252,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A151';
+  _g.VF_PARSER_VERSION = 'A152';
 })();
