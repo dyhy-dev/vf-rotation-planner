@@ -554,7 +554,11 @@ function parseRotationText(text, opts){
           const before=rest; rest=rest.replace(new RegExp('\\b'+dg.split(/\s+/).join('\\s+')+'\\b','i'),' ');
           if(rest===before) rest=rest.replace(new RegExp('^\\s*'+dgChunk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*','i'),' ');
           rest=rest.replace(/^[\s,:]+/,'').replace(/\s+/g,' ').trim(); } }
-      // personas from the remainder (comma separated)
+      // personas from the remainder (comma separated). Unwrap a single set of parens around the whole list
+      // ("(Sraosha w/ …, Dionysus w/ …)") so the inner commas split into separate personas.
+      if(rest[0]==='(' && rest.endsWith(')')){ const inner=rest.slice(1,-1); let bal=0,ok=true;
+        for(const ch of inner){ if(ch==='(')bal++; else if(ch===')'&&--bal<0){ok=false;break;} }
+        if(ok&&bal===0) rest=inner.trim(); }
       parsePersonaList(rest);
       continue;
     }
@@ -851,6 +855,8 @@ function parseRotationText(text, opts){
   function parsePersonaLine(line){
     line=String(line||'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'').trim();
     if(!line) return false;
+    // persona shorthand inside a header list: "Sraosha w/ rakunda and matarukaja" -> "Sraosha - rakunda, matarukaja"
+    line=line.replace(/\s+w\/\s+/gi,' - ').replace(/\s+(?:and|&)\s+/gi,', ');
     // a bracketed [note] (how the text export writes a persona note) -> note, removed from the line
     let bnote=''; { const bm=line.match(/\[([^\]]*)\]/); if(bm){ bnote=bm[1].trim(); line=line.replace(/\s*\[[^\]]*\]\s*/,' ').trim(); } }
     let nameStr=line, skillStr='', noteStr=bnote;
@@ -1209,5 +1215,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A149';
+  _g.VF_PARSER_VERSION = 'A150';
 })();
