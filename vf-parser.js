@@ -15,6 +15,11 @@ try{ if(typeof SKILL_ALIAS_MAP==='object'&&SKILL_ALIAS_MAP){ const _LEGACY_SKILL
    is a community nickname for Mont (Frostgale) — the Mont·F variant, not the base Mont. */
 try{ if(typeof CHAR_ALIASES==='object'&&CHAR_ALIASES){ const _LEGACY_CHARS={'MONT·F':['Frotone']};
   for(const c in _LEGACY_CHARS){ if(CHAR_ALIASES[c]) _LEGACY_CHARS[c].forEach(a=>{ if(!CHAR_ALIASES[c].some(x=>x.toLowerCase()===a.toLowerCase())) CHAR_ALIASES[c].push(a); }); } } }catch(e){}
+/* loose skill abbreviations added to SKILL_ALIASES only (NOT the global SKILL_ALIAS_MAP), so they resolve a
+   Wonder persona action's skill ONLY when that persona actually carries the skill (the per-persona skill set
+   in the skill-pull phase is the gate). "Mata" == Matarukaja (alongside the existing "Mataru"). */
+try{ if(typeof SKILL_ALIASES==='object'&&SKILL_ALIASES){ const _EXTRA_SKILL_ALIASES={'Matarukaja':['Mata']};
+  for(const k in _EXTRA_SKILL_ALIASES){ if(SKILL_ALIASES[k]) _EXTRA_SKILL_ALIASES[k].forEach(a=>{ if(!SKILL_ALIASES[k].some(x=>x.toLowerCase()===a.toLowerCase())) SKILL_ALIASES[k].push(a); }); } } }catch(e){}
 /* reforge rank: "F" is an accepted alternate spelling of "R" (e.g. "A6F6" == "A6 R6"). Normalise to R. */
 const _rev = s => String(s||'').toUpperCase().replace(/^F/,'R');
 function lev(a,b){ a=_n(a);b=_n(b);const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
@@ -999,7 +1004,10 @@ function parseRotationText(text, opts){
   { const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9\u00b7]/g,'');
     const skillSetFor=pname=>{ const set=new Map(); const add=s=>{ s=String(s||'').trim(); if(s) set.set(s.toLowerCase(),s); };
       const sig=PERSONA_SIGNATURES[pname]; if(sig) add(sig);
-      const p=personas.find(x=>(x.name||'').toLowerCase()===(pname||'').toLowerCase()); if(p)(p.skills||[]).forEach(add);
+      // the persona's own skills, plus their abbreviations mapped to the canonical name -> a loose alias like
+      // "Mata" (Matarukaja) resolves only for a persona that actually carries that skill (the cross-check).
+      const p=personas.find(x=>(x.name||'').toLowerCase()===(pname||'').toLowerCase());
+      if(p)(p.skills||[]).forEach(s=>{ add(s); (SKILL_ALIASES[s]||[]).forEach(al=>{ al=String(al).trim(); if(al) set.set(al.toLowerCase(),s); }); });
       Object.keys(SKILL_ALIASES).forEach(add); Object.values(SKILL_ALIAS_MAP).forEach(add); return set; };
     turns.forEach(t=>{ const out=[]; (t.actions||[]).forEach(a=>{
       if((a.char||'').toUpperCase()!=='WONDER'||!a.persona){ out.push(a); return; }
@@ -1252,5 +1260,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A152';
+  _g.VF_PARSER_VERSION = 'A153';
 })();
