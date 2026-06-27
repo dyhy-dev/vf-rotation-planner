@@ -21,11 +21,21 @@ function lev(a,b){ a=_n(a);b=_n(b);const m=a.length,n=b.length;if(!m)return n;if
   const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);for(let j=0;j<=n;j++)d[0][j]=j;
   for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);}return d[m][n]; }
 
+// chars that are unambiguously present in the rotation text; used to break alias collisions (e.g. "Sumi" is
+// an alias for BOTH Sepia and Violet — when Kasumi/Violet is clearly on the team, "Sumi" resolves to Violet).
+let _preferChars=new Set();
+function _seedPreferChars(text){ _preferChars=new Set();
+  const counts={}; for(const c in CHAR_ALIASES) CHAR_ALIASES[c].forEach(a=>{ const k=a.toLowerCase(); (counts[k]=counts[k]||new Set()).add(c); });
+  const toks=String(text||'').match(/[A-Za-z·]{2,}/g)||[];
+  for(const raw of toks){ const tl=raw.toLowerCase();
+    const nm=DATA.characterNames.find(c=>c.toLowerCase()===tl); if(nm){ _preferChars.add(nm); continue; }
+    const s=counts[tl]; if(s&&s.size===1) _preferChars.add([...s][0]); } }
+
 function resolveActor(token){
   const t=_n(token); if(!t) return null;
   const chars=DATA.characterNames, pers=DATA.personaNames;
   let h=chars.find(c=>c.toLowerCase()===t); if(h) return {type:'char',name:h};
-  for(const c in CHAR_ALIASES){ if(CHAR_ALIASES[c].some(a=>a.toLowerCase()===t)) return {type:'char',name:c}; }
+  { let first=null; for(const c in CHAR_ALIASES){ if(CHAR_ALIASES[c].some(a=>a.toLowerCase()===t)){ if(_preferChars.has(c)) return {type:'char',name:c}; if(first===null) first=c; } } if(first!==null) return {type:'char',name:first}; }
   h=pers.find(p=>p.toLowerCase()===t); if(h) return {type:'persona',name:h};
   for(const p in PERSONA_ALIASES){ if(PERSONA_ALIASES[p].some(a=>a.toLowerCase()===t)) return {type:'persona',name:p}; }
   // a "·"-variant roster name written without the separator ("MontF" -> MONT·F, "JokerS" -> JOKER·S)
@@ -397,6 +407,7 @@ function _preFormat(text){
 function parseRotationText(text, opts){
   const warn=[];
   text=_preFormat(text);
+  _seedPreferChars(text);
   const forceDod=!!(opts&&opts.dod);
   const lines=text.split(/\r?\n/).map(s=>s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'')
     // strip a leading "Action N -" running-count annotation, but only when a turn marker follows ("Action 21 - T5: \u2026")
@@ -405,8 +416,14 @@ function parseRotationText(text, opts){
   // turn; the brk flag below keys off the leading "b". Same false-positive risk as the accepted "t" prefix.
   // the number may be negative ("T-2"/"T-1": setup turns counted back from the break) and the label may be
   // separated from its actions by a comma ("T-2, Twins S1") as well as by a colon/space.
-  const reInline=/^\s*(turn|break|t|b)\s*(-?\d+)(?:\s*[:.,)]\s*|\s+)(.+)$/i;
-  const reAlone=/^\s*(turn|break|t|b)\s*(-?\d+)\s*[:.)]?\s*$/i;
+  // "bt" before "b"/"t" so "BT1" (a Break Turn) is read as one break-turn header, not "b"+"t1".
+  const reInline=/^\s*(turn|break|bt|b|t)\s*(-?\d+)(?:\s*[:.,)]\s*|\s+)(.+)$/i;
+  const reAlone=/^\s*(turn|break|bt|b|t)\s*(-?\d+)\s*[:.)]?\s*$/i;
+  // a Miku "Concert" burst is a break turn with a word label instead of a number ("IN CONCERT - …",
+  // "OUT OF CONCERT"); it is numbered positionally with the other breaks. Synthetic high nums keep text order.
+  const reConcertIn=/^\s*(?:(?:in|out\s+of|out|during|post|after)\s+)?concert\b\s*[-:.–—]\s*(.+)$/i;
+  const reConcertAlone=/^\s*(?:(?:in|out\s+of|out|during|post|after)\s+)?concert\b\s*[-:.]?\s*$/i;
+  let _concertSeq=0;
   // "W1"/"W2" (weak/break phase). Only honored AFTER a standalone BREAK divider, so the
   // "W1:/W2:" lines that often appear in Defense/Crit-calc notes are not mistaken for turns.
   const reWInline=/^\s*(w)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
@@ -421,7 +438,7 @@ function parseRotationText(text, opts){
     if(/^\s*<\s*(?:weak(?:ness)?|break)\b[^>]*>\s*$/i.test(ln)) return true;   // "<WEAKNESS>" phase marker
     const toks=String(ln||'').trim().split(/\s+/);
     return toks.length>=3 && toks.every(t=>t.length<=1) && reBreakDiv.test(toks.join('')); };
-  const isTurnStart=s=>reInline.test(s)||reAlone.test(s)||reWInline.test(s)||reWAlone.test(s);
+  const isTurnStart=s=>reInline.test(s)||reAlone.test(s)||reWInline.test(s)||reWAlone.test(s)||reConcertIn.test(s)||reConcertAlone.test(s);
   // classify lines: turn vs header  (a "Break N" line is a turn too, flagged brk)
   const turnEntries=[]; const headerLines=[]; const lineIsTurn=new Array(lines.length).fill(false);
   let afterBreak=false;
@@ -431,9 +448,13 @@ function parseRotationText(text, opts){
     let m=lines[i].match(reInline);
     if(m){ turnEntries.push({num:+m[2],content:m[3],brk:/^b/i.test(m[1])||afterBreak}); lineIsTurn[i]=true; continue; }
     if(afterBreak){ m=lines[i].match(reWInline); if(m){ turnEntries.push({num:+m[2],content:m[3],brk:true}); lineIsTurn[i]=true; continue; } }
+    m=lines[i].match(reConcertIn);
+    if(m){ turnEntries.push({num:1000+(_concertSeq++),content:m[1],brk:true}); lineIsTurn[i]=true; afterBreak=true; continue; }
     m=lines[i].match(reAlone);
     if(m){ lineIsTurn[i]=true; turnEntries.push({num:+m[2],content:grabContent(i),brk:/^b/i.test(m[1])||afterBreak}); continue; }
     if(afterBreak){ m=lines[i].match(reWAlone); if(m){ lineIsTurn[i]=true; turnEntries.push({num:+m[2],content:grabContent(i),brk:true}); continue; } }
+    m=lines[i].match(reConcertAlone);
+    if(m){ lineIsTurn[i]=true; turnEntries.push({num:1000+(_concertSeq++),content:grabContent(i),brk:true}); afterBreak=true; continue; }
   }
   for(let i=0;i<lines.length;i++){ if(!lineIsTurn[i]&&lines[i].trim()) headerLines.push(lines[i].trim()); }
 
@@ -1188,5 +1209,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A148';
+  _g.VF_PARSER_VERSION = 'A149';
 })();
