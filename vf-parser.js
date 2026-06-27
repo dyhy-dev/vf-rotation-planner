@@ -858,7 +858,7 @@ function parseRotationText(text, opts){
       // skill list at all (very likely a passive), goes to the note — under its canonical name when known.
       const skills=[], noteParts=noteStr?[noteStr]:[];
       skillStr.split(/[\/,+]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{
-        if(/^(sig|signature)$/i.test(s)) return;
+        if(/^(sig|signature|start|starter|starting|lead|leader)$/i.test(s)) return;   // "(start)"/"(lead)" just marks the opening persona
         const k=s.toLowerCase();
         const canon=SKILL_ALIAS_MAP[k]||SKILL_ABBR[k]||SKILL_ALIAS_MAP[k.replace(/[\s-]+/g,'-')]||SKILL_ALIAS_MAP[k.replace(/[\s-]+/g,' ')]||'';
         if(canon){ if(canon.toLowerCase()===sig) return;   // own signature is innate
@@ -1181,5 +1181,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A146';
+  _g.VF_PARSER_VERSION = 'A147';
 })();
