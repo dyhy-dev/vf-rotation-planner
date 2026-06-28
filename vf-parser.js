@@ -29,6 +29,12 @@ function lev(a,b){ a=_n(a);b=_n(b);const m=a.length,n=b.length;if(!m)return n;if
 // chars that are unambiguously present in the rotation text; used to break alias collisions (e.g. "Sumi" is
 // an alias for BOTH Sepia and Violet — when Kasumi/Violet is clearly on the team, "Sumi" resolves to Violet).
 let _preferChars=new Set();
+// whether the Twins are actually on the team (explicit name/alias, or a Twins dual-element highlight). A bare
+// "Button" only maps to the Twins' J&C button when they are; otherwise it's a lead button (e.g. Turbo's).
+let _teamHasTwins=false;
+function _scanTwins(text){ const t=String(text||'');
+  return /\b(twins|justine|caroline)\b/i.test(t) ||
+    /\b(?:fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\s*[\/+]\s*(?:fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\b/i.test(t); }
 function _seedPreferChars(text){ _preferChars=new Set();
   const counts={}; for(const c in CHAR_ALIASES) CHAR_ALIASES[c].forEach(a=>{ const k=a.toLowerCase(); (counts[k]=counts[k]||new Set()).add(c); });
   const toks=String(text||'').match(/[A-Za-z·]{2,}/g)||[];
@@ -307,7 +313,7 @@ function parseTurnContent(content,warn){
       // actions follow ("Button + Turbo S2", "Button + S2 + S3") the button is the lead button of that actor /
       // re-assigned by turn order, never the Twins.
       if(!cur && /^(button|btn)$/i.test(seg)){
-        const rest=segs.slice(_si+1); const twinsCase = !rest.length || rest.every(s=>/^g(?:(?:ua|au)rds?)?$/i.test(s.trim()));
+        const rest=segs.slice(_si+1); const twinsCase = _teamHasTwins && (!rest.length || rest.every(s=>/^g(?:(?:ua|au)rds?)?$/i.test(s.trim())));
         if(!twinsCase){ pendingLead.push({btn:'ALT',text:''}); continue; }
         actions.push({char:'TWINS',btn:'ALT',text:''}); cur={type:'char',name:'TWINS',btnGuard:true}; lastActor=cur; continue; }
       // a bare "BOOM" with no actor is Ryuji's (SKULL) explosive Alt button, not a floating ALT for the last actor
@@ -448,6 +454,7 @@ function parseRotationText(text, opts){
   const warn=[];
   text=_preFormat(text);
   _seedPreferChars(text);
+  _teamHasTwins=_scanTwins(text);
   const forceDod=!!(opts&&opts.dod);
   const lines=text.split(/\r?\n/).map(s=>s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'')
     // strip a leading "Action N -" running-count annotation, but only when a turn marker follows ("Action 21 - T5: \u2026")
@@ -1401,5 +1408,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A177';
+  _g.VF_PARSER_VERSION = 'A178';
 })();
