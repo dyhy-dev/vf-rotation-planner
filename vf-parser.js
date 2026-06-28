@@ -1300,10 +1300,16 @@ function parseRotationText(text, opts){
   // use a slot. A "+"-chained extra stays with the same unit; a same-button follow-up (SEES theurgy) too. Runs
   // after lone-Guard resolution so the Guard takes its slot first and the bare action takes the next one.
   { const eluN=(elucidator&&elucidator.name||'').toUpperCase();
-    const slot=units.map(u=>(u.name||'').toUpperCase()).filter(Boolean);
     const usesMain=a=>{ const cn=(a.char||'').toUpperCase(); if(!cn) return false;
       if(cn==='WONDER') return !a.hl && !!((a.skill||'').trim()||(a.btn||'').trim()||(a.text||'').trim());
       return _mainBtn(a); };
+    // slot order: an explicit "Turn order" header wins; otherwise it's the order units first take an explicit
+    // (non-bare) main action — e.g. the "Guard all" guards in turn 1 — which is more reliable for a bare-heavy
+    // compact rotation than the provisional placement order. Any unit not seen falls back to placement order.
+    const slot=[]; const addSlot=n=>{ if(n && !slot.includes(n)) slot.push(n); };
+    if(explicitOrder) units.forEach(u=>addSlot((u.name||'').toUpperCase()));
+    turns.forEach(t=>(t.actions||[]).forEach(a=>{ if(a._bare||a._bareNew)return; const cn=(a.char||'').toUpperCase(); if(cn&&cn!==eluN&&usesMain(a))addSlot(cn); }));
+    units.forEach(u=>addSlot((u.name||'').toUpperCase()));
     turns.forEach(t=>{ const acted=new Set(); let pbBtn='',pbUnit='';
       (t.actions||[]).forEach(a=>{
         if(!a._bare && !a._bareNew){ const cn=(a.char||'').toUpperCase(); if(cn && cn!==eluN && usesMain(a)) acted.add(cn); pbBtn=''; pbUnit=''; return; }
@@ -1408,5 +1414,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A178';
+  _g.VF_PARSER_VERSION = 'A179';
 })();
