@@ -824,8 +824,8 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
-.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; transform-origin:bottom right; transition:opacity .2s ease, transform .2s ease}
-.edit-bar:not(.eb-open){opacity:0; transform:scale(.55); pointer-events:none}   /* closed: collapse toward the corner where the chevron sits */
+.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; transition:width .25s ease}
+.edit-bar.eb-clip{overflow:hidden}   /* clip the content while the bar widens/contracts; dropped when fully open so the Export menu can overflow */
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
 .eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
 .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
@@ -848,8 +848,8 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .edit-bar.collapsed #ebMin svg{transform:rotate(180deg)}
 .edit-bar.collapsed #ebExportWrap, .edit-bar.collapsed #ebView, .edit-bar.collapsed #ebSave{display:none}
 /* the lone restore chevron shown when the whole bar is hidden; height matches the bar so it doesn't jump */
-.eb-show{position:fixed; bottom:16px; right:16px; z-index:1400; width:30px; height:54px; padding:0; background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transform-origin:bottom right; transition:opacity .2s ease, transform .2s ease}
-.eb-show.eb-gone{opacity:0; transform:scale(.55); pointer-events:none}
+.eb-show{position:fixed; bottom:16px; right:16px; z-index:1400; width:30px; height:54px; padding:0; background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:opacity .18s ease}
+.eb-show.eb-gone{opacity:0; pointer-events:none}
 .eb-show:hover{border-color:var(--gold); color:var(--gold)}
 .eb-show svg{display:block; width:18px; height:18px}
 @media (prefers-reduced-motion:reduce){ .edit-bar, .eb-show{transition:none} }
@@ -1751,32 +1751,44 @@ function histInit(){ clearTimeout(_histTimer); _hist=[_snap()]; _histIdx=0; upda
 function histPush(){ if(_restoring) return; clearTimeout(_histTimer);
   _histTimer=setTimeout(()=>{ const s=_snap(); if(!s||s===_hist[_histIdx]) return;
     _hist=_hist.slice(0,_histIdx+1); _hist.push(s); if(_hist.length>50) _hist.shift(); _histIdx=_hist.length-1;
-    if(_ebHidden && !_ebUserToggled) _ebHidden=false;   /* auto-open the bar the first time something changes */
-    updateEditBar(); }, 400); }
+    _ebUpdateDisabled(); _ebApplyMin();
+    if(_ebHidden && !_ebUserToggled){ _ebHidden=false; renderEditBarVis(true); }   /* auto-open (animated) the first time something changes */
+    else renderEditBarVis(false); }, 400); }
 function _histApply(){ _restoring=true; try{ state=migrate(JSON.parse(_hist[_histIdx])); save(); renderAll(); }catch(e){} _restoring=false; updateEditBar(); }
 function histUndo(){ if(_histIdx>0){ clearTimeout(_histTimer); _histIdx--; _histApply(); } }
 function histRedo(){ if(_histIdx<_hist.length-1){ clearTimeout(_histTimer); _histIdx++; _histApply(); } }
-function updateEditBar(){ const bar=document.getElementById('editBar'); if(!bar) return;
-  const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo');
-  if(u) u.disabled=_histIdx<=0; if(r) r.disabled=_histIdx>=_hist.length-1;
-  applyEditBarMin(); }
+function _ebUpdateDisabled(){ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo');
+  if(u) u.disabled=_histIdx<=0; if(r) r.disabled=_histIdx>=_hist.length-1; }
+function updateEditBar(){ if(!document.getElementById('editBar')) return; _ebUpdateDisabled(); _ebApplyMin(); renderEditBarVis(false); }
 function _ebIsMobile(){ try{ return window.matchMedia('(max-width:600px)').matches; }catch(e){ return false; } }
-/* drive the edit-bar's visibility:
-   - _ebHidden true  -> bar collapsed away, only the restore chevron shows (the default)
-   - _ebHidden false -> bar shows, collapsed (just undo/redo) or expanded
-   open/close is animated via the .eb-open / .eb-gone classes (not the hidden attribute, which can't transition).
-   editBarMin==null means "not chosen yet": default to collapsed on mobile (the full bar is too bulky there)
-   and expanded on desktop. */
-function applyEditBarMin(){ const bar=document.getElementById('editBar'); if(!bar) return;
-  bar.classList.toggle('eb-open', !_ebHidden); bar.setAttribute('aria-hidden', String(_ebHidden));
-  const sh=document.getElementById('ebShow'); if(sh){ sh.classList.toggle('eb-gone', !_ebHidden); sh.setAttribute('aria-hidden', String(!_ebHidden)); }
+/* minimize sub-state: collapse the bar to just the undo/redo control. editBarMin==null means "not chosen yet":
+   default to collapsed on mobile (the full bar is too bulky there) and expanded on desktop. */
+function _ebApplyMin(){ const bar=document.getElementById('editBar'); if(!bar) return;
   const min = settings.editBarMin==null ? _ebIsMobile() : !!settings.editBarMin;
   bar.classList.toggle('collapsed', min);
   const t=document.getElementById('ebMin'); if(t){ t.title=min?'Expand the bar':'Minimize the bar'; t.setAttribute('aria-label',t.title); t.setAttribute('aria-expanded',String(!min)); } }
+/* open/close visibility. The bar widens/contracts horizontally: we animate the measured width (so the content
+   isn't distorted the way a CSS transform would). When fully open we drop the inline width + overflow clip so
+   the upward Export menu can overflow freely. */
+let _ebAnimTimer=null;
+function renderEditBarVis(animate){ const bar=document.getElementById('editBar'); if(!bar) return;
+  const open=!_ebHidden, sh=document.getElementById('ebShow');
+  bar.classList.toggle('eb-open', open); bar.setAttribute('aria-hidden', String(!open)); bar.style.pointerEvents = open?'':'none';
+  if(sh){ sh.classList.toggle('eb-gone', open); sh.setAttribute('aria-hidden', String(open)); }
+  clearTimeout(_ebAnimTimer);
+  if(!animate){ bar.style.transition='none';
+    if(open){ bar.classList.remove('eb-clip'); bar.style.width=''; } else { bar.classList.add('eb-clip'); bar.style.width='0px'; }
+    bar.getBoundingClientRect(); bar.style.transition=''; return; }
+  bar.classList.add('eb-clip'); bar.style.transition='none';
+  bar.style.width='auto'; const full=bar.scrollWidth;   /* natural (expanded) width */
+  bar.style.width=(open?0:full)+'px'; bar.getBoundingClientRect();   /* start width, force reflow */
+  bar.style.transition=''; bar.style.width=(open?full:0)+'px';       /* animate to target */
+  _ebAnimTimer=setTimeout(()=>{ if(open){ bar.style.width=''; bar.classList.remove('eb-clip'); } }, 280);
+}
 function toggleEditBarMin(){ const bar=document.getElementById('editBar'); if(!bar) return;
-  settings.editBarMin = !bar.classList.contains('collapsed'); saveSettings(); applyEditBarMin(); }
-function hideEditBar(){ _ebHidden=true; _ebUserToggled=true; applyEditBarMin(); }
-function showEditBar(){ _ebHidden=false; _ebUserToggled=true; applyEditBarMin(); }
+  settings.editBarMin = !bar.classList.contains('collapsed'); saveSettings(); _ebApplyMin(); renderEditBarVis(false); }
+function hideEditBar(){ _ebHidden=true; _ebUserToggled=true; _ebApplyMin(); renderEditBarVis(true); }
+function showEditBar(){ _ebHidden=false; _ebUserToggled=true; _ebApplyMin(); renderEditBarVis(true); }
 
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
@@ -4910,7 +4922,7 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
     wireExportDropdown('ebExportWrap','ebExportBtn','ebExportMenu');
     updateEditBar(); };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireEditBar); else wireEditBar();
-  try{ const _ebmq=window.matchMedia('(max-width:600px)'); const _onEbm=()=>{ if(settings.editBarMin==null) applyEditBarMin(); };   /* re-apply the mobile default on rotation/resize while the user hasn't picked */
+  try{ const _ebmq=window.matchMedia('(max-width:600px)'); const _onEbm=()=>{ if(settings.editBarMin==null){ _ebApplyMin(); renderEditBarVis(false); } };   /* re-apply the mobile default on rotation/resize while the user hasn't picked */
     if(_ebmq.addEventListener) _ebmq.addEventListener('change',_onEbm); else if(_ebmq.addListener) _ebmq.addListener(_onEbm); }catch(e){}
   document.addEventListener('keydown', e=>{ if(!(e.metaKey||e.ctrlKey)) return; const k=(e.key||'').toLowerCase(); if(k!=='z'&&k!=='y') return;
     const ae=document.activeElement; if(ae && /^(input|textarea|select)$/i.test(ae.tagName||'')) return;
@@ -4975,6 +4987,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
 <button type="button" id="ebShow" class="eb-show" title="Show the toolbar" aria-label="Show the toolbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
-<div class="version-tag">260628i</div>
+<div class="version-tag">260628j</div>
 </body>
 </html>
