@@ -831,6 +831,9 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
 .eb-btn.eb-icon{width:40px; min-width:40px; padding:0}
 .eb-btn.eb-icon svg{display:block; width:18px; height:18px}
+.eb-btn.eb-icon-caret{width:auto; min-width:46px; gap:2px; padding:0 7px}
+.eb-btn.eb-icon-caret .eb-car{font-size:10px; font-weight:700; line-height:1; color:var(--muted)}
+.eb-btn.eb-icon-caret:hover:not(:disabled) .eb-car{color:var(--gold)}
 .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
 .eb-btn:disabled{opacity:.35; cursor:default}
 /* Apple-style segmented undo/redo control: two joined keys in a rounded pill with a hairline divider */
@@ -2524,6 +2527,7 @@ function refreshDiscrepancies(){
     eb.disabled=blocked; eb.classList.toggle('disabled', blocked);
     if(blocked) eb.title=blockTitle;
     else if(id==='ebView') eb.title='Open the read-only webview of this rotation in a new tab';
+    else if(id==='ebExportBtn') eb.title='Export (JSON, PNG, text, links, code)';   /* icon-only button: keep a tooltip */
     else eb.removeAttribute('title');
   });
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
@@ -4963,7 +4967,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   </div>
   <button type="button" id="ebImport" class="eb-btn eb-icon" title="Show the imported text" aria-label="Imported text" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
   <div class="dropdown eb-dropup" id="ebExportWrap">
-    <button type="button" class="eb-btn eb-text" id="ebExportBtn" aria-haspopup="true" aria-expanded="false">Export &#9662;</button>
+    <button type="button" class="eb-btn eb-icon eb-icon-caret" id="ebExportBtn" title="Export (JSON, PNG, text, links, code)" aria-label="Export" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><b class="eb-car">&#9662;</b></button>
     <div class="dropdown-menu" id="ebExportMenu" hidden>
       <button class="dropdown-item" data-export="json">JSON</button>
       <button class="dropdown-item" data-export="png-art">PNG &amp; Images</button>
@@ -4975,9 +4979,9 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
       <button class="dropdown-item" data-export="code">Copy Code</button>
     </div>
   </div>
-  <button type="button" id="ebView" class="eb-btn eb-text" title="Open the read-only webview of this rotation in a new tab">Webview</button>
-  <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
+  <button type="button" id="ebView" class="eb-btn eb-icon" title="Open the read-only webview of this rotation in a new tab" aria-label="Open the read-only webview in a new tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg></button>
+  <button type="button" id="ebSave" class="eb-btn eb-icon" title="Save to your library" aria-label="Save to your library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
 </div>
-<div class="version-tag">260628l</div>
+<div class="version-tag">260628m</div>
 </body>
 </html>
