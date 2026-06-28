@@ -139,9 +139,14 @@ function matchDagger(str){ const t=_n(str);
   let h=DATA.daggerNames.find(d=>d.toLowerCase()===t)||DATA.daggerNames.find(d=>d.toLowerCase().startsWith(t)&&t.length>=3);
   // input is the significant word(s) of a dagger name, ignoring filler ("Compass" -> "Starry Compass")
   if(!h && t.length>=3){ const stop=new Set(['of','the','a','an','and','de','la']);
-    const inW=t.split(/\s+/).filter(w=>w&&!stop.has(w));
-    if(inW.length){ let best='',bestLen=1e9;
-      for(const d of DATA.daggerNames){ const dW=d.toLowerCase().split(/\s+/).filter(w=>w&&!stop.has(w));
+    // "knife"/"dagger"/"sword" are all generic words for a dagger — fold them into "blade" so a casual rename
+    // resolves ("Plasma Knife" -> Plasma Blade, "Arc Blade" -> Arc Knife). Require at least one NON-generic word
+    // so a bare "Blade"/"Dagger" never matches (e.g. an inline "Dagger: Plasma Blade" header stays unmatched here
+    // and is handled by the dedicated dagger-header path) — and so the roster's two-word names can't collide.
+    const SYN={knife:'blade',blade:'blade',dagger:'blade',sword:'blade'}; const syn=w=>SYN[w]||w;
+    const inRaw=t.split(/\s+/).filter(w=>w&&!stop.has(w)); const inW=inRaw.map(syn);
+    if(inW.length && inRaw.some(w=>!SYN[w])){ let best='',bestLen=1e9;
+      for(const d of DATA.daggerNames){ const dW=d.toLowerCase().split(/\s+/).filter(w=>w&&!stop.has(w)).map(syn);
         // every input word is a word of this dagger; prefer the dagger with the fewest extra words
         if(inW.every(iw=>dW.includes(iw)) && dW.length<bestLen){ best=d; bestLen=dW.length; } }
       if(best) h=best; } }
@@ -263,6 +268,11 @@ function parseTurnContent(content,warn){
   // a Twins dual element written with a "+" joiner ("F+I", "Elec+Wind") must not be split into two actions
   // by the "+" separator below — normalise it to a slash so the dual detector sees "F/I" / "Elec/Wind".
   content=String(content||'').replace(/\b(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\s*\+\s*(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\b/ig,'$1/$2');
+  // an arrow connector ("Dio Rev -> Akechi", "S1 => Twins", "Taru → Akechi") marks a TARGET, not an action
+  // separator: collapse it to a space so the following name stays a trailing target of the preceding action
+  // (splitMidActor re-derives a real boundary if a code follows, e.g. "S1 -> Twins S2"). Done before splitTop,
+  // which otherwise splits on the ">" of "->" and strands a leftover "-" plus a bogus empty actor.
+  content=content.replace(/\s*(?:[-–—=]{1,3}>|→|⟶|➜|➔)\s*/g,' ');
   // a leading separator dash/colon left over from the turn label ("T2 - Yurl ..." -> content "- Yurl ...")
   // or written before a unit; strip it so the first action isn't lost as an unrecognised "- Actor".
   let lastActor=null;
@@ -1414,5 +1424,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A179';
+  _g.VF_PARSER_VERSION = 'A180';
 })();
