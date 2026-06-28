@@ -1221,6 +1221,12 @@ function parseRotationText(text, opts){
       if(cand){ hp=p.name; hs=cand; break; } }
     turns.forEach(t=>(t.actions||[]).forEach(a=>{ if(!a._heal)return; delete a._heal;
       if(hp){ a.persona=hp; a.skill=hs; } else { a.text='Heal'; warn.push('Heal (no healing persona skill found)'); } })); }
+  // a Violet action that only names a team-mate as its target (no button/skill/HL) is her S2 — the only Violet
+  // skill that can target an ally (Dennis): "Violet (Wonder)" -> Violet S2 on Wonder.
+  { const team=new Set([...units,elucidator].map(u=>(u.name||'').toUpperCase()).filter(Boolean));
+    turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='VIOLET'||a.btn||a.skill||a.hl) return;
+      const tgt=String(a.text||'').replace(/[()[\]]/g,' ').trim().split(/\s+/)[0]; const ra=tgt?resolveActor(tgt):null;
+      if(ra && !ra.fuzzy && ra.type==='char' && team.has(ra.name)) a.btn='S2'; })); }
   // personas -> 3 slots
   const pslots=[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}];
   personas.slice(0,3).forEach((p,i)=>pslots[i]=p);
@@ -1332,5 +1338,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A165';
+  _g.VF_PARSER_VERSION = 'A166';
 })();
