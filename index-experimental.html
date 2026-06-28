@@ -824,11 +824,21 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
-.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 30px #0008}
+.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 30px #0008}
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
 .eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
 .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
 .eb-btn:disabled{opacity:.35; cursor:default}
+/* Apple-style segmented undo/redo control: two joined keys in a rounded pill with a hairline divider */
+.eb-seg{display:inline-flex; height:40px; background:var(--field); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.eb-seg-btn{width:42px; height:100%; padding:0; background:transparent; border:none; color:var(--text); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:background .12s ease, color .12s ease}
+.eb-seg-btn+.eb-seg-btn{border-left:1px solid var(--line)}
+.eb-seg-btn:hover:not(:disabled){background:var(--line); color:var(--gold)}
+.eb-seg-btn:active:not(:disabled){background:var(--gold); color:#1a1626}
+.eb-seg-btn:disabled{opacity:.3; cursor:default}
+.eb-seg-btn svg{display:block; width:18px; height:18px}
+/* the bar sits at the bottom, so its Export menu opens upward and stays clear of the bar */
+.eb-dropup .dropdown-menu{top:auto; bottom:calc(100% + 6px)}
 .ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
 .ac-undo[hidden]{display:none}
 .ac-undo .ac-undo-x{background:transparent; border:none; color:#5a4a10; font-size:18px; line-height:1; cursor:pointer; padding:0 2px}
@@ -2465,14 +2475,16 @@ function refreshDiscrepancies(){
   const nExcess=excessBreakTurns().length;
   const total=nChar+nOrd+nExcess;
   const iss=setupIssues();
-  const eb=document.getElementById('exportMenuBtn');
-  if(eb){
-    const blocked = total>0 || !iss.ok;
+  const blocked = total>0 || !iss.ok;
+  let blockTitle='';
+  if(total>0) blockTitle='Resolve the discrepancies before exporting.';
+  else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); blockTitle='Complete the setup first: '+parts.join('; ')+'.'; }
+  ['exportMenuBtn','ebExportBtn','ebView'].forEach(id=>{ const eb=document.getElementById(id); if(!eb) return;
     eb.disabled=blocked; eb.classList.toggle('disabled', blocked);
-    if(total>0) eb.title='Resolve the discrepancies before exporting.';
-    else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); eb.title='Complete the setup first: '+parts.join('; ')+'.'; }
+    if(blocked) eb.title=blockTitle;
+    else if(id==='ebView') eb.title='Open the read-only webview of this rotation in a new tab';
     else eb.removeAttribute('title');
-  }
+  });
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
   if(total>0){ if(total>_prevDiscCount) showDiscBanner(); }
   else { hideDiscBanner(); }
@@ -4731,11 +4743,12 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     document.addEventListener('mousemove', mmove); document.addEventListener('mouseup', mup);
   });
 })();
-(function(){
-  const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
+/* wire an Export dropdown (used for both the toolbar one and the floating edit-bar one) */
+function wireExportDropdown(wrapId, btnId, menuId){
+  const wrap=document.getElementById(wrapId), btn=document.getElementById(btnId), menu=document.getElementById(menuId);
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); if(btn.disabled) return; const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.export; close();
     if(k==='json') exportJSON();
     else if(k==='png-art') exportImage(true);
@@ -4746,7 +4759,9 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     else if(k==='viewlink') openShareViewLink();
     else if(k==='code') openCopyCode();
   }; });
-})();
+}
+wireExportDropdown('exportWrap','exportMenuBtn','exportMenu');
+/* the edit-bar Export dropdown is wired in the deferred wireEditBar() below — the bar sits after this script in the DOM */
 
 const CHAR_ALIASES = {"MIKU":["Hatsune Miku","Hatsune","HM"],"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·B":["Marian","Minami","Summer","SMarian","SMinami","MARIAN·S","Beachflower","BMarian","BMinami","Binami","Barian"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","CrackRin","Crack","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
 const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy Worm"]};
@@ -4842,8 +4857,11 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
 state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll(); histInit();
 /* editor undo/redo bar wiring (deferred: the bar sits after this script in the DOM) + keyboard shortcuts
    (skip Cmd/Ctrl+Z while typing in a field so native text-undo still works) */
-{ const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave');
-    if(u) u.onclick=histUndo; if(r) r.onclick=histRedo; if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation(); updateEditBar(); };
+{ const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave'), vw=document.getElementById('ebView');
+    if(u) u.onclick=histUndo; if(r) r.onclick=histRedo; if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
+    if(vw) vw.onclick=async()=>{ if(vw.disabled) return; let url; try{ url=await shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; } try{ window.open(url,'_blank','noopener'); }catch(e){} };
+    wireExportDropdown('ebExportWrap','ebExportBtn','ebExportMenu');
+    updateEditBar(); };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireEditBar); else wireEditBar();
   document.addEventListener('keydown', e=>{ if(!(e.metaKey||e.ctrlKey)) return; const k=(e.key||'').toLowerCase(); if(k!=='z'&&k!=='y') return;
     const ae=document.activeElement; if(ae && /^(input|textarea|select)$/i.test(ae.tagName||'')) return;
@@ -4883,10 +4901,26 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
 <div id="editBar" class="edit-bar" hidden>
-  <button type="button" id="ebUndo" class="eb-btn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled>&#8630;</button>
-  <button type="button" id="ebRedo" class="eb-btn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled>&#8631;</button>
+  <div class="eb-seg">
+    <button type="button" id="ebUndo" class="eb-seg-btn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button type="button" id="ebRedo" class="eb-seg-btn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14 20 9l-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
+  </div>
+  <div class="dropdown eb-dropup" id="ebExportWrap">
+    <button type="button" class="eb-btn eb-text" id="ebExportBtn" aria-haspopup="true" aria-expanded="false">Export &#9662;</button>
+    <div class="dropdown-menu" id="ebExportMenu" hidden>
+      <button class="dropdown-item" data-export="json">JSON</button>
+      <button class="dropdown-item" data-export="png-art">PNG &amp; Images</button>
+      <button class="dropdown-item" data-export="png">PNG (no Images)</button>
+      <button class="dropdown-item" data-export="png-rot">PNG (Rotation only)</button>
+      <button class="dropdown-item" data-export="text">Text</button>
+      <button class="dropdown-item" data-export="link">Share Editor Link</button>
+      <button class="dropdown-item" data-export="viewlink">Share View Link</button>
+      <button class="dropdown-item" data-export="code">Copy Code</button>
+    </div>
+  </div>
+  <button type="button" id="ebView" class="eb-btn eb-text" title="Open the read-only webview of this rotation in a new tab">Webview</button>
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
-<div class="version-tag">260627l</div>
+<div class="version-tag">260628a</div>
 </body>
 </html>
