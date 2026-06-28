@@ -2950,7 +2950,7 @@ async function shortenLink(fragment){
   }
   if(btn) btn.disabled=true; if(hint) hint.textContent='Creating short link…';
   try{
-    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({f:fragment})});
+    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({f:fragment, title:discordLabel()})});
     if(!res.ok) throw new Error('http '+res.status);
     const data=await res.json();
     if(!data||!data.url) throw new Error('no url');
@@ -4887,6 +4887,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebRedo" class="eb-btn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled>&#8631;</button>
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
-<div class="version-tag">260627k</div>
+<div class="version-tag">260627l</div>
 </body>
 </html>
