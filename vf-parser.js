@@ -517,6 +517,11 @@ function parseRotationText(text, opts){
   for(let i=0;i<headerLines.length && !setup.credits;i++){
     const cm=headerLines[i].match(/\b[Cc]redits?\s+(?:[Tt]o|[Bb]y|[Ff]rom)\s+([A-Z][\w.]*(?:\s*(?:,|&|\+|and)\s*[A-Z][\w.]*)*)/);
     if(cm){ setup.credits=cm[1].trim(); got.credit=1; } }
+  // a bare "Credit(s) <name>" line — the name may be non-ASCII (a Japanese handle like "らどぅが") which the
+  // ASCII-only title heuristics would drop, leaving "Credit" as a bogus credit. Consume the whole line here.
+  for(let i=0;i<headerLines.length && !setup.credits;i++){
+    const cm=headerLines[i].match(/^\s*credits?\b\s*[:–—\-]?\s+(\S.*)$/i);
+    if(cm){ const v=cm[1].trim(); if(v && !/^(to|by|from)\b/i.test(v) && !matchBoss(v)){ setup.credits=v; got.credit=1; headerLines[i]=' '; } } }
 
   // title (first header line) -> boss/mode/patch
   let titleConsumed=false;
@@ -1268,5 +1273,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A154';
+  _g.VF_PARSER_VERSION = 'A155';
 })();
