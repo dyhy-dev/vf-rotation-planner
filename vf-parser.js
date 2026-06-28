@@ -558,6 +558,7 @@ function parseRotationText(text, opts){
   // once a stats/calc section starts, every following line is a note — never a team/persona/card line,
   // so "A1 Noir is -18", "A0R0 S.Moko: 12.1" etc. are kept verbatim instead of read as team members.
   let inNotesSection=false;
+  const sectionNotes=new Set();   // note lines that came from a calc/stats section -> kept as team notes, not routed to a unit
   const reNotesSection=/^\**\s*(stats|crit\s*rate|pierce\s*rate|(?:\w+\s+)?calcs?|alternatives?|damage)\s*:?\s*\**\s*$/i;
   for(let hi=0; hi<headerLines.length; hi++){
     let line=headerLines[hi];
@@ -578,9 +579,9 @@ function parseRotationText(text, opts){
       if(_markTurnOrder(line)) continue;
       if(/[>›→]/.test(line)){ const og=line.split(/\s*[>›→]\s*/).map(x=>x.trim()).filter(Boolean);
         if(og.length>=2 && og.every(sg=>{ const a=resolveActor(sg.split(/\s+/)[0]); return a&&a.type==='char'; })) continue; }
-      noteLines.push(line); continue;
+      noteLines.push(line); sectionNotes.add(line); continue;
     }
-    if(reNotesSection.test(line)){ inNotesSection=true; noteLines.push(line); continue; }
+    if(reNotesSection.test(line)){ inNotesSection=true; noteLines.push(line); sectionNotes.add(line); continue; }
 
     // peel inline labels from a packed non-title header line ("A0 Mont F … credit : X - Est score : 60-70 mils
     // Notes :") so the credit + score survive instead of the whole line being read as one unit's build. Only
@@ -1337,7 +1338,9 @@ function parseRotationText(text, opts){
     const roleOf=u=>{ const nm=(u.name||'').toUpperCase(); if(!nm)return ''; return nm==='TWINS' ? (u.role||'') : (_cls[nm]||''); };
     const carrier=[...units,elucidator].find(u=>/^(assassin|sweeper)$/i.test(roleOf(u)));
     if(carrier){ const keep=[],moved=[];
-      noteLines.forEach(ln=>{ (STAT_REQ.test(ln)?moved:keep).push(ln); });
+      // a floating "15.3 combined pierce" goes to the carrier; lines inside a Calcs/Stats section stay team notes
+      // (they reference several units, not just the carrier)
+      noteLines.forEach(ln=>{ (STAT_REQ.test(ln) && !sectionNotes.has(ln) ? moved : keep).push(ln); });
       if(moved.length){ carrier.note=(carrier.note?carrier.note+' ':'')+moved.join(' '); noteLines.length=0; noteLines.push(...keep); } } }
 
   // mode inference: two Assassin/Sweeper carriers on the team strongly implies a NOD (multi-target) rotation.
@@ -1386,5 +1389,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A173';
+  _g.VF_PARSER_VERSION = 'A174';
 })();
