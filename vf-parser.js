@@ -582,6 +582,14 @@ function parseRotationText(text, opts){
   const reNotesSection=/^\**\s*(stats|crit\s*rate|pierce\s*rate|(?:\w+\s+)?calcs?|alternatives?|damage)\s*:?\s*\**\s*$/i;
   for(let hi=0; hi<headerLines.length; hi++){
     let line=headerLines[hi];
+    // an ordered-list marker on a party/persona/build line ("1. Wonder: Plasma", "2) Twins - …"): turns were
+    // already separated, so stripping it here lets the entry parse like a bulleted one. Only strip when the
+    // remainder is clearly such an entry (its leading name resolves to a unit/persona, or it's a Wonder/dagger
+    // line) — so a numbered prose note ("1. Hit the adds first") keeps its marker. Skip the title line.
+    if(hi>0){ const stripped=line.replace(/^\s*\d{1,2}[.)]\s+/,'');
+      if(stripped!==line){ const head=(stripped.split(/\s*[:\-–—]\s/)[0]||'').trim();
+        const a=resolveActor((head||stripped).split(/\s+/)[0]||'');
+        if(/^wonder\b/i.test(stripped) || (a&&(a.type==='char'||a.type==='persona')) || matchDagger(head)) line=stripped; } }
     let low=line.toLowerCase();
     // a leading team-role keyword before a char build line ("Strategist Twins a1r2 …", "Guardian Junpei R6"):
     // the role only varies for the Twins (other chars have a fixed role), so remember it for them and strip it
@@ -1424,5 +1432,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A180';
+  _g.VF_PARSER_VERSION = 'A181';
 })();
