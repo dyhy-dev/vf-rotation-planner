@@ -1874,7 +1874,7 @@ function renderHead(){
     <div class="meta meta-big">
       <div class="type-field"><label>Mode</label><div class="tier type-${(s.type||'').toLowerCase()}"><select id="f_type">${opt(DATA.typeOpts,s.type)}</select></div></div>
       <div class="field"><label>Boss</label><span class="combo-wrap"><input id="f_boss" class="combo" data-combo="boss" autocomplete="off" placeholder="Choose Boss" value="${esc(s.boss)}"/><button type="button" class="combo-clear" tabindex="-1" aria-label="Clear">×</button></span></div>
-      <div class="field side-field"><label>Side</label><select id="f_side"><option value=""${s.side?'':' selected'}>—</option><option value="Strong"${s.side==='Strong'?' selected':''}>Strong</option><option value="Weak"${s.side==='Weak'?' selected':''}>Weak</option></select></div>
+      <div class="field side-field"><label>Side</label><select id="f_side"><option value=""${s.side?'':' selected'}></option><option value="Strong"${s.side==='Strong'?' selected':''}>Strong</option><option value="Weak"${s.side==='Weak'?' selected':''}>Weak</option></select></div>
       <div class="field patch-field"><label>Patch</label><input id="f_patch" value="${esc(s.patch)}"/></div>
       <div class="field score-field"><label>Expected Score</label><input id="f_score" value="${esc(s.score)}"/></div>
       <div class="field credits-field"><label>Credits</label><textarea id="f_credits" rows="1" spellcheck="false">${esc(s.credits||'')}</textarea></div>
@@ -2331,6 +2331,7 @@ function nameSuggestions(){
   const tc=x=>titleCase((x||'').trim());
   const boss=tc(s.boss), mode=(s.type||'').trim(), patch=(s.patch||'').trim(), score=(s.score||'').trim();
   const tier=(s.tier==='F2P')?'F2P':tc(s.tier);
+  const side=(s.side||'').trim();
   const team=(state.units||[]).map(u=>(u.name||'').trim()).filter(n=>n && n.toUpperCase()!=='WONDER').map(n=>n.toUpperCase()===MIKU_NAME?'Miku':titleCase(n));
   const carry=team[0]||'', duo=team.slice(0,2).join(' + '), trio=team.slice(0,3).join(' + ');
   const out=[]; const push=x=>{ x=(x||'').trim().replace(/\s+/g,' '); if(x && !out.includes(x)) out.push(x); };
@@ -2346,6 +2347,10 @@ function nameSuggestions(){
   if(boss&&score) push(boss+' '+score);
   if(mode&&boss&&score) push(mode+' '+boss+' '+score);
   if(duo&&boss&&mode) push(duo+' '+boss+' '+mode);
+  if(boss&&side) push(side+' '+boss);
+  if(boss&&side&&mode) push(boss+' '+side+' '+mode);
+  if(carry&&boss&&side) push(carry+' vs '+side+' '+boss);
+  if(side&&mode&&!boss) push(side+' '+mode);
   if(boss&&!mode) push(boss);
   return out;
 }
@@ -4840,6 +4845,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260627f</div>
+<div class="version-tag">260627g</div>
 </body>
 </html>
