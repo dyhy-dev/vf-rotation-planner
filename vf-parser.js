@@ -190,10 +190,12 @@ function buildActions(actor,toks,raw,warn){
   if(isW){ const hl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
     const pname=actor.type==='persona'?actor.name:'';
     const rest2=toks.filter(t=>_n(t).replace(/[().]/g,'')!=='hl');
-    // Wonder acting as the unit itself (no persona) leading with a standard button -> set the button, not skill text ("Wonder Guard")
-    if(!pname && rest2.length){ const c0=codeOf(rest2[0]);
-      if(c0){ const tail=rest2.slice(1).join(' ').trim();
-        return [{char:'WONDER',btn:c0.btn,text:[c0.extra,tail].filter(Boolean).join(' '),hl,_fuzzy:!!actor.fuzzy}]; } }
+    // a leading standard button is the action's button, not skill text: for Wonder-as-the-unit ("Wonder Guard")
+    // any code; for a persona only the main buttons S1/S2/S3/Atk/Gn/Gd ("Sraosha S2"), so "Sraosha Sig"/"…Masq"
+    // (which map to ALT) stay the persona's signature skill, matching the bare-button path.
+    if(rest2.length){ const c0=codeOf(rest2[0]);
+      if(c0 && (!pname || /^(S[123]|Atk|Gn|Gd)$/.test(c0.btn))){ const tail=rest2.slice(1).join(' ').trim();
+        return [{char:'WONDER',persona:pname,btn:c0.btn,text:[c0.extra,tail].filter(Boolean).join(' '),hl,_fuzzy:!!actor.fuzzy}]; } }
     const text=expandSkillText(rest2.join(' ').trim(), pname);
     return [{char:'WONDER',persona:pname,hl,skill:'',text,_fuzzy:!!actor.fuzzy}]; }
   // character: one action per action-code; non-code tokens attach as text to the current code.
@@ -1330,5 +1332,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A164';
+  _g.VF_PARSER_VERSION = 'A165';
 })();
