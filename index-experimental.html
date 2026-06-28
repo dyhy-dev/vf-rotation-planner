@@ -1839,6 +1839,12 @@ function openImportText(){
 
 /* Credits field auto-fit: keep the whole value visible inside the fixed-height box,
    wrapping to at most 2 lines and shrinking the font size when needed. */
+/* shrink the Expected Score font so a long value (e.g. "1,000,000,000") is never cut off in the narrow field */
+function fitScore(){
+  const el=document.getElementById('f_score'); if(!el) return;
+  const MAXF=20, MINF=11; let fs=MAXF; el.style.fontSize=MAXF+'px';
+  while(el.scrollWidth>el.clientWidth && fs>MINF){ fs--; el.style.fontSize=fs+'px'; }
+}
 function fitCredits(){
   const el=document.getElementById('f_credits'); if(!el) return;
   const BOX=56, MAXF=20, MINF=10, prevH=el.style.height;
@@ -1923,7 +1929,7 @@ function renderHead(){
   bind('f_boss','setup.boss');
   { const sd=document.getElementById('f_side'); if(sd) sd.onchange=()=>{ state.setup.side=sd.value; save(); }; }
   bind('f_patch','setup.patch', normalizePatch); bind('f_score','setup.score', normalizeScore);
-  (function(){ const el=document.getElementById('f_score'); if(el){ const base=el.oninput; el.oninput=()=>{ liveGroupScore(el); if(base) base(); }; } })();
+  (function(){ const el=document.getElementById('f_score'); if(el){ const base=el.oninput; el.oninput=()=>{ liveGroupScore(el); if(base) base(); fitScore(); }; fitScore(); requestAnimationFrame(fitScore); } })();
   paintImp();
   paintSetupValidity(); refreshDiscrepancies();
 }
