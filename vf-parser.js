@@ -274,7 +274,7 @@ function parseTurnContent(content,warn){
           let take=1; if(/^wonder$/i.test(rest[0]) && rest[1] && (resolveActor(rest[1])||{}).type==='persona') take=2;
           s=rest.slice(0,take).concat(hm[1],rest.slice(take)).join(' '); } }
       splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }); }));
-    for(const seg of segs){
+    for(let _si=0;_si<segs.length;_si++){ const seg=segs[_si];
       let toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
       // an auto-cast / follow-up segment ("auto s3", "sumi auto s1", "twins auto s3", "Violet Auto HL") is just
       // a consequence of another action -> ignore it (standalone "auto" token; hyphenated passive "Auto-Mataru"
@@ -303,17 +303,23 @@ function parseTurnContent(content,warn){
           actions.push(Object.assign(tgt,{btn:'Gd',text:''})); continue; }
         actions.push({guardSolo:true}); cur=null; continue; }
       // a bare "Button"/"Btn" with no actor is the Twins' J&C button (it inflicts Shock); a following
-      // "+Guard" then belongs to the Twins too ("Button + Guard" = Twins press the button and guard).
-      if(!cur && /^(button|btn)$/i.test(seg)){ actions.push({char:'TWINS',btn:'ALT',text:''}); cur={type:'char',name:'TWINS',btnGuard:true}; lastActor=cur; continue; }
+      // "+Guard" then belongs to the Twins too ("Button + Guard" = Twins press the button and guard). BUT when
+      // an explicit actor follows in the same unit ("Button + Turbo S2"), the button is that actor's lead button.
+      if(!cur && /^(button|btn)$/i.test(seg)){
+        const laterActor=segs.slice(_si+1).some(s=>{ const t0=(s.trim().split(/\s+/)[0]||''); return _n(t0)==='wonder' || (resolveActor(t0)||{}).type==='char'; });
+        if(laterActor){ pendingLead.push({btn:'ALT',text:''}); continue; }
+        actions.push({char:'TWINS',btn:'ALT',text:''}); cur={type:'char',name:'TWINS',btnGuard:true}; lastActor=cur; continue; }
       // a bare "BOOM" with no actor is Ryuji's (SKULL) explosive Alt button, not a floating ALT for the last actor
       if(!cur && /^boom$/i.test(seg)){ actions.push({char:'SKULL',btn:'ALT',text:''}); cur={type:'char',name:'SKULL'}; lastActor=cur; continue; }
       // a bare "Heal" is Wonder casting the one heal skill among its personas (resolved to persona+skill after
       // the personas are known); only Wonder heals, and only one of its personas carries a heal skill.
       if(!cur && /^heals?$/i.test(seg)){ actions.push({char:'WONDER',_heal:true,btn:'',text:''}); cur={type:'char',name:'WONDER'}; lastActor=cur; continue; }
-      // a leading bare button with no actor yet ("Alt + Turbo S2") belongs to the *next* actor in the unit.
-      // Masquerade is excluded — it is always Violet's own ALT (handled just below), never a floating button.
-      if(!cur && toks.length===1){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
-        if(c1 && !(a1&&!a1.fuzzy) && _n(toks[0])!=='wonder' && !/^(mas|masq|msq|masquerade)$/.test(_n(toks[0]).replace(/[().]/g,''))){ pendingLead.push(c1.btn); continue; } }
+      // a leading bare button with no actor yet ("Alt + Turbo S2", "S2 + S3", "S1 (can s3 …)") belongs to the
+      // *next* actor in the unit (or, end-of-unit, is re-assigned by turn order). The button may carry a trailing
+      // parenthetical note. Masquerade is excluded — it is always Violet's own ALT, never a floating button.
+      if(!cur && toks.length>=1 && (toks.length===1 || /^[(\[]/.test(toks[1]))){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
+        if(c1 && !(a1&&!a1.fuzzy) && _n(toks[0])!=='wonder' && !/^(mas|masq|msq|masquerade)$/.test(_n(toks[0]).replace(/[().]/g,''))){
+          pendingLead.push({btn:c1.btn,text:toks.slice(1).join(' ').trim()}); continue; } }
       const segHl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
       // Twins HL dual-element action: "Fire Ice HL", "F/I HL", "FI HL", "Twins HL Fire Ice", "Twins Fire Ice HL"...
       // fires on HL + a dual, unless an *exact, non-Twins* actor leads the segment.
@@ -365,7 +371,7 @@ function parseTurnContent(content,warn){
       if(actor)lastActor=actor;
       // flush any leading bare buttons ("Alt + ...") onto this actor, in order
       if(pendingLead.length && actor){ const tgt=actor.type==='persona'?{char:'WONDER',persona:actor.name}:{char:actor.name};
-        pendingLead.forEach(b=>actions.push(Object.assign({},tgt,{btn:b,text:''}))); pendingLead=[]; }
+        pendingLead.forEach(b=>actions.push(Object.assign({},tgt,{btn:b.btn,text:b.text||''}))); pendingLead=[]; }
       // "<Violet> activate Masquerade" -> Violet's Masquerade button (ALT); "activate" is just filler.
       { const r2=rest.filter(t=>!/^activate$/i.test(t));
         if(r2.length===1 && /^(mas|masq|msq|masquerade)$/.test(_n(r2[0]).replace(/[().]/g,''))){
@@ -387,7 +393,7 @@ function parseTurnContent(content,warn){
     // continues the most recent actor; flagged _bareNew (first of the comma-unit) / _bare (a "+"-chained extra)
     // so a post-pass can re-assign them by turn order once the team is known.
     if(pendingLead.length && lastActor){ const tgt=lastActor.type==='persona'?{char:'WONDER',persona:lastActor.name}:{char:lastActor.name};
-      pendingLead.forEach((b,i)=>actions.push(Object.assign({},tgt,{btn:b,text:'',[i===0?'_bareNew':'_bare']:true}))); pendingLead=[]; }
+      pendingLead.forEach((b,i)=>actions.push(Object.assign({},tgt,{btn:b.btn,text:b.text||'',[i===0?'_bareNew':'_bare']:true}))); pendingLead=[]; }
   }
   return actions;
 }
@@ -1376,5 +1382,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A170';
+  _g.VF_PARSER_VERSION = 'A171';
 })();
