@@ -824,6 +824,11 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
+.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 30px #0008}
+.eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
+.eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
+.eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
+.eb-btn:disabled{opacity:.35; cursor:default}
 .ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
 .ac-undo[hidden]{display:none}
 .ac-undo .ac-undo-x{background:transparent; border:none; color:#5a4a10; font-size:18px; line-height:1; cursor:pointer; padding:0 2px}
@@ -1706,7 +1711,21 @@ function load(){
   }catch(e){}
   return blankState();
 }
-function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} }
+function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} histPush(); }
+/* ---------- editor undo/redo: a debounced history of whole-state snapshots ---------- */
+let _hist=[], _histIdx=-1, _histTimer=null, _restoring=false;
+function _snap(){ try{ return JSON.stringify(state); }catch(e){ return ''; } }
+function histInit(){ clearTimeout(_histTimer); _hist=[_snap()]; _histIdx=0; updateEditBar(); }   /* (re)seed the baseline on boot / share-link load */
+function histPush(){ if(_restoring) return; clearTimeout(_histTimer);
+  _histTimer=setTimeout(()=>{ const s=_snap(); if(!s||s===_hist[_histIdx]) return;
+    _hist=_hist.slice(0,_histIdx+1); _hist.push(s); if(_hist.length>50) _hist.shift(); _histIdx=_hist.length-1; updateEditBar(); }, 400); }
+function _histApply(){ _restoring=true; try{ state=migrate(JSON.parse(_hist[_histIdx])); save(); renderAll(); }catch(e){} _restoring=false; updateEditBar(); }
+function histUndo(){ if(_histIdx>0){ clearTimeout(_histTimer); _histIdx--; _histApply(); } }
+function histRedo(){ if(_histIdx<_hist.length-1){ clearTimeout(_histTimer); _histIdx++; _histApply(); } }
+function updateEditBar(){ const bar=document.getElementById('editBar'); if(!bar) return;
+  const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo');
+  if(u) u.disabled=_histIdx<=0; if(r) r.disabled=_histIdx>=_hist.length-1;
+  bar.hidden = _hist.length<=1; }   /* the bar appears once an edit has happened */
 
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
@@ -4820,7 +4839,16 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
-state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll(); histInit();
+/* editor undo/redo bar wiring (deferred: the bar sits after this script in the DOM) + keyboard shortcuts
+   (skip Cmd/Ctrl+Z while typing in a field so native text-undo still works) */
+{ const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave');
+    if(u) u.onclick=histUndo; if(r) r.onclick=histRedo; if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation(); updateEditBar(); };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireEditBar); else wireEditBar();
+  document.addEventListener('keydown', e=>{ if(!(e.metaKey||e.ctrlKey)) return; const k=(e.key||'').toLowerCase(); if(k!=='z'&&k!=='y') return;
+    const ae=document.activeElement; if(ae && /^(input|textarea|select)$/i.test(ae.tagName||'')) return;
+    if(document.body.classList.contains('view-mode')) return;
+    e.preventDefault(); if(k==='y'||(k==='z'&&e.shiftKey)) histRedo(); else histUndo(); }); }
 if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPush(); });   /* pull on start, then push only if local changed since the last sync (e.g. edits made offline) */
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
@@ -4834,7 +4862,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   // vf-parser.js loads after this script, so wait until parseRotationText exists before parsing.
   const tm=(location.hash||'').match(/[#&]t=([^&]+)/);
   if(tm){
-    const loadText=()=>{ try{ const txt=b64urlDecode(tm[1]); if(txt){ const res=parseRotationText(txt,{}); state=migrate(res.state); save(); renderAll(); } }catch(e){ /* unreadable text link */ }
+    const loadText=()=>{ try{ const txt=b64urlDecode(tm[1]); if(txt){ const res=parseRotationText(txt,{}); state=migrate(res.state); save(); renderAll(); histInit(); } }catch(e){ /* unreadable text link */ }
       try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; } };
     if(typeof parseRotationText==='function') loadText();
     else { let n=0; const iv=setInterval(()=>{ if(typeof parseRotationText==='function'){ clearInterval(iv); loadText(); } else if(++n>80){ clearInterval(iv); } }, 25); }
@@ -4842,7 +4870,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   }
   const m=(location.hash||'').match(/[#&]r=([^&]+)/);
   if(!m) return;
-  try{ const st=await decodeShare(m[1]); state=migrate(st); save(); renderAll(); }catch(e){ /* ignore an unreadable link */ }
+  try{ const st=await decodeShare(m[1]); state=migrate(st); save(); renderAll(); histInit(); }catch(e){ /* ignore an unreadable link */ }
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
@@ -4854,6 +4882,11 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260627j</div>
+<div id="editBar" class="edit-bar" hidden>
+  <button type="button" id="ebUndo" class="eb-btn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled>&#8630;</button>
+  <button type="button" id="ebRedo" class="eb-btn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled>&#8631;</button>
+  <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
+</div>
+<div class="version-tag">260627k</div>
 </body>
 </html>
