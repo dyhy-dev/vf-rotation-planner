@@ -1018,8 +1018,11 @@ function parseRotationText(text, opts){
     let normal=normalTE, breaks=breakTE;
     // no explicitly-labelled breaks -> the trailing turns are the breaks. The normal phase of a DOD is 4 turns,
     // so the break count is (turns - 4), clamped to [DOD_BREAKS, maxBreaks]; with Hatsune Miku maxBreaks is 4,
-    // so an 8-turn Miku DOD splits into 4 normal + 4 break (not 4 + 2).
-    if(!breaks.length && normal.length>=DOD_BREAKS){ const nb=Math.max(DOD_BREAKS, Math.min(maxBreaks, normal.length-4));
+    // so an 8-turn Miku DOD splits into 4 normal + 4 break (not 4 + 2). A shorter Miku DOD can still have 4
+    // breaks: a Miku S3 (the concert/Ghost Rule) within the last maxBreaks turns marks the extended phase.
+    if(!breaks.length && normal.length>=DOD_BREAKS){ let nb=Math.max(DOD_BREAKS, Math.min(maxBreaks, normal.length-4));
+      if(mikuPresent && nb<maxBreaks && normal.length>maxBreaks &&
+         normal.slice(-maxBreaks).some(te=>(_acts.get(te)||[]).some(a=>(a.char||'').toUpperCase()===MIKU && a.btn==='S3'))){ nb=maxBreaks; }
       breaks=normal.slice(-nb); normal=normal.slice(0,-nb); }
     normal.forEach((te,i)=>turns.push(mkTurn(te,'TURN '+(i+1))));
     breaks.forEach((te,i)=>turns.push(mkTurn(te,'Break '+(i+1))));   // breaks pinned at the end
@@ -1327,5 +1330,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A163';
+  _g.VF_PARSER_VERSION = 'A164';
 })();
