@@ -468,7 +468,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-item.current{border-color:var(--blue-strong)}
 .lib-item-main{flex:1 1 auto; min-width:0}
 .lib-item-name{font:700 14px Oswald,sans-serif; letter-spacing:.02em; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.lib-item-credit{font-weight:500}   /* thinnest loaded Oswald weight, so the bold name stands out */
+.lib-item-credit{font-weight:500; color:var(--muted)}   /* thinner + the theme's muted gray (dark #9d97b3 / light #6b6680) so the bold name stands out while staying readable */
 .lib-item-meta{font-size:11px; color:var(--muted); margin-top:2px}
 .lib-item-btns{display:flex; gap:6px; flex:0 0 auto; flex-wrap:wrap; justify-content:flex-end}
 .lib-mini{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer}
@@ -4848,6 +4848,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260627i</div>
+<div class="version-tag">260627j</div>
 </body>
 </html>
