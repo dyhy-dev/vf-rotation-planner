@@ -985,6 +985,7 @@ function parseRotationText(text, opts){
   // isn't a standard DOD (e.g. a long fight with a stagger phase), so keep every turn — never drop the extras.
   const isDod=forceDod||(hasExplicitBreaks && breakTE.length<=maxBreaks);
   const mkTurn=(te,name)=>({name,note:'',actions:_acts.get(te)||[]});
+  let inferredDodBreaks=false;
   if(isDod){
     setup.type='DOD'; got.mode=1;
     let normal=normalTE, breaks=breakTE;
@@ -997,11 +998,20 @@ function parseRotationText(text, opts){
     [...normalTE,...breakTE].forEach((te,i)=>turns.push(mkTurn(te,'TURN '+(i+1))));
   } else {
     turnEntries.sort((a,b)=>a.num-b.num);
-    turnEntries.forEach(te=>turns.push(mkTurn(te,'TURN '+te.num)));
-    // DOD inference without an explicit Break/Weak marker: a very short (<=5) or very long (>=9) turn
-    // count strongly implies a DOD rotation. Only the mode is set (no auto break-split) and only when the
-    // type wasn't stated in the title, so a stated MLD/NOD/SOS is never overridden.
-    if(!got.mode && turnEntries.length && (turnEntries.length<=5 || turnEntries.length>=9)){ setup.type='DOD'; }
+    const len=turnEntries.length;
+    // DOD inference without an explicit Break/Weak marker: a very short (<=5) or very long (>=9) turn count
+    // strongly implies a DOD. For the short, clearly-DOD case the last DOD_BREAKS turns are taken as the
+    // break turns (Dennis); the long case only sets the mode. Only when no mode was stated in the title, so a
+    // stated MLD/NOD/SOS — and the later NOD-by-carriers guess — can still win (got.mode stays unset).
+    if(!got.mode && len>DOD_BREAKS && len<=5){
+      setup.type='DOD'; inferredDodBreaks=true;
+      const normal=turnEntries.slice(0,len-DOD_BREAKS), breaks=turnEntries.slice(len-DOD_BREAKS);
+      normal.forEach((te,i)=>turns.push(mkTurn(te,'TURN '+(i+1))));
+      breaks.forEach((te,i)=>turns.push(mkTurn(te,'Break '+(i+1))));
+    } else {
+      turnEntries.forEach(te=>turns.push(mkTurn(te,'TURN '+te.num)));
+      if(!got.mode && len && (len<=5 || len>=9)){ setup.type='DOD'; }
+    }
   }
   // a bare "Wonder HL" (HL only, no persona/skill/text) inherits the most recently used Wonder persona
   { let lastP=''; turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='WONDER') return;
@@ -1250,7 +1260,9 @@ function parseRotationText(text, opts){
   if(!got.mode){ const _cls=DATA.classTags||{};
     const roleOf=u=>{ const nm=(u.name||'').toUpperCase(); if(!nm)return ''; return nm==='TWINS'?(u.role||''):(_cls[nm]||''); };
     const carriers=[...units,elucidator].filter(u=>/^(assassin|sweeper)$/i.test(roleOf(u))).length;
-    if(carriers>=2) setup.type='NOD'; }
+    if(carriers>=2){ setup.type='NOD';
+      // the break split was only a DOD guess; a NOD has no such break phase -> renumber everything as normal turns
+      if(inferredDodBreaks){ let n=0; turns.forEach(t=>{ t.name='TURN '+(++n); }); } } }
 
   if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
   // drop a standalone notes header ("Notes", "Build Notes :"), then strip a leading "Notes" label from a
@@ -1285,5 +1297,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A156';
+  _g.VF_PARSER_VERSION = 'A157';
 })();
