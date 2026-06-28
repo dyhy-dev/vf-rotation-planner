@@ -1358,6 +1358,9 @@ function parseRotationText(text, opts){
     .map(l=>l.replace(/^\s*notes?\b\s*\d*\s*[:\-–—]?\s*/i,''))   // also a numbered label ("Note 2: foo" -> "foo")
     .filter(l=>l.trim()).join('\n');
 
+  // the credit is just the names: drop a trailing parenthetical flavour note ("Efes, Mac & Jeez (after some …)")
+  if(setup.credits){ const c=setup.credits.replace(/\s*\([^)]*\)\s*$/,'').trim(); if(c) setup.credits=c; }
+
   return { state:{setup,units,elucidator,backup,personas:pslots,teamNotes,turns}, warnings:warn, got };
 }
 
@@ -1383,5 +1386,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A172';
+  _g.VF_PARSER_VERSION = 'A173';
 })();
