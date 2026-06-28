@@ -1297,6 +1297,17 @@ function parseRotationText(text, opts){
         pbBtn=a.btn||''; pbUnit=unit||cn;
       }); }); }
 
+  // Turbo's extra-action mechanic: the first Turbo button in a turn grants Turbo an extra action, so two
+  // consecutive Turbo skills imply a button was pressed first. Insert a Turbo ALT (button) before such a run
+  // when the turn has no Turbo button yet (Dennis).
+  { const isTurboSkill=a=>(a.char||'').toUpperCase()==='TURBO' && /^(S[123]|Atk|Gn)$/.test(a.btn||'');
+    turns.forEach(t=>{ const acts=t.actions||[]; if(!acts.length) return;
+      if(acts.some(a=>(a.char||'').toUpperCase()==='TURBO'&&a.btn==='ALT')) return;   // already has its button
+      for(let i=0;i<acts.length;i++){ if(!isTurboSkill(acts[i])) continue;
+        let j=i,n=0; while(j<acts.length && isTurboSkill(acts[j])){ n++; j++; }
+        if(n>=2){ acts.splice(i,0,{char:'TURBO',btn:'ALT',text:''}); }
+        break; } }); }
+
   // final slot order: by when each unit first takes an order-relevant action in the now-resolved turns,
   // matching the app's buildActionOrder. Done after the guards are resolved so a guard-heavy opening (where
   // Wonder's only early "action" is a persona skill while everyone guards) doesn't mis-slot Wonder and trip
@@ -1363,5 +1374,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A167';
+  _g.VF_PARSER_VERSION = 'A168';
 })();
