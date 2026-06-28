@@ -302,22 +302,24 @@ function parseTurnContent(content,warn){
           const tgt=cur.type==='persona'?{char:'WONDER',persona:cur.name}:{char:cur.name};
           actions.push(Object.assign(tgt,{btn:'Gd',text:''})); continue; }
         actions.push({guardSolo:true}); cur=null; continue; }
-      // a bare "Button"/"Btn" with no actor is the Twins' J&C button (it inflicts Shock); a following
-      // "+Guard" then belongs to the Twins too ("Button + Guard" = Twins press the button and guard). BUT when
-      // an explicit actor follows in the same unit ("Button + Turbo S2"), the button is that actor's lead button.
+      // a bare "Button"/"Btn" with no actor is the Twins' J&C button (it inflicts Shock) ONLY when it stands
+      // alone or is just followed by Guard(s) ("Button + Guard" = Twins press the button and guard). When more
+      // actions follow ("Button + Turbo S2", "Button + S2 + S3") the button is the lead button of that actor /
+      // re-assigned by turn order, never the Twins.
       if(!cur && /^(button|btn)$/i.test(seg)){
-        const laterActor=segs.slice(_si+1).some(s=>{ const t0=(s.trim().split(/\s+/)[0]||''); return _n(t0)==='wonder' || (resolveActor(t0)||{}).type==='char'; });
-        if(laterActor){ pendingLead.push({btn:'ALT',text:''}); continue; }
+        const rest=segs.slice(_si+1); const twinsCase = !rest.length || rest.every(s=>/^g(?:(?:ua|au)rds?)?$/i.test(s.trim()));
+        if(!twinsCase){ pendingLead.push({btn:'ALT',text:''}); continue; }
         actions.push({char:'TWINS',btn:'ALT',text:''}); cur={type:'char',name:'TWINS',btnGuard:true}; lastActor=cur; continue; }
       // a bare "BOOM" with no actor is Ryuji's (SKULL) explosive Alt button, not a floating ALT for the last actor
       if(!cur && /^boom$/i.test(seg)){ actions.push({char:'SKULL',btn:'ALT',text:''}); cur={type:'char',name:'SKULL'}; lastActor=cur; continue; }
       // a bare "Heal" is Wonder casting the one heal skill among its personas (resolved to persona+skill after
       // the personas are known); only Wonder heals, and only one of its personas carries a heal skill.
       if(!cur && /^heals?$/i.test(seg)){ actions.push({char:'WONDER',_heal:true,btn:'',text:''}); cur={type:'char',name:'WONDER'}; lastActor=cur; continue; }
-      // a leading bare button with no actor yet ("Alt + Turbo S2", "S2 + S3", "S1 (can s3 …)") belongs to the
-      // *next* actor in the unit (or, end-of-unit, is re-assigned by turn order). The button may carry a trailing
-      // parenthetical note. Masquerade is excluded — it is always Violet's own ALT, never a floating button.
-      if(!cur && toks.length>=1 && (toks.length===1 || /^[(\[]/.test(toks[1]))){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
+      // a leading bare button with no actor yet ("Alt + Turbo S2", "S2 + S3", "S1 (can s3 …)", "S2 Turbo") belongs
+      // to the *next* actor in the unit (or, end-of-unit, is re-assigned by turn order). The trailing tokens may
+      // be a parenthetical note or a target character. Masquerade is excluded — it is always Violet's own ALT.
+      if(!cur && toks.length>=1 && (toks.length===1 || /^[(\[]/.test(toks[1]) || ((resolveActor(toks[1])||{}).type==='char' && toks.length===2))){
+        const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
         if(c1 && !(a1&&!a1.fuzzy) && _n(toks[0])!=='wonder' && !/^(mas|masq|msq|masquerade)$/.test(_n(toks[0]).replace(/[().]/g,''))){
           pendingLead.push({btn:c1.btn,text:toks.slice(1).join(' ').trim()}); continue; } }
       const segHl=toks.some(t=>_n(t).replace(/[().]/g,'')==='hl');
@@ -389,10 +391,11 @@ function parseTurnContent(content,warn){
           actions.push({char:'TWINS',btn:btn||'HL',text:fd.dual,_twinsHL:fd.dual,_fuzzy:!!actor.fuzzy}); continue; } }
       buildActions(actor,rest,seg,warn).forEach(a=>actions.push(a));
     }
-    // a comma-unit that was only bare button(s) with no actor of its own ("…, S3, S3", "S2 + S3") provisionally
-    // continues the most recent actor; flagged _bareNew (first of the comma-unit) / _bare (a "+"-chained extra)
-    // so a post-pass can re-assign them by turn order once the team is known.
-    if(pendingLead.length && lastActor){ const tgt=lastActor.type==='persona'?{char:'WONDER',persona:lastActor.name}:{char:lastActor.name};
+    // a comma-unit that was only bare button(s) with no actor of its own ("…, S3, S3", "S2 + S3", or a whole
+    // turn that opens with "Button + S2 + S3"); flagged _bareNew (first of the comma-unit) / _bare (a "+"-chained
+    // extra) so a post-pass re-assigns them by turn order. With no prior actor (turn opens bare) char is left
+    // empty for the post-pass to fill — otherwise they'd be silently dropped.
+    if(pendingLead.length){ const tgt=lastActor?(lastActor.type==='persona'?{char:'WONDER',persona:lastActor.name}:{char:lastActor.name}):{char:''};
       pendingLead.forEach((b,i)=>actions.push(Object.assign({},tgt,{btn:b.btn,text:b.text||'',[i===0?'_bareNew':'_bare']:true}))); pendingLead=[]; }
   }
   return actions;
@@ -1398,5 +1401,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A175';
+  _g.VF_PARSER_VERSION = 'A177';
 })();
