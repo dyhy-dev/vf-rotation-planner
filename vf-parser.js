@@ -896,7 +896,10 @@ function parseRotationText(text, opts){
   // general score fallback: if nothing labelled gave a score, a number with a damage magnitude in the
   // prose ("This was 465 mill for me") is almost certainly the score — crit/pierce are written as %, which
   // carry no magnitude word, so they're skipped. scoreHigh() only returns when a magnitude is present.
-  if(!setup.score){ for(const ln of noteLines){ const sc=scoreHigh(ln); if(sc){ setup.score=sc; got.score=1; break; } } }
+  // a line that is ONLY the score (optionally a "circa"/"~" filler) is consumed; score inside prose stays a note.
+  if(!setup.score){ const SCORE_ONLY=/^\s*(?:[~≈]|circa|approx\.?|about|around|roughly|est\.?)?\s*\d+(?:\.\d+)?\s*(?:billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])(?:[-\s]?ish)?\s*$/i;
+    for(let i=0;i<noteLines.length;i++){ const sc=scoreHigh(noteLines[i]); if(sc){ setup.score=sc; got.score=1;
+      if(SCORE_ONLY.test(noteLines[i])) noteLines.splice(i,1); break; } } }
 
   function parsePersonaList(str){ if(!str)return; str.split(/,(?![^(\[]*[)\]])/).forEach(chunk=>parsePersonaLine(chunk)); }
   function parsePersonaLine(line){
@@ -1300,5 +1303,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A158';
+  _g.VF_PARSER_VERSION = 'A159';
 })();
