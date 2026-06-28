@@ -715,14 +715,16 @@ function parseRotationText(text, opts){
     { let s2=line, info={};
       const am2=s2.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\s+/i);
       if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
-      let note=''; const nm2=s2.match(/\s*\(([^)]*(?:\([^)]*\)[^)]*)*)\)\s*$/);   // trailing note; tolerates one level of nested parens ("(7.4% Pierce (or 0%))")
-      if(nm2){ const inside=nm2[1].trim(); const awm=inside.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?$/i);
-        // a trailing "(A6R0)" is the unit's build, not a note ("Luce: Creation + Reconciliation (A6R0)")
+      let note='', parenCards=''; const nm2=s2.match(/\s*\(([^)]*(?:\([^)]*\)[^)]*)*)\)\s*$/);   // trailing note; tolerates one level of nested parens ("(7.4% Pierce (or 0%))")
+      if(nm2){ const inside=nm2[1].trim(); const awm=inside.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?$/i); const cpp=cardPair(inside);
+        // a trailing "(A6R0)" is the unit's build; a trailing "(Prosperity Trust)" is the card pair; else a note
         if(awm && !info.awareness){ info.awareness=awm[1].toUpperCase(); if(awm[2])info.rev=_rev(awm[2]); }
+        else if(cpp.space && cpp.sunsky){ parenCards=inside; }
         else note=inside;
         s2=s2.slice(0,nm2.index).trim(); }
       // name/cards separator: a colon ("Name: space + sunsky") or a spaced dash ("Name - space/sunsky")
       let namePart=s2, cardsPart=''; const cm2=s2.match(/^([^:]+):\s*(.+)$/)||s2.match(/^(.+?)\s+[-–—]\s+(.+)$/); if(cm2){ namePart=cm2[1].trim(); cardsPart=cm2[2].trim(); }
+      if(!cardsPart && parenCards) cardsPart=parenCards;
       if(!info.awareness){ const am3=namePart.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i); if(am3){ info.awareness=am3[1].toUpperCase(); if(am3[2])info.rev=_rev(am3[2]); namePart=namePart.replace(am3[0],' ').replace(/\s+/g,' ').trim(); } }
       // a parenthetical card set anywhere in the line, not only at the end, e.g. "Twins A6R6 (Freedom/Dis) S2 is B/C…".
       // a single unambiguous space+sun/sky pair -> cards (trailing prose becomes the note); a multi-option "or" stays a note.
@@ -1374,5 +1376,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A169';
+  _g.VF_PARSER_VERSION = 'A170';
 })();
