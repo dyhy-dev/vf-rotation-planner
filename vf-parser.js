@@ -1227,6 +1227,14 @@ function parseRotationText(text, opts){
       noteLines.forEach(ln=>{ (STAT_REQ.test(ln)?moved:keep).push(ln); });
       if(moved.length){ carrier.note=(carrier.note?carrier.note+' ':'')+moved.join(' '); noteLines.length=0; noteLines.push(...keep); } } }
 
+  // mode inference: two Assassin/Sweeper carriers on the team strongly implies a NOD (multi-target) rotation.
+  // Like the DOD turn-count guess, this only fills in a MISSING mode (never overrides one stated in the title),
+  // and it takes priority over that weaker DOD-by-turn-count guess.
+  if(!got.mode){ const _cls=DATA.classTags||{};
+    const roleOf=u=>{ const nm=(u.name||'').toUpperCase(); if(!nm)return ''; return nm==='TWINS'?(u.role||''):(_cls[nm]||''); };
+    const carriers=[...units,elucidator].filter(u=>/^(assassin|sweeper)$/i.test(roleOf(u))).length;
+    if(carriers>=2) setup.type='NOD'; }
+
   if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
   // drop a standalone notes header ("Notes", "Build Notes :"), then strip a leading "Notes" label from a
   // content line ("Notes: foo" -> "foo").
@@ -1260,5 +1268,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A153';
+  _g.VF_PARSER_VERSION = 'A154';
 })();
