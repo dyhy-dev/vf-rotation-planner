@@ -383,10 +383,11 @@ function parseTurnContent(content,warn){
           actions.push({char:'TWINS',btn:btn||'HL',text:fd.dual,_twinsHL:fd.dual,_fuzzy:!!actor.fuzzy}); continue; } }
       buildActions(actor,rest,seg,warn).forEach(a=>actions.push(a));
     }
-    // a comma-unit that was only bare button(s) with no actor of its own ("…, S3, S3") continues the
-    // most recent actor in the turn — e.g. SEES theurgy follow-ups ("Makoto HL, S3, S3").
+    // a comma-unit that was only bare button(s) with no actor of its own ("…, S3, S3", "S2 + S3") provisionally
+    // continues the most recent actor; flagged _bareNew (first of the comma-unit) / _bare (a "+"-chained extra)
+    // so a post-pass can re-assign them by turn order once the team is known.
     if(pendingLead.length && lastActor){ const tgt=lastActor.type==='persona'?{char:'WONDER',persona:lastActor.name}:{char:lastActor.name};
-      pendingLead.forEach(b=>actions.push(Object.assign({},tgt,{btn:b,text:''}))); pendingLead=[]; }
+      pendingLead.forEach((b,i)=>actions.push(Object.assign({},tgt,{btn:b,text:'',[i===0?'_bareNew':'_bare']:true}))); pendingLead=[]; }
   }
   return actions;
 }
@@ -794,7 +795,8 @@ function parseRotationText(text, opts){
         if(a && a.type==='char'){ parsed.push({name:a.name,info}); }
         else { clean=false; break; }
       }
-      if(clean && parsed.length>=2){ parsed.forEach(p=>addChar(p.name,p.info)); got.team=1; continue; }
+      // a chevron chain of characters IS the turn order -> pin it as the team-slot order (like "Turn order: …")
+      if(clean && parsed.length>=2){ parsed.forEach(p=>{ addChar(p.name,p.info); if(!explicitOrderList.includes(p.name)) explicitOrderList.push(p.name); }); explicitOrder=true; got.team=1; continue; }
     }
 
     // team character line: has awareness token AND a recognized character before it
@@ -1272,6 +1274,29 @@ function parseRotationText(text, opts){
         .filter(a=>!(a&&a.guardSolo)); });
   }
 
+  // re-assign provisional bare actions ("S2 + S3", a lone "S1") by turn order: a bare action belongs to the
+  // first team unit (in slot order) that hasn't used a main action this turn — not blindly the last actor.
+  // Wonder's early HL, or a unit that already acted, can't own it (Dennis). Free actions (HL/ALT/Assist) don't
+  // use a slot. A "+"-chained extra stays with the same unit; a same-button follow-up (SEES theurgy) too. Runs
+  // after lone-Guard resolution so the Guard takes its slot first and the bare action takes the next one.
+  { const eluN=(elucidator&&elucidator.name||'').toUpperCase();
+    const slot=units.map(u=>(u.name||'').toUpperCase()).filter(Boolean);
+    const usesMain=a=>{ const cn=(a.char||'').toUpperCase(); if(!cn) return false;
+      if(cn==='WONDER') return !a.hl && !!((a.skill||'').trim()||(a.btn||'').trim()||(a.text||'').trim());
+      return _mainBtn(a); };
+    turns.forEach(t=>{ const acted=new Set(); let pbBtn='',pbUnit='';
+      (t.actions||[]).forEach(a=>{
+        if(!a._bare && !a._bareNew){ const cn=(a.char||'').toUpperCase(); if(cn && cn!==eluN && usesMain(a)) acted.add(cn); pbBtn=''; pbUnit=''; return; }
+        const isNew=!!a._bareNew; delete a._bare; delete a._bareNew;
+        let unit;
+        if(!isNew && pbUnit) unit=pbUnit;                                  // "+"-chained extra -> same unit
+        else if(isNew && pbUnit && pbBtn && a.btn===pbBtn) unit=pbUnit;    // same-button follow-up (SEES theurgy) -> same unit
+        else { unit=slot.find(n=>n!==eluN && !acted.has(n)); if(unit) acted.add(unit); }
+        const cn=(a.char||'').toUpperCase();
+        if(unit && unit!==cn){ a.char=unit; if(unit!=='WONDER'){ delete a.persona; delete a.skill; delete a.song; } }
+        pbBtn=a.btn||''; pbUnit=unit||cn;
+      }); }); }
+
   // final slot order: by when each unit first takes an order-relevant action in the now-resolved turns,
   // matching the app's buildActionOrder. Done after the guards are resolved so a guard-heavy opening (where
   // Wonder's only early "action" is a persona skill while everyone guards) doesn't mis-slot Wonder and trip
@@ -1338,5 +1363,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A166';
+  _g.VF_PARSER_VERSION = 'A167';
 })();
