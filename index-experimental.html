@@ -829,6 +829,8 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .edit-bar>*{flex:0 0 auto}   /* keep natural widths so a too-wide bar scrolls (on mobile) instead of squishing the buttons */
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
 .eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
+.eb-btn.eb-icon{width:40px; min-width:40px; padding:0}
+.eb-btn.eb-icon svg{display:block; width:18px; height:18px}
 .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
 .eb-btn:disabled{opacity:.35; cursor:default}
 /* Apple-style segmented undo/redo control: two joined keys in a rounded pill with a hairline divider */
@@ -4957,9 +4959,9 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebToggle" class="eb-btn eb-chev" title="Hide the bar" aria-label="Hide the bar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
   <div class="eb-seg">
     <button type="button" id="ebUndo" class="eb-seg-btn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
-    <button type="button" id="ebImport" class="eb-seg-btn" title="Show the imported text" aria-label="Imported text" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
     <button type="button" id="ebRedo" class="eb-seg-btn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14 20 9l-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
   </div>
+  <button type="button" id="ebImport" class="eb-btn eb-icon" title="Show the imported text" aria-label="Imported text" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
   <div class="dropdown eb-dropup" id="ebExportWrap">
     <button type="button" class="eb-btn eb-text" id="ebExportBtn" aria-haspopup="true" aria-expanded="false">Export &#9662;</button>
     <div class="dropdown-menu" id="ebExportMenu" hidden>
@@ -4976,6 +4978,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebView" class="eb-btn eb-text" title="Open the read-only webview of this rotation in a new tab">Webview</button>
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
-<div class="version-tag">260628k</div>
+<div class="version-tag">260628l</div>
 </body>
 </html>
