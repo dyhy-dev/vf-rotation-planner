@@ -839,6 +839,16 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .eb-seg-btn svg{display:block; width:18px; height:18px}
 /* the bar sits at the bottom, so its Export menu opens upward and stays clear of the bar */
 .eb-dropup .dropdown-menu{top:auto; bottom:calc(100% + 6px)}
+/* minimize toggle: a slim chevron key that collapses the bar down to just undo/redo */
+.eb-min{min-width:30px; width:30px; padding:0; color:var(--muted)}
+.eb-min svg{display:block; width:16px; height:16px; transition:transform .18s ease}
+.edit-bar.collapsed #ebMin svg{transform:rotate(180deg)}
+.edit-bar.collapsed #ebExportWrap, .edit-bar.collapsed #ebView, .edit-bar.collapsed #ebSave{display:none}
+@media (max-width:600px){
+  /* slimmer footprint, a softer shadow (a hard dark glow reads as a smudge on the dark page),
+     and a safe-area gap so the bar clears the mobile browser chrome */
+  .edit-bar{bottom:calc(12px + env(safe-area-inset-bottom,0px)); right:12px; gap:5px; box-shadow:0 3px 14px #0006}
+}
 .ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
 .ac-undo[hidden]{display:none}
 .ac-undo .ac-undo-x{background:transparent; border:none; color:#5a4a10; font-size:18px; line-height:1; cursor:pointer; padding:0 2px}
@@ -1735,7 +1745,16 @@ function histRedo(){ if(_histIdx<_hist.length-1){ clearTimeout(_histTimer); _his
 function updateEditBar(){ const bar=document.getElementById('editBar'); if(!bar) return;
   const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo');
   if(u) u.disabled=_histIdx<=0; if(r) r.disabled=_histIdx>=_hist.length-1;
-  bar.hidden = _hist.length<=1; }   /* the bar appears once an edit has happened */
+  bar.hidden = _hist.length<=1; applyEditBarMin(); }   /* the bar appears once an edit has happened */
+function _ebIsMobile(){ try{ return window.matchMedia('(max-width:600px)').matches; }catch(e){ return false; } }
+/* collapse the bar to just the undo/redo control. editBarMin==null means "not chosen yet": default to
+   collapsed on mobile (the full bar is too bulky there) and expanded on desktop. */
+function applyEditBarMin(){ const bar=document.getElementById('editBar'); if(!bar) return;
+  const min = settings.editBarMin==null ? _ebIsMobile() : !!settings.editBarMin;
+  bar.classList.toggle('collapsed', min);
+  const t=document.getElementById('ebMin'); if(t){ t.title=min?'Expand the bar':'Minimize the bar'; t.setAttribute('aria-label',t.title); t.setAttribute('aria-expanded',String(!min)); } }
+function toggleEditBarMin(){ const bar=document.getElementById('editBar'); if(!bar) return;
+  settings.editBarMin = !bar.classList.contains('collapsed'); saveSettings(); applyEditBarMin(); }
 
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
@@ -1750,7 +1769,7 @@ function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false;
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
-const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false, theurgyLabel:'Theurgy', defaultCredit:'' };
+const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false, theurgyLabel:'Theurgy', defaultCredit:'', editBarMin:null };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
 function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} syncSchedulePush(); }
@@ -4859,12 +4878,15 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
 state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll(); histInit();
 /* editor undo/redo bar wiring (deferred: the bar sits after this script in the DOM) + keyboard shortcuts
    (skip Cmd/Ctrl+Z while typing in a field so native text-undo still works) */
-{ const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave'), vw=document.getElementById('ebView');
+{ const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave'), vw=document.getElementById('ebView'), mn=document.getElementById('ebMin');
     if(u) u.onclick=histUndo; if(r) r.onclick=histRedo; if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
     if(vw) vw.onclick=async()=>{ if(vw.disabled) return; let url; try{ url=await shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; } try{ window.open(url,'_blank','noopener'); }catch(e){} };
+    if(mn) mn.onclick=toggleEditBarMin;
     wireExportDropdown('ebExportWrap','ebExportBtn','ebExportMenu');
     updateEditBar(); };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireEditBar); else wireEditBar();
+  try{ const _ebmq=window.matchMedia('(max-width:600px)'); const _onEbm=()=>{ if(settings.editBarMin==null) applyEditBarMin(); };   /* re-apply the mobile default on rotation/resize while the user hasn't picked */
+    if(_ebmq.addEventListener) _ebmq.addEventListener('change',_onEbm); else if(_ebmq.addListener) _ebmq.addListener(_onEbm); }catch(e){}
   document.addEventListener('keydown', e=>{ if(!(e.metaKey||e.ctrlKey)) return; const k=(e.key||'').toLowerCase(); if(k!=='z'&&k!=='y') return;
     const ae=document.activeElement; if(ae && /^(input|textarea|select)$/i.test(ae.tagName||'')) return;
     if(document.body.classList.contains('view-mode')) return;
@@ -4903,6 +4925,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
 <div id="editBar" class="edit-bar" hidden>
+  <button type="button" id="ebMin" class="eb-btn eb-min" title="Minimize the bar" aria-label="Minimize the bar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
   <div class="eb-seg">
     <button type="button" id="ebUndo" class="eb-seg-btn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
     <button type="button" id="ebRedo" class="eb-seg-btn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14 20 9l-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -4923,6 +4946,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebView" class="eb-btn eb-text" title="Open the read-only webview of this rotation in a new tab">Webview</button>
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
-<div class="version-tag">260628c</div>
+<div class="version-tag">260628d</div>
 </body>
 </html>
