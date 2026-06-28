@@ -848,7 +848,7 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .edit-bar.collapsed #ebMin svg{transform:rotate(180deg)}
 .edit-bar.collapsed #ebExportWrap, .edit-bar.collapsed #ebView, .edit-bar.collapsed #ebSave{display:none}
 /* the lone restore chevron shown when the whole bar is hidden */
-.eb-show{position:fixed; bottom:16px; right:16px; z-index:1400; width:34px; height:34px; padding:0; background:var(--panel2); border:1px solid var(--line); border-radius:10px; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
+.eb-show{position:fixed; bottom:16px; right:16px; z-index:1400; width:30px; height:40px; padding:0; background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
 .eb-show[hidden]{display:none}
 .eb-show:hover{border-color:var(--gold); color:var(--gold)}
 .eb-show svg{display:block; width:18px; height:18px}
@@ -4970,6 +4970,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
 <button type="button" id="ebShow" class="eb-show" title="Show the toolbar" aria-label="Show the toolbar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
-<div class="version-tag">260628g</div>
+<div class="version-tag">260628h</div>
 </body>
 </html>
