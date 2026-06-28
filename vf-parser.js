@@ -9,7 +9,7 @@ const _n = s => String(s||'').trim().toLowerCase();
 /* Renamed skills: old names that still appear in shared rotations, folded into the shared input-alias
    map so every lookup site resolves them. Input-only — they never appear in exports. "Fury Incarnate"
    was Zaou-Gongen's signature before it was renamed "Exorcising Flames". Add new old->current pairs here. */
-try{ if(typeof SKILL_ALIAS_MAP==='object'&&SKILL_ALIAS_MAP){ const _LEGACY_SKILLS={'fury incarnate':'Exorcising Flames'};
+try{ if(typeof SKILL_ALIAS_MAP==='object'&&SKILL_ALIAS_MAP){ const _LEGACY_SKILLS={'fury incarnate':'Exorcising Flames','raku':'Rakunda'};
   for(const k in _LEGACY_SKILLS) if(!SKILL_ALIAS_MAP[k]) SKILL_ALIAS_MAP[k]=_LEGACY_SKILLS[k]; } }catch(e){}
 /* extra character nicknames the parser should resolve (input-only, folded into CHAR_ALIASES at load). "Frotone"
    is a community nickname for Mont (Frostgale) — the Mont·F variant, not the base Mont. */
@@ -274,11 +274,15 @@ function parseTurnContent(content,warn){
       splitMidActor(s).forEach(x=>{ if(x.trim())segs.push(x.trim()); }); }));
     for(const seg of segs){
       let toks=seg.split(/\s+/).filter(Boolean); if(!toks.length)continue;
-      // an auto-cast / follow-up segment ("auto s3", "sumi auto s1", "twins auto s3") is just a consequence of
-      // another action -> ignore it (a standalone "auto" token; the hyphenated passive "Auto-Mataru" is untouched)
-      if(toks.some(t=>/^auto$/i.test(t))) continue;
+      // an auto-cast / follow-up segment ("auto s3", "sumi auto s1", "twins auto s3", "Violet Auto HL") is just
+      // a consequence of another action -> ignore it (standalone "auto" token; hyphenated passive "Auto-Mataru"
+      // untouched). Keep the leading actor so a chained "+ S2" still attaches to it ("Violet Auto HL + S2").
+      if(toks.some(t=>/^auto$/i.test(t))){ const a0=(_n(toks[0])==='wonder')?{type:'char',name:'WONDER',fuzzy:false}:resolveActor(toks[0]);
+        if(a0 && !a0.fuzzy && (a0.type==='char'||a0.type==='persona')){ cur={type:a0.type,name:a0.name}; lastActor=cur; } continue; }
       // "activate" is a filler/link word ("activate masq", "chord s3 activate sumi HL") -> drop it
       toks=toks.filter(t=>!/^activate$/i.test(t)); if(!toks.length)continue;
+      // split a code glued to a parenthetical note ("S1(Shock)" -> "S1" "(Shock)")
+      for(let ti=0;ti<toks.length;ti++){ const cm=toks[ti].match(/^([A-Za-z]+[0-9]?)(\([^)]*\))$/); if(cm && codeOf(cm[1])){ toks.splice(ti,1,cm[1],cm[2]); } }
       // split a no-space actor+highlight token ("NianHL" -> "Nian" "HL", "MatoiTG" -> "Matoi" "TG")
       for(let ti=0;ti<toks.length;ti++){ const hm=toks[ti].match(/^(.{2,}?)(hl|tg)$/i);
         if(hm && !codeOf(toks[ti])){ const pa=resolveActor(hm[1]); if(pa && (pa.type==='char'||pa.type==='persona')){ toks.splice(ti,1,hm[1],hm[2].toUpperCase()); } } }
@@ -1320,5 +1324,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A161';
+  _g.VF_PARSER_VERSION = 'A162';
 })();
