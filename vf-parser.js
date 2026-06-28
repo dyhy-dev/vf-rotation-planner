@@ -1228,7 +1228,7 @@ function parseRotationText(text, opts){
   { const team=new Set([...units,elucidator].map(u=>(u.name||'').toUpperCase()).filter(Boolean));
     turns.forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()!=='VIOLET'||a.btn||a.skill||a.hl) return;
       const tgt=String(a.text||'').replace(/[()[\]]/g,' ').trim().split(/\s+/)[0]; const ra=tgt?resolveActor(tgt):null;
-      if(ra && !ra.fuzzy && ra.type==='char' && team.has(ra.name)) a.btn='S2'; })); }
+      if(ra && !ra.fuzzy && ra.type==='char' && team.has(ra.name)){ a.btn='S2'; delete a._uncertain; } })); }
   // personas -> 3 slots
   const pslots=[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}];
   personas.slice(0,3).forEach((p,i)=>pslots[i]=p);
@@ -1374,5 +1374,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A168';
+  _g.VF_PARSER_VERSION = 'A169';
 })();
