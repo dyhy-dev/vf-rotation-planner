@@ -22,7 +22,7 @@ html,body{margin:0}
 body.theme-light{
   --ink:#e7e4f0; --panel:#f3f1f9; --panel2:#e9e6f3; --line:#d3cee1;
   --blue:#3f6fa5; --blue-strong:#6ea7dc; --blue-soft:#3a5572;
-  --gold:#8a6d12; --text:#1f1c2b; --muted:#6b6680; --row:#ece9f5; --field:#fbfaff;
+  --gold:#f1c232; --text:#1f1c2b; --muted:#6b6680; --row:#ece9f5; --field:#fbfaff;
   background:radial-gradient(1200px 600px at 70% -10%, #fafaff 0%, var(--ink) 60%) fixed, var(--ink);
 }
 body.theme-light .btn{ background:#e7e3f2; border-color:#d0cae0 }
@@ -824,7 +824,7 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
-.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 30px #0008}
+.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px}
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
 .eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
 .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
@@ -845,9 +845,8 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .edit-bar.collapsed #ebMin svg{transform:rotate(180deg)}
 .edit-bar.collapsed #ebExportWrap, .edit-bar.collapsed #ebView, .edit-bar.collapsed #ebSave{display:none}
 @media (max-width:600px){
-  /* slimmer footprint, a softer shadow (a hard dark glow reads as a smudge on the dark page),
-     and a safe-area gap so the bar clears the mobile browser chrome */
-  .edit-bar{bottom:calc(12px + env(safe-area-inset-bottom,0px)); right:12px; gap:5px; box-shadow:0 3px 14px #0006}
+  /* slimmer footprint and a safe-area gap so the bar clears the mobile browser chrome */
+  .edit-bar{bottom:calc(12px + env(safe-area-inset-bottom,0px)); right:12px; gap:5px}
 }
 .ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
 .ac-undo[hidden]{display:none}
@@ -1483,7 +1482,7 @@ function _nearWhiteHex(c){ const m=/^#([0-9a-fA-F]{6})$/.exec(String(c||'')); if
 function uiAccent(name){ const c=charColor(name); return (_effTheme==='light' && _nearWhiteHex(c)) ? '#1f1c2b' : c; }
 /* export/preview/webview card palettes: dark is the default (image export ALWAYS uses dark); light is used for the on-screen live preview and webview when light mode is active */
 const EX_DARK={_light:false, bg:'#14121c', panel:'#23202f', panel2:'#1f1c2b', border:'#3a3550', muted:'#9d97b3', text:'#f3f1f7', soft:'#cfe2f3', blue:'#9fc5e8', gold:'#f1c232', red:'#e0445e', elu:'#5b9bd5', disc:'rgba(224,68,94,.22)'};
-const EX_LIGHT={_light:true, bg:'#e7e4f0', panel:'#f4f2fa', panel2:'#ece9f5', border:'#d3cee1', muted:'#6b6680', text:'#1f1c2b', soft:'#37516e', blue:'#2f6db0', gold:'#8a6d12', red:'#cf3340', elu:'#3a78b8', disc:'rgba(204,47,76,.14)'};
+const EX_LIGHT={_light:true, bg:'#e7e4f0', panel:'#f4f2fa', panel2:'#ece9f5', border:'#d3cee1', muted:'#6b6680', text:'#1f1c2b', soft:'#37516e', blue:'#2f6db0', gold:'#f1c232', red:'#cf3340', elu:'#3a78b8', disc:'rgba(204,47,76,.14)'};
 function exPalette(light){ return light?EX_LIGHT:EX_DARK; }
 function _relLum(r,g,b){ const f=c=>{c/=255; return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);}; return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b); }
 /* darken a bright accent (same hue) until it reads on a light card column; dark accents pass through unchanged */
@@ -4946,6 +4945,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebView" class="eb-btn eb-text" title="Open the read-only webview of this rotation in a new tab">Webview</button>
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
-<div class="version-tag">260628d</div>
+<div class="version-tag">260628e</div>
 </body>
 </html>
