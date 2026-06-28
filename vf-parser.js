@@ -723,9 +723,10 @@ function parseRotationText(text, opts){
       if(am2){ info.awareness=am2[1].toUpperCase(); if(am2[2])info.rev=_rev(am2[2]); s2=s2.slice(am2[0].length).trim(); }
       let note='', parenCards=''; const nm2=s2.match(/\s*\(([^)]*(?:\([^)]*\)[^)]*)*)\)\s*$/);   // trailing note; tolerates one level of nested parens ("(7.4% Pierce (or 0%))")
       if(nm2){ const inside=nm2[1].trim(); const awm=inside.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?$/i); const cpp=cardPair(inside);
-        // a trailing "(A6R0)" is the unit's build; a trailing "(Prosperity Trust)" is the card pair; else a note
+        // a trailing "(A6R0)" is the unit's build; a SHORT "(Prosperity Trust)" is the card pair; a longer
+        // parenthetical that merely contains a pair is prose ("(Integrity Labor if you hit def shred …)") -> a note
         if(awm && !info.awareness){ info.awareness=awm[1].toUpperCase(); if(awm[2])info.rev=_rev(awm[2]); }
-        else if(cpp.space && cpp.sunsky){ parenCards=inside; }
+        else if(cpp.space && cpp.sunsky && inside.split(/\s+/).filter(Boolean).length<=3){ parenCards=inside; }
         else note=inside;
         s2=s2.slice(0,nm2.index).trim(); }
       // name/cards separator: a colon ("Name: space + sunsky") or a spaced dash ("Name - space/sunsky")
@@ -1382,5 +1383,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A171';
+  _g.VF_PARSER_VERSION = 'A172';
 })();
