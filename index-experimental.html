@@ -824,8 +824,8 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
-.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px}
-.edit-bar[hidden]{display:none}   /* the class sets display:flex, which would otherwise override the hidden attribute */
+.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; transform-origin:bottom right; transition:opacity .2s ease, transform .2s ease}
+.edit-bar:not(.eb-open){opacity:0; transform:scale(.55); pointer-events:none}   /* closed: collapse toward the corner where the chevron sits */
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
 .eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
 .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
@@ -847,11 +847,12 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .eb-mini-btn svg{display:block; width:13px; height:13px; transition:transform .18s ease}
 .edit-bar.collapsed #ebMin svg{transform:rotate(180deg)}
 .edit-bar.collapsed #ebExportWrap, .edit-bar.collapsed #ebView, .edit-bar.collapsed #ebSave{display:none}
-/* the lone restore chevron shown when the whole bar is hidden */
-.eb-show{position:fixed; bottom:16px; right:16px; z-index:1400; width:30px; height:40px; padding:0; background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
-.eb-show[hidden]{display:none}
+/* the lone restore chevron shown when the whole bar is hidden; height matches the bar so it doesn't jump */
+.eb-show{position:fixed; bottom:16px; right:16px; z-index:1400; width:30px; height:54px; padding:0; background:var(--panel2); border:1px solid var(--line); border-radius:9px; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transform-origin:bottom right; transition:opacity .2s ease, transform .2s ease}
+.eb-show.eb-gone{opacity:0; transform:scale(.55); pointer-events:none}
 .eb-show:hover{border-color:var(--gold); color:var(--gold)}
 .eb-show svg{display:block; width:18px; height:18px}
+@media (prefers-reduced-motion:reduce){ .edit-bar, .eb-show{transition:none} }
 @media (max-width:600px){
   /* slimmer footprint and a safe-area gap so the bar clears the mobile browser chrome */
   .edit-bar{bottom:calc(12px + env(safe-area-inset-bottom,0px)); right:12px; gap:5px}
@@ -1742,11 +1743,16 @@ function load(){
 function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} histPush(); }
 /* ---------- editor undo/redo: a debounced history of whole-state snapshots ---------- */
 let _hist=[], _histIdx=-1, _histTimer=null, _restoring=false;
+/* bar visibility is a per-session state: it starts hidden (only the chevron shows) and auto-opens on the
+   first real edit; once the user opens/closes it by hand we stop auto-opening. */
+let _ebHidden=true, _ebUserToggled=false;
 function _snap(){ try{ return JSON.stringify(state); }catch(e){ return ''; } }
 function histInit(){ clearTimeout(_histTimer); _hist=[_snap()]; _histIdx=0; updateEditBar(); }   /* (re)seed the baseline on boot / share-link load */
 function histPush(){ if(_restoring) return; clearTimeout(_histTimer);
   _histTimer=setTimeout(()=>{ const s=_snap(); if(!s||s===_hist[_histIdx]) return;
-    _hist=_hist.slice(0,_histIdx+1); _hist.push(s); if(_hist.length>50) _hist.shift(); _histIdx=_hist.length-1; updateEditBar(); }, 400); }
+    _hist=_hist.slice(0,_histIdx+1); _hist.push(s); if(_hist.length>50) _hist.shift(); _histIdx=_hist.length-1;
+    if(_ebHidden && !_ebUserToggled) _ebHidden=false;   /* auto-open the bar the first time something changes */
+    updateEditBar(); }, 400); }
 function _histApply(){ _restoring=true; try{ state=migrate(JSON.parse(_hist[_histIdx])); save(); renderAll(); }catch(e){} _restoring=false; updateEditBar(); }
 function histUndo(){ if(_histIdx>0){ clearTimeout(_histTimer); _histIdx--; _histApply(); } }
 function histRedo(){ if(_histIdx<_hist.length-1){ clearTimeout(_histTimer); _histIdx++; _histApply(); } }
@@ -1755,23 +1761,22 @@ function updateEditBar(){ const bar=document.getElementById('editBar'); if(!bar)
   if(u) u.disabled=_histIdx<=0; if(r) r.disabled=_histIdx>=_hist.length-1;
   applyEditBarMin(); }
 function _ebIsMobile(){ try{ return window.matchMedia('(max-width:600px)').matches; }catch(e){ return false; } }
-/* drive the edit-bar's three visibility states from settings + history:
-   - no edits yet            -> bar + restore chevron both hidden
-   - hidden by the user       -> bar hidden, only the restore chevron shows
-   - otherwise                -> bar shows, collapsed (just undo/redo) or expanded
+/* drive the edit-bar's visibility:
+   - _ebHidden true  -> bar collapsed away, only the restore chevron shows (the default)
+   - _ebHidden false -> bar shows, collapsed (just undo/redo) or expanded
+   open/close is animated via the .eb-open / .eb-gone classes (not the hidden attribute, which can't transition).
    editBarMin==null means "not chosen yet": default to collapsed on mobile (the full bar is too bulky there)
    and expanded on desktop. */
 function applyEditBarMin(){ const bar=document.getElementById('editBar'); if(!bar) return;
-  const hasEdits=_hist.length>1, hidden=!!settings.editBarHidden;
-  bar.hidden = !hasEdits || hidden;
-  const sh=document.getElementById('ebShow'); if(sh) sh.hidden = !(hasEdits && hidden);
+  bar.classList.toggle('eb-open', !_ebHidden); bar.setAttribute('aria-hidden', String(_ebHidden));
+  const sh=document.getElementById('ebShow'); if(sh){ sh.classList.toggle('eb-gone', !_ebHidden); sh.setAttribute('aria-hidden', String(!_ebHidden)); }
   const min = settings.editBarMin==null ? _ebIsMobile() : !!settings.editBarMin;
   bar.classList.toggle('collapsed', min);
   const t=document.getElementById('ebMin'); if(t){ t.title=min?'Expand the bar':'Minimize the bar'; t.setAttribute('aria-label',t.title); t.setAttribute('aria-expanded',String(!min)); } }
 function toggleEditBarMin(){ const bar=document.getElementById('editBar'); if(!bar) return;
   settings.editBarMin = !bar.classList.contains('collapsed'); saveSettings(); applyEditBarMin(); }
-function hideEditBar(){ settings.editBarHidden=true; saveSettings(); applyEditBarMin(); }
-function showEditBar(){ settings.editBarHidden=false; saveSettings(); applyEditBarMin(); }
+function hideEditBar(){ _ebHidden=true; _ebUserToggled=true; applyEditBarMin(); }
+function showEditBar(){ _ebHidden=false; _ebUserToggled=true; applyEditBarMin(); }
 
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
@@ -1786,7 +1791,7 @@ function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false;
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
-const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false, theurgyLabel:'Theurgy', defaultCredit:'', editBarMin:null, editBarHidden:false };
+const DEFAULT_SETTINGS={ showCharNotes:true, showTeamNotes:true, showRotaNotes:true, showPersonaNotes:true, personaImgLeft:false, previewExpanded:true, theme:'dark', skillAbbr:{}, personaAbbr:{}, sigAsSig:false, sigExclude:true, importNotePopup:false, textTurnOrder:false, abbrHighlight:false, theurgyLabel:'Theurgy', defaultCredit:'', editBarMin:null };
 let settings=Object.assign({}, DEFAULT_SETTINGS);
 function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(_SET_KEY)); if(s&&typeof s==='object') settings=Object.assign({}, DEFAULT_SETTINGS, s); }catch(e){} }
 function saveSettings(){ try{ localStorage.setItem(_SET_KEY, JSON.stringify(settings)); }catch(e){} syncSchedulePush(); }
@@ -4944,7 +4949,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div id="editBar" class="edit-bar" hidden>
+<div id="editBar" class="edit-bar" aria-hidden="true">
   <div class="eb-minstack">
     <button type="button" id="ebMin" class="eb-mini-btn" title="Minimize the bar" aria-label="Minimize the bar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
     <button type="button" id="ebHide" class="eb-mini-btn" title="Hide the bar" aria-label="Hide the bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -4969,7 +4974,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebView" class="eb-btn eb-text" title="Open the read-only webview of this rotation in a new tab">Webview</button>
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
-<button type="button" id="ebShow" class="eb-show" title="Show the toolbar" aria-label="Show the toolbar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
-<div class="version-tag">260628h</div>
+<button type="button" id="ebShow" class="eb-show" title="Show the toolbar" aria-label="Show the toolbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+<div class="version-tag">260628i</div>
 </body>
 </html>
