@@ -1331,17 +1331,26 @@ function parseRotationText(text, opts){
       units.sort((a,b)=>rank(a)-rank(b)); }
   }
 
-  // floating crit/pierce stat requirements (no character prefix) default to the team's Assassin/Sweeper unit's
-  // note; with no such unit they stay team notes. Stats meant for other roles are written attributed already.
+  // crit/pierce stat lines are routed off the team notes:
+  //  - a line inside a Calcs/Stats section goes to the note of the FIRST team unit it names (its own calc);
+  //    a bare section header ("Defense Calcs:") is dropped, other section prose stays a team note.
+  //  - a floating "15.3 combined pierce" (no section) defaults to the team's Assassin/Sweeper carrier.
   // Every character has a fixed role (DATA.classTags); only the Twins vary, so their picked role wins for them.
   { const _cls=DATA.classTags||{};
     const roleOf=u=>{ const nm=(u.name||'').toUpperCase(); if(!nm)return ''; return nm==='TWINS' ? (u.role||'') : (_cls[nm]||''); };
-    const carrier=[...units,elucidator].find(u=>/^(assassin|sweeper)$/i.test(roleOf(u)));
-    if(carrier){ const keep=[],moved=[];
-      // a floating "15.3 combined pierce" goes to the carrier; lines inside a Calcs/Stats section stay team notes
-      // (they reference several units, not just the carrier)
-      noteLines.forEach(ln=>{ (STAT_REQ.test(ln) && !sectionNotes.has(ln) ? moved : keep).push(ln); });
-      if(moved.length){ carrier.note=(carrier.note?carrier.note+' ':'')+moved.join(' '); noteLines.length=0; noteLines.push(...keep); } } }
+    const allU=[...units,elucidator].filter(u=>u&&u.name);
+    const carrier=allU.find(u=>/^(assassin|sweeper)$/i.test(roleOf(u)));
+    const addNote=(u,ln)=>{ const t=ln.replace(/^\s*[-–—]\s*/,'').trim(); u.note=(u.note?u.note+' ':'')+t; };
+    const firstUnitIn=ln=>{ for(const t of String(ln).split(/[\s,/]+/)){ const a=resolveActor(t.replace(/[^A-Za-z0-9·]/g,'')); if(a&&!a.fuzzy&&a.type==='char'){ const u=allU.find(x=>(x.name||'').toUpperCase()===a.name); if(u)return u; } } return null; };
+    const keep=[];
+    noteLines.forEach(ln=>{
+      if(sectionNotes.has(ln)){
+        if(STAT_REQ.test(ln)){ const u=firstUnitIn(ln); if(u){ addNote(u,ln); return; } }
+        if(reNotesSection.test(ln)) return;   // drop a lone "Defense Calcs:" header
+        keep.push(ln); return; }
+      if(carrier && STAT_REQ.test(ln)){ addNote(carrier,ln); return; }
+      keep.push(ln); });
+    noteLines.length=0; noteLines.push(...keep); }
 
   // mode inference: two Assassin/Sweeper carriers on the team strongly implies a NOD (multi-target) rotation.
   // Like the DOD turn-count guess, this only fills in a MISSING mode (never overrides one stated in the title),
@@ -1389,5 +1398,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A174';
+  _g.VF_PARSER_VERSION = 'A175';
 })();
