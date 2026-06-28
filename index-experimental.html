@@ -2347,9 +2347,11 @@ function nameSuggestions(){
   if(boss&&score) push(boss+' '+score);
   if(mode&&boss&&score) push(mode+' '+boss+' '+score);
   if(duo&&boss&&mode) push(duo+' '+boss+' '+mode);
-  if(boss&&side) push(side+' '+boss);
+  // side (Strong/Weak): never placed directly before the boss name; at the end it goes in parentheses
+  if(boss&&mode&&side) push(boss+' '+mode+' ('+side+')');
+  if(boss&&!mode&&side) push(boss+' ('+side+')');
+  if(carry&&boss&&side) push(carry+' vs '+boss+' ('+side+')');
   if(boss&&side&&mode) push(boss+' '+side+' '+mode);
-  if(carry&&boss&&side) push(carry+' vs '+side+' '+boss);
   if(side&&mode&&!boss) push(side+' '+mode);
   if(boss&&!mode) push(boss);
   return out;
@@ -4845,6 +4847,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260627g</div>
+<div class="version-tag">260627h</div>
 </body>
 </html>
