@@ -120,7 +120,7 @@ function cardPair(str){
 // highest score in a string -> "<n><M/B/T>". A range shares one magnitude ("23 - 30 mils" -> 30M); pick the larger.
 function scoreHigh(str){
   const MAG={b:1e9,bn:1e9,bil:1e9,billion:1e9,t:1e12,tril:1e12,trillion:1e12,m:1e6,mil:1e6,mils:1e6,mill:1e6,mills:1e6,million:1e6};
-  const ms=[...String(str||'').matchAll(/(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])?\b/ig)];
+  const ms=[...String(str||'').matchAll(/(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])?(?:[-\s]?ish)?\b/ig)];
   let shared=''; ms.forEach(m=>{ if(m[2]) shared=m[2]; });
   let best=null;
   ms.forEach(m=>{ const mag=(m[2]||shared); if(!mag) return; const v=parseFloat(m[1])*(MAG[mag.toLowerCase()]||1);
@@ -542,6 +542,9 @@ function parseRotationText(text, opts){
       if(rm){ const a=resolveActor(rm[2].split(/\s+/)[0]);
         if(a&&a.type==='char'){ if(a.name==='TWINS'){ const RA={healer:'Medic',medic:'Medic',sweeper:'Sweeper',assassin:'Assassin',strategist:'Strategist',saboteur:'Saboteur',guardian:'Guardian',virtuoso:'Virtuoso'}; const rr=RA[rm[1].toLowerCase()]; if(rr)twinsRole=rr; }
           line=rm[2].trim(); low=line.toLowerCase(); } } }
+    // a stand-alone dagger-name line ("Glimmer", "Starry Compass") is Wonder's dagger, not the title or a note
+    if(!inNotesSection && !dagger && line.trim()){ const tr=line.trim(); const dgl=matchDagger(tr);
+      if(dgl && (tr.split(/\s+/).length===1 || dgl.toLowerCase()===tr.toLowerCase()) && !resolveActor((tr.split(/\s+/)[0])||'')){ dagger=dgl; got.dagger=1; continue; } }
     if(line==='\u0000') continue;
     if(inNotesSection){
       // a redundant turn-order line ("Turbo > Wonder > Smoko > Haru" / "Turn order: …") carries no note value -> drop it
@@ -712,9 +715,9 @@ function parseRotationText(text, opts){
       // a "·"-variant written with a space ("Mont F" -> MONT·F): join the first two tokens
       if(_np[1]){ const v=resolveActor((_np[0]||'')+_np[1]); if(v && !v.fuzzy && v.type==='char' && v.name.indexOf('·')>=0) a2=v; }
       let cp2=cardPair(cardsPart);
-      // inline team line with no separator ("Chord A6R6 Trust/Prosp"): awareness was pulled out of the
-      // middle, so the words left after the name are the card pair.
-      if(!cp2.space && !cp2.sunsky && info.awareness && a2 && a2.type==='char'){
+      // inline team line with no separator ("Chord A6R6 Trust/Prosp", "Chord control + dep"): the words left
+      // after the name (with any awareness pulled out) are the card pair — works with or without an awareness.
+      if(!cp2.space && !cp2.sunsky && a2 && a2.type==='char'){
         const restToks=namePart.split(/\s+/).slice(1).join(' '); if(restToks) cp2=cardPair(restToks); }
       // a pierce/crit/CR/CM stat in the card portion is the unit's note ("A6R6 Makoto: 7.4% Pierce",
       // "A6R6 Twins: Harmony + Victory - 30 CM - Fire/Ice + Psy/Nuke"): skip card pairs and dual ("/") segments.
@@ -1297,5 +1300,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A157';
+  _g.VF_PARSER_VERSION = 'A158';
 })();
