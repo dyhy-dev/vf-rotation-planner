@@ -301,6 +301,9 @@ function parseTurnContent(content,warn){
       if(!cur && /^(button|btn)$/i.test(seg)){ actions.push({char:'TWINS',btn:'ALT',text:''}); cur={type:'char',name:'TWINS',btnGuard:true}; lastActor=cur; continue; }
       // a bare "BOOM" with no actor is Ryuji's (SKULL) explosive Alt button, not a floating ALT for the last actor
       if(!cur && /^boom$/i.test(seg)){ actions.push({char:'SKULL',btn:'ALT',text:''}); cur={type:'char',name:'SKULL'}; lastActor=cur; continue; }
+      // a bare "Heal" is Wonder casting the one heal skill among its personas (resolved to persona+skill after
+      // the personas are known); only Wonder heals, and only one of its personas carries a heal skill.
+      if(!cur && /^heals?$/i.test(seg)){ actions.push({char:'WONDER',_heal:true,btn:'',text:''}); cur={type:'char',name:'WONDER'}; lastActor=cur; continue; }
       // a leading bare button with no actor yet ("Alt + Turbo S2") belongs to the *next* actor in the unit.
       // Masquerade is excluded — it is always Violet's own ALT (handled just below), never a floating button.
       if(!cur && toks.length===1){ const c1=codeOf(toks[0]); const a1=resolveActor(toks[0]);
@@ -521,7 +524,7 @@ function parseRotationText(text, opts){
   // ASCII-only title heuristics would drop, leaving "Credit" as a bogus credit. Consume the whole line here.
   for(let i=0;i<headerLines.length && !setup.credits;i++){
     const cm=headerLines[i].match(/^\s*credits?\b\s*[:–—\-]?\s+(\S.*)$/i);
-    if(cm){ const v=cm[1].trim(); if(v && !/^(to|by|from)\b/i.test(v) && !matchBoss(v)){ setup.credits=v; got.credit=1; headerLines[i]=' '; } } }
+    if(cm){ const v=cm[1].trim(); if(v && !/^(to|by|from)\b/i.test(v) && !matchBoss(v)){ setup.credits=v; got.credit=1; headerLines[i]='\u0000'; } } }
 
   // title (first header line) -> boss/mode/patch
   let titleConsumed=false;
@@ -1164,6 +1167,15 @@ function parseRotationText(text, opts){
     turns.forEach(t=>t.actions.forEach(a=>{ if(a.char==='WONDER'&&a.persona&&a.skill){ const p=byName[a.persona.toLowerCase()]; if(!p)return;
       if(a.skill.toLowerCase()===(PERSONA_SIGNATURES[p.name]||'').toLowerCase() || isPassiveSkill(a.skill))return;
       if(!p.skills.some(s=>(s||'').toLowerCase()===a.skill.toLowerCase())){ const i=p.skills.findIndex(s=>!s); if(i>=0)p.skills[i]=a.skill; } } })); }
+  // resolve bare "Heal" actions: Wonder casts the single heal skill among its personas (Media/Dia family,
+  // Salvation, Recarm, etc.). Pick the first persona whose slots or signature hold a heal skill.
+  { const HEAL_RE=/\b(media(?:rama|rahan)?|dia(?:rama|rahan)?|mediara|salvation|recarm(?:dra)?|samarecarm|amrita|oratorio|divine\s*grace)\b/i;
+    let hp='',hs='';
+    for(const p of personas){ if(!p.name)continue;
+      const cand=(p.skills||[]).find(s=>s&&HEAL_RE.test(s)) || (HEAL_RE.test(PERSONA_SIGNATURES[p.name]||'')?PERSONA_SIGNATURES[p.name]:'');
+      if(cand){ hp=p.name; hs=cand; break; } }
+    turns.forEach(t=>(t.actions||[]).forEach(a=>{ if(!a._heal)return; delete a._heal;
+      if(hp){ a.persona=hp; a.skill=hs; } else { a.text='Heal'; warn.push('Heal (no healing persona skill found)'); } })); }
   // personas -> 3 slots
   const pslots=[{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''},{name:'',skills:['',''],note:''}];
   personas.slice(0,3).forEach((p,i)=>pslots[i]=p);
@@ -1273,5 +1285,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A155';
+  _g.VF_PARSER_VERSION = 'A156';
 })();
