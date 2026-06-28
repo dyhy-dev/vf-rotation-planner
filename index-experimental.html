@@ -825,6 +825,7 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
 .edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px}
+.edit-bar[hidden]{display:none}   /* the class sets display:flex, which would otherwise override the hidden attribute */
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
 .eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
 .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
@@ -4969,6 +4970,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebSave" class="eb-btn eb-text" title="Save to your library">Save</button>
 </div>
 <button type="button" id="ebShow" class="eb-show" title="Show the toolbar" aria-label="Show the toolbar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
-<div class="version-tag">260628f</div>
+<div class="version-tag">260628g</div>
 </body>
 </html>
