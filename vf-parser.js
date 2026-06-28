@@ -246,7 +246,7 @@ function splitTop(s, sepChars){ const out=[]; let buf='', depth=0;
   out.push(buf); return out; }
 /* Hatsune Miku's songs (elucidator). Recognised in turns and mapped to Miku, with abbreviations. */
 const MIKU='MIKU';
-const SONG_ALIAS_MAP={'heaven':'Heaven','song 1':'Heaven','song1':'Heaven','spring storm':'Spring Storm','ss':'Spring Storm','spring':'Spring Storm','storm':'Spring Storm','song 2':'Spring Storm','song2':'Spring Storm','play-with-fire':'Play-With-Fire','play with fire':'Play-With-Fire','playwithfire':'Play-With-Fire','play':'Play-With-Fire','pwf':'Play-With-Fire','song 3':'Play-With-Fire','song3':'Play-With-Fire','feel the fire':'Play-With-Fire','dance':'Heaven'};
+const SONG_ALIAS_MAP={'heaven':'Heaven','song 1':'Heaven','song1':'Heaven','spring storm':'Spring Storm','ss':'Spring Storm','spring':'Spring Storm','storm':'Spring Storm','song 2':'Spring Storm','song2':'Spring Storm','play-with-fire':'Play-With-Fire','play with fire':'Play-With-Fire','playwithfire':'Play-With-Fire','play':'Play-With-Fire','pwf':'Play-With-Fire','song 3':'Play-With-Fire','song3':'Play-With-Fire','feel the fire':'Play-With-Fire','fire':'Play-With-Fire','dance':'Heaven'};
 const isSong=t=>!!SONG_ALIAS_MAP[_n(t).replace(/[().]/g,'')];
 function leadingSong(toks){ for(let k=Math.min(3,toks.length);k>=1;k--){ const p=_n(toks.slice(0,k).join(' ')).replace(/[().]/g,''); if(SONG_ALIAS_MAP[p]) return {song:SONG_ALIAS_MAP[p],len:k}; } return null; }
 function _hasMiku(){ try{ return DATA.characterNames.indexOf(MIKU)>=0; }catch(e){ return false; } }
@@ -450,8 +450,10 @@ function parseRotationText(text, opts){
   let _concertSeq=0;
   // "W1"/"W2" (weak/break phase). Only honored AFTER a standalone BREAK divider, so the
   // "W1:/W2:" lines that often appear in Defense/Crit-calc notes are not mistaken for turns.
-  const reWInline=/^\s*(w)\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
-  const reWAlone=/^\s*(w)\s*(\d+)\s*[:.)]?\s*$/i;
+  // "W1"/"W2" (weak phase) and "M1"/"M2" (Miku concert measures) — both break turns, honored only after a BREAK
+  // divider, so a stray "W1:"/"M1:" in a calc note isn't mistaken for a turn.
+  const reWInline=/^\s*([wm])\s*(\d+)(?:\s*[:.)]\s*|\s+)(.+)$/i;
+  const reWAlone=/^\s*([wm])\s*(\d+)\s*[:.)]?\s*$/i;
   // a line that is just "BREAK" (optionally "BREAKS"/"BREAK PHASE"/"BREAK TURNS", optional colon):
   // a divider meaning every turn after it is a break turn.
   // a divider meaning every following turn is a break turn. Tolerates decorative wrapping
@@ -479,7 +481,19 @@ function parseRotationText(text, opts){
     if(afterBreak){ m=lines[i].match(reWAlone); if(m){ lineIsTurn[i]=true; turnEntries.push({num:+m[2],content:grabContent(i),brk:true}); continue; } }
     m=lines[i].match(reConcertAlone);
     if(m){ lineIsTurn[i]=true; turnEntries.push({num:1000+(_concertSeq++),content:grabContent(i),brk:true}); afterBreak=true; continue; }
+    // "CONCERT END" / "END CONCERT" is just an end-of-concert marker -> consume and drop (not a turn, not a note)
+    if(/^\s*(?:concert\s+(?:end|over|done|finished?)|end\s+concert)\s*$/i.test(lines[i])){ lineIsTurn[i]=true; continue; }
+    // a stand-alone elucidator action in the break phase ("Miku S3 GHOST RULE", no turn header) -> fold it into
+    // the next turn (flagged here, merged just below before the break count)
+    if(afterBreak && lines[i].trim()){ const ft=(lines[i].trim().split(/\s+/)[0]||''); const fa=resolveActor(ft);
+      if(fa && !fa.fuzzy && fa.type==='char' && (DATA.elucidatorNames||[]).includes(fa.name)){
+        turnEntries.push({num:1000+(_concertSeq++),content:lines[i].trim().replace(/\bghost\s*rule\b/ig,'').replace(/\s+/g,' ').trim(),brk:true,_eluMerge:true}); lineIsTurn[i]=true; continue; } }
   }
+  // fold each flagged stand-alone elucidator entry into the next turn's content, then drop it (so it doesn't
+  // count as its own break turn). With no following turn it stays a turn of its own.
+  for(let i=0;i<turnEntries.length;i++){ if(turnEntries[i]._eluMerge){ const nx=turnEntries[i+1];
+    if(nx && turnEntries[i].content){ nx.content=turnEntries[i].content+', '+nx.content; }
+    if(nx){ turnEntries.splice(i,1); i--; } else delete turnEntries[i]._eluMerge; } }
   for(let i=0;i<lines.length;i++){ if(!lineIsTurn[i]&&lines[i].trim()) headerLines.push(lines[i].trim()); }
 
   // state skeleton
@@ -1306,5 +1320,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A160';
+  _g.VF_PARSER_VERSION = 'A161';
 })();
