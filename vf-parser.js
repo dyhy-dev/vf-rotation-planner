@@ -89,8 +89,8 @@ function codeOf(token){
   const t=_n(token).replace(/[().]/g,'');
   if(CODE[t]) return {btn:CODE[t],extra:''};
   if(/^[123]$/.test(t)) return {btn:'S'+t,extra:''};
-  if(/^(da ?capo|de ?capo|dacapo|decapo)$/.test(t)) return {btn:'ALT',extra:''};
-  let m=t.match(/^(\d+)x?(da ?capo|decapo|dacapo)$/); if(m) return {btn:'ALT',extra:'x'+m[1]};
+  if(/^(da ?capo|de ?capo|dacapo|decapo|dacpo|decpo)$/.test(t)) return {btn:'ALT',extra:''};   // incl. the common "Dacpo" misspelling
+  let m=t.match(/^(\d+)x?(da ?capo|decapo|dacapo|dacpo|decpo)$/); if(m) return {btn:'ALT',extra:'x'+m[1]};
   m=t.match(/^(s[123]|hl)(x?\d+)?$/); if(m&&CODE[m[1]]) return {btn:CODE[m[1]],extra:(m[2]||'')};
   return null;
 }
@@ -304,6 +304,13 @@ function parseTurnContent(content,warn){
       // split a no-space actor+highlight token ("NianHL" -> "Nian" "HL", "MatoiTG" -> "Matoi" "TG")
       for(let ti=0;ti<toks.length;ti++){ const hm=toks[ti].match(/^(.{2,}?)(hl|tg)$/i);
         if(hm && !codeOf(toks[ti])){ const pa=resolveActor(hm[1]); if(pa && (pa.type==='char'||pa.type==='persona')){ toks.splice(ti,1,hm[1],hm[2].toUpperCase()); } } }
+      // split a no-space actor+code token ("Ange3" -> "Ange" "3", "Chord3", "Turbo1", "Violet2") so the action
+      // code isn't swallowed by a fuzzy actor match (lev("ange","ange3")=1). Only when the prefix is an EXACT
+      // actor/Wonder/persona and the suffix is a real code — never a skill/name that merely ends in a digit.
+      for(let ti=0;ti<toks.length;ti++){ if(codeOf(toks[ti])) continue;
+        const cm2=toks[ti].match(/^(.+?)([0-9]|s[123]|hl|tg|gd|gn|atk)$/i); if(!cm2 || !codeOf(cm2[2])) continue;
+        const pa=(_n(cm2[1])==='wonder')?{fuzzy:false,type:'char'}:resolveActor(cm2[1]);
+        if(pa && !pa.fuzzy && (pa.type==='char'||pa.type==='persona')) toks.splice(ti,1,cm2[1],cm2[2]); }
       // "Guard All" / "All Guard": every non-elucidator team unit guards; expanded after the team is known.
       if(/^(g(?:ua|au)rd\s+all|all\s+g(?:ua|au)rd)$/i.test(seg)){ actions.push({guardAll:true}); cur=null; continue; }
       // a lone "Guard" (no actor) -> resolved after the team is known, to the next due actor idle this turn.
@@ -1432,5 +1439,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A181';
+  _g.VF_PARSER_VERSION = 'A182';
 })();
