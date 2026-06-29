@@ -3219,11 +3219,14 @@ function buildTextExport(){
   if(pers.length){ L.push(''); L.push(pers.join(', ')); }
   const tn=(state.teamNotes||'').trim();
   if(tn){ L.push(''); L.push(tn); }
+  const rn=(s.notes||'').trim();   // the Rotation Notes box (separate from Team notes); the parser re-routes both blocks by content
+  if(rn){ L.push(''); L.push(rn); }
   const turnLines=[];
   (state.turns||[]).forEach((t,ti)=>{
     const acts=(t.actions||[]).map(textAction).filter(Boolean);
     const label=(t.name||('TURN '+(ti+1))).replace(/^TURN\s+/i,'T');
-    turnLines.push(label+': '+acts.join(', '));
+    const tnote=(t.note||'').trim();   // turn note rides in a parenthetical on the label ("T5 (Action 21): …")
+    turnLines.push(label+(tnote?' ('+tnote+')':'')+': '+acts.join(', '));
   });
   if(turnLines.length){ L.push(''); L.push(...turnLines); }
   return L.join('\n');
