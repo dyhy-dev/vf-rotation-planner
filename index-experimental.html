@@ -2881,6 +2881,7 @@ const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":
 function closeAllMenus(){
   document.querySelectorAll('.dropdown-menu').forEach(mn=>{ mn.hidden=true; });
   document.querySelectorAll('.dropdown > button[aria-haspopup]').forEach(b=>b.setAttribute('aria-expanded','false'));
+  const hm=document.getElementById('ebHistMenu'); if(hm) hm.hidden=true;   /* the undo-history pop-up closes alongside the dropdowns */
 }
 /* keep an open dropdown inside the window: right-align it if it would overrun the right edge (e.g. the
    right-most Export button on a narrow screen), then nudge it back in if even that runs off the left */
@@ -4981,7 +4982,7 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
       const cancelHold=()=>clearTimeout(holdT);
       u.addEventListener('pointerdown', startHold); u.addEventListener('pointerup', cancelHold); u.addEventListener('pointerleave', cancelHold); u.addEventListener('pointercancel', cancelHold);
       u.addEventListener('contextmenu', e=>e.preventDefault());
-      u.onclick=(e)=>{ if(held){ held=false; e.preventDefault(); return; } histUndo(); };
+      u.onclick=(e)=>{ if(held){ held=false; e.preventDefault(); e.stopPropagation(); return; } histUndo(); };   /* the click that follows a long-press must not bubble to closeAllMenus (which would shut the pop-up we just opened) */
       document.addEventListener('click', e=>{ const m=document.getElementById('ebHistMenu'); if(m && !m.hidden && !m.contains(e.target) && e.target!==u && !u.contains(e.target)) closeHistMenu(); });
       document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeHistMenu(); });
     }
@@ -5053,6 +5054,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebSave" class="eb-btn eb-icon" title="Save to your library" aria-label="Save to your library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260628r</div>
+<div class="version-tag">260628s</div>
 </body>
 </html>
