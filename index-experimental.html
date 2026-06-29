@@ -848,6 +848,17 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 /* the bar's Export menu opens upward; it's position:fixed so the bar's clip / horizontal scroll never cuts it
    off (JS positionMenu sets bottom/left from the trigger button) */
 .eb-dropup .dropdown-menu{position:fixed; top:auto; z-index:1450}
+/* undo history pop-up (long-press Undo): fixed so the bar's clip/scroll can't cut it off */
+.eb-hist-menu{position:fixed; z-index:1450; min-width:200px; max-width:300px; max-height:62vh; overflow:auto; background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:5px; box-shadow:0 10px 28px rgba(0,0,0,.5)}
+.eb-hist-menu[hidden]{display:none}
+.eb-hist-head{font:700 10px Inter,sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:4px 8px 6px}
+.eb-hist-item{display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:transparent; border:none; color:var(--text); padding:7px 9px; border-radius:6px; font:600 12.5px Inter,sans-serif; cursor:pointer; white-space:nowrap}
+.eb-hist-item:hover{background:var(--line); color:var(--gold)}
+.eb-hist-item .eh-dot{width:7px; height:7px; border-radius:50%; background:var(--muted); flex:0 0 auto}
+.eb-hist-item .eh-lbl{overflow:hidden; text-overflow:ellipsis}
+.eb-hist-item.cur{color:var(--gold)} .eb-hist-item.cur .eh-dot{background:var(--gold)}
+.eb-hist-item .eh-now{margin-left:auto; font:700 9px Inter,sans-serif; letter-spacing:.06em; color:var(--gold); border:1px solid var(--gold); border-radius:5px; padding:1px 5px}
+.eb-seg-btn{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none}   /* no text-callout/magnifier on long-press */
 /* single chevron toggle (left end): collapses the whole bar down to just itself, or expands it back */
 .eb-chev{min-width:34px; width:34px; color:var(--muted)}
 .eb-chev svg{display:block; width:18px; height:18px; transition:transform .18s ease}
@@ -1801,6 +1812,36 @@ function renderEditBarVis(animate){ const bar=document.getElementById('editBar')
   _ebAnimTimer=setTimeout(()=>{ if(open){ bar.style.width=''; bar.classList.remove('eb-clip'); } }, 280);
 }
 function toggleEditBar(){ _ebHidden=!_ebHidden; _ebUserToggled=true; renderEditBarVis(true); }
+/* ---------- undo history pop-up: long-press Undo to see the recent changes and jump straight to one ---------- */
+/* derive a short English label for the change between two snapshots (area-level: the first thing that differs) */
+function _histDescribe(a,b){ try{ const pa=JSON.parse(a), pb=JSON.parse(b);
+  const sa=pa.setup||{}, sb=pb.setup||{}; const SF={rotationName:'name',type:'mode',boss:'boss',side:'side',patch:'patch',score:'score',credits:'credits',notes:'notes'};
+  for(const k in SF){ if(JSON.stringify(sa[k])!==JSON.stringify(sb[k])) return 'Edited '+SF[k]; }
+  if(JSON.stringify(pa.teamNotes)!==JSON.stringify(pb.teamNotes)) return 'Edited team notes';
+  const ua=pa.units||[], ub=pb.units||[];
+  if(JSON.stringify(ua)!==JSON.stringify(ub)){ for(let i=0;i<Math.max(ua.length,ub.length);i++){ if(JSON.stringify(ua[i])!==JSON.stringify(ub[i])) return 'Edited '+(((ub[i]||ua[i]||{}).name)||('slot '+(i+1))); } return 'Edited team'; }
+  if(JSON.stringify(pa.elucidator)!==JSON.stringify(pb.elucidator)) return 'Edited elucidator';
+  if(JSON.stringify(pa.personas)!==JSON.stringify(pb.personas)) return 'Edited personas';
+  const ta=pa.turns||[], tb=pb.turns||[];
+  if(ta.length!==tb.length) return tb.length>ta.length?'Added a turn':'Removed a turn';
+  for(let i=0;i<tb.length;i++){ if(JSON.stringify(ta[i])!==JSON.stringify(tb[i])){ const tn=(tb[i].name||('Turn '+(i+1))); const na=(ta[i].actions||[]).length, nb=(tb[i].actions||[]).length;
+    if(nb>na) return 'Added action · '+tn; if(nb<na) return 'Removed action · '+tn; if((ta[i].note||'')!==(tb[i].note||'')) return 'Edited note · '+tn; return 'Edited '+tn; } }
+  return 'Edited rotation';
+}catch(e){ return 'Change'; } }
+function closeHistMenu(){ const m=document.getElementById('ebHistMenu'); if(m) m.hidden=true; }
+function openHistMenu(){ const m=document.getElementById('ebHistMenu'), u=document.getElementById('ebUndo'); if(!m||!u||_hist.length<=1) return;
+  closeAllMenus(); closeHistMenu();
+  const lo=Math.max(0,_histIdx-9); let html='<div class="eb-hist-head">Recent changes</div>';
+  for(let i=_histIdx;i>=lo;i--){ const lbl=i>0?_histDescribe(_hist[i-1],_hist[i]):'Initial state'; const cur=i===_histIdx;
+    html+='<button type="button" class="eb-hist-item'+(cur?' cur':'')+'" data-i="'+i+'" role="menuitem"><span class="eh-dot"></span><span class="eh-lbl">'+esc(lbl)+'</span>'+(cur?'<span class="eh-now">NOW</span>':'')+'</button>'; }
+  m.innerHTML=html;
+  m.querySelectorAll('.eb-hist-item').forEach(it=>{ it.onclick=()=>{ const i=+it.dataset.i; closeHistMenu(); if(i!==_histIdx){ clearTimeout(_histTimer); _histIdx=i; _histApply(); } }; });
+  m.hidden=false;
+  const br=u.getBoundingClientRect(), mg=8;
+  m.style.top='auto'; m.style.bottom=(window.innerHeight-br.top+6)+'px'; m.style.right='auto'; m.style.left=br.left+'px';
+  if(m.getBoundingClientRect().right>window.innerWidth-mg){ m.style.left='auto'; m.style.right=mg+'px'; }
+  if(m.getBoundingClientRect().left<mg){ m.style.right='auto'; m.style.left=mg+'px'; }
+}
 
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
@@ -4934,7 +4975,16 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
 /* editor undo/redo bar wiring (deferred: the bar sits after this script in the DOM) + keyboard shortcuts
    (skip Cmd/Ctrl+Z while typing in a field so native text-undo still works) */
 { const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave'), vw=document.getElementById('ebView'), tg=document.getElementById('ebToggle'), im=document.getElementById('ebImport');
-    if(u) u.onclick=histUndo; if(r) r.onclick=histRedo; if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
+    if(r) r.onclick=histRedo; if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
+    if(u){ let holdT=null, held=false;   /* tap = undo; press-and-hold = open the recent-changes pop-up */
+      const startHold=()=>{ if(u.disabled) return; held=false; clearTimeout(holdT); holdT=setTimeout(()=>{ held=true; openHistMenu(); }, 450); };
+      const cancelHold=()=>clearTimeout(holdT);
+      u.addEventListener('pointerdown', startHold); u.addEventListener('pointerup', cancelHold); u.addEventListener('pointerleave', cancelHold); u.addEventListener('pointercancel', cancelHold);
+      u.addEventListener('contextmenu', e=>e.preventDefault());
+      u.onclick=(e)=>{ if(held){ held=false; e.preventDefault(); return; } histUndo(); };
+      document.addEventListener('click', e=>{ const m=document.getElementById('ebHistMenu'); if(m && !m.hidden && !m.contains(e.target) && e.target!==u && !u.contains(e.target)) closeHistMenu(); });
+      document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeHistMenu(); });
+    }
     if(vw) vw.onclick=async()=>{ if(vw.disabled) return; let url; try{ url=await shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; } try{ window.open(url,'_blank','noopener'); }catch(e){} };
     if(tg) tg.onclick=toggleEditBar;
     if(im) im.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
@@ -5002,6 +5052,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebView" class="eb-btn eb-icon" title="Open the read-only webview of this rotation in a new tab" aria-label="Open the read-only webview in a new tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg></button>
   <button type="button" id="ebSave" class="eb-btn eb-icon" title="Save to your library" aria-label="Save to your library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
 </div>
-<div class="version-tag">260628q</div>
+<div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
+<div class="version-tag">260628r</div>
 </body>
 </html>
