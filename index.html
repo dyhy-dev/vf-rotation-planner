@@ -22,7 +22,7 @@ html,body{margin:0}
 body.theme-light{
   --ink:#e7e4f0; --panel:#f3f1f9; --panel2:#e9e6f3; --line:#d3cee1;
   --blue:#3f6fa5; --blue-strong:#6ea7dc; --blue-soft:#3a5572;
-  --gold:#8a6d12; --text:#1f1c2b; --muted:#6b6680; --row:#ece9f5; --field:#fbfaff;
+  --gold:#f1c232; --text:#1f1c2b; --muted:#6b6680; --row:#ece9f5; --field:#fbfaff;
   background:radial-gradient(1200px 600px at 70% -10%, #fafaff 0%, var(--ink) 60%) fixed, var(--ink);
 }
 body.theme-light .btn{ background:#e7e3f2; border-color:#d0cae0 }
@@ -170,7 +170,7 @@ button{cursor:pointer}
 .twins-dual{flex:1; display:flex; align-items:center; gap:5px; background:var(--field); border:1px solid var(--line); border-radius:5px; padding:2px 6px}
 .twins-dual .td-lab{font:700 11px "Oswald",sans-serif; color:var(--blue-soft)}
 .twins-dual img{height:18px; width:auto; display:block; margin-left:auto}
-body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version-tag):not(#playRoot){ display:none !important; }
+body.view-mode > *:not(#viewRoot):not(#exportView):not(#guideModal):not(.version-tag):not(#playRoot):not(#ioModal){ display:none !important; }
 #viewRoot{ min-height:100vh; background:#14121c; box-sizing:border-box; padding:16px 16px 12px; overflow-x:auto; }
 #viewHeader{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; max-width:1024px; margin:0 auto 16px; }
 #viewBrandWrap{ display:flex; align-items:center; gap:16px; }
@@ -733,6 +733,57 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
+.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; transition:width .25s ease, opacity .4s ease}
+.edit-bar.eb-faded{opacity:.4}   /* collapsed + idle 3s: fade so it doesn't cover the page (still tappable to wake/expand) */
+.edit-bar.eb-clip{overflow:hidden}   /* clip the content while the bar widens/contracts; dropped when fully open so the Export menu can overflow */
+.edit-bar>*{flex:0 0 auto}   /* keep natural widths so a too-wide bar scrolls (on mobile) instead of squishing the buttons */
+.eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
+.eb-btn.eb-text{font-size:13px; font-weight:700; letter-spacing:.03em}
+.eb-btn.eb-icon{width:40px; min-width:40px; padding:0}
+.eb-btn.eb-icon svg{display:block; width:18px; height:18px}
+.edit-bar .eb-btn[hidden]{display:none}   /* the eb-btn display rule would otherwise override the hidden attribute (e.g. the import button before any import) */
+.eb-btn.eb-icon-caret{width:auto; min-width:46px; gap:2px; padding:0 7px}
+.eb-btn.eb-icon-caret .eb-car{font-size:10px; font-weight:700; line-height:1; color:var(--muted)}
+.eb-btn:active:not(:disabled){border-color:var(--gold); color:var(--gold)}   /* press feedback only — works on touch and never sticks after the tap */
+.eb-btn.eb-icon-caret:active:not(:disabled) .eb-car{color:var(--gold)}
+.eb-btn:disabled{opacity:.35; cursor:default}
+/* Apple-style segmented undo/redo control: two joined keys in a rounded pill with a hairline divider */
+.eb-seg{display:inline-flex; height:40px; background:var(--field); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.eb-seg-btn{width:42px; height:100%; padding:0; background:transparent; border:none; color:var(--text); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:background .12s ease, color .12s ease}
+.eb-seg-btn+.eb-seg-btn{border-left:1px solid var(--line)}
+.eb-seg-btn:active:not(:disabled){background:var(--gold); color:#1a1626}
+@media (hover:hover){   /* gold hover only where a real pointer hovers — avoids the sticky :hover that lingers after a tap on touchscreens */
+  .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
+  .eb-btn.eb-icon-caret:hover:not(:disabled) .eb-car{color:var(--gold)}
+  .eb-seg-btn:hover:not(:disabled){background:var(--line); color:var(--gold)}
+}
+.eb-seg-btn:disabled{opacity:.3; cursor:default}
+.eb-seg-btn svg{display:block; width:18px; height:18px}
+/* the bar's Export menu opens upward; it's position:fixed so the bar's clip / horizontal scroll never cuts it
+   off (JS positionMenu sets bottom/left from the trigger button) */
+.eb-dropup .dropdown-menu{position:fixed; top:auto; z-index:1450}
+/* undo history pop-up (long-press Undo): fixed so the bar's clip/scroll can't cut it off */
+.eb-hist-menu{position:fixed; z-index:1450; min-width:200px; max-width:300px; max-height:62vh; overflow:auto; background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:5px; box-shadow:0 10px 28px rgba(0,0,0,.5)}
+.eb-hist-menu[hidden]{display:none}
+.eb-hist-head{font:700 10px Inter,sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:4px 8px 6px}
+.eb-hist-item{display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:transparent; border:none; color:var(--text); padding:7px 9px; border-radius:6px; font:600 12.5px Inter,sans-serif; cursor:pointer; white-space:nowrap}
+.eb-hist-item:hover{background:var(--line); color:var(--gold)}
+.eb-hist-item .eh-dot{width:7px; height:7px; border-radius:50%; background:var(--muted); flex:0 0 auto}
+.eb-hist-item .eh-lbl{overflow:hidden; text-overflow:ellipsis}
+.eb-hist-item.cur{color:var(--gold)} .eb-hist-item.cur .eh-dot{background:var(--gold)}
+.eb-hist-item .eh-now{margin-left:auto; font:700 9px Inter,sans-serif; letter-spacing:.06em; color:var(--gold); border:1px solid var(--gold); border-radius:5px; padding:1px 5px}
+.eb-seg-btn{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none}   /* no text-callout/magnifier on long-press */
+/* single chevron toggle (left end): collapses the whole bar down to just itself, or expands it back */
+.eb-chev{min-width:34px; width:34px; color:var(--muted)}
+.eb-chev svg{display:block; width:18px; height:18px; transition:transform .18s ease}
+.edit-bar.eb-open #ebToggle svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){ .edit-bar{transition:none} }
+@media (max-width:600px){
+  /* slimmer footprint, a safe-area gap, and cap the width to the screen; when open and wider than the screen
+     the bar scrolls horizontally instead of wrapping (the clip stays during the open/close animation) */
+  .edit-bar{bottom:calc(12px + env(safe-area-inset-bottom,0px)); right:12px; gap:5px; max-width:calc(100vw - 24px)}
+  .edit-bar.eb-open:not(.eb-clip){overflow-x:auto}
+}
 .ac-undo{position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:1600; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; background:rgba(241,194,50,.9); border:1px solid #c79a2e; border-radius:10px; color:#3a2c00; font:700 13px Inter,sans-serif; box-shadow:0 8px 30px #0009; backdrop-filter:blur(2px)}
 .ac-undo[hidden]{display:none}
 .ac-undo .ac-undo-x{background:transparent; border:none; color:#5a4a10; font-size:18px; line-height:1; cursor:pointer; padding:0 2px}
@@ -1188,7 +1239,7 @@ function _nearWhiteHex(c){ const m=/^#([0-9a-fA-F]{6})$/.exec(String(c||'')); if
 function uiAccent(name){ const c=charColor(name); return (_effTheme==='light' && _nearWhiteHex(c)) ? '#1f1c2b' : c; }
 /* export/preview/webview card palettes: dark is the default (image export ALWAYS uses dark); light is used for the on-screen live preview and webview when light mode is active */
 const EX_DARK={_light:false, bg:'#14121c', panel:'#23202f', panel2:'#1f1c2b', border:'#3a3550', muted:'#9d97b3', text:'#f3f1f7', soft:'#cfe2f3', blue:'#9fc5e8', gold:'#f1c232', red:'#e0445e', elu:'#5b9bd5', disc:'rgba(224,68,94,.22)'};
-const EX_LIGHT={_light:true, bg:'#e7e4f0', panel:'#f4f2fa', panel2:'#ece9f5', border:'#d3cee1', muted:'#6b6680', text:'#1f1c2b', soft:'#37516e', blue:'#2f6db0', gold:'#8a6d12', red:'#cf3340', elu:'#3a78b8', disc:'rgba(204,47,76,.14)'};
+const EX_LIGHT={_light:true, bg:'#e7e4f0', panel:'#f4f2fa', panel2:'#ece9f5', border:'#d3cee1', muted:'#6b6680', text:'#1f1c2b', soft:'#37516e', blue:'#2f6db0', gold:'#f1c232', red:'#cf3340', elu:'#3a78b8', disc:'rgba(204,47,76,.14)'};
 function exPalette(light){ return light?EX_LIGHT:EX_DARK; }
 function _relLum(r,g,b){ const f=c=>{c/=255; return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);}; return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b); }
 /* darken a bright accent (same hue) until it reads on a light card column; dark accents pass through unchanged */
@@ -1429,7 +1480,84 @@ function load(){
   }catch(e){}
   return blankState();
 }
-function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} }
+function save(){ try{localStorage.setItem(KEY, JSON.stringify(state));}catch(e){} histPush(); }
+/* ---------- editor undo/redo: a debounced history of whole-state snapshots ---------- */
+let _hist=[], _histIdx=-1, _histTimer=null, _restoring=false;
+/* bar visibility is a per-session state: it starts hidden (only the chevron shows) and auto-opens on the
+   first real edit; once the user opens/closes it by hand we stop auto-opening. */
+let _ebHidden=true, _ebUserToggled=false;
+function _snap(){ try{ return JSON.stringify(state); }catch(e){ return ''; } }
+function histInit(){ clearTimeout(_histTimer); _hist=[_snap()]; _histIdx=0; updateEditBar(); }   /* (re)seed the baseline on boot / share-link load */
+function histPush(){ if(_restoring) return; clearTimeout(_histTimer);
+  _histTimer=setTimeout(()=>{ const s=_snap(); if(!s||s===_hist[_histIdx]) return;
+    _hist=_hist.slice(0,_histIdx+1); _hist.push(s); if(_hist.length>50) _hist.shift(); _histIdx=_hist.length-1;
+    _ebUpdateDisabled();
+    if(_ebHidden && !_ebUserToggled){ _ebHidden=false; renderEditBarVis(true); }   /* auto-open (animated) the first time something changes */
+    else renderEditBarVis(false); }, 400); }
+function _histApply(){ _restoring=true; try{ state=migrate(JSON.parse(_hist[_histIdx])); save(); renderAll(); }catch(e){} _restoring=false; updateEditBar(); }
+function histUndo(){ if(_histIdx>0){ clearTimeout(_histTimer); _histIdx--; _histApply(); } }
+function histRedo(){ if(_histIdx<_hist.length-1){ clearTimeout(_histTimer); _histIdx++; _histApply(); } }
+function _ebUpdateDisabled(){ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo');
+  if(u) u.disabled=_histIdx<=0; if(r) r.disabled=_histIdx>=_hist.length-1; }
+function updateEditBar(){ if(!document.getElementById('editBar')) return; _ebUpdateDisabled(); renderEditBarVis(false); }
+/* open/close visibility. The whole bar collapses down to just the chevron and expands back via a horizontal
+   width slide (measured width, so the content isn't distorted the way a CSS transform would). Collapsed width is
+   the chevron alone; when fully open we drop the inline width + clip so the upward Export menu can overflow. */
+let _ebAnimTimer=null, _ebFadeTimer=null;
+/* when the bar is fully collapsed (chevron only) and untouched for 3s, fade it so it stops covering the page
+   content (matters on mobile); any interaction or expanding wakes it back to full opacity */
+function _ebScheduleFade(){ clearTimeout(_ebFadeTimer); if(_ebHidden) _ebFadeTimer=setTimeout(()=>{ const b=document.getElementById('editBar'); if(b && _ebHidden) b.classList.add('eb-faded'); }, 3000); }
+function _ebWake(){ const b=document.getElementById('editBar'); if(b) b.classList.remove('eb-faded'); _ebScheduleFade(); }
+function _ebChevWidth(bar){ const tog=document.getElementById('ebToggle'); if(!tog) return 48;
+  const cs=getComputedStyle(bar); return tog.offsetWidth + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth); }
+function renderEditBarVis(animate){ const bar=document.getElementById('editBar'); if(!bar) return;
+  const open=!_ebHidden;
+  bar.classList.toggle('eb-open', open);
+  const t=document.getElementById('ebToggle'); if(t){ t.title=open?'Hide the bar':'Show the bar'; t.setAttribute('aria-label',t.title); t.setAttribute('aria-expanded',String(open)); }
+  bar.classList.remove('eb-faded'); if(open) clearTimeout(_ebFadeTimer); else _ebScheduleFade();
+  clearTimeout(_ebAnimTimer);
+  if(!animate){ bar.style.transition='none';
+    if(open){ bar.classList.remove('eb-clip'); bar.style.width=''; } else { bar.classList.add('eb-clip'); bar.style.width=_ebChevWidth(bar)+'px'; }
+    bar.getBoundingClientRect(); bar.style.transition=''; return; }
+  bar.classList.add('eb-clip'); bar.style.transition='none';
+  const closed=_ebChevWidth(bar);
+  bar.style.width='auto'; const full=bar.offsetWidth;                  /* natural (expanded) width, capped by max-width */
+  bar.style.width=(open?closed:full)+'px'; bar.getBoundingClientRect();/* start width, force reflow */
+  bar.style.transition=''; bar.style.width=(open?full:closed)+'px';   /* animate to target */
+  _ebAnimTimer=setTimeout(()=>{ if(open){ bar.style.width=''; bar.classList.remove('eb-clip'); } }, 280);
+}
+function toggleEditBar(){ _ebHidden=!_ebHidden; _ebUserToggled=true; renderEditBarVis(true); }
+/* ---------- undo history pop-up: long-press Undo to see the recent changes and jump straight to one ---------- */
+/* derive a short English label for the change between two snapshots (area-level: the first thing that differs) */
+function _histDescribe(a,b){ try{ const pa=JSON.parse(a), pb=JSON.parse(b);
+  const sa=pa.setup||{}, sb=pb.setup||{}; const SF={rotationName:'name',type:'mode',boss:'boss',side:'side',patch:'patch',score:'score',credits:'credits',notes:'notes'};
+  for(const k in SF){ if(JSON.stringify(sa[k])!==JSON.stringify(sb[k])) return 'Edited '+SF[k]; }
+  if(JSON.stringify(pa.teamNotes)!==JSON.stringify(pb.teamNotes)) return 'Edited team notes';
+  const ua=pa.units||[], ub=pb.units||[];
+  if(JSON.stringify(ua)!==JSON.stringify(ub)){ for(let i=0;i<Math.max(ua.length,ub.length);i++){ if(JSON.stringify(ua[i])!==JSON.stringify(ub[i])) return 'Edited '+(((ub[i]||ua[i]||{}).name)||('slot '+(i+1))); } return 'Edited team'; }
+  if(JSON.stringify(pa.elucidator)!==JSON.stringify(pb.elucidator)) return 'Edited elucidator';
+  if(JSON.stringify(pa.personas)!==JSON.stringify(pb.personas)) return 'Edited personas';
+  const ta=pa.turns||[], tb=pb.turns||[];
+  if(ta.length!==tb.length) return tb.length>ta.length?'Added a turn':'Removed a turn';
+  for(let i=0;i<tb.length;i++){ if(JSON.stringify(ta[i])!==JSON.stringify(tb[i])){ const tn=(tb[i].name||('Turn '+(i+1))); const na=(ta[i].actions||[]).length, nb=(tb[i].actions||[]).length;
+    if(nb>na) return 'Added action · '+tn; if(nb<na) return 'Removed action · '+tn; if((ta[i].note||'')!==(tb[i].note||'')) return 'Edited note · '+tn; return 'Edited '+tn; } }
+  return 'Edited rotation';
+}catch(e){ return 'Change'; } }
+function closeHistMenu(){ const m=document.getElementById('ebHistMenu'); if(m) m.hidden=true; }
+function openHistMenu(){ const m=document.getElementById('ebHistMenu'), u=document.getElementById('ebUndo'); if(!m||!u||_hist.length<=1) return;
+  closeAllMenus(); closeHistMenu();
+  const lo=Math.max(0,_histIdx-9); let html='<div class="eb-hist-head">Recent changes</div>';
+  for(let i=_histIdx;i>=lo;i--){ const lbl=i>0?_histDescribe(_hist[i-1],_hist[i]):'Initial state'; const cur=i===_histIdx;
+    html+='<button type="button" class="eb-hist-item'+(cur?' cur':'')+'" data-i="'+i+'" role="menuitem"><span class="eh-dot"></span><span class="eh-lbl">'+esc(lbl)+'</span>'+(cur?'<span class="eh-now">NOW</span>':'')+'</button>'; }
+  m.innerHTML=html;
+  m.querySelectorAll('.eb-hist-item').forEach(it=>{ it.onclick=()=>{ const i=+it.dataset.i; closeHistMenu(); if(i!==_histIdx){ clearTimeout(_histTimer); _histIdx=i; _histApply(); } }; });
+  m.hidden=false;
+  const br=u.getBoundingClientRect(), mg=8;
+  m.style.top='auto'; m.style.bottom=(window.innerHeight-br.top+6)+'px'; m.style.right='auto'; m.style.left=br.left+'px';
+  if(m.getBoundingClientRect().right>window.innerWidth-mg){ m.style.left='auto'; m.style.right=mg+'px'; }
+  if(m.getBoundingClientRect().left<mg){ m.style.right='auto'; m.style.left=mg+'px'; }
+}
+
 
 /* ---------- rotation library: multiple named rotations saved on this device ---------- */
 const LIB_KEY='vf-rotation-library-v1';
@@ -1555,6 +1683,7 @@ function openImportText(){
       const keepEl=document.getElementById('ioKeep'); const keepText=(keepEl&&keepEl.checked)?v:null;
       showImportFeedback(res);
       _lastImportText = keepText || ''; syncImportBtn();
+      _ebHidden=false; renderEditBarVis(true);   /* surface the edit bar on a fresh import */
       if(keepText) showImportNote(keepText); else { const n=document.getElementById('importNote'); if(n) n.hidden=true; }
     }});
 }
@@ -1587,7 +1716,7 @@ function fitCredits(){
 }
 
 let _lastImportText='';   /* the raw text from the last "keep text" import, so it can be reopened from the setup header */
-function syncImportBtn(){ const b=document.getElementById('setupShowImport'); if(b) b.hidden=!_lastImportText; }
+function syncImportBtn(){ const b=document.getElementById('ebImport'); if(b) b.hidden=!_lastImportText; }
 function renderHead(){
   const s=state.setup;
   refreshNameSug(false);
@@ -1595,7 +1724,6 @@ function renderHead(){
     <div class="head-top">
       <div class="rot-name"><input id="f_name" value="${esc(s.rotationName)}" placeholder="${esc(_nameSug||'Rotation Name')}"/><button type="button" id="nameSug" class="name-sug" title="Suggest a name" aria-label="Suggest a name"${_nameSug?'':' hidden'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/></svg></button></div>
       <div class="head-actions">
-        <button type="button" class="btn" id="setupShowImport" title="Show the imported text again"${_lastImportText?'':' hidden'}>Imported text</button>
         <button type="button" class="btn" id="setupSaveBtn" title="Save the current rotation to your library">Save</button>
         <button type="button" class="btn" id="setupLoadBtn">Load</button>
         <button type="button" class="btn" id="setupLibBtn" title="Your saved rotations (this device)">Library</button>
@@ -1613,8 +1741,7 @@ function renderHead(){
   bind('f_name','setup.rotationName');
   { const sug=document.getElementById('nameSug'); if(sug) sug.onclick=()=>{ refreshNameSug(true); const f=document.getElementById('f_name'); if(f) f.placeholder=_nameSug||'Rotation Name'; };
     ['f_boss','f_patch','f_score'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('input', updateNameSugUI); }); }
-  { const si=document.getElementById('setupShowImport'); if(si) si.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
-    const sv=document.getElementById('setupSaveBtn'); if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
+  { const sv=document.getElementById('setupSaveBtn'); if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
     const ld=document.getElementById('setupLoadBtn'); if(ld) ld.onclick=()=>window.openLibrary&&window.openLibrary('load');
     const lib=document.getElementById('setupLibBtn'); if(lib) lib.onclick=()=>window.openLibrary&&window.openLibrary('full'); }
   bind('f_credits','setup.credits');
@@ -2169,14 +2296,17 @@ function refreshDiscrepancies(){
   const nExcess=excessBreakTurns().length;
   const total=nChar+nOrd+nExcess;
   const iss=setupIssues();
-  const eb=document.getElementById('exportMenuBtn');
-  if(eb){
-    const blocked = total>0 || !iss.ok;
+  const blocked = total>0 || !iss.ok;
+  let blockTitle='';
+  if(total>0) blockTitle='Resolve the discrepancies before exporting.';
+  else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); blockTitle='Complete the setup first: '+parts.join('; ')+'.'; }
+  ['exportMenuBtn','ebExportBtn','ebView'].forEach(id=>{ const eb=document.getElementById(id); if(!eb) return;
     eb.disabled=blocked; eb.classList.toggle('disabled', blocked);
-    if(total>0) eb.title='Resolve the discrepancies before exporting.';
-    else if(!iss.ok){ const parts=[]; if(iss.missing.length) parts.push('fill in '+iss.missing.join(', ')); if(iss.patchBad) parts.push('fix the Patch'); if(iss.scoreBad) parts.push('fix the Expected Score'); eb.title='Complete the setup first: '+parts.join('; ')+'.'; }
+    if(blocked) eb.title=blockTitle;
+    else if(id==='ebView') eb.title='Open the read-only webview of this rotation in a new tab';
+    else if(id==='ebExportBtn') eb.title='Export (JSON, PNG, text, links, code)';   /* icon-only button: keep a tooltip */
     else eb.removeAttribute('title');
-  }
+  });
   const ac=document.getElementById('autoCorrect'); if(ac) ac.hidden = total===0;
   if(total>0){ if(total>_prevDiscCount) showDiscBanner(); }
   else { hideDiscBanner(); }
@@ -2467,10 +2597,19 @@ const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":
 function closeAllMenus(){
   document.querySelectorAll('.dropdown-menu').forEach(mn=>{ mn.hidden=true; });
   document.querySelectorAll('.dropdown > button[aria-haspopup]').forEach(b=>b.setAttribute('aria-expanded','false'));
+  const hm=document.getElementById('ebHistMenu'); if(hm) hm.hidden=true;   /* the undo-history pop-up closes alongside the dropdowns */
 }
 /* keep an open dropdown inside the window: right-align it if it would overrun the right edge (e.g. the
    right-most Export button on a narrow screen), then nudge it back in if even that runs off the left */
 function positionMenu(menu){ if(!menu) return; const m=8;
+  const up=menu.closest('.eb-dropup');
+  if(up){ /* the edit-bar Export menu is position:fixed (so the bar's clip/scroll can't cut it off); place it above its button, right-aligned, clamped to the viewport */
+    const btn=up.querySelector('[aria-haspopup]'); const br=btn.getBoundingClientRect();
+    menu.style.maxWidth=(window.innerWidth-2*m)+'px'; menu.style.top='auto';
+    menu.style.bottom=(window.innerHeight - br.top + 6)+'px';
+    menu.style.left='auto'; menu.style.right=Math.max(m,(window.innerWidth - br.right))+'px';
+    if(menu.getBoundingClientRect().left<m){ menu.style.right='auto'; menu.style.left=m+'px'; }
+    return; }
   menu.style.left='0'; menu.style.right='auto'; menu.style.maxWidth=(window.innerWidth-2*m)+'px';
   let r=menu.getBoundingClientRect();
   if(r.right>window.innerWidth-m){ menu.style.left='auto'; menu.style.right='0'; r=menu.getBoundingClientRect(); }
@@ -2652,7 +2791,7 @@ async function shortenLink(fragment){
   }
   if(btn) btn.disabled=true; if(hint) hint.textContent='Creating short link…';
   try{
-    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({f:fragment})});
+    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({f:fragment, title:discordLabel()})});
     if(!res.ok) throw new Error('http '+res.status);
     const data=await res.json();
     if(!data||!data.url) throw new Error('no url');
@@ -2748,7 +2887,14 @@ function buildTextExport(){
       line=titleCase(nm)+(u.rev?' '+u.rev:'')+(u.gear?' '+u.gear:'');
     } else {
       const prefix=((u.awareness||'').trim()+(u.rev||'').trim());
-      const cards=[u.space,u.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
+let cards=[u.space,u.sunsky].map(x=>(x||'').trim()).filter(Boolean).join(' + ');
+      // the Twins' role isn't a card, so spell it out followed by its two dual-elements
+      // ("… - Strategist - Fire/Ice + Psy/Nuke"). The parser re-infers the role from the duals (the role word
+      // is there for the reader), which otherwise only survives if both duals also appear as turn HLs.
+      if(nm.toUpperCase()==='TWINS' && u.role && TWINS_ROLE_DUALS[u.role]){
+        const roleAndDuals=u.role+' - '+TWINS_ROLE_DUALS[u.role].join(' + ');
+        cards = cards ? (cards+' - '+roleAndDuals) : roleAndDuals;
+      }
       line=(prefix?prefix+' ':'')+(nm.toUpperCase()===MIKU_NAME?'Miku':titleCase(nm))+(cards?': '+cards:'');
     }
     if((u.note||'').trim()) line+=' ('+u.note.trim()+')';
@@ -3542,6 +3688,7 @@ function enterViewMode(){
       <div id="viewActions">
         <a class="btn" id="viewDiscord" href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer" title="Join our Discord"><svg viewBox="0 0 24 24" aria-hidden="true" style="fill:#5865F2"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.291.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>Discord</a>
         <button class="btn" id="viewEdit" title="Open this rotation in the Editor">Open in Editor</button>
+        <button class="btn" id="viewShare" title="Get a shareable read-only view link for this rotation">Share</button>
         <button class="btn" id="viewDownload" title="Download the PNG of this view">Download</button>
         <button class="btn" id="viewPlay" title="Play the rotation turn by turn">Play</button>
       </div>
@@ -3551,6 +3698,7 @@ function enterViewMode(){
   const stage=document.getElementById('viewStage');
   document.getElementById('viewDownload').onclick=()=>{ try{ exportViewPNG(); }catch(e){ _settleExport(); } };
   { const vp=document.getElementById('viewPlay'); if(vp) vp.onclick=openPlayMode; }
+  { const vs=document.getElementById('viewShare'); if(vs) vs.onclick=openShareViewLink; }
   document.getElementById('viewEdit').onclick=async()=>{ try{ location.hash='r='+(await encodeShare()); location.reload(); }catch(e){} };
   const _setViewThemeBtn=()=>{ const b=document.getElementById('viewThemeToggle'); if(b) b.textContent=(_effTheme==='light'?'Switch to dark mode':'Switch to light mode'); };
   { const tb=document.getElementById('viewThemeToggle'); if(tb) tb.onclick=()=>{ settings.theme=(_effTheme==='light'?'dark':'light'); applyTheme(); _setViewThemeBtn(); }; _setViewThemeBtn(); }
@@ -3799,7 +3947,8 @@ function _playOrient(){ const r=document.getElementById('playRoot'); if(r&&!r.hi
   _updateIosRotate(); }
 // full-page notice on iPhone Safari (not the Home-Screen web app) in landscape: the horizontal player needs
 // real fullscreen, which Safari on iPhone doesn't allow — point the user to "Add to Home Screen".
-function _updateIosRotate(){ const o=document.getElementById('iosRotate'); if(!o) return; o.hidden=!_iosSafariLandscape(); }
+// Only the Play Mode is restricted; the main editor works fine in landscape, so gate the notice on the player being open.
+function _updateIosRotate(){ const o=document.getElementById('iosRotate'); if(!o) return; const pr=document.getElementById('playRoot'); const inPlay=!!(pr && !pr.hidden); o.hidden=!(inPlay && _iosSafariLandscape()); }
 window.addEventListener('resize', _playOrient);
 // iOS Safari updates the window dimensions late after a rotation, so re-check a couple of times
 window.addEventListener('orientationchange', ()=>{ _playOrient(); setTimeout(_playOrient,250); setTimeout(_playOrient,600); });
@@ -3887,11 +4036,12 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     document.addEventListener('mousemove', mmove); document.addEventListener('mouseup', mup);
   });
 })();
-(function(){
-  const wrap=document.getElementById('exportWrap'), btn=document.getElementById('exportMenuBtn'), menu=document.getElementById('exportMenu');
+/* wire an Export dropdown (used for both the toolbar one and the floating edit-bar one) */
+function wireExportDropdown(wrapId, btnId, menuId){
+  const wrap=document.getElementById(wrapId), btn=document.getElementById(btnId), menu=document.getElementById(menuId);
   if(!wrap||!btn||!menu) return;
   const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
-  btn.onclick=(e)=>{ e.stopPropagation(); const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
+  btn.onclick=(e)=>{ e.stopPropagation(); if(btn.disabled) return; const willOpen=menu.hidden; closeAllMenus(); if(willOpen){ menu.hidden=false; btn.setAttribute('aria-expanded','true'); positionMenu(menu); } };
   menu.querySelectorAll('.dropdown-item').forEach(it=>{ it.onclick=()=>{ const k=it.dataset.export; close();
     if(k==='json') exportJSON();
     else if(k==='png-art') exportImage(true);
@@ -3902,7 +4052,9 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     else if(k==='viewlink') openShareViewLink();
     else if(k==='code') openCopyCode();
   }; });
-})();
+}
+wireExportDropdown('exportWrap','exportMenuBtn','exportMenu');
+/* the edit-bar Export dropdown is wired in the deferred wireEditBar() below — the bar sits after this script in the DOM */
 
 const CHAR_ALIASES = {"MIKU":["Hatsune Miku","Hatsune","HM"],"AIGIS":["Aigis"],"AKIHIKO":["Akihiko","Sanada","Aki"],"ANGE":["Manaka","Nagao"],"ANRI":["Aran","Hirano"],"BERRY":["Ichigo","Shikano"],"BLITZ":["Kumi","Katayama"],"BUI":["YUI","Musubi","Matsukata"],"BUI·P":["Bui","YUI","Prism","Musubi","Matsukata"],"CATTLE":["Lufel"],"CHERISH":["Masaki","Ashiya"],"CHORD":["Ayaka","Sakai"],"CLOSER":["Motoha","Arai"],"CLOSER·R":["Closer","Radiance","Motoha","Arai","RCloser"],"CLOSER·T":["Closer","Tropical","Motoha","Arai","Summer","SCloser","TCloser","SMotoha","TMotoha"],"CROW":["Goro","Akechi","Pancakes"],"FLEURET":["Seiji","Shiratori"],"FOX":["Yusuke","Kitagawa"],"FUUKA":["Fuka","Yamagishi"],"HOWLER":["Runa","Dogenzaka"],"JOKER":["Ren","Amamiya"],"JOKER·S":["Joker","Ren","Amamiya","Starlight","SJoker"],"JUNPEI":["Junpei","Iori"],"KEY":["Kiyoshi","Kurotani"],"KOROMARU":["Koromaru","Koro"],"LEON":["Leo","Kamiyama"],"LUCE":["Shoki","Ikenami"],"LUCE·N":["Luce","Shoki","Notte","NLuce","Ikenami","NShoki"],"MAKOTO":["Makoto","Yuki","Door","Mako"],"MARIAN":["Minami","Miyashita"],"MARIAN·B":["Marian","Minami","Summer","SMarian","SMinami","MARIAN·S","Beachflower","BMarian","BMinami","Binami","Barian"],"MATOI":["Mio","Natsukawa"],"MESSA":["Kira","Kitazato"],"MITSURU":["Mitsuru","Kirijo"],"MOKO":["Tomoko","Noge"],"MOKO·S":["Moko","Seaside","Tomoko","Noge","Summer","SMoko","STomoko"],"MONA":["Morgana"],"MONA·S":["Mona","Morgana","Starlight","SMona"],"MONT":["Montagne","Kotone"],"MONT·F":["Mont","Frostgale","Kotone","Swan"],"NOIR":["Haru","Okumura"],"OKYANN":["Kayo","Tomiyama"],"ORACLE":["Futaba","Sakura","Navi","Taba"],"PANTHER":["Ann","Takamaki"],"PHOEBE":["Yumi","Shiina"],"PINKY":["Narumi","Nashimoto","Naruru"],"PUPPET":["Miyu","Sahara"],"PUPPET·S":["Puppet","Miyu","Summer","SPuppet","SMiyu"],"QUEEN":["Makoto","Niijima"],"RIDDLE":["Haruna","Nishimori"],"RIN":["Yaoling","Li"],"RIN·F":["Rin","Firecracker","CrackRin","Crack","Yaoling","Li","LD","Lion","Dance","CNY","CNYRin","FRin"],"SEPIA":["Toshiya","Sumi"],"SKULL":["Ryuji","Sakamoto"],"SOY":["Shun","Kano"],"SOY·P":["Soy","Shun","Pioneer","PSoy","Kano","PShun"],"TURBO":["Mayumi","Hashimoto"],"TWINS":["Justine","Caroline"],"VINO":["Chizuko","Nagao"],"VIOLET":["Kasumi","Yoshizawa","Vio","Sumi","Sumire"],"WIND":["Riko","Tanemura"],"WIND·T":["Wind","Tempest","Riko","TRiko","Vast","Tanemura","WindV"],"WONDER":["Nagisa","Kamisiro","Protagonist"],"YUKARI":["Yukari","Takeba","Yuka"],"YUKI":["Yukimi","Fujikawa"]};
 const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belphegor":["Belph"],"Bishamonten":["Bish","Bisha"],"Chernobog":["Cherno","Chern"],"Dionysus":["Dio","Dion"],"Dominion":["Dom","Domi"],"Janosik":["Jano","Janos"],"Jikokuten":["Jiko"],"Koumokuten":["Komo","Koumo"],"Kushinada":["Kushi"],"Melchizedek":["Melch"],"Narcissus":["Narc","Narcisus"],"Okuninushi":["Oku"],"Sahimochi-no-kami":["Sahi","Shark"],"Sandalphon":["Sandy","Sand"],"Sarasvati":["Saras"],"Setanta":["Set"],"Sraosha":["Srao"],"Succubus":["Suc","Succ"],"Trumpeter":["Trump"],"Yamata-no-Orochi":["Yamato"],"Yatagarasu":["Yata"],"Yoshitsune":["Yoshi"],"Yurlungur":["Yurl","Gummy Worm"]};
@@ -3995,7 +4147,33 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
-state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll();
+state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll(); histInit();
+/* editor undo/redo bar wiring (deferred: the bar sits after this script in the DOM) + keyboard shortcuts
+   (skip Cmd/Ctrl+Z while typing in a field so native text-undo still works) */
+{ const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave'), vw=document.getElementById('ebView'), tg=document.getElementById('ebToggle'), im=document.getElementById('ebImport');
+    if(r) r.onclick=histRedo; if(sv) sv.onclick=()=>window.saveCurrentRotation&&window.saveCurrentRotation();
+    if(u){ let holdT=null, held=false;   /* tap = undo; press-and-hold = open the recent-changes pop-up */
+      const startHold=()=>{ if(u.disabled) return; held=false; clearTimeout(holdT); holdT=setTimeout(()=>{ held=true; openHistMenu(); }, 450); };
+      const cancelHold=()=>clearTimeout(holdT);
+      u.addEventListener('pointerdown', startHold); u.addEventListener('pointerup', cancelHold); u.addEventListener('pointerleave', cancelHold); u.addEventListener('pointercancel', cancelHold);
+      u.addEventListener('contextmenu', e=>e.preventDefault());
+      u.onclick=(e)=>{ if(held){ held=false; e.preventDefault(); e.stopPropagation(); return; } histUndo(); };   /* the click that follows a long-press must not bubble to closeAllMenus (which would shut the pop-up we just opened) */
+      document.addEventListener('click', e=>{ const m=document.getElementById('ebHistMenu'); if(m && !m.hidden && !m.contains(e.target) && e.target!==u && !u.contains(e.target)) closeHistMenu(); });
+      document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeHistMenu(); });
+    }
+    if(vw) vw.onclick=async()=>{ if(vw.disabled) return; let url; try{ url=await shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; } try{ window.open(url,'_blank','noopener'); }catch(e){} };
+    if(tg) tg.onclick=toggleEditBar;
+    { const tp=document.getElementById('ebTop'); if(tp) tp.onclick=()=>{ try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }; }
+    { const bar=document.getElementById('editBar'); if(bar) ['pointerenter','pointerdown','focusin'].forEach(ev=>bar.addEventListener(ev,_ebWake)); }
+    if(im) im.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
+    syncImportBtn();
+    wireExportDropdown('ebExportWrap','ebExportBtn','ebExportMenu');
+    updateEditBar(); };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireEditBar); else wireEditBar();
+  document.addEventListener('keydown', e=>{ if(!(e.metaKey||e.ctrlKey)) return; const k=(e.key||'').toLowerCase(); if(k!=='z'&&k!=='y') return;
+    const ae=document.activeElement; if(ae && /^(input|textarea|select)$/i.test(ae.tagName||'')) return;
+    if(document.body.classList.contains('view-mode')) return;
+    e.preventDefault(); if(k==='y'||(k==='z'&&e.shiftKey)) histRedo(); else histUndo(); }); }
 if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPush(); });   /* pull on start, then push only if local changed since the last sync (e.g. edits made offline) */
 (async function(){
   const vm=(location.hash||'').match(/[#&]v=([^&]+)/);
@@ -4009,7 +4187,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   // vf-parser.js loads after this script, so wait until parseRotationText exists before parsing.
   const tm=(location.hash||'').match(/[#&]t=([^&]+)/);
   if(tm){
-    const loadText=()=>{ try{ const txt=b64urlDecode(tm[1]); if(txt){ const res=parseRotationText(txt,{}); state=migrate(res.state); save(); renderAll(); } }catch(e){ /* unreadable text link */ }
+    const loadText=()=>{ try{ const txt=b64urlDecode(tm[1]); if(txt){ const res=parseRotationText(txt,{}); state=migrate(res.state); save(); renderAll(); histInit(); } }catch(e){ /* unreadable text link */ }
       try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; } };
     if(typeof parseRotationText==='function') loadText();
     else { let n=0; const iv=setInterval(()=>{ if(typeof parseRotationText==='function'){ clearInterval(iv); loadText(); } else if(++n>80){ clearInterval(iv); } }, 25); }
@@ -4017,7 +4195,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   }
   const m=(location.hash||'').match(/[#&]r=([^&]+)/);
   if(!m) return;
-  try{ const st=await decodeShare(m[1]); state=migrate(st); save(); renderAll(); }catch(e){ /* ignore an unreadable link */ }
+  try{ const st=await decodeShare(m[1]); state=migrate(st); save(); renderAll(); histInit(); }catch(e){ /* ignore an unreadable link */ }
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
 </script>
@@ -4029,6 +4207,31 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
      without waiting for the GitHub Pages cache (max-age=600) to expire. On file://
      the query is omitted — a query string breaks the local file lookup. -->
 <script>(function(){var u='vf-parser.js';if(/^https?:$/.test(location.protocol))u+='?v='+Date.now();document.write('<script src="'+u+'"><\/script>');})();</script>
-<div class="version-tag">260628M</div>
+<div id="editBar" class="edit-bar">
+  <button type="button" id="ebToggle" class="eb-btn eb-chev" title="Hide the bar" aria-label="Hide the bar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+  <div class="eb-seg">
+    <button type="button" id="ebUndo" class="eb-seg-btn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button type="button" id="ebRedo" class="eb-seg-btn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14 20 9l-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
+  </div>
+  <button type="button" id="ebImport" class="eb-btn eb-icon" title="Show the imported text" aria-label="Imported text" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+  <div class="dropdown eb-dropup" id="ebExportWrap">
+    <button type="button" class="eb-btn eb-icon eb-icon-caret" id="ebExportBtn" title="Export (JSON, PNG, text, links, code)" aria-label="Export" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg><b class="eb-car">&#9662;</b></button>
+    <div class="dropdown-menu" id="ebExportMenu" hidden>
+      <button class="dropdown-item" data-export="json">JSON</button>
+      <button class="dropdown-item" data-export="png-art">PNG &amp; Images</button>
+      <button class="dropdown-item" data-export="png">PNG (no Images)</button>
+      <button class="dropdown-item" data-export="png-rot">PNG (Rotation only)</button>
+      <button class="dropdown-item" data-export="text">Text</button>
+      <button class="dropdown-item" data-export="link">Share Editor Link</button>
+      <button class="dropdown-item" data-export="viewlink">Share View Link</button>
+      <button class="dropdown-item" data-export="code">Copy Code</button>
+    </div>
+  </div>
+  <button type="button" id="ebView" class="eb-btn eb-icon" title="Open the read-only webview of this rotation in a new tab" aria-label="Open the read-only webview in a new tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg></button>
+  <button type="button" id="ebSave" class="eb-btn eb-icon" title="Save to your library" aria-label="Save to your library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+  <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
+</div>
+<div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
+<div class="version-tag">260629Q</div>
 </body>
 </html>
