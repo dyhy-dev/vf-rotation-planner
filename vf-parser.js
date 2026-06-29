@@ -362,11 +362,12 @@ function parseTurnContent(content,warn){
       if(_hasMiku()){ let stoks=toks, mikuLed=false;
         while(stoks.length){ const am=resolveActor(stoks[0]); if(am&&!am.fuzzy&&am.name===MIKU){ stoks=stoks.slice(1); mikuLed=true; } else break; }
         // "[Miku] Song Switch <song>" / "[Miku] Switch to <song>": a song-change directive — drop the filler
-        // words so the real song name parses. Only "song" immediately before "switch" is filler, never a bare
-        // "Song 1"/"Song 2" (those are song aliases).
+        // words so the real song name parses, and remember it so the action note records "Switch song" (Dennis).
+        // Only "song" immediately before "switch" is filler, never a bare "Song 1"/"Song 2" (those are aliases).
+        let switched=false;
         { const _f=k=>(stoks[k]||'').replace(/[():.]/g,''); let i=0;
           if(/^song$/i.test(_f(0))&&/^switch$/i.test(_f(1))) i=2; else if(/^switch$/i.test(_f(0))) i=1;
-          if(i>0){ if(/^to$/i.test(_f(i))) i++; stoks=stoks.slice(i); } }
+          if(i>0){ if(/^to$/i.test(_f(i))) i++; stoks=stoks.slice(i); switched=true; } }
         const ls=leadingSong(stoks); const a0=resolveActor(toks[0]);
         let song='', songLen=0;
         if(ls){ song=ls.song; songLen=ls.len; }
@@ -382,6 +383,7 @@ function parseTurnContent(content,warn){
           let textStr=txt.join(' ').trim();
           // a trailing "all guard" / "guard all" in the same segment guards the rest of the team
           const gTail=/^(all\s+g(?:ua|au)rd|g(?:ua|au)rd\s+all)$/i.test(textStr); if(gTail) textStr='';
+          if(switched) textStr=['Switch song',textStr].filter(Boolean).join(' ');   // record the song-change in the note
           actions.push({char:MIKU,btn,song,text:textStr,_fuzzy:false});
           cur={type:'char',name:MIKU}; lastActor=cur;
           if(gTail) actions.push({guardAll:true});
@@ -1453,5 +1455,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A183';
+  _g.VF_PARSER_VERSION = 'A184';
 })();
