@@ -703,6 +703,12 @@ function parseRotationText(text, opts){
           // a pierce/crit stat segment ("Twins: 25% CR - Fire/Ice + Psy/Nuke") is the Twins' note — skip the
           // dual segments (they carry a "/") and any card pair, keep the stat leftover.
           const statSeg=body.split(/\s+[-–—]\s+/).map(s=>s.trim()).find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s));
+          // an alternative card SET in the cards segment ("Harmony + Victory or Trust + Power - duals"): only the
+          // first set is applied; the alternative goes to the note (Dennis). The cards segment is the part before
+          // the first " - " (the duals live in later segments), so its comma/"or" introduces a second set.
+          let altNote=''; { const cardSeg=body.split(/\s+[-–—]\s+/)[0]||''; const sep=cardSeg.match(/\s*,\s*|\s+or\s+/i);
+            if(sep){ const rest=cardSeg.slice(sep.index).replace(/^\s*,\s*/,'').trim(); const cpAlt=cardPair(rest);
+              if(cpAlt.space&&cpAlt.sunsky) altNote=(/^or\b/i.test(rest)?'':'or ')+rest; } }
           // a note written AFTER the duals ("… Fire/Ice + Psy/Nuke. Needs 20+ pierce"): skip the leading card /
           // dual / role / joiner tokens and keep the verbatim remainder (only when it carries no further dual, so
           // a stat note written BEFORE the duals stays the statSeg case above).
@@ -713,7 +719,7 @@ function parseRotationText(text, opts){
             const ws=norm.split(/\s+/).filter(Boolean); let k=0; while(k<ws.length&&(isCard(ws[k])||isJoin(ws[k])||isDual(ws[k])||isRole(ws[k]))) k++;
             const lo=ws.slice(k).join(' ').replace(/^[\s,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
             if(lo && /[A-Za-z]/.test(lo) && !/[A-Za-z]+\/[A-Za-z]+/.test(lo)) afterNote=lo; }
-          const twNote=[statSeg,afterNote].filter(Boolean).join(' ');
+          const twNote=[statSeg,altNote,afterNote].filter(Boolean).join(' ');
           if(twNote){ const prev=(charData['TWINS']||{}).note; addChar('TWINS',{note:prev?prev+' '+twNote:twNote}); }
           got.team=1; continue; }
       } }
@@ -819,19 +825,21 @@ function parseRotationText(text, opts){
         else { statNote=cardsPart.split(/\s+[-–—]\s+/).map(s=>s.trim())
           .find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s)) || ''; } }
       if(statNote) note=statNote;
-      // leftover after the card pair (and, for the Twins, the dual tokens) is the unit's note: "Miku: Creation +
-      // Reconciliation, DM/CR/ATK" -> "DM/CR/ATK"; "Twins: Harmony + Victory - Fire/Ice + Psy/Nuke. Needs 20+
-      // pierce" -> "Needs 20+ pierce". A pure card alternative ("Trust + Power or Harmony + Victory") is fully
-      // consumed by the walk, so it yields no note.
+      // note = everything in the card portion beyond the first card SET. The first set is applied as the unit's
+      // cards; any further set ("Trust + Power or Harmony + Victory") or trailing hint ("…, DM/CR/ATK") becomes
+      // the note verbatim so nothing is lost (Dennis: alternatives are important and must not vanish).
       if(!note && cardsPart && a2 && a2.type==='char' && (cp2.space||cp2.sunsky)){
-        const tw=a2.name==='TWINS';
-        const isCard=w=>{ const t=_n(w.replace(/[+&/,;.\-–—]/g,'')); return !t || !!(cardPair(t).space||cardPair(t).sunsky); };
-        const isDual=w=>tw && !!normDual(w.replace(/[,;.]/g,''));
-        const isJoin=w=>/^([+&/,;:.\-–—]+|or)$/i.test(w);
-        const ws=cardsPart.split(/\s+/).filter(Boolean); let k=0;
-        while(k<ws.length && (isCard(ws[k])||isJoin(ws[k])||isDual(ws[k]))) k++;
-        const leftover=ws.slice(k).join(' ').replace(/^[\s,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
-        if(leftover && /[A-Za-z]/.test(leftover)) note=leftover;
+        const ws=cardsPart.split(/\s+/).filter(Boolean); let k=0, sawSp=false, sawSs=false;
+        for(; k<ws.length; k++){ const raw=ws[k];
+          if(/^or$/i.test(raw)) break;                                   // explicit alternative
+          if(/^[+&/,;:.\-–—]+$/.test(raw)||/^and$/i.test(raw)) continue;  // a joiner between the pair's two cards
+          const t=_n(raw.replace(/[+&/,;.\-–—]/g,'')); const cp=cardPair(t); const isSp=!!cp.space, isSs=!!cp.sunsky;
+          if(isSp||isSs){ if((isSp&&sawSp)||(isSs&&sawSs)) break;         // a second card of the same kind = a new set
+            if(isSp)sawSp=true; if(isSs)sawSs=true; continue; }
+          break;                                                         // a non-card token = the note starts here
+        }
+        const lo=ws.slice(k).join(' ').replace(/^[\s,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
+        if(lo && /[A-Za-z]/.test(lo)) note=lo;
       }
       if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote || note)){
         if(a2.name==='TWINS'){ (cardsPart.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
@@ -1480,5 +1488,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A185';
+  _g.VF_PARSER_VERSION = 'A186';
 })();
