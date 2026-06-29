@@ -481,9 +481,15 @@ function parseRotationText(text, opts){
   _seedPreferChars(text);
   _teamHasTwins=_scanTwins(text);
   const forceDod=!!(opts&&opts.dod);
-  const lines=text.split(/\r?\n/).map(s=>s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'')
-    // strip a leading "Action N -" running-count annotation, but only when a turn marker follows ("Action 21 - T5: \u2026")
-    .replace(/^\s*action\s+\d+\s*[-\u2013\u2014:]\s*(?=(?:turn|break|t|b|w)\s*\d)/i,''));
+  const lineNotes={};   // line index -> a note pulled from a turn line's leading "Action N" running-count annotation
+  const lines=text.split(/\r?\n/).map((s,idx)=>{
+    s=s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'');
+    // a leading "Action N -" running-count annotation before a turn marker is that turn's NOTE, not noise
+    // ("Action 21 - T5: \u2026" -> T5 note "Action 21"); keep it instead of discarding it.
+    const am=s.match(/^\s*(action\s+\d+)\s*[-\u2013\u2014:]\s*(?=(?:turn|break|t|b|w)\s*-?\d)/i);
+    if(am){ lineNotes[idx]=am[1].replace(/\s+/g,' ').trim(); s=s.slice(am[0].length); }
+    return s;
+  });
   // "B1"/"B2" are break turns (the common short form of "Break 1"/"Break 2"), just as "T1" is a normal
   // turn; the brk flag below keys off the leading "b". Same false-positive risk as the accepted "t" prefix.
   // the number may be negative ("T-2"/"T-1": setup turns counted back from the break) and the label may be
@@ -520,15 +526,15 @@ function parseRotationText(text, opts){
   for(let i=0;i<lines.length;i++){
     if(isBreakDiv(lines[i])){ afterBreak=true; lineIsTurn[i]=true; continue; }   // divider, consumed
     let m=lines[i].match(reInline);
-    if(m){ turnEntries.push({num:+m[2],content:m[3],brk:/^b/i.test(m[1])||afterBreak}); lineIsTurn[i]=true; continue; }
-    if(afterBreak){ m=lines[i].match(reWInline); if(m){ turnEntries.push({num:+m[2],content:m[3],brk:true}); lineIsTurn[i]=true; continue; } }
+    if(m){ turnEntries.push({num:+m[2],content:m[3],brk:/^b/i.test(m[1])||afterBreak,lineIdx:i,note:lineNotes[i]||''}); lineIsTurn[i]=true; continue; }
+    if(afterBreak){ m=lines[i].match(reWInline); if(m){ turnEntries.push({num:+m[2],content:m[3],brk:true,lineIdx:i,note:lineNotes[i]||''}); lineIsTurn[i]=true; continue; } }
     m=lines[i].match(reConcertIn);
-    if(m){ turnEntries.push({num:1000+(_concertSeq++),content:m[1],brk:true}); lineIsTurn[i]=true; afterBreak=true; continue; }
+    if(m){ turnEntries.push({num:1000+(_concertSeq++),content:m[1],brk:true,lineIdx:i,note:lineNotes[i]||''}); lineIsTurn[i]=true; afterBreak=true; continue; }
     m=lines[i].match(reAlone);
-    if(m){ lineIsTurn[i]=true; turnEntries.push({num:+m[2],content:grabContent(i),brk:/^b/i.test(m[1])||afterBreak}); continue; }
-    if(afterBreak){ m=lines[i].match(reWAlone); if(m){ lineIsTurn[i]=true; turnEntries.push({num:+m[2],content:grabContent(i),brk:true}); continue; } }
+    if(m){ lineIsTurn[i]=true; turnEntries.push({num:+m[2],content:grabContent(i),brk:/^b/i.test(m[1])||afterBreak,lineIdx:i,note:lineNotes[i]||''}); continue; }
+    if(afterBreak){ m=lines[i].match(reWAlone); if(m){ lineIsTurn[i]=true; turnEntries.push({num:+m[2],content:grabContent(i),brk:true,lineIdx:i,note:lineNotes[i]||''}); continue; } }
     m=lines[i].match(reConcertAlone);
-    if(m){ lineIsTurn[i]=true; turnEntries.push({num:1000+(_concertSeq++),content:grabContent(i),brk:true}); afterBreak=true; continue; }
+    if(m){ lineIsTurn[i]=true; turnEntries.push({num:1000+(_concertSeq++),content:grabContent(i),brk:true,lineIdx:i,note:lineNotes[i]||''}); afterBreak=true; continue; }
     // "CONCERT END" / "END CONCERT" is just an end-of-concert marker -> consume and drop (not a turn, not a note)
     if(/^\s*(?:concert\s+(?:end|over|done|finished?)|end\s+concert)\s*$/i.test(lines[i])){ lineIsTurn[i]=true; continue; }
     // a stand-alone elucidator action in the break phase ("Miku S3 GHOST RULE", no turn header) -> fold it into
@@ -542,6 +548,14 @@ function parseRotationText(text, opts){
   for(let i=0;i<turnEntries.length;i++){ if(turnEntries[i]._eluMerge){ const nx=turnEntries[i+1];
     if(nx && turnEntries[i].content){ nx.content=turnEntries[i].content+', '+nx.content; }
     if(nx){ turnEntries.splice(i,1); i--; } else delete turnEntries[i]._eluMerge; } }
+  // a non-turn line that sits BETWEEN turns is a note for the turn that FOLLOWS it (Dennis: "a note before a
+  // turn should be built in as that turn's note"). Lines before the first turn / after the last turn stay
+  // header / team notes. Only fires inside the turn block, so team builds and trailing calc notes are untouched.
+  { const idxs=turnEntries.map(te=>te.lineIdx).filter(x=>x!=null);
+    if(idxs.length>=2){ const firstT=Math.min(...idxs), lastT=Math.max(...idxs);
+      for(let i=firstT+1;i<lastT;i++){ if(lineIsTurn[i]||!lines[i].trim()) continue;
+        let best=null; turnEntries.forEach(te=>{ if(te.lineIdx>i && (best===null||te.lineIdx<best.lineIdx)) best=te; });
+        if(best){ best.note=[best.note,lines[i].trim()].filter(Boolean).join(' '); lineIsTurn[i]=true; } } } }
   for(let i=0;i<lines.length;i++){ if(!lineIsTurn[i]&&lines[i].trim()) headerLines.push(lines[i].trim()); }
 
   // state skeleton
@@ -1109,7 +1123,7 @@ function parseRotationText(text, opts){
   // a Break/Weak divider implies DOD only when the post-break turns fit maxBreaks. More than that means it
   // isn't a standard DOD (e.g. a long fight with a stagger phase), so keep every turn — never drop the extras.
   const isDod=forceDod||(hasExplicitBreaks && breakTE.length<=maxBreaks);
-  const mkTurn=(te,name)=>({name,note:'',actions:_acts.get(te)||[]});
+  const mkTurn=(te,name)=>({name,note:(te&&te.note)||'',actions:_acts.get(te)||[]});
   let inferredDodBreaks=false;
   if(isDod){
     setup.type='DOD'; got.mode=1;
@@ -1488,5 +1502,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A186';
+  _g.VF_PARSER_VERSION = 'A187';
 })();
