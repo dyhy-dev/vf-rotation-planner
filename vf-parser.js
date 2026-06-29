@@ -483,7 +483,11 @@ function parseRotationText(text, opts){
   const forceDod=!!(opts&&opts.dod);
   const lineNotes={};   // line index -> a note pulled from a turn line's leading "Action N" running-count annotation
   const lines=text.split(/\r?\n/).map((s,idx)=>{
-    s=s.replace(/\*\*|__/g,'').replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'');
+    s=s.replace(/\*\*|__/g,'')
+       // inline *italic* / _italic_ emphasis -> drop the markers, keep the text ("Miku *Song Switch* Spring Storm");
+       // only when bounded by space/start and space/end/punct, so "2*3" or a mid-word underscore is untouched.
+       .replace(/(^|[\s(])([*_])(?=\S)([^*_]*[^*_\s])\2(?=$|[\s).,;:!?])/g,'$1$3')
+       .replace(/^\s*(?:[\u2022\u00b7\u25aa\u2023\u2043\u25e6\u2027\u2219]\s*|[-\u2013\u2014*]\s+)/,'');
     // a leading "Action N -" running-count annotation before a turn marker is that turn's NOTE, not noise
     // ("Action 21 - T5: \u2026" -> T5 note "Action 21"); keep it instead of discarding it.
     const am=s.match(/^\s*(action\s+\d+)\s*[-\u2013\u2014:]\s*(?=(?:turn|break|t|b|w)\s*-?\d)/i);
@@ -1510,5 +1514,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A189';
+  _g.VF_PARSER_VERSION = 'A190';
 })();
