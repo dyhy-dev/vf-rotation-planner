@@ -92,6 +92,7 @@ button{cursor:pointer}
 .dropdown-menu{position:absolute; top:calc(100% + 4px); left:0; min-width:130px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:80; box-shadow:0 10px 28px rgba(0,0,0,.45)}
 .dropdown-menu[hidden]{display:none}
 .dropdown-item{display:block; width:100%; white-space:nowrap; text-align:left; background:transparent; border:none; color:var(--text); padding:8px 10px; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer}
+.dropdown-item[hidden]{display:none}   /* the block rule would otherwise override the hidden attribute (sync-gated items) */
 .dropdown-item:hover{background:var(--line)}
 .brand{font-family:"Oswald"; font-weight:700; font-size:18px; letter-spacing:.12em;
   text-transform:uppercase; color:#e0445e}
@@ -829,6 +830,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="dropdown-item" data-export="text">Text</button>
           <button class="dropdown-item" data-export="link">Share Editor Link</button>
           <button class="dropdown-item" data-export="viewlink">Share View Link</button>
+          <button class="dropdown-item" data-export="simlink" hidden>P5X-Simulator Link</button>
           <button class="dropdown-item" data-export="code">Copy Code</button>
         </div>
       </div>
@@ -949,6 +951,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="io-hint" id="ioHint"></div>
       <label class="io-keep" id="ioDodRow" hidden><input type="checkbox" id="ioDod"> DOD rotation</label>
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
+      <label class="io-keep" id="ioShortRow" hidden><input type="checkbox" id="ioFullToggle"> Show full link</label>
       <div class="io-actions">
         <button class="btn primary" id="ioPrimary">Copy</button>
         <button class="btn" id="ioShorten" hidden>Create short link</button>
@@ -2771,7 +2774,11 @@ function syncSchedulePush(){ if(!_syncCode||_syncApplying) return; clearTimeout(
 /* a 12-char alphanumeric string entered in "Import Code" may be a cloud-sync code: probe the worker and, if the slot exists, activate sync on this device. returns true if it was a sync code. */
 function syncLooksLikeCode(v){ return /^[A-Za-z0-9]{12}$/.test(v||''); }
 function syncTryActivate(v){ return fetch(SHORTENER+'/sync?code='+encodeURIComponent(v),{cache:'no-store'}).then(r=>{ if(!r.ok) return false; syncCodeSet(v); _setSyncMetaTs(0); _setSyncSavedSig(''); if(typeof syncRefreshUI==='function') syncRefreshUI(); return syncPull(true).then(res=>{ if(res==='empty') syncPush(); return true; }); }).catch(()=>false); }
-let _shareUrl='';                                   /* current full URL shown in the share modal (updated when shortened) */
+let _shareUrl='';                                   /* current URL shown in the share modal (short or full, per the toggle) */
+let _shareFullUrl='', _shareShortUrl='';            /* the unshortened link vs the worker short link; the "Show the full link" switch picks which one is shown/copied */
+function _applyShareView(){ const t=document.getElementById('ioText'); const tog=document.getElementById('ioFullToggle');
+  const useFull=!!(tog&&tog.checked); _shareUrl=(!useFull && _shareShortUrl)?_shareShortUrl:_shareFullUrl;
+  if(t){ t.value=_shareUrl; if(t.readOnly){ try{ t.focus(); t.select(); }catch(e){} } } }
 let _shortCache={};                                 /* fragment -> short URL, so an unchanged rotation reuses the same link */
 function _loadShortCache(){ try{ (JSON.parse(localStorage.getItem(_SHORT_KEY))||[]).forEach(e=>{ if(e&&e.f&&e.u) _shortCache[e.f]=e.u; }); }catch(e){} }
 function _saveShortCache(fragment,url){
@@ -2780,35 +2787,39 @@ function _saveShortCache(fragment,url){
     arr=arr.filter(e=>e&&e.f!==fragment); arr.unshift({f:fragment,u:url}); arr=arr.slice(0,50);
     localStorage.setItem(_SHORT_KEY, JSON.stringify(arr)); }catch(e){}
 }
-async function shortenLink(fragment){
-  const hint=document.getElementById('ioHint'), btn=document.getElementById('ioShorten'), t=document.getElementById('ioText');
-  if(_shortCache[fragment]){                         /* same rotation as before -> reuse the existing short link, no new link */
-    _shareUrl=_shortCache[fragment];
-    if(t){ t.value=_shareUrl; try{ t.focus(); t.select(); }catch(e){} }
-    if(btn) btn.hidden=true;
-    if(hint) hint.textContent='Short link ready. Use Copy or Copy for Discord below.';
+async function shortenLink(fragment, dest){
+  const hint=document.getElementById('ioHint'), btn=document.getElementById('ioShorten');
+  const key = dest ? (dest+'|'+fragment) : fragment;   /* cache per destination so a sim link and a VFRP link can't reuse each other */
+  if(_shortCache[key]){                                /* same rotation as before -> reuse the existing short link */
+    _shareShortUrl=_shortCache[key]; if(btn) btn.hidden=true; _applyShareView();
+    if(hint) hint.textContent='Short link ready. Use Copy below.';
     return;
   }
   if(btn) btn.disabled=true; if(hint) hint.textContent='Creating short link…';
   try{
-    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({f:fragment, title:discordLabel()})});
+    const body = dest ? {f:fragment, to:dest} : {f:fragment, title:discordLabel()};
+    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     if(!res.ok) throw new Error('http '+res.status);
     const data=await res.json();
     if(!data||!data.url) throw new Error('no url');
-    _shareUrl=data.url; _saveShortCache(fragment, data.url);
-    if(t){ t.value=data.url; try{ t.focus(); t.select(); }catch(e){} }
-    if(btn) btn.hidden=true;                          /* one short link per rotation is enough */
-    if(hint) hint.textContent='Short link created. Use Copy or Copy for Discord below.';
+    _shareShortUrl=data.url; _saveShortCache(key, data.url);
+    if(btn) btn.hidden=true;                            /* one short link per rotation is enough */
+    _applyShareView();
+    if(hint) hint.textContent='Short link created. Use Copy below.';
   }catch(e){
-    if(hint) hint.textContent='Short-link service unavailable, using the full link. Tap “Create short link” to retry.';
+    _shareShortUrl='';
+    if(hint) hint.textContent='Short-link service unavailable, using the full link. Tap "Create short link" to retry.';
     if(btn){ btn.hidden=false; btn.disabled=false; }
+    _applyShareView();
   }
 }
 function openShareModal(opts){
   const modal=document.getElementById('ioModal'); if(!modal) return;
   document.getElementById('ioTitle').textContent=opts.title;
   const t=document.getElementById('ioText'); t.value=opts.text||''; t.readOnly=!!opts.readonly; t.placeholder=opts.placeholder||'';
-  _shareUrl=opts.text||'';
+  _shareUrl=opts.text||''; _shareFullUrl=opts.text||''; _shareShortUrl='';
+  { const sr=document.getElementById('ioShortRow'), sft=document.getElementById('ioFullToggle');   /* "Show the full link" switch — only on modals that auto-shorten */
+    if(sr) sr.hidden=!opts.shortenFragment; if(sft){ sft.checked=false; sft.onchange=_applyShareView; } }
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
   { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; const kc=document.getElementById('ioKeep'); if(kc && opts.showKeepText) kc.checked=true; }
@@ -2819,7 +2830,7 @@ function openShareModal(opts){
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
   const shBtn=document.getElementById('ioShorten');
-  if(shBtn){ shBtn.hidden=true; if(opts.shortenFragment){ shBtn.disabled=false; shBtn.onclick=()=>shortenLink(opts.shortenFragment); } else { shBtn.onclick=null; } }
+  if(shBtn){ shBtn.hidden=true; if(opts.shortenFragment){ shBtn.disabled=false; shBtn.onclick=()=>shortenLink(opts.shortenFragment, opts.shortenTo); } else { shBtn.onclick=null; } }
   const dWrap=document.getElementById('ioDiscordWrap'), dText=document.getElementById('ioDiscordText'), dBtn=document.getElementById('ioDiscord');
   if(opts.discordUrl){
     if(dWrap) dWrap.hidden=false; if(dText) dText.value=opts.discordLabel||'';
@@ -2831,7 +2842,7 @@ function openShareModal(opts){
   }
   _ioPrimary=opts.onPrimary||null;
   modal.hidden=false;
-  if(opts.shortenFragment) shortenLink(opts.shortenFragment);   /* create + show the short link right away */
+  if(opts.shortenFragment) shortenLink(opts.shortenFragment, opts.shortenTo);   /* create + show the short link right away */
   if(opts.autoHeight){ t.style.height='auto'; t.style.height=Math.min(Math.round((window.innerHeight||800)*0.6), t.scrollHeight+8)+'px'; }
   else { t.style.height=''; }
   setTimeout(()=>{ try{ t.focus(); if(opts.readonly && !opts.noSelect) t.select(); }catch(_){} },30);
@@ -3140,9 +3151,11 @@ function applyImportedSettings(text){
 document.getElementById('settingsExport').onclick=exportSettings;
 document.getElementById('settingsImport').onclick=()=>document.getElementById('settingsFile').click();
 /* cloud sync controls (activated from Import Code; section stays hidden until a code is set) */
+/* the P5X-Simulator export is sync-gated: only shown to users who have a sync code (cross-tool interop is opt-in) */
+function syncSimLinkBtn(){ const on=!!getSyncCode(); document.querySelectorAll('[data-export="simlink"]').forEach(b=>{ b.hidden=!on; }); }
 function syncRefreshUI(){ const sec=document.getElementById('syncSection'), who=document.getElementById('syncWho'); const c=getSyncCode();
   if(sec) sec.hidden=!c;
-  if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; }
+  if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; syncSimLinkBtn(); }
 { const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
   const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ if(!confirm('Stop syncing on this device? Your settings and library stay here, but they will no longer update across devices.')) return; syncCodeSet(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); };
   syncRefreshUI(); }
@@ -3653,6 +3666,15 @@ function exportImage(withImages, rotationOnly){
 async function shareViewURL(){ return location.origin+location.pathname+'#v='+(await encodeShare()); }
 async function openShareViewLink(){ let url; try{ url=await shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
   openShareModal({title:'Share View Link', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:'Opens a read-only view that looks like the image export.', discordUrl:url, discordLabel:discordLabel(), shortenFragment:(url.split('#')[1]||'')});  }
+/* interop with EchoScrip's P5X-Simulator. Verified against his actual source: his importer takes the #t= (or
+   #text=) param, and his y() reads a 1-char marker (j=plain, z/d/g=deflate-raw/deflate/gzip). We send the plain
+   rotation TEXT export with the explicit 'j' marker -> '#t=j'+base64url(text); his y() base64-decodes it and runs
+   it through his rotation-text import, which loads VFRP's own parser tables, so it's natively compatible.
+   (Markerless would also work via his fallback but can collide if the base64 starts with j/z/d/g, so we mark it.)
+   No worker shortening: the worker only ever redirects to VFRP, so a short link would land in VFRP, not his tool. */
+const SIM_BASE='https://echoscrip.github.io/P5X-Simulator/';
+function simulatorLink(){ return SIM_BASE+'#t=j'+b64urlEncode(buildTextExport()); }
+function openSimulatorLink(){ try{ const url=simulatorLink(); openShareModal({title:'Open in P5X-Simulator', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:"Opens this rotation in EchoScrip's P5X-Simulator.", shortenFragment:(url.split('#')[1]||''), shortenTo:'sim'}); }catch(e){ alert('Could not build the Simulator link.'); } }
 function exportViewPNG(){
   const body=document.body;
   const wasView=body.classList.contains('view-mode');
@@ -4054,6 +4076,7 @@ function wireExportDropdown(wrapId, btnId, menuId){
     else if(k==='text') openTextExport();
     else if(k==='link') openShareLink();
     else if(k==='viewlink') openShareViewLink();
+    else if(k==='simlink') openSimulatorLink();
     else if(k==='code') openCopyCode();
   }; });
 }
@@ -4170,7 +4193,7 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCropsLi
     { const tp=document.getElementById('ebTop'); if(tp) tp.onclick=()=>{ try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }; }
     { const bar=document.getElementById('editBar'); if(bar) ['pointerenter','pointerdown','focusin'].forEach(ev=>bar.addEventListener(ev,_ebWake)); }
     if(im) im.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
-    syncImportBtn();
+    syncImportBtn(); syncSimLinkBtn();
     wireExportDropdown('ebExportWrap','ebExportBtn','ebExportMenu');
     updateEditBar(); };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireEditBar); else wireEditBar();
@@ -4228,6 +4251,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
       <button class="dropdown-item" data-export="text">Text</button>
       <button class="dropdown-item" data-export="link">Share Editor Link</button>
       <button class="dropdown-item" data-export="viewlink">Share View Link</button>
+      <button class="dropdown-item" data-export="simlink" hidden>P5X-Simulator Link</button>
       <button class="dropdown-item" data-export="code">Copy Code</button>
     </div>
   </div>
