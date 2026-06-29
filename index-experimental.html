@@ -835,15 +835,19 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .edit-bar .eb-btn[hidden]{display:none}   /* the eb-btn display rule would otherwise override the hidden attribute (e.g. the import button before any import) */
 .eb-btn.eb-icon-caret{width:auto; min-width:46px; gap:2px; padding:0 7px}
 .eb-btn.eb-icon-caret .eb-car{font-size:10px; font-weight:700; line-height:1; color:var(--muted)}
-.eb-btn.eb-icon-caret:hover:not(:disabled) .eb-car{color:var(--gold)}
-.eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
+.eb-btn:active:not(:disabled){border-color:var(--gold); color:var(--gold)}   /* press feedback only — works on touch and never sticks after the tap */
+.eb-btn.eb-icon-caret:active:not(:disabled) .eb-car{color:var(--gold)}
 .eb-btn:disabled{opacity:.35; cursor:default}
 /* Apple-style segmented undo/redo control: two joined keys in a rounded pill with a hairline divider */
 .eb-seg{display:inline-flex; height:40px; background:var(--field); border:1px solid var(--line); border-radius:10px; overflow:hidden}
 .eb-seg-btn{width:42px; height:100%; padding:0; background:transparent; border:none; color:var(--text); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:background .12s ease, color .12s ease}
 .eb-seg-btn+.eb-seg-btn{border-left:1px solid var(--line)}
-.eb-seg-btn:hover:not(:disabled){background:var(--line); color:var(--gold)}
 .eb-seg-btn:active:not(:disabled){background:var(--gold); color:#1a1626}
+@media (hover:hover){   /* gold hover only where a real pointer hovers — avoids the sticky :hover that lingers after a tap on touchscreens */
+  .eb-btn:hover:not(:disabled){border-color:var(--gold); color:var(--gold)}
+  .eb-btn.eb-icon-caret:hover:not(:disabled) .eb-car{color:var(--gold)}
+  .eb-seg-btn:hover:not(:disabled){background:var(--line); color:var(--gold)}
+}
 .eb-seg-btn:disabled{opacity:.3; cursor:default}
 .eb-seg-btn svg{display:block; width:18px; height:18px}
 /* the bar's Export menu opens upward; it's position:fixed so the bar's clip / horizontal scroll never cuts it
@@ -5063,6 +5067,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260628u</div>
+<div class="version-tag">260628v</div>
 </body>
 </html>
