@@ -993,9 +993,14 @@ function parseRotationText(text, opts){
       // boss + mode
       // mode first, so an SOS title can match its own boss list (persona-bosses like Melchizedek aren't in DATA.bossNames)
       const mm=t2.match(/\b(MLD|DOD|NOD|SOS)\b/i); if(mm){ setup.type=mm[1].toUpperCase(); got.mode=1; t2=t2.replace(/\b(MLD|DOD|NOD|SOS)\b/i,' '); }
-      // Strong/Weak boss side: only when it leads the remaining title (right after patch/mode, before the boss),
-      // so a "Strong"/"Weak" inside the rotation name isn't mistaken for it.
-      { const sm=t2.replace(/^[\s:]+/,'').match(/^(strong|weak)\b/i); if(sm){ setup.side=sm[1][0].toUpperCase()+sm[1].slice(1).toLowerCase(); t2=t2.replace(/\b(strong|weak)\b/i,' '); } }
+      // Strong/Weak boss side: an explicit "weak side"/"strongside" tag anywhere is unambiguous (even inside a
+      // "(weakside, 306M)" parenthetical); a bare leading "Strong"/"Weak" also counts, but only at the title start
+      // so a "Strong"/"Weak" inside the rotation name isn't mistaken for it. A boss side is an MLD-only concept,
+      // so pin MLD (which also suppresses the weaker DOD-by-turn-count guess) when no mode was stated.
+      { const sm=t2.match(/\b(strong|weak)\s*side\b/i) || t2.replace(/^[\s:(]+/,'').match(/^(strong|weak)\b/i);
+        if(sm){ setup.side=sm[1][0].toUpperCase()+sm[1].slice(1).toLowerCase();
+          t2=t2.replace(/\b(strong|weak)\s*side\b/i,' ').replace(/\b(strong|weak)\b/i,' ');
+          if(!got.mode){ setup.type='MLD'; got.mode=1; } } }
       let bm=matchBoss(t2); if(!bm && setup.type==='SOS') bm=matchSosBoss(t2);
       if(bm){ setup.boss=bm; got.boss=1; t2=t2.replace(new RegExp('\\b'+bm.split(' ').join('\\s+')+'\\b','i'),' '); }
       let rn=t2.replace(/\(\s*\)/g,' ').replace(/\s+/g,' ').trim().replace(/^[:\s]+|[:\s]+$/g,'').trim();   // drop parens emptied by boss/mode removal ("Fafnir (MLD)" -> "")
@@ -1514,5 +1519,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A190';
+  _g.VF_PARSER_VERSION = 'A191';
 })();
