@@ -361,6 +361,12 @@ function parseTurnContent(content,warn){
       // optionally led by "Miku"; even a bare song name (no actor) becomes a Hatsune Miku action with that song.
       if(_hasMiku()){ let stoks=toks, mikuLed=false;
         while(stoks.length){ const am=resolveActor(stoks[0]); if(am&&!am.fuzzy&&am.name===MIKU){ stoks=stoks.slice(1); mikuLed=true; } else break; }
+        // "[Miku] Song Switch <song>" / "[Miku] Switch to <song>": a song-change directive — drop the filler
+        // words so the real song name parses. Only "song" immediately before "switch" is filler, never a bare
+        // "Song 1"/"Song 2" (those are song aliases).
+        { const _f=k=>(stoks[k]||'').replace(/[():.]/g,''); let i=0;
+          if(/^song$/i.test(_f(0))&&/^switch$/i.test(_f(1))) i=2; else if(/^switch$/i.test(_f(0))) i=1;
+          if(i>0){ if(/^to$/i.test(_f(i))) i++; stoks=stoks.slice(i); } }
         const ls=leadingSong(stoks); const a0=resolveActor(toks[0]);
         let song='', songLen=0;
         if(ls){ song=ls.song; songLen=ls.len; }
@@ -579,6 +585,13 @@ function parseRotationText(text, opts){
   for(let i=0;i<headerLines.length && !setup.credits;i++){
     const cm=headerLines[i].match(/^\s*credits?\b\s*[:–—\-]?\s+(\S.*)$/i);
     if(cm){ const v=cm[1].trim(); if(v && !/^(to|by|from)\b/i.test(v) && !matchBoss(v)){ setup.credits=v; got.credit=1; headerLines[i]='\u0000'; } } }
+
+  // a "- Credit <names>" suffix on an otherwise-titley line ("Low Wind Variation - Credit X, Y, Z"): names to
+  // Credits, the prefix stays as the (title) line. Names may be non-ASCII; a separator before "Credit" is
+  // required so a "credits to …" mid-sentence doesn't trigger it.
+  for(let i=0;i<headerLines.length && !setup.credits;i++){
+    const cm=headerLines[i].match(/^(.*\S)\s*[-–—]\s*credits?\b\s*:?\s*(\S.*)$/i);
+    if(cm && !/^(to|by|from)\b/i.test(cm[2])){ const v=cm[2].trim(); if(v && !matchBoss(v)){ setup.credits=v; got.credit=1; headerLines[i]=cm[1].trim(); } } }
 
   // title (first header line) -> boss/mode/patch
   let titleConsumed=false;
@@ -940,7 +953,8 @@ function parseRotationText(text, opts){
       else if(!setup.credits && cmDash){ const r=(cmDash[2]||'').trim(); if(r && _notSide(r) && !matchBoss(r) && !_knownName(r)){ setup.credits=r; got.credit=1; rn=(cmDash[1]||'').trim(); } }
       // otherwise: a single leftover word that is not awareness / boss / character is likely the credit (name kept intact)
       if(!setup.credits){ const unknown=rn.split(/\s+/).filter(Boolean).filter(t=>{ const tl=t.replace(/[^A-Za-z0-9\u00b7]/g,'');
-        if(!tl||/^(all|a[0-6]|dgr|r[0-6x]|weak|strong|side|dolphin|f2p|minnow|whale)$/i.test(tl)) return false;
+        // skip build/tier keywords and common connector stopwords so "All in …" doesn't make "in" the credit
+        if(!tl||/^(all|a[0-6]|dgr|r[0-6x]|weak|strong|side|dolphin|f2p|minnow|whale|in|on|of|the|and|or|to|for|with|vs|via|low|high)$/i.test(tl)) return false;
         if(matchBoss(tl)) return false; const a=resolveActor(tl); return !(a && !a.fuzzy); });
         if(unknown.length===1){ setup.credits=unknown[0]; got.credit=1; } }
       rn=rn.replace(/[-–]/g,' ').replace(/\s+/g,' ').trim().replace(/[.\-–?!\s]+$/,'').trim();
@@ -1439,5 +1453,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A182';
+  _g.VF_PARSER_VERSION = 'A183';
 })();
