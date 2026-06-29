@@ -3,3 +3,12 @@
 
 # Local-only assistant guidance (kept out of the public repo)
 CLAUDE.md
+
+# Cloudflare Worker tooling (dev-only; kept local, never committed)
+worker/
+.wrangler/
+node_modules/
+.dev.vars
+*.dev.vars
+.cloudflare.env
+*.env
