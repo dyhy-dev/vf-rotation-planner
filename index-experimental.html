@@ -92,6 +92,7 @@ button{cursor:pointer}
 .dropdown-menu{position:absolute; top:calc(100% + 4px); left:0; min-width:130px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:80; box-shadow:0 10px 28px rgba(0,0,0,.45)}
 .dropdown-menu[hidden]{display:none}
 .dropdown-item{display:block; width:100%; white-space:nowrap; text-align:left; background:transparent; border:none; color:var(--text); padding:8px 10px; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer}
+.dropdown-item[hidden]{display:none}   /* the block rule would otherwise override the hidden attribute (sync-gated items) */
 .dropdown-item:hover{background:var(--line)}
 .brand{font-family:"Oswald"; font-weight:700; font-size:18px; letter-spacing:.12em;
   text-transform:uppercase; color:#e0445e}
@@ -920,7 +921,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="dropdown-item" data-export="text">Text</button>
           <button class="dropdown-item" data-export="link">Share Editor Link</button>
           <button class="dropdown-item" data-export="viewlink">Share View Link</button>
-          <button class="dropdown-item" data-export="simlink">P5X-Simulator Link</button>
+          <button class="dropdown-item" data-export="simlink" hidden>P5X-Simulator Link</button>
           <button class="dropdown-item" data-export="code">Copy Code</button>
         </div>
       </div>
@@ -1220,7 +1221,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="io-hint" id="ioHint"></div>
       <label class="io-keep" id="ioDodRow" hidden><input type="checkbox" id="ioDod"> DOD rotation</label>
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
-      <label class="io-keep" id="ioShortRow" hidden><input type="checkbox" id="ioFullToggle"> Show the full link (don't shorten it)</label>
+      <label class="io-keep" id="ioShortRow" hidden><input type="checkbox" id="ioFullToggle"> Show full link</label>
       <div class="io-actions">
         <button class="btn primary" id="ioPrimary">Copy</button>
         <button class="btn" id="ioShorten" hidden>Create short link</button>
@@ -3446,9 +3447,11 @@ function applyImportedSettings(text){
 document.getElementById('settingsExport').onclick=exportSettings;
 document.getElementById('settingsImport').onclick=()=>document.getElementById('settingsFile').click();
 /* cloud sync controls */
+/* the P5X-Simulator export is sync-gated: only shown to users who have a sync code (cross-tool interop is opt-in) */
+function syncSimLinkBtn(){ const on=!!getSyncCode(); document.querySelectorAll('[data-export="simlink"]').forEach(b=>{ b.hidden=!on; }); }
 function syncRefreshUI(){ const sec=document.getElementById('syncSection'), who=document.getElementById('syncWho'); const c=getSyncCode();
   if(sec) sec.hidden=!c;
-  if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; }
+  if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; syncSimLinkBtn(); }
 { const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
   const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ if(!confirm('Stop syncing on this device? Your settings and library stay here, but they will no longer update across devices.')) return; syncCodeSet(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); };
   syncRefreshUI(); }
@@ -5025,7 +5028,7 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
     { const tp=document.getElementById('ebTop'); if(tp) tp.onclick=()=>{ try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }; }
     { const bar=document.getElementById('editBar'); if(bar) ['pointerenter','pointerdown','focusin'].forEach(ev=>bar.addEventListener(ev,_ebWake)); }
     if(im) im.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
-    syncImportBtn();
+    syncImportBtn(); syncSimLinkBtn();
     wireExportDropdown('ebExportWrap','ebExportBtn','ebExportMenu');
     updateEditBar(); };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireEditBar); else wireEditBar();
@@ -5083,7 +5086,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
       <button class="dropdown-item" data-export="text">Text</button>
       <button class="dropdown-item" data-export="link">Share Editor Link</button>
       <button class="dropdown-item" data-export="viewlink">Share View Link</button>
-      <button class="dropdown-item" data-export="simlink">P5X-Simulator Link</button>
+      <button class="dropdown-item" data-export="simlink" hidden>P5X-Simulator Link</button>
       <button class="dropdown-item" data-export="code">Copy Code</button>
     </div>
   </div>
