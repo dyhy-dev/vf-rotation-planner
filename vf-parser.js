@@ -488,6 +488,10 @@ function parseRotationText(text, opts){
     // ("Action 21 - T5: \u2026" -> T5 note "Action 21"); keep it instead of discarding it.
     const am=s.match(/^\s*(action\s+\d+)\s*[-\u2013\u2014:]\s*(?=(?:turn|break|t|b|w)\s*-?\d)/i);
     if(am){ lineNotes[idx]=am[1].replace(/\s+/g,' ').trim(); s=s.slice(am[0].length); }
+    // a turn note carried in a parenthetical right after the turn label \u2014 the text-export format ("T5 (Action
+    // 21): \u2026"): pull the note out and leave a clean "T5: \u2026" for the turn matcher.
+    s=s.replace(/^(\s*(?:turn|break|bt|b|t|w|m)\s*-?\d+)\s*\(([^)]+)\)(\s*[:.)])/i,(mm,lab,nt,sep)=>{
+      lineNotes[idx]=[lineNotes[idx],nt.trim()].filter(Boolean).join(' '); return lab+sep; });
     return s;
   });
   // "B1"/"B2" are break turns (the common short form of "Break 1"/"Break 2"), just as "T1" is a normal
@@ -759,7 +763,7 @@ function parseRotationText(text, opts){
       continue;
     }
     // bare section headers that carry no data themselves
-    if(/^(rotation|rotations|turns?|team|comp|composition|notes?|info|setup|revelations?|revs?|reves?|personae?|personas)\s*:?\s*$/i.test(line)) continue;
+    if(/^(rotation|rotations|turns?|team|teams?|party|parties|squad|roster|lineup|comp|composition|notes?|info|setup|revelations?|revs?|reves?|personae?|personas)\s*:?\s*$/i.test(line)) continue;
     // a "Turn order: A > B > C > D" line (an optional text-export summary, or an explicit order to honor) — drop the line
     if(_markTurnOrder(line)) continue;
     if(line==='\u0000') continue;
@@ -1466,13 +1470,16 @@ function parseRotationText(text, opts){
       // the break split was only a DOD guess; a NOD has no such break phase -> renumber everything as normal turns
       if(inferredDodBreaks){ let n=0; turns.forEach(t=>{ t.name='TURN '+(++n); }); } } }
 
-  if(noteLines.length){ setup.notes=''; } // free notes -> could go to teamNotes
-  // drop a standalone notes header ("Notes", "Build Notes :"), then strip a leading "Notes" label from a
-  // content line ("Notes: foo" -> "foo").
-  const teamNotes=noteLines
-    .filter(l=>!/^\s*(?:\w+\s+)?notes?\s*[:\-–—]?\s*$/i.test(l))
-    .map(l=>l.replace(/^\s*notes?\b\s*\d*\s*[:\-–—]?\s*/i,''))   // also a numbered label ("Note 2: foo" -> "foo")
-    .filter(l=>l.trim()).join('\n');
+  // split the free notes across the tool's two boxes (Dennis): a stat/build requirement (Pierce, Crit, CR, CM)
+  // is a TEAM note; everything else — a during-rotation instruction ("Single target only on the outer add",
+  // "Wild Thunder must always shock at least 4") or general prose — is a ROTATION note. Matches the examples
+  // ("Adjust Pierce & Crit" -> team notes, "Attack adds" -> rotation notes).
+  const _freeNotes=noteLines
+    .filter(l=>!/^\s*(?:\w+\s+)?notes?\s*[:\-–—]?\s*$/i.test(l))   // drop a lone "Notes" / "Build Notes:" header
+    .map(l=>l.replace(/^\s*notes?\b\s*\d*\s*[:\-–—]?\s*/i,''))      // strip a leading "Notes" label ("Note 2: foo" -> "foo")
+    .filter(l=>l.trim());
+  const teamNotes=_freeNotes.filter(l=>STAT_NOTE.test(l)).join('\n');
+  setup.notes=_freeNotes.filter(l=>!STAT_NOTE.test(l)).join('\n');
 
   // the credit is just the names: drop a trailing parenthetical flavour note ("Efes, Mac & Jeez (after some …)")
   if(setup.credits){ const c=setup.credits.replace(/\s*\([^)]*\)\s*$/,'').trim(); if(c) setup.credits=c; }
@@ -1502,5 +1509,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A187';
+  _g.VF_PARSER_VERSION = 'A188';
 })();
