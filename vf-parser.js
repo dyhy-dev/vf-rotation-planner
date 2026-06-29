@@ -703,7 +703,18 @@ function parseRotationText(text, opts){
           // a pierce/crit stat segment ("Twins: 25% CR - Fire/Ice + Psy/Nuke") is the Twins' note — skip the
           // dual segments (they carry a "/") and any card pair, keep the stat leftover.
           const statSeg=body.split(/\s+[-–—]\s+/).map(s=>s.trim()).find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s));
-          if(statSeg){ const prev=(charData['TWINS']||{}).note; addChar('TWINS',{note:prev?prev+' '+statSeg:statSeg}); }
+          // a note written AFTER the duals ("… Fire/Ice + Psy/Nuke. Needs 20+ pierce"): skip the leading card /
+          // dual / role / joiner tokens and keep the verbatim remainder (only when it carries no further dual, so
+          // a stat note written BEFORE the duals stays the statSeg case above).
+          let afterNote='';
+          { const isCard=w=>{ const t=_n(w.replace(/[+&/,;.\-–—]/g,'')); return !t||!!(cardPair(t).space||cardPair(t).sunsky); };
+            const isDual=w=>!!normDual(w.replace(/[,;.]/g,'')); const isJoin=w=>/^([+&/,;:.\-–—]+|or|and)$/i.test(w);
+            const isRole=w=>!!ROLE_ALIAS[w.toLowerCase().replace(/[^a-z]/g,'')];
+            const ws=norm.split(/\s+/).filter(Boolean); let k=0; while(k<ws.length&&(isCard(ws[k])||isJoin(ws[k])||isDual(ws[k])||isRole(ws[k]))) k++;
+            const lo=ws.slice(k).join(' ').replace(/^[\s,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
+            if(lo && /[A-Za-z]/.test(lo) && !/[A-Za-z]+\/[A-Za-z]+/.test(lo)) afterNote=lo; }
+          const twNote=[statSeg,afterNote].filter(Boolean).join(' ');
+          if(twNote){ const prev=(charData['TWINS']||{}).note; addChar('TWINS',{note:prev?prev+' '+twNote:twNote}); }
           got.team=1; continue; }
       } }
     if(/^(knife|dagger|weapon)s?\s*:/i.test(line)){ const val=line.slice(line.indexOf(':')+1);
@@ -808,7 +819,21 @@ function parseRotationText(text, opts){
         else { statNote=cardsPart.split(/\s+[-–—]\s+/).map(s=>s.trim())
           .find(s=>s && !/[A-Za-z]+\/[A-Za-z]+/.test(s) && !(cardPair(s).space&&cardPair(s).sunsky) && STAT_NOTE.test(s)) || ''; } }
       if(statNote) note=statNote;
-      if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote)){
+      // leftover after the card pair (and, for the Twins, the dual tokens) is the unit's note: "Miku: Creation +
+      // Reconciliation, DM/CR/ATK" -> "DM/CR/ATK"; "Twins: Harmony + Victory - Fire/Ice + Psy/Nuke. Needs 20+
+      // pierce" -> "Needs 20+ pierce". A pure card alternative ("Trust + Power or Harmony + Victory") is fully
+      // consumed by the walk, so it yields no note.
+      if(!note && cardsPart && a2 && a2.type==='char' && (cp2.space||cp2.sunsky)){
+        const tw=a2.name==='TWINS';
+        const isCard=w=>{ const t=_n(w.replace(/[+&/,;.\-–—]/g,'')); return !t || !!(cardPair(t).space||cardPair(t).sunsky); };
+        const isDual=w=>tw && !!normDual(w.replace(/[,;.]/g,''));
+        const isJoin=w=>/^([+&/,;:.\-–—]+|or)$/i.test(w);
+        const ws=cardsPart.split(/\s+/).filter(Boolean); let k=0;
+        while(k<ws.length && (isCard(ws[k])||isJoin(ws[k])||isDual(ws[k]))) k++;
+        const leftover=ws.slice(k).join(' ').replace(/^[\s,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
+        if(leftover && /[A-Za-z]/.test(leftover)) note=leftover;
+      }
+      if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote || note)){
         if(a2.name==='TWINS'){ (cardsPart.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
         const ci={}; if(info.awareness)ci.awareness=info.awareness; if(info.rev)ci.rev=info.rev; if(cp2.space)ci.space=cp2.space; if(cp2.sunsky)ci.sunsky=cp2.sunsky; if(note)ci.note=note;
         addChar(a2.name, ci);
@@ -1455,5 +1480,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A184';
+  _g.VF_PARSER_VERSION = 'A185';
 })();
