@@ -265,9 +265,14 @@ function leadingSong(toks){ for(let k=Math.min(3,toks.length);k>=1;k--){ const p
 function _hasMiku(){ try{ return DATA.characterNames.indexOf(MIKU)>=0; }catch(e){ return false; } }
 function parseTurnContent(content,warn){
   const actions=[];
+  content=String(content||'');
+  // a trailing break/phase marker on a turn line ("… Violet 2 (Wind) ; BOSS BREAK", "… - break") is an
+  // annotation, not an action — drop it. Requires a ";"/","/"|" (or " - ") before the word so a real skill
+  // ending in "Break" (Elec Break, Wind Break, Fire Break) is never touched.
+  content=content.replace(/\s*(?:[;|]|,|\s[-–—])\s*(?:(?:boss|enemy|phase|weak(?:ness)?|down)\s+)?breaks?(?:\s*(?:phase|turns?|incoming|now|soon|here))?\s*[!.]*\s*$/i,'');
   // a Twins dual element written with a "+" joiner ("F+I", "Elec+Wind") must not be split into two actions
   // by the "+" separator below — normalise it to a slash so the dual detector sees "F/I" / "Elec/Wind".
-  content=String(content||'').replace(/\b(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\s*\+\s*(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\b/ig,'$1/$2');
+  content=content.replace(/\b(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\s*\+\s*(fire|ice|elec|electric|wind|psy|nuke|nuclear|bless|curse|[fiewpnbc])\b/ig,'$1/$2');
   // an arrow connector ("Dio Rev -> Akechi", "S1 => Twins", "Taru → Akechi") marks a TARGET, not an action
   // separator: collapse it to a space so the following name stays a trailing target of the preceding action
   // (splitMidActor re-derives a real boundary if a code follows, e.g. "S1 -> Twins S2"). Done before splitTop,
@@ -1519,5 +1524,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A191';
+  _g.VF_PARSER_VERSION = 'A192';
 })();
