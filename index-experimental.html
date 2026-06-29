@@ -824,7 +824,8 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-select:focus{outline:none; border-color:var(--blue-strong)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
-.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; transition:width .25s ease}
+.edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; transition:width .25s ease, opacity .4s ease}
+.edit-bar.eb-faded{opacity:.28}   /* collapsed + idle 3s: fade so it doesn't cover the page (still tappable to wake/expand) */
 .edit-bar.eb-clip{overflow:hidden}   /* clip the content while the bar widens/contracts; dropped when fully open so the Export menu can overflow */
 .edit-bar>*{flex:0 0 auto}   /* keep natural widths so a too-wide bar scrolls (on mobile) instead of squishing the buttons */
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
@@ -1793,13 +1794,18 @@ function updateEditBar(){ if(!document.getElementById('editBar')) return; _ebUpd
 /* open/close visibility. The whole bar collapses down to just the chevron and expands back via a horizontal
    width slide (measured width, so the content isn't distorted the way a CSS transform would). Collapsed width is
    the chevron alone; when fully open we drop the inline width + clip so the upward Export menu can overflow. */
-let _ebAnimTimer=null;
+let _ebAnimTimer=null, _ebFadeTimer=null;
+/* when the bar is fully collapsed (chevron only) and untouched for 3s, fade it so it stops covering the page
+   content (matters on mobile); any interaction or expanding wakes it back to full opacity */
+function _ebScheduleFade(){ clearTimeout(_ebFadeTimer); if(_ebHidden) _ebFadeTimer=setTimeout(()=>{ const b=document.getElementById('editBar'); if(b && _ebHidden) b.classList.add('eb-faded'); }, 3000); }
+function _ebWake(){ const b=document.getElementById('editBar'); if(b) b.classList.remove('eb-faded'); _ebScheduleFade(); }
 function _ebChevWidth(bar){ const tog=document.getElementById('ebToggle'); if(!tog) return 48;
   const cs=getComputedStyle(bar); return tog.offsetWidth + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth); }
 function renderEditBarVis(animate){ const bar=document.getElementById('editBar'); if(!bar) return;
   const open=!_ebHidden;
   bar.classList.toggle('eb-open', open);
   const t=document.getElementById('ebToggle'); if(t){ t.title=open?'Hide the bar':'Show the bar'; t.setAttribute('aria-label',t.title); t.setAttribute('aria-expanded',String(open)); }
+  bar.classList.remove('eb-faded'); if(open) clearTimeout(_ebFadeTimer); else _ebScheduleFade();
   clearTimeout(_ebAnimTimer);
   if(!animate){ bar.style.transition='none';
     if(open){ bar.classList.remove('eb-clip'); bar.style.width=''; } else { bar.classList.add('eb-clip'); bar.style.width=_ebChevWidth(bar)+'px'; }
@@ -4988,6 +4994,8 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
     }
     if(vw) vw.onclick=async()=>{ if(vw.disabled) return; let url; try{ url=await shareViewURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; } try{ window.open(url,'_blank','noopener'); }catch(e){} };
     if(tg) tg.onclick=toggleEditBar;
+    { const tp=document.getElementById('ebTop'); if(tp) tp.onclick=()=>{ try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }; }
+    { const bar=document.getElementById('editBar'); if(bar) ['pointerenter','pointerdown','focusin'].forEach(ev=>bar.addEventListener(ev,_ebWake)); }
     if(im) im.onclick=()=>{ if(_lastImportText) showImportNote(_lastImportText); };
     syncImportBtn();
     wireExportDropdown('ebExportWrap','ebExportBtn','ebExportMenu');
@@ -5052,8 +5060,9 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   </div>
   <button type="button" id="ebView" class="eb-btn eb-icon" title="Open the read-only webview of this rotation in a new tab" aria-label="Open the read-only webview in a new tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg></button>
   <button type="button" id="ebSave" class="eb-btn eb-icon" title="Save to your library" aria-label="Save to your library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+  <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260628s</div>
+<div class="version-tag">260628t</div>
 </body>
 </html>
