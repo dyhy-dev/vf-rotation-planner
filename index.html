@@ -2653,6 +2653,50 @@ document.getElementById('importFile').onchange=e=>{
 /* ---------- share code / link (self-contained, no server) ---------- */
 function b64urlEncode(s){ const bytes=new TextEncoder().encode(s); let bin=''; for(const b of bytes) bin+=String.fromCharCode(b); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function b64urlDecode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; const bin=atob(s); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
+/* ---------- one-time cross-domain localStorage migration (dyhy-dev.github.io -> p5x-rotations.com) ----------
+   localStorage is origin-scoped, so a user's library/settings/draft saved under the GitHub Pages origin are
+   invisible to the new p5x-rotations.com origin (it would just load an empty rotation). This bounces once
+   through the source origin (which can read its own first-party storage even on Safari) via a short-lived,
+   token-gated worker relay, writes the data on the new domain, then reloads. Returns true while it is taking
+   over the load (the normal boot is skipped). One-time, guarded by the vf-migrated-v1 flag. */
+const MIG_WORKER='https://vfrp.dyhy.workers.dev', MIG_OLD='https://dyhy-dev.github.io/vf-rotation-planner/', MIG_NEWHOST='p5x-rotations.com', MIG_FLAG='vf-migrated-v1';
+function _migBlob(){ const o={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && (k.indexOf('vf-')===0 || k==='paradise-rotation-v1') && k!==MIG_FLAG) o[k]=localStorage.getItem(k); } return o; }
+function vfMigrateBoot(){
+  try{
+    if(!/^https?:$/.test(location.protocol)) return false;   // file:// : nothing to migrate
+    const h=location.hash||'';
+    // Role A: SOURCE origin, asked to hand its localStorage over to the (verified) new domain.
+    const mE=h.match(/__vfmig=([^&]+)/);
+    if(mE && location.hostname!==MIG_NEWHOST){
+      let ret=''; try{ ret=b64urlDecode(mE[1]); }catch(e){}
+      if(!/^https?:\/\//.test(ret) || ret.indexOf(MIG_NEWHOST)<0) return false;   // only ever hand data back to the known new domain
+      const back=(t)=>location.replace(ret+(ret.indexOf('#')>=0?'&':'#')+'__vfmigd='+t);
+      fetch(MIG_WORKER+'/mig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({d:JSON.stringify(_migBlob())})})
+        .then(r=>r.ok?r.json():null).then(j=>back(j&&j.token?j.token:'0')).catch(()=>back('0'));
+      return true;
+    }
+    if(location.hostname!==MIG_NEWHOST) return false;   // workers.dev / github.io normal loads never migrate
+    // Role C: returned to the new domain with a token -> pull the blob, write absent keys, reload.
+    const mD=h.match(/__vfmigd=([^&]+)/);
+    if(mD){
+      const done=()=>{ try{ localStorage.setItem(MIG_FLAG,'1'); }catch(e){} try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} location.reload(); };
+      if(mD[1]==='0'){ done(); return true; }
+      fetch(MIG_WORKER+'/mig?t='+encodeURIComponent(mD[1])).then(r=>r.ok?r.json():null).then(blob=>{
+        if(blob && typeof blob==='object'){ for(const k in blob){ if(!Object.prototype.hasOwnProperty.call(blob,k)) continue;
+          try{ if(localStorage.getItem(k)===null) localStorage.setItem(k, blob[k]); }catch(e){} } }
+        done();
+      }).catch(done);
+      return true;
+    }
+    // Role B: first plain load on the new domain -> go read the old origin's data.
+    if(localStorage.getItem(MIG_FLAG)) return false;        // already migrated (or attempted)
+    if(/[#&](r|v|t)=/.test(h)) return false;                // an explicit share/view/text link: let it load, migrate another time
+    if(sessionStorage.getItem('vf-mig-busy')){ try{ localStorage.setItem(MIG_FLAG,'1'); }catch(e){} return false; }   // bounced back without a token: stop, don't loop
+    try{ sessionStorage.setItem('vf-mig-busy','1'); }catch(e){}
+    location.replace(MIG_OLD+'#__vfmig='+b64urlEncode(location.origin+location.pathname));
+    return true;
+  }catch(e){ return false; }
+}
 function _bytesToB64url(bytes){ let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function _b64urlToBytes(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; const bin=atob(s); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
 /* native deflate (CompressionStream) — 0-byte dependency, ~25% shorter than LZString */
@@ -4180,6 +4224,8 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
   const bac=document.getElementById('discAutoCorrect'); if(bac) bac.onclick=()=>{ hideDiscBanner(); openAutoCorrectDialog(); };
 })();
 
+const _vfMigrating = vfMigrateBoot();   /* one-time cross-domain localStorage migration to p5x-rotations.com; when true it takes over this load */
+if(!_vfMigrating){
 state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll(); histInit();
 /* editor undo/redo bar wiring (deferred: the bar sits after this script in the DOM) + keyboard shortcuts
    (skip Cmd/Ctrl+Z while typing in a field so native text-undo still works) */
@@ -4231,6 +4277,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   try{ const st=await decodeShare(m[1]); state=migrate(st); save(); renderAll(); histInit(); }catch(e){ /* ignore an unreadable link */ }
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
+}   /* end if(!_vfMigrating) */
 </script>
 <!-- Rotation text-import parser, kept in a separate file so it can be improved and
      re-uploaded on its own (no rebuild of the tool needed). Classic relative script
