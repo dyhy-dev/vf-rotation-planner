@@ -482,6 +482,13 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-mini{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer}
 .lib-mini:hover{border-color:var(--blue-strong)}
 .lib-empty{color:var(--muted); font-size:13px; text-align:center; padding:24px}
+.lib-star{flex:0 0 auto; background:none; border:none; cursor:pointer; font-size:18px; line-height:1; color:var(--muted); padding:2px 2px 0; align-self:flex-start}
+.lib-star.on{color:#f1c232} .lib-star:hover{color:#f1c232}
+.lib-item-org{display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:6px}
+.lib-coll{font:700 10px Oswald,sans-serif; letter-spacing:.04em; background:rgba(58,109,250,.16); border:1px solid rgba(58,109,250,.4); color:var(--blue-strong); border-radius:6px; padding:1px 8px}
+.lib-tag{font:600 10px Inter,sans-serif; background:var(--field); border:1px solid var(--line); color:var(--muted); border-radius:10px; padding:1px 8px}
+.lib-fav-check{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none}
+.lib-fav-check input{cursor:pointer; margin:0}
 @media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
@@ -980,10 +987,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="lib-body">
       <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><span class="lib-hint">Saved on this device. Use Settings &rarr; Backup to export them to a file.</span></div>
       <div class="lib-filters">
-        <input type="text" id="libSearch" class="lib-input" placeholder="Search name, boss, credits..."/>
+        <input type="text" id="libSearch" class="lib-input" placeholder="Search name, boss, credits, tags..."/>
         <select id="libBoss" class="lib-select"><option value="">All bosses</option></select>
         <select id="libMode" class="lib-select"><option value="">All modes</option></select>
         <select id="libSide" class="lib-select"><option value="">All sides</option><option value="Strong">Strong</option><option value="Weak">Weak</option></select>
+        <select id="libColl" class="lib-select"><option value="">All collections</option></select>
+        <select id="libTag" class="lib-select"><option value="">All tags</option></select>
         <select id="libSort" class="lib-select">
           <option value="new">Newest first</option>
           <option value="old">Oldest first</option>
@@ -991,6 +1000,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <option value="name_desc">Name Z to A</option>
           <option value="boss">Boss A to Z</option>
         </select>
+        <label class="lib-fav-check"><input type="checkbox" id="libFav"> Favorites</label>
         <button class="btn" id="libClear" title="Clear search and filters">Clear</button>
       </div>
       <div class="lib-list" id="libList"></div>
@@ -1895,6 +1905,11 @@ function _libId(){ return 'r'+Date.now().toString(36)+Math.random().toString(36)
 function libSaveCurrent(name){ const a=loadLib(); a.unshift({ id:_libId(), name:(String(name||rotName()).trim()||'Rotation'), ts:Date.now(), state:JSON.parse(JSON.stringify(state)) }); saveLib(a); return a; }
 function libDelete(id){ saveLib(loadLib().filter(e=>e.id!==id)); }
 function libRename(id,name){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.name=String(name||'').trim()||e.name; saveLib(a); } }
+/* organisation: favourite (pinned to top), free tags, and a collection name — all stored on the entry, so they ride along with cloud sync + backup */
+function libToggleFav(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.fav=!e.fav; saveLib(a); } }
+function libSetTags(id,tags){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.tags=tags; saveLib(a); } }
+function libSetColl(id,name){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.coll=String(name||'').trim(); saveLib(a); } }
+function _libParseTags(str){ return [...new Set(String(str||'').split(',').map(t=>t.trim()).filter(Boolean))]; }
 function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
 function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; try{ state=migrate(JSON.parse(JSON.stringify(e.state))); _lastImportText=''; save(); renderAll(); return true; }catch(err){ return false; } }
 
@@ -3724,7 +3739,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const list=document.getElementById('libList');
   let _libMode='full';   /* 'full' = library (save/overwrite/rename/delete); 'load' = load-only list */
   function fmtDate(ts){ try{ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
-  const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sideSel=document.getElementById('libSide'), sortSel=document.getElementById('libSort');
+  const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sideSel=document.getElementById('libSide'), sortSel=document.getElementById('libSort'), collSel=document.getElementById('libColl'), tagSel=document.getElementById('libTag'), favChk=document.getElementById('libFav');
   function fillSel(sel, allLabel, values){ const cur=sel.value; sel.innerHTML='<option value="">'+allLabel+'</option>'; values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); sel.value = values.indexOf(cur)>=0 ? cur : ''; }
   function emptyMsg(t){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent=t; list.appendChild(d); }
   function render(){
@@ -3732,27 +3747,48 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     const setupOf=e=>(e.state&&e.state.setup)||{};
     fillSel(bossSel,'All bosses',[...new Set(all.map(e=>setupOf(e).boss).filter(Boolean))].sort());
     fillSel(modeSel,'All modes',[...new Set(all.map(e=>setupOf(e).type).filter(Boolean))].sort());
+    fillSel(collSel,'All collections',[...new Set(all.map(e=>(e.coll||'').trim()).filter(Boolean))].sort());
+    fillSel(tagSel,'All tags',[...new Set(all.flatMap(e=>e.tags||[]))].sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase())));
     if(!all.length){ emptyMsg('No saved rotations yet. "Save current rotation" adds the one you are editing.'); return; }
-    const q=((searchInp&&searchInp.value)||'').trim().toLowerCase(), fb=(bossSel&&bossSel.value)||'', fm=(modeSel&&modeSel.value)||'', fs=(sideSel&&sideSel.value)||'', sv=(sortSel&&sortSel.value)||'new';
-    let a=all.filter(e=>{ const s=setupOf(e); if(fb && (s.boss||'')!==fb) return false; if(fm && (s.type||'')!==fm) return false; if(fs && (s.side||'')!==fs) return false; if(q){ const hay=[e.name,s.boss,s.type,s.side,s.credits,s.patch].filter(Boolean).join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; } return true; });
+    const q=((searchInp&&searchInp.value)||'').trim().toLowerCase(), fb=(bossSel&&bossSel.value)||'', fm=(modeSel&&modeSel.value)||'', fs=(sideSel&&sideSel.value)||'', sv=(sortSel&&sortSel.value)||'new', fc=(collSel&&collSel.value)||'', ft=(tagSel&&tagSel.value)||'', ff=!!(favChk&&favChk.checked);
+    let a=all.filter(e=>{ const s=setupOf(e);
+      if(fb && (s.boss||'')!==fb) return false;
+      if(fm && (s.type||'')!==fm) return false;
+      if(fs && (s.side||'')!==fs) return false;
+      if(fc && (e.coll||'').trim()!==fc) return false;
+      if(ft && !((e.tags||[]).includes(ft))) return false;
+      if(ff && !e.fav) return false;
+      if(q){ const hay=[e.name,s.boss,s.type,s.side,s.credits,s.patch,e.coll].concat(e.tags||[]).filter(Boolean).join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
+      return true; });
     a.sort((x,y)=>{ const sx=setupOf(x), sy=setupOf(y); if(sv==='old') return (x.ts||0)-(y.ts||0); if(sv==='name') return String(x.name||'').localeCompare(String(y.name||'')); if(sv==='name_desc') return String(y.name||'').localeCompare(String(x.name||'')); if(sv==='boss') return String(sx.boss||'').localeCompare(String(sy.boss||'')) || (y.ts||0)-(x.ts||0); return (y.ts||0)-(x.ts||0); });
+    a=a.filter(e=>e.fav).concat(a.filter(e=>!e.fav));   /* favourites pinned to the top, keeping the chosen sort within each group */
     if(!a.length){ emptyMsg('No rotations match your search or filters.'); return; }
     a.forEach(e=>{
       const it=document.createElement('div'); it.className='lib-item';
+      const star=document.createElement('button'); star.className='lib-star'+(e.fav?' on':''); star.textContent=e.fav?'★':'☆'; star.title=e.fav?'Remove from favourites':'Favourite (pins to top)';
+      star.onclick=()=>{ libToggleFav(e.id); render(); };
       const main=document.createElement('div'); main.className='lib-item-main';
       const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=e.name; { const _cr=(((e.state&&e.state.setup)||{}).credits||'').trim(); if(_cr){ const cs=document.createElement('span'); cs.className='lib-item-credit'; cs.textContent=' (by '+_cr+')'; nm.appendChild(cs); } }
       const meta=document.createElement('div'); meta.className='lib-item-meta';
       const s=(e.state&&e.state.setup)||{}; meta.textContent=[s.type,s.side,s.boss,s.patch?('Patch '+s.patch):''].filter(Boolean).join(' · ')+'  ·  '+fmtDate(e.ts);
       main.append(nm,meta);
+      if((e.coll&&e.coll.trim()) || (e.tags&&e.tags.length)){
+        const org=document.createElement('div'); org.className='lib-item-org';
+        if(e.coll&&e.coll.trim()){ const c=document.createElement('span'); c.className='lib-coll'; c.textContent=e.coll.trim(); org.appendChild(c); }
+        (e.tags||[]).forEach(t=>{ const tg=document.createElement('span'); tg.className='lib-tag'; tg.textContent=t; org.appendChild(tg); });
+        main.appendChild(org);
+      }
       const btns=document.createElement('div'); btns.className='lib-item-btns';
       const mk=(t,fn)=>{ const b=document.createElement('button'); b.className='lib-mini'; b.textContent=t; b.onclick=fn; return b; };
       btns.append(mk('Load',()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)) close(); } }));
       if(_libMode!=='load') btns.append(
         mk('Overwrite',()=>{ if(confirm('Overwrite "'+e.name+'" with your current rotation?')){ libOverwrite(e.id); render(); } }),
         mk('Rename',()=>{ const n=prompt('Rename rotation:', e.name); if(n!=null){ libRename(e.id,n); render(); } }),
+        mk('Tags',()=>{ const n=prompt('Tags (comma-separated):', (e.tags||[]).join(', ')); if(n!=null){ libSetTags(e.id,_libParseTags(n)); render(); } }),
+        mk('Collection',()=>{ const colls=[...new Set(loadLib().map(x=>(x.coll||'').trim()).filter(Boolean))].sort(); const hint=colls.length?('\n\nExisting: '+colls.join(', ')):''; const n=prompt('Collection name (leave empty for none):'+hint, e.coll||''); if(n!=null){ libSetColl(e.id,n); render(); } }),
         mk('Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
       );
-      it.append(main,btns); list.appendChild(it);
+      it.append(star,main,btns); list.appendChild(it);
     });
   }
   function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
@@ -3762,8 +3798,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const lc=document.getElementById('libClose'); if(lc) lc.onclick=close;
   const sb=document.getElementById('libSaveBtn'); if(sb) sb.onclick=doSave;
   if(searchInp) searchInp.oninput=render;
-  [bossSel,modeSel,sideSel,sortSel].forEach(s=>{ if(s) s.onchange=render; });
-  const lcl=document.getElementById('libClear'); if(lcl) lcl.onclick=()=>{ if(searchInp) searchInp.value=''; if(bossSel) bossSel.value=''; if(modeSel) modeSel.value=''; if(sideSel) sideSel.value=''; if(sortSel) sortSel.value='new'; render(); };
+  [bossSel,modeSel,sideSel,sortSel,collSel,tagSel].forEach(s=>{ if(s) s.onchange=render; });
+  if(favChk) favChk.onchange=render;
+  const lcl=document.getElementById('libClear'); if(lcl) lcl.onclick=()=>{ if(searchInp) searchInp.value=''; [bossSel,modeSel,sideSel,collSel,tagSel].forEach(s=>{ if(s) s.value=''; }); if(sortSel) sortSel.value='new'; if(favChk) favChk.checked=false; render(); };
   modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
@@ -5239,6 +5276,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630n</div>
+<div class="version-tag">260630o</div>
 </body>
 </html>
