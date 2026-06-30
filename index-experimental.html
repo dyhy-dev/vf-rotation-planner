@@ -3092,7 +3092,7 @@ async function decodeShare(input){
 async function shareLinkURL(){ return location.origin+location.pathname+'#r='+(await encodeShare()); }
 let _ioPrimary=null;
 function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
-const SHORTENER='https://vfrp.dyhy.workers.dev';   /* Cloudflare Worker short-link service */
+const SHORTENER='https://s.p5x-rotations.com';   /* Cloudflare Worker short-link service (same worker as vfrp.dyhy.workers.dev, which also stays alive for old links) */
 const _SHORT_KEY='vf-shortlinks-v1';
 /* after any live-data push, ask the worker to snapshot a cloud backup (it dedupes by content + caps at 3/day, keeps 10) */
 function pingLiveBackup(){ if(!_devPass) return; try{ fetch(SHORTENER+'/databackup-snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).catch(()=>{}); }catch(e){} }

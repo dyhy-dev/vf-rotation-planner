@@ -2798,7 +2798,7 @@ async function decodeShare(input){
 async function shareLinkURL(){ return location.origin+location.pathname+'#r='+(await encodeShare()); }
 let _ioPrimary=null;
 function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
-const SHORTENER='https://vfrp.dyhy.workers.dev';   /* Cloudflare Worker short-link service */
+const SHORTENER='https://s.p5x-rotations.com';   /* Cloudflare Worker short-link service (same worker as vfrp.dyhy.workers.dev, which also stays alive for old links) */
 const _SHORT_KEY='vf-shortlinks-v1';
 
 /* ---------- cloud sync: keep settings + library in step across devices via a sync code (codes are issued from the Dev hub) ---------- */
