@@ -2679,7 +2679,7 @@ function vfMigrateBoot(){
     const h=location.hash||'';
     // Old GitHub Pages origin -> send any link to the new domain, keeping the hash so the shared rotation still loads.
     // Skipped while a migration export (#__vfmig) is in flight, so Role A below can still read this origin's localStorage.
-    if(location.hostname==='dyhy-dev.github.io' && !/__vfmig/.test(h)){ location.replace('https://'+MIG_NEWHOST+'/vfrp/'+h); return true; }
+    if(location.hostname==='dyhy-dev.github.io' && !/__vfmig/.test(h) && !/index-experimental/.test(location.pathname)){ location.replace('https://'+MIG_NEWHOST+'/vfrp/'+h); return true; }   // never redirect the experimental dev-tools page
     // Role A: SOURCE origin, asked to hand its localStorage over to the (verified) new domain.
     const mE=h.match(/__vfmig=([^&]+)/);
     if(mE && location.hostname!==MIG_NEWHOST){
