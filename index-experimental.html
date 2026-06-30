@@ -2284,13 +2284,8 @@ function countOrderViolations(){
 /* Order-relevant = a real action (Skill/Attack/Gun/Guard, or a Wonder persona-skill). HL/Theurgy/Assist and the
    elucidator are ignored. ALT is ignored too, EXCEPT Ryuji's BOOM, which counts as a real action like S1/S2/S3. */
 function _isMainBtn(a){ return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) || (a.btn==='ALT' && (a.char||'').toUpperCase()==='SKULL'); }
-/* autonomous (Virtuoso) units — Justine & Caroline (TWINS) and Joker·Starlight — act on their own, outside the
-   team turn order, so they're exempt from the order check just like the elucidator (else a perfectly fine
-   rotation gets a false order discrepancy and Auto Correct offers a bogus reorder). */
-function _isAutonomous(name){ return charClass((name||'').toUpperCase())==='Virtuoso'; }
 function isOrderRelevant(a){
   if((a.char||'').toUpperCase()==='WONDER') return !!wonderBody(a);
-  if(_isAutonomous(a.char)) return false;
   return _isMainBtn(a);
 }
 function _slotIdxMap(){ const idx={}; (state.units||[]).forEach((u,i)=>{ if(u.name) idx[u.name.toUpperCase()]=i; }); return idx; }
@@ -2303,7 +2298,7 @@ function _breakActionOrder(){ const order=[]; if((state.setup||{}).type!=='DOD')
   const n=(state.turns||[]).length, B=dodBreaks(state); if(n<B) return order;
   for(let ti=n-B; ti<n; ti++) (state.turns[ti].actions||[]).forEach(a=>{
     if((a.char||'').toUpperCase()==='WONDER'){ if(wonderBody(a)&&!order.includes('WONDER')) order.push('WONDER'); }
-    else { const cn=(a.char||'').toUpperCase(); if(cn && _isMainBtn(a) && !_isAutonomous(cn) && !order.includes(cn)) order.push(cn); } });
+    else { const cn=(a.char||'').toUpperCase(); if(cn && _isMainBtn(a) && !order.includes(cn)) order.push(cn); } });
   return order; }
 function _breakIdxMap(){ const idx={}; _breakActionOrder().forEach((nm,i)=>idx[nm]=i); return idx; }
 function _orderIdxForTurn(ti){ return _isBreakTurn(ti)?_breakIdxMap():_slotIdxMap(); }
@@ -2331,7 +2326,7 @@ function buildActionOrder(){
   const order=[];
   (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{
     if((a.char||'').toUpperCase()==='WONDER'){ if(wonderBody(a) && !order.includes('WONDER')) order.push('WONDER'); }
-    else { const cn=(a.char||'').toUpperCase(); if(cn && _isMainBtn(a) && !_isAutonomous(cn) && !order.includes(cn)) order.push(cn); }
+    else { const cn=(a.char||'').toUpperCase(); if(cn && _isMainBtn(a) && !order.includes(cn)) order.push(cn); }
   }));
   return order;
 }
@@ -5213,6 +5208,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630k</div>
+<div class="version-tag">260630l</div>
 </body>
 </html>
