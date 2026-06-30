@@ -460,6 +460,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .app-banner{display:flex; align-items:center; gap:12px; background:linear-gradient(90deg,#2a2342,#1f1b30); border:1px solid #4a4373; border-radius:10px; padding:10px 14px; color:#e9e4ff}
 .app-banner[hidden]{display:none}
 .app-banner-text{flex:1 1 auto; font:600 14px Inter,system-ui,sans-serif; line-height:1.4; white-space:pre-wrap; word-break:break-word}
+.app-banner-text a{color:inherit; text-decoration:underline; text-underline-offset:2px; font-weight:700}
+.app-banner-text a:hover{opacity:.8}
 .app-banner-x{background:transparent; border:none; color:#b3add6; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex:0 0 auto}
 .app-banner-x:hover{color:#fff}
 .app-banner.acc-green{border-color:#4f7a3a; border-left:4px solid #82ec2c; background:linear-gradient(90deg,#21331f,#18261a)}
@@ -1354,6 +1356,16 @@ function bannerNormalize(b){
   return {};
 }
 function _bannerDismissed(){ try{ const d=JSON.parse(localStorage.getItem(BANNER_DISMISS)); return (d&&typeof d==='object'&&!Array.isArray(d))?d:{}; }catch(e){ return {}; } }
+/* safe limited markup for banner text: HTML-escape first, then [label](http(s) url) links + **bold** *italic* __underline__.
+   Only http/https links are emitted (no javascript: etc.), everything else stays escaped, so this can't inject HTML. */
+function bannerFormat(s){
+  let o=String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  o=o.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (m,label,url)=>'<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+label+'</a>');
+  o=o.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  o=o.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  o=o.replace(/__([^_]+)__/g, '<u>$1</u>');
+  return o;
+}
 function showBanner(raw){
   const wrap=document.getElementById('appBanner'); if(!wrap) return;
   const b=bannerNormalize(raw), dis=_bannerDismissed();
@@ -1363,7 +1375,7 @@ function showBanner(raw){
     if(!text || id===String(dis[color]||'')) return;
     any=true;
     const row=document.createElement('div'); row.className='app-banner acc-'+color; row.dataset.color=color; row.dataset.id=id;
-    const span=document.createElement('span'); span.className='app-banner-text'; span.textContent=text;
+    const span=document.createElement('span'); span.className='app-banner-text'; span.innerHTML=bannerFormat(text);
     const x=document.createElement('button'); x.className='app-banner-x'; x.setAttribute('aria-label','Dismiss'); x.innerHTML='&times;';
     x.onclick=()=>{ const m=_bannerDismissed(); m[color]=id; try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(m)); }catch(_){} row.remove(); if(!wrap.children.length) wrap.hidden=true; if(typeof syncSchedulePush==='function') syncSchedulePush(); };
     row.append(span,x); wrap.appendChild(row);
