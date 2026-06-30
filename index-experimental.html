@@ -921,7 +921,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <button class="dropdown-item" data-export="text">Text</button>
           <button class="dropdown-item" data-export="link">Share Editor Link</button>
           <button class="dropdown-item" data-export="viewlink">Share View Link</button>
-          <button class="dropdown-item" data-export="simlink" hidden>P5X-Simulator Link</button>
+          <button class="dropdown-item" data-export="simlink">P5X-Simulator Link</button>
           <button class="dropdown-item" data-export="code">Copy Code</button>
         </div>
       </div>
@@ -1221,7 +1221,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="io-hint" id="ioHint"></div>
       <label class="io-keep" id="ioDodRow" hidden><input type="checkbox" id="ioDod"> DOD rotation</label>
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
-      <label class="io-keep" id="ioShortRow" hidden><input type="checkbox" id="ioFullToggle"> Show full link</label>
+      <div class="io-keep" id="ioShortRow" hidden><button type="button" class="btn io-linktoggle" id="ioFullToggle">Show full link</button></div>
       <div class="io-actions">
         <button class="btn primary" id="ioPrimary">Copy</button>
         <button class="btn" id="ioShorten" hidden>Create short link</button>
@@ -3122,9 +3122,10 @@ function syncSchedulePush(){ if(!_syncCode||_syncApplying) return; clearTimeout(
 function syncLooksLikeCode(v){ return /^[A-Za-z0-9]{12}$/.test(v||''); }
 function syncTryActivate(v){ return fetch(SHORTENER+'/sync?code='+encodeURIComponent(v),{cache:'no-store'}).then(r=>{ if(!r.ok) return false; syncCodeSet(v); _setSyncMetaTs(0); _setSyncSavedSig(''); if(typeof syncRefreshUI==='function') syncRefreshUI(); return syncPull(true).then(res=>{ if(res==='empty') syncPush(); return true; }); }).catch(()=>false); }
 let _shareUrl='';                                   /* current URL shown in the share modal (short or full, per the toggle) */
-let _shareFullUrl='', _shareShortUrl='';            /* the unshortened link vs the worker short link; the "Show the full link" switch picks which one is shown/copied */
+let _shareFullUrl='', _shareShortUrl='', _shareShowFull=false;   /* the unshortened link vs the worker short link; the short/full switch picks which one is shown/copied */
 function _applyShareView(){ const t=document.getElementById('ioText'); const tog=document.getElementById('ioFullToggle');
-  const useFull=!!(tog&&tog.checked); _shareUrl=(!useFull && _shareShortUrl)?_shareShortUrl:_shareFullUrl;
+  const useFull=!!_shareShowFull; _shareUrl=(!useFull && _shareShortUrl)?_shareShortUrl:_shareFullUrl;
+  if(tog) tog.textContent = useFull ? 'Show short link' : 'Show full link';   /* the button shows the OTHER view it switches to */
   if(t){ t.value=_shareUrl; if(t.readOnly){ try{ t.focus(); t.select(); }catch(e){} } } }
 let _shortCache={};                                 /* fragment -> short URL, so an unchanged rotation reuses the same link */
 function _loadShortCache(){ try{ (JSON.parse(localStorage.getItem(_SHORT_KEY))||[]).forEach(e=>{ if(e&&e.f&&e.u) _shortCache[e.f]=e.u; }); }catch(e){} }
@@ -3174,8 +3175,8 @@ function openShareModal(opts){
   document.getElementById('ioTitle').textContent=opts.title;
   const t=document.getElementById('ioText'); t.value=opts.text||''; t.readOnly=!!opts.readonly; t.placeholder=opts.placeholder||'';
   _shareUrl=opts.text||''; _shareFullUrl=opts.text||''; _shareShortUrl='';
-  { const sr=document.getElementById('ioShortRow'), sft=document.getElementById('ioFullToggle');   /* "Show the full link" switch — only on modals that auto-shorten */
-    if(sr) sr.hidden=!(opts.shortenFragment||opts.shortenFn); if(sft){ sft.checked=false; sft.onchange=_applyShareView; } }
+  { const sr=document.getElementById('ioShortRow'), sft=document.getElementById('ioFullToggle');   /* short/full link switch — only on modals that auto-shorten */
+    if(sr) sr.hidden=!(opts.shortenFragment||opts.shortenFn); _shareShowFull=false; if(sft){ sft.onclick=()=>{ _shareShowFull=!_shareShowFull; _applyShareView(); }; } }
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
   { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; const kc=document.getElementById('ioKeep'); if(kc && opts.showKeepText) kc.checked=true; }
@@ -3508,7 +3509,7 @@ document.getElementById('settingsExport').onclick=exportSettings;
 document.getElementById('settingsImport').onclick=()=>document.getElementById('settingsFile').click();
 /* cloud sync controls */
 /* the P5X-Simulator export is sync-gated: only shown to users who have a sync code (cross-tool interop is opt-in) */
-function syncSimLinkBtn(){ const on=!!getSyncCode(); document.querySelectorAll('[data-export="simlink"]').forEach(b=>{ b.hidden=!on; }); }
+function syncSimLinkBtn(){ /* P5X-Simulator Link is available to everyone now (no longer gated behind a sync code) */ }
 function syncRefreshUI(){ const sec=document.getElementById('syncSection'), who=document.getElementById('syncWho'); const c=getSyncCode();
   if(sec) sec.hidden=!c;
   if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; syncSimLinkBtn(); }
@@ -5152,7 +5153,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
       <button class="dropdown-item" data-export="text">Text</button>
       <button class="dropdown-item" data-export="link">Share Editor Link</button>
       <button class="dropdown-item" data-export="viewlink">Share View Link</button>
-      <button class="dropdown-item" data-export="simlink" hidden>P5X-Simulator Link</button>
+      <button class="dropdown-item" data-export="simlink">P5X-Simulator Link</button>
       <button class="dropdown-item" data-export="code">Copy Code</button>
     </div>
   </div>
@@ -5161,6 +5162,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260629e</div>
+<div class="version-tag">260630a</div>
 </body>
 </html>
