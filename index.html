@@ -2676,10 +2676,12 @@ function vfMigrateBoot(){
       return true;
     }
     if(location.hostname!==MIG_NEWHOST) return false;   // workers.dev / github.io normal loads never migrate
+    // escape hatch: #__vfmigreset re-arms a stuck/aborted migration (clears the done flag + retry state, then retries below)
+    if(/__vfmigreset/.test(h)){ try{ localStorage.removeItem(MIG_FLAG); localStorage.removeItem('vf-mig-try'); }catch(e){} try{ sessionStorage.removeItem('vf-mig-busy'); }catch(e){} try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
     // Role C: returned to the new domain with a token -> pull the blob, write absent keys, reload.
     const mD=h.match(/__vfmigd=([^&]+)/);
     if(mD){
-      const done=()=>{ try{ localStorage.setItem(MIG_FLAG,'1'); }catch(e){} try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} location.reload(); };
+      const done=()=>{ try{ localStorage.setItem(MIG_FLAG,'1'); localStorage.removeItem('vf-mig-try'); }catch(e){} try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} location.reload(); };
       if(mD[1]==='0'){ done(); return true; }
       fetch(MIG_WORKER+'/mig?t='+encodeURIComponent(mD[1])).then(r=>r.ok?r.json():null).then(blob=>{
         if(blob && typeof blob==='object'){ for(const k in blob){ if(!Object.prototype.hasOwnProperty.call(blob,k)) continue;
@@ -2689,10 +2691,15 @@ function vfMigrateBoot(){
       return true;
     }
     // Role B: first plain load on the new domain -> go read the old origin's data.
-    if(localStorage.getItem(MIG_FLAG)) return false;        // already migrated (or attempted)
+    if(localStorage.getItem(MIG_FLAG)) return false;        // already migrated (or given up after a few failed tries)
     if(/[#&](r|v|t)=/.test(h)) return false;                // an explicit share/view/text link: let it load, migrate another time
-    if(sessionStorage.getItem('vf-mig-busy')){ try{ localStorage.setItem(MIG_FLAG,'1'); }catch(e){} return false; }   // bounced back without a token: stop, don't loop
-    try{ sessionStorage.setItem('vf-mig-busy','1'); }catch(e){}
+    if(sessionStorage.getItem('vf-mig-busy')){              // bounced back without a token (source stale/unreachable): retry a few times across loads, then give up
+      sessionStorage.removeItem('vf-mig-busy');
+      let n=0; try{ n=+(localStorage.getItem('vf-mig-try')||'0')||0; }catch(e){}
+      if(n>=3){ try{ localStorage.setItem(MIG_FLAG,'1'); }catch(e){} }
+      return false;
+    }
+    try{ const n=+(localStorage.getItem('vf-mig-try')||'0')||0; localStorage.setItem('vf-mig-try', String(n+1)); sessionStorage.setItem('vf-mig-busy','1'); }catch(e){}
     location.replace(MIG_OLD+'#__vfmig='+b64urlEncode(location.origin+location.pathname));
     return true;
   }catch(e){ return false; }
