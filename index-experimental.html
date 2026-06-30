@@ -2316,10 +2316,18 @@ function _orderViolates(actions, idx, elu){
   return false;
 }
 function turnOrderViolation(t, ti){
-  const idx=_orderIdxForTurn(ti);
-  if(!Object.keys(idx).length) return false;
   const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
-  return _orderViolates(t.actions, idx, elu);
+  const slot=_slotIdxMap();
+  if(!Object.keys(slot).length) return false;
+  if(_isBreakTurn(ti)){
+    // A break phase may reorder (the break-trigger unit shifts to last), so break turns are checked against an
+    // order derived from the break turns. But that derived order can be skewed when a unit acts via a NON-main
+    // button in one break and a skill in another (e.g. the Twins' J&C button doesn't count, so they get ranked
+    // too late) — which would falsely flag break turns that are perfectly in slot order. So a break turn is fine
+    // if it matches EITHER the team slot order OR the derived break order; only flag it when it violates both.
+    return _orderViolates(t.actions, slot, elu) && _orderViolates(t.actions, _breakIdxMap(), elu);
+  }
+  return _orderViolates(t.actions, slot, elu);
 }
 /* ---------- auto-correct: replace missing characters + reorder team to match the turns ---------- */
 function buildActionOrder(){
@@ -2402,9 +2410,11 @@ function autoCorrectPlan(){
   const elu=((state.elucidator&&state.elucidator.name)||'').toUpperCase();
   const projTurns=(state.turns||[]).map(t=>({actions:(t.actions||[]).map(a=>{ const cn=(a.char||'').toUpperCase();
     return Object.assign({},a,{char:cmap[cn]||a.char}); })}));
-  const breakIdx=_breakIdxMap();   // break turns are checked against the break-phase order, not the slot order
-  const idxFor=ti=>_isBreakTurn(ti)?breakIdx:idx;
-  const violatingTurns=[]; projTurns.forEach((t,ti)=>{ const ix=idxFor(ti); if(_orderViolates(t.actions,ix,elu)) violatingTurns.push(ti); });
+  const breakIdx=_breakIdxMap();   // break turns: fine if they match EITHER the slot order OR the derived break order (mirror turnOrderViolation)
+  const violatingTurns=[]; projTurns.forEach((t,ti)=>{
+    if(_isBreakTurn(ti)){ if(_orderViolates(t.actions,idx,elu) && _orderViolates(t.actions,breakIdx,elu)) violatingTurns.push(ti); }
+    else if(_orderViolates(t.actions,idx,elu)) violatingTurns.push(ti);
+  });
   // cross-turn conflicts: A before B in one turn, B before A in another -> no single team order satisfies all.
   // Only the normal (slot-order) turns participate; break turns have their own derived order.
   const before={};
@@ -5208,6 +5218,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630l</div>
+<div class="version-tag">260630m</div>
 </body>
 </html>
