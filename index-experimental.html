@@ -3083,24 +3083,13 @@ function _saveShortCache(fragment,url){
     arr=arr.filter(e=>e&&e.f!==fragment); arr.unshift({f:fragment,u:url}); arr=arr.slice(0,50);
     localStorage.setItem(_SHORT_KEY, JSON.stringify(arr)); }catch(e){}
 }
-async function shortenLink(fragment, dest){
+async function _shortenVia(key, produce){   /* shared shorten flow: reuse cache -> produce() the short URL -> show it (full/short toggle respects it) */
   const hint=document.getElementById('ioHint'), btn=document.getElementById('ioShorten');
-  const key = dest ? (dest+'|'+fragment) : fragment;   /* cache per destination so a sim link and a VFRP link can't reuse each other */
-  if(_shortCache[key]){                                /* same rotation as before -> reuse the existing short link */
-    _shareShortUrl=_shortCache[key]; if(btn) btn.hidden=true; _applyShareView();
-    if(hint) hint.textContent='Short link ready. Use Copy below.';
-    return;
-  }
+  if(_shortCache[key]){ _shareShortUrl=_shortCache[key]; if(btn) btn.hidden=true; _applyShareView(); if(hint) hint.textContent='Short link ready. Use Copy below.'; return; }
   if(btn) btn.disabled=true; if(hint) hint.textContent='Creating short link…';
   try{
-    const body = dest ? {f:fragment, to:dest} : {f:fragment, title:discordLabel()};
-    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-    if(!res.ok) throw new Error('http '+res.status);
-    const data=await res.json();
-    if(!data||!data.url) throw new Error('no url');
-    _shareShortUrl=data.url; _saveShortCache(key, data.url);
-    if(btn) btn.hidden=true;                            /* one short link per rotation is enough */
-    _applyShareView();
+    const u=await produce(); if(!u) throw new Error('no url');
+    _shareShortUrl=u; _saveShortCache(key, u); if(btn) btn.hidden=true; _applyShareView();
     if(hint) hint.textContent='Short link created. Use Copy below.';
   }catch(e){
     _shareShortUrl='';
@@ -3109,13 +3098,27 @@ async function shortenLink(fragment, dest){
     _applyShareView();
   }
 }
+async function shortenLink(fragment, dest){   /* VFRP's own worker (editor/view links) */
+  const key = dest ? (dest+'|'+fragment) : fragment;
+  await _shortenVia(key, async()=>{
+    const body = dest ? {f:fragment, to:dest} : {f:fragment, title:discordLabel()};
+    const res=await fetch(SHORTENER+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!res.ok) throw new Error('http '+res.status); const data=await res.json(); return data&&data.url;
+  });
+}
+async function shortenSimLink(text){   /* EchoScrip's P5X-Simulator shortener (s.p5x-simulator.com); CORS-allows dyhy-dev.github.io */
+  await _shortenVia('sim|'+text, async()=>{
+    const res=await fetch(SIM_SHORTENER+'/api/links', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({kind:'t', payload:'j'+b64urlEncode(text)})});
+    if(!res.ok) throw new Error('http '+res.status); const data=await res.json(); return data&&data.url;
+  });
+}
 function openShareModal(opts){
   const modal=document.getElementById('ioModal'); if(!modal) return;
   document.getElementById('ioTitle').textContent=opts.title;
   const t=document.getElementById('ioText'); t.value=opts.text||''; t.readOnly=!!opts.readonly; t.placeholder=opts.placeholder||'';
   _shareUrl=opts.text||''; _shareFullUrl=opts.text||''; _shareShortUrl='';
   { const sr=document.getElementById('ioShortRow'), sft=document.getElementById('ioFullToggle');   /* "Show the full link" switch — only on modals that auto-shorten */
-    if(sr) sr.hidden=!opts.shortenFragment; if(sft){ sft.checked=false; sft.onchange=_applyShareView; } }
+    if(sr) sr.hidden=!(opts.shortenFragment||opts.shortenFn); if(sft){ sft.checked=false; sft.onchange=_applyShareView; } }
   document.getElementById('ioPrimary').textContent=opts.primaryLabel||'Copy';
   document.getElementById('ioPrimary').hidden=!!opts.hidePrimary;
   { const kr=document.getElementById('ioKeepRow'); if(kr) kr.hidden=!opts.showKeepText; const kc=document.getElementById('ioKeep'); if(kc && opts.showKeepText) kc.checked=true; }
@@ -3126,7 +3129,7 @@ function openShareModal(opts){
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
   const shBtn=document.getElementById('ioShorten');
-  if(shBtn){ shBtn.hidden=true; if(opts.shortenFragment){ shBtn.disabled=false; shBtn.onclick=()=>shortenLink(opts.shortenFragment, opts.shortenTo); } else { shBtn.onclick=null; } }
+  if(shBtn){ shBtn.hidden=true; const _sf=opts.shortenFn||(opts.shortenFragment?()=>shortenLink(opts.shortenFragment, opts.shortenTo):null); if(_sf){ shBtn.disabled=false; shBtn.onclick=_sf; } else shBtn.onclick=null; }
   const dWrap=document.getElementById('ioDiscordWrap'), dText=document.getElementById('ioDiscordText'), dBtn=document.getElementById('ioDiscord');
   if(opts.discordUrl){
     if(dWrap) dWrap.hidden=false; if(dText) dText.value=opts.discordLabel||'';
@@ -3138,7 +3141,7 @@ function openShareModal(opts){
   }
   _ioPrimary=opts.onPrimary||null;
   modal.hidden=false;
-  if(opts.shortenFragment) shortenLink(opts.shortenFragment, opts.shortenTo);   /* create + show the short link right away */
+  if(opts.shortenFn) opts.shortenFn(); else if(opts.shortenFragment) shortenLink(opts.shortenFragment, opts.shortenTo);   /* create + show the short link right away */
   if(opts.autoHeight){ t.style.height='auto'; t.style.height=Math.min(Math.round((window.innerHeight||800)*0.6), t.scrollHeight+8)+'px'; }
   else { t.style.height=''; }
   setTimeout(()=>{ try{ t.focus(); if(opts.readonly && !opts.noSelect) t.select(); }catch(_){} },30);
@@ -4507,9 +4510,12 @@ async function openShareViewLink(){ let url; try{ url=await shareViewURL(); }cat
    it through his rotation-text import, which loads VFRP's own parser tables, so it's natively compatible.
    (Markerless would also work via his fallback but can collide if the base64 starts with j/z/d/g, so we mark it.)
    No worker shortening: the worker only ever redirects to VFRP, so a short link would land in VFRP, not his tool. */
-const SIM_BASE='https://echoscrip.github.io/P5X-Simulator/';
-function simulatorLink(){ return SIM_BASE+'#t=j'+b64urlEncode(buildTextExport()); }
-function openSimulatorLink(){ try{ const url=simulatorLink(); openShareModal({title:'Open in P5X-Simulator', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:"Opens this rotation in EchoScrip's P5X-Simulator.", shortenFragment:(url.split('#')[1]||''), shortenTo:'sim'}); }catch(e){ alert('Could not build the Simulator link.'); } }
+const SIM_BASE='https://p5x-simulator.com/';                 /* EchoScrip's P5X-Simulator (moved from echoscrip.github.io) */
+const SIM_SHORTENER='https://s.p5x-simulator.com';           /* his own shortener; CORS-allows dyhy-dev.github.io. POST /api/links {kind:'t',payload:'j'+base64url(text)} -> {url} */
+function simulatorLink(){ return SIM_BASE+'#t=j'+b64urlEncode(buildTextExport()); }   /* full (unshortened) deep-link; his tool reads the #t= hash */
+function openSimulatorLink(){ try{ const text=buildTextExport();
+  openShareModal({title:'Open in P5X-Simulator', text:SIM_BASE+'#t=j'+b64urlEncode(text), readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, open:true, hint:'Opens this rotation in P5X-Simulator.', shortenFn:()=>shortenSimLink(text)});
+}catch(e){ alert('Could not build the Simulator link.'); } }
 function exportViewPNG(){
   const body=document.body;
   const wasView=body.classList.contains('view-mode');
@@ -5095,6 +5101,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260629d</div>
+<div class="version-tag">260629e</div>
 </body>
 </html>
