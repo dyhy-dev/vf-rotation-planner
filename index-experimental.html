@@ -343,6 +343,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .abbr-check input{margin:2px 0 0; flex:0 0 auto}
 .set-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line)}
 #syncSection[hidden]{display:none}
+#syncSetup[hidden]{display:none}
 /* narrow screens: rows with a wide segmented switch (Theme, Orientation) wrap the switch onto its own line so it isn't clipped */
 @media (max-width:560px){ .set-row-seg{flex-wrap:wrap} .set-row-seg>div:first-child{flex:1 1 100%} }
 .set-row:last-of-type{border-bottom:none}
@@ -1341,6 +1342,10 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="set-row">
         <div><div class="set-label">Backup file</div><div class="set-sub">Export your settings and your saved rotations (library) to a JSON file, or import one to restore them</div></div>
         <div class="set-backup-btns"><button class="btn" id="settingsExport">Export</button><button class="btn" id="settingsImport">Import</button></div>
+      </div>
+      <div class="set-row" id="syncSetup">
+        <div><div class="set-label">Cloud sync</div><div class="set-sub">Generate a code to keep your settings and rotation library in step across all your devices. Keep the code somewhere safe. Already have one? Use Import &rarr; Import Code.</div></div>
+        <div class="set-backup-btns"><button class="btn" id="syncGenBtn">Generate sync code</button></div>
       </div>
       <div class="set-row" id="syncSection" hidden>
         <div><div class="set-label">Cloud sync</div><div class="set-sub">Your settings and rotation library stay in step on every device where you use the same code.</div><div class="set-sub" id="syncWho" style="margin-top:4px"></div><div class="set-sub" id="syncStatus" style="margin-top:4px"></div></div>
@@ -3566,10 +3571,26 @@ document.getElementById('settingsImport').onclick=()=>document.getElementById('s
 /* cloud sync controls */
 /* the P5X-Simulator export is sync-gated: only shown to users who have a sync code (cross-tool interop is opt-in) */
 function syncSimLinkBtn(){ /* P5X-Simulator Link is available to everyone now (no longer gated behind a sync code) */ }
-function syncRefreshUI(){ const sec=document.getElementById('syncSection'), who=document.getElementById('syncWho'); const c=getSyncCode();
+function syncRefreshUI(){ const sec=document.getElementById('syncSection'), setup=document.getElementById('syncSetup'), who=document.getElementById('syncWho'); const c=getSyncCode();
   if(sec) sec.hidden=!c;
+  if(setup) setup.hidden=!!c;   /* show "Generate" only when not yet syncing */
   if(who) who.textContent = c ? ('Active on this device with code '+c) : ''; syncSimLinkBtn(); }
-{ const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
+/* any user can mint their own cloud-sync code; a name is required so it can be recovered (it shows in the dev Sync module) */
+function syncGenerate(){
+  const raw=prompt('Name this sync code so it can be recovered if you ever lose it (e.g. your Discord name):');
+  if(raw===null) return;                 /* cancelled */
+  const name=raw.trim();
+  if(!name){ alert('Please enter a name to generate a sync code.'); return; }
+  const btn=document.getElementById('syncGenBtn'); if(btn){ btn.disabled=true; btn.textContent='Generating…'; }
+  fetch(SHORTENER+'/sync-gen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})
+    .then(r=>r.ok?r.json():Promise.reject()).then(j=>{ if(!j||!j.code) throw 0;
+      syncCodeSet(j.code); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); syncPush(true);   /* push this device's current settings+library into the new slot */
+      alert('Your sync code:\n\n'+j.code+'\n\nEnter it via "Import → Import Code" on your other devices to keep them in sync. Keep it safe.');
+    }).catch(()=>alert('Could not generate a sync code. Please try again later.'))
+    .finally(()=>{ if(btn){ btn.disabled=false; btn.textContent='Generate sync code'; } });
+}
+{ const gb=document.getElementById('syncGenBtn'); if(gb) gb.onclick=syncGenerate;
+  const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
   const dc=document.getElementById('syncDisconnect'); if(dc) dc.onclick=()=>{ if(!confirm('Stop syncing on this device? Your settings and library stay here, but they will no longer update across devices.')) return; syncCodeSet(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); };
   syncRefreshUI(); }
 document.getElementById('settingsFile').onchange=e=>{
@@ -5218,6 +5239,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630m</div>
+<div class="version-tag">260630n</div>
 </body>
 </html>
