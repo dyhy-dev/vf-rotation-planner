@@ -355,6 +355,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .set-input:focus{outline:none; border-color:var(--blue-strong)}
 .set-sync-row{display:flex; gap:8px; justify-content:flex-end}
 #syncGenBtn[hidden],#syncNowBtn[hidden]{display:none}
+#syncStatus{color:var(--blue-strong); font-weight:600}
+#syncStatus.err{color:#e0445e}
 .set-input{background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:7px; padding:6px 9px; font-size:13px; min-width:130px; font-family:ui-monospace,Menlo,Consolas,monospace}
 .set-select{background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:7px; padding:6px 9px; font-size:13px; cursor:pointer; flex:0 0 auto}
 .set-status{margin-top:10px; font:600 12px Inter,sans-serif; padding:8px 10px; border-radius:6px}
@@ -505,15 +507,17 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-hr{display:flex; justify-content:space-between; gap:12px}
 .lib-hr{min-width:0} .lib-hr span{color:var(--muted); flex:0 0 auto} .lib-hr b{color:var(--text); font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; min-width:0; white-space:nowrap}
 .lib-hover{white-space:nowrap} .lib-hover-name{overflow:hidden; text-overflow:ellipsis}
-.lib-hteam{display:block; overflow:hidden; text-overflow:ellipsis; margin-bottom:10px; font:700 12px Inter,sans-serif}
-.lib-hteam .n{margin-right:9px}
+.lib-hteam{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px}
+.lib-hface{width:34px; height:34px; border-radius:6px; overflow:hidden; background:var(--field); border:1px solid var(--line); display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center}
+.lib-hface img{width:100%; height:100%; object-fit:cover; display:block}
 .lib-hover-x{position:absolute; top:5px; right:7px; width:24px; height:24px; border:none; background:transparent; color:var(--muted); font-size:19px; line-height:1; cursor:pointer; display:none; padding:0}
 .lib-hover-x:hover{color:var(--text)}
-.lib-hover.pinned{pointer-events:auto} .lib-hover.pinned .lib-hover-x{display:block}
+.lib-hover.pinned{pointer-events:auto} .lib-hover.pinned .lib-hover-x{display:flex; align-items:center; justify-content:center}
 .lib-item{position:relative}
-.lib-info{position:absolute; top:8px; right:10px; width:22px; height:22px; border-radius:50%; border:1px solid var(--line); background:var(--panel); color:var(--muted); font:italic 700 13px Georgia,serif; cursor:pointer; display:none; align-items:center; justify-content:center; line-height:1; padding:0}
+.lib-info{display:none; width:22px; height:22px; border-radius:50%; border:1px solid var(--line); background:var(--panel); color:var(--muted); font:700 13px Inter,sans-serif; font-style:normal; cursor:pointer; align-items:center; justify-content:center; line-height:1; padding:0; flex:0 0 auto}
 .lib-info:hover{color:var(--text); border-color:var(--blue-strong)}
 @media (hover:none){ .lib-info{display:inline-flex} }
+@media (hover:none) and (max-width:560px){ .lib-info{position:absolute; top:8px; right:10px} }
 .lib-item-btns{flex-direction:column; align-items:flex-end}
 .lib-btn-row{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
 .lib-coll-pick{display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; margin-bottom:12px}
@@ -522,6 +526,11 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-coll-new{display:flex; gap:8px}
 .lib-coll-empty{color:var(--muted); font-size:13px; padding:6px 2px 10px}
 .lib-coll-hdr{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px; color:var(--muted); padding:0 2px 10px}
+.lib-searchbar{width:100%; box-sizing:border-box; flex:none; margin-bottom:12px}
+.lib-coll-chip{background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:6px 13px; font-size:13px; cursor:pointer}
+.lib-coll-chip:hover{border-color:var(--blue-strong)}
+.lib-coll-chip.on{background:rgba(58,109,250,.18); border-color:var(--blue-strong); color:var(--blue-strong); font-weight:700}
+.lib-coll-pick{flex-direction:row; flex-wrap:wrap}
 @media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
@@ -1018,9 +1027,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="My rotations">
     <div class="modal-head"><h2 id="libTitle">My Rotations</h2><button class="modal-close" id="libClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
-      <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><span class="lib-hint">Saved on this device. Use Settings &rarr; Backup to export them to a file.</span></div>
+      <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><button class="btn" id="libCollBtn" title="Browse collections" style="margin-left:auto">Collections</button></div>
       <div class="lib-filters">
-        <input type="text" id="libSearch" class="lib-input" placeholder="Search name, boss, credits, character, tags..."/>
         <select id="libBoss" class="lib-select"><option value="">All bosses</option></select>
         <select id="libMode" class="lib-select"><option value="">All modes</option></select>
         <select id="libSide" class="lib-select"><option value="">All sides</option><option value="Strong">Strong</option><option value="Weak">Weak</option></select>
@@ -1032,9 +1040,9 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <option value="name_desc">Name Z to A</option>
           <option value="boss">Boss A to Z</option>
         </select>
-        <button class="btn" id="libCollBtn" title="Browse collections">Collections</button>
         <button class="btn" id="libClear" title="Clear search and filters">Clear</button>
       </div>
+      <input type="text" id="libSearch" class="lib-input lib-searchbar" placeholder="Search name, boss, credits, character, tags..."/>
       <div class="lib-list" id="libList"></div>
     </div>
   </div>
@@ -1046,6 +1054,15 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="lib-coll-pick" id="libCollPick"></div>
       <div class="lib-coll-new"><input type="text" id="libCollNew" class="lib-input" placeholder="New collection name…"/><button class="btn" id="libCollAdd">Add</button></div>
       <div class="io-actions" style="margin-top:14px"><button class="btn primary" id="libCollDone">Done</button></div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="collectionsModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Collections">
+    <div class="modal-head"><h2 id="collectionsTitle">Collections</h2><button class="modal-close" id="collectionsClose" aria-label="Close">&times;</button></div>
+    <div class="lib-body">
+      <button class="lib-mini" id="collectionsBack" hidden style="margin-bottom:12px">&larr; All collections</button>
+      <div class="lib-list" id="collectionsList"></div>
     </div>
   </div>
 </div>
@@ -1399,8 +1416,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="set-row" id="syncSection">
         <div><div class="set-label">Cloud sync</div><div class="set-sub">Keep your settings and rotation library in step across all your devices. Paste a code you already have, or generate a new one — keep it somewhere safe.</div><div class="set-sub" id="syncStatus" style="margin-top:4px"></div></div>
         <div class="set-backup-btns" id="syncCtrls">
-          <input type="text" id="syncCodeField" class="set-input" placeholder="Enter your sync code" autocomplete="off" autocapitalize="off" spellcheck="false"/>
           <div class="set-sync-row"><button class="btn" id="syncGenBtn">Generate sync code</button><button class="btn" id="syncNowBtn">Sync now</button></div>
+          <input type="text" id="syncCodeField" class="set-input" placeholder="Enter your sync code" autocomplete="off" autocapitalize="off" spellcheck="false"/>
         </div>
       </div>
       <div class="set-status" id="settingsStatus" hidden></div>
@@ -3636,11 +3653,19 @@ function _syncUpdateButtons(){ const field=document.getElementById('syncCodeFiel
 function syncRefreshUI(){ const field=document.getElementById('syncCodeField'); const c=getSyncCode();
   if(field && document.activeElement!==field) field.value=c||''; _syncUpdateButtons(); syncSimLinkBtn(); }
 function _syncDisconnect(){ syncCodeSet(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); }
-function _syncFieldCommit(){ const field=document.getElementById('syncCodeField'); if(!field) return; const v=(field.value||'').trim(); const cur=getSyncCode();
-  if(v===cur){ _syncUpdateButtons(); return; }
-  if(!v){ if(cur){ if(confirm('Remove this sync code from this device? Your settings and library stay here, but they will no longer sync across devices.')){ _syncDisconnect(); _syncStatus('Disconnected from cloud sync.'); } else { field.value=cur; } } _syncUpdateButtons(); return; }
-  if(!syncLooksLikeCode(v)){ _syncStatus('That doesn’t look like a sync code.',true); field.value=cur; _syncUpdateButtons(); return; }
-  _syncStatus('Connecting…'); syncTryActivate(v).then(ok=>{ if(ok){ _syncStatus('Connected. Your devices are in sync.'); } else { _syncStatus('That sync code was not found.',true); field.value=cur; } syncRefreshUI(); }); }
+/* editing an ACTIVE code warns immediately (as soon as the field differs): confirm -> clear + disconnect; cancel -> restore the full code */
+function _syncFieldInput(){ const field=document.getElementById('syncCodeField'); if(!field) return; const cur=getSyncCode();
+  if(cur && field.value.trim()!==cur){
+    if(confirm('Remove this sync code from this device? Your settings and library stay here, but they will no longer sync across devices.')){ _syncDisconnect(); field.value=''; _syncStatus('Disconnected from cloud sync.'); }
+    else { field.value=cur; }
+    _syncUpdateButtons(); return;
+  }
+  _syncUpdateButtons();
+}
+/* committing a NEW code (no active code yet) activates it; active-code edits are handled live in _syncFieldInput */
+function _syncFieldCommit(){ const field=document.getElementById('syncCodeField'); if(!field || getSyncCode()) return; const v=(field.value||'').trim(); if(!v) return;
+  if(!syncLooksLikeCode(v)){ _syncStatus('That doesn’t look like a sync code.',true); return; }
+  _syncStatus('Connecting…'); syncTryActivate(v).then(ok=>{ if(ok){ _syncStatus('Connected. Your devices are in sync.'); } else { _syncStatus('That sync code was not found.',true); field.value=''; } syncRefreshUI(); }); }
 /* device-side limit: at most 2 generated codes per 48h (deters spam of the public mint endpoint) */
 const _SYNC_GEN_KEY='vf-sync-gentimes'; const _SYNC_GEN_WINDOW=48*3600*1000;
 function _syncGenTimes(){ try{ const a=JSON.parse(localStorage.getItem(_SYNC_GEN_KEY)); return Array.isArray(a)?a.filter(t=>Date.now()-t<_SYNC_GEN_WINDOW):[]; }catch(e){ return []; } }
@@ -3661,7 +3686,7 @@ function syncGenerate(){
 }
 { const gb=document.getElementById('syncGenBtn'); if(gb) gb.onclick=syncGenerate;
   const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
-  const field=document.getElementById('syncCodeField'); if(field){ field.oninput=_syncUpdateButtons; field.onchange=_syncFieldCommit; field.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); field.blur(); } }); }
+  const field=document.getElementById('syncCodeField'); if(field){ field.oninput=_syncFieldInput; field.onchange=_syncFieldCommit; field.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); field.blur(); } }); }
   syncRefreshUI(); }
 document.getElementById('settingsFile').onchange=e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value='';
@@ -3795,7 +3820,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   let _libMode='full';   /* 'full' = library (save/overwrite/rename/delete); 'load' = load-only list */
   function fmtDate(ts){ try{ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
   const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sideSel=document.getElementById('libSide'), sortSel=document.getElementById('libSort'), patchSel=document.getElementById('libPatch'), collBtn=document.getElementById('libCollBtn');
-  let _collBrowse=false, _collFilter='';   /* "Collections" button -> browse mode; picking one filters the list to it */
+  let _collView='';   /* dedicated Collections window: '' = list of collections, else a collection name (detail) */
   const _canHover=()=>!(window.matchMedia&&!matchMedia('(hover:hover)').matches);   /* touch devices: no auto preview, use the "i" button */
   function _teamOf(e){ const st=e.state||{}; const u=(st.units||[]).map(x=>((x&&x.name)||'').trim()); if(st.elucidator&&st.elucidator.name) u.push(st.elucidator.name.trim()); return u.filter(Boolean); }
   function fillSel(sel, allLabel, values){ const cur=sel.value; sel.innerHTML='<option value="">'+allLabel+'</option>'; values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); sel.value = values.indexOf(cur)>=0 ? cur : ''; }
@@ -3804,16 +3829,25 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const hoverEl=document.createElement('div'); hoverEl.className='lib-hover'; hoverEl.hidden=true; (modal.querySelector('.modal-card')||modal).appendChild(hoverEl);
   let _pinId='';
   function buildHover(e){ const st=e.state||{}, s=st.setup||{};
-    const team=_teamOf(e).map(n=>'<span class="n" style="color:'+uiAccent(n)+'">'+esc(charDisp(n)||n)+'</span>').join('');
+    const team=_teamOf(e).map(n=>{ const src=faceImg(n); return '<span class="lib-hface" title="'+esc(charDisp(n)||n)+'">'+(src?'<img src="'+esc(src)+'" alt="" onerror="faceFallback(this)" loading="lazy"/>':'')+'</span>'; }).join('');
     const nActs=(st.turns||[]).reduce((sum,t)=>sum+((t.actions||[]).length),0);
     const rows=[['Mode',s.type],['Patch',s.patch],['Side',s.side],['Boss',s.boss],['Score',s.score],['Turns',(st.turns||[]).length||''],['Actions',nActs||''],['Saved',fmtDate(e.ts)],['Credits',(s.credits||'').trim()]]
       .filter(r=>r[1]!=='' && r[1]!=null && r[1]!==0).map(r=>'<div class="lib-hr"><span>'+esc(r[0])+'</span><b>'+esc(String(r[1]))+'</b></div>').join('');
     return '<button type="button" class="lib-hover-x" aria-label="Close">&times;</button><div class="lib-hover-name">'+esc(e.name)+'</div>'+(team?'<div class="lib-hteam">'+team+'</div>':'')+'<div class="lib-hrows">'+rows+'</div>'; }
   function placeHover(anchor){ hoverEl.style.visibility='hidden'; hoverEl.hidden=false;
-    const r=anchor.getBoundingClientRect(), hw=hoverEl.offsetWidth, hh=hoverEl.offsetHeight, M=8;
-    let left=r.right+10; if(left+hw>innerWidth-M) left=r.left-hw-10; if(left<M) left=M;
-    let top=r.top; if(top+hh>innerHeight-M) top=innerHeight-M-hh; if(top<M) top=M;
-    hoverEl.style.left=left+'px'; hoverEl.style.top=top+'px'; hoverEl.style.visibility=''; }
+    const pinned=hoverEl.classList.contains('pinned'); const r=anchor.getBoundingClientRect(), hw=hoverEl.offsetWidth, hh=hoverEl.offsetHeight, M=8;
+    const x=hoverEl.querySelector('.lib-hover-x');
+    if(pinned){   /* card at the left edge; X overlaid exactly on the "i" button (anchor) so tapping the same spot toggles */
+      let top=r.top; if(top+hh>innerHeight-M) top=innerHeight-M-hh; if(top<M) top=M;
+      hoverEl.style.left=M+'px'; hoverEl.style.top=top+'px';
+      if(x){ x.style.position='fixed'; x.style.left=r.left+'px'; x.style.top=r.top+'px'; x.style.width=r.width+'px'; x.style.height=r.height+'px'; }
+    } else {
+      if(x){ x.style.position=''; x.style.left=x.style.top=x.style.width=x.style.height=''; }
+      let left=r.right+10; if(left+hw>innerWidth-M) left=r.left-hw-10; if(left<M) left=M;
+      let top=r.top; if(top+hh>innerHeight-M) top=innerHeight-M-hh; if(top<M) top=M;
+      hoverEl.style.left=left+'px'; hoverEl.style.top=top+'px';
+    }
+    hoverEl.style.visibility=''; }
   function showHover(e,anchor,pin){ hoverEl.innerHTML=buildHover(e); hoverEl.classList.toggle('pinned',!!pin); placeHover(anchor); const x=hoverEl.querySelector('.lib-hover-x'); if(x) x.onclick=ev=>{ ev.stopPropagation(); hideHover(); }; }
   function hideHover(){ hoverEl.hidden=true; hoverEl.classList.remove('pinned'); _pinId=''; }
   hoverEl.addEventListener('click',ev=>ev.stopPropagation());   /* clicks inside a pinned preview don't close it (only the X or outside) */
@@ -3824,24 +3858,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     fillSel(bossSel,'All bosses',[...new Set(all.map(e=>setupOf(e).boss).filter(Boolean))].sort());
     fillSel(modeSel,'All modes',[...new Set(all.map(e=>setupOf(e).type).filter(Boolean))].sort());
     fillSel(patchSel,'All patches',[...new Set(all.map(e=>(setupOf(e).patch||'').trim()).filter(Boolean))].sort());
-    if(collBtn) collBtn.classList.toggle('on', _collBrowse);
     if(!all.length){ emptyMsg('No saved rotations yet. "Save current rotation" adds the one you are editing.'); return; }
-    if(_collBrowse){   /* browse mode: list collections; pick one to see its rotations */
-      const counts={}; all.forEach(e=>_libColls(e).forEach(c=>{ counts[c]=(counts[c]||0)+1; }));
-      const names=Object.keys(counts).sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
-      if(!names.length){ emptyMsg('No collections yet. Use an entry’s "Collection" button to create one.'); return; }
-      names.forEach(c=>{ const it=document.createElement('div'); it.className='lib-item'; it.style.cursor='pointer';
-        const main=document.createElement('div'); main.className='lib-item-main';
-        const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=c;
-        const meta=document.createElement('div'); meta.className='lib-item-meta'; meta.textContent=counts[c]+(counts[c]===1?' rotation':' rotations');
-        main.append(nm,meta);
-        const btns=document.createElement('div'); btns.className='lib-item-btns'; const ob=document.createElement('button'); ob.className='lib-mini'; ob.textContent='Open'; btns.append(ob);
-        it.append(main,btns); it.onclick=()=>{ _collFilter=c; _collBrowse=false; render(); }; list.appendChild(it); });
-      return;
-    }
     const q=((searchInp&&searchInp.value)||'').trim().toLowerCase(), fb=(bossSel&&bossSel.value)||'', fm=(modeSel&&modeSel.value)||'', fs=(sideSel&&sideSel.value)||'', sv=(sortSel&&sortSel.value)||'new', fpa=(patchSel&&patchSel.value)||'';
     let a=all.filter(e=>{ const s=setupOf(e);
-      if(_collFilter && !_libColls(e).includes(_collFilter)) return false;
       if(fb && (s.boss||'')!==fb) return false;
       if(fm && (s.type||'')!==fm) return false;
       if(fs && (s.side||'')!==fs) return false;
@@ -3850,8 +3869,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       return true; });
     a.sort((x,y)=>{ const sx=setupOf(x), sy=setupOf(y); if(sv==='old') return (x.ts||0)-(y.ts||0); if(sv==='name') return String(x.name||'').localeCompare(String(y.name||'')); if(sv==='name_desc') return String(y.name||'').localeCompare(String(x.name||'')); if(sv==='boss') return String(sx.boss||'').localeCompare(String(sy.boss||'')) || (y.ts||0)-(x.ts||0); return (y.ts||0)-(x.ts||0); });
     a=a.filter(e=>e.fav).concat(a.filter(e=>!e.fav));   /* favourites pinned to the top, keeping the chosen sort within each group */
-    if(_collFilter){ const hdr=document.createElement('div'); hdr.className='lib-coll-hdr'; const t=document.createElement('span'); t.innerHTML='Collection: <b>'+esc(_collFilter)+'</b>'; const sa=document.createElement('button'); sa.className='lib-mini'; sa.textContent='Show all'; sa.onclick=()=>{ _collFilter=''; render(); }; hdr.append(t,sa); list.appendChild(hdr); }
-    if(!a.length){ emptyMsg(_collFilter?('No rotations in "'+_collFilter+'".'):'No rotations match your search or filters.'); return; }
+    if(!a.length){ emptyMsg('No rotations match your search or filters.'); return; }
     a.forEach(e=>{
       const it=document.createElement('div'); it.className='lib-item';
       const star=document.createElement('button'); star.className='lib-star'+(e.fav?' on':''); star.textContent=e.fav?'★':'☆'; star.title=e.fav?'Remove from favourites':'Favourite (pins to top)';
@@ -3869,7 +3887,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
         main.appendChild(org);
       }
       const info=document.createElement('button'); info.className='lib-info'; info.textContent='i'; info.title='Show details';
-      info.onclick=ev=>{ ev.stopPropagation(); if(_pinId===e.id){ hideHover(); } else { _pinId=e.id; showHover(e,it,true); } };
+      info.onclick=ev=>{ ev.stopPropagation(); if(_pinId===e.id){ hideHover(); } else { _pinId=e.id; showHover(e,info,true); } };
       const btns=document.createElement('div'); btns.className='lib-item-btns';
       const row1=document.createElement('div'); row1.className='lib-btn-row'; const row2=document.createElement('div'); row2.className='lib-btn-row';
       const mk=(t,fn)=>{ const b=document.createElement('button'); b.className='lib-mini'; b.textContent=t; b.onclick=fn; return b; };
@@ -3888,10 +3906,10 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       btns.append(row1); if(row2.children.length) btns.append(row2);
       it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover()) showHover(e,it,false); });
       it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
-      it.append(star,info,main,btns); list.appendChild(it);
+      it.append(star,main,info,btns); list.appendChild(it);
     });
   }
-  function open(mode){ _libMode=(mode==='load')?'load':'full'; _collBrowse=false; _collFilter=''; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
+  function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
   const close=()=>{ modal.hidden=true; hideHover(); };
   document.addEventListener('click',()=>{ if(_pinId) hideHover(); });   /* tap/click outside an item closes a pinned preview */
   /* ---- collection assignment modal (multi-select existing + add new) ---- */
@@ -3900,7 +3918,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function _cExisting(){ const s=new Set(); loadLib().forEach(e=>_libColls(e).forEach(c=>s.add(c))); return [...s]; }
   function renderCPick(){ if(!cPick) return; cPick.innerHTML=''; const names=[...new Set([..._cExisting(), ..._cChosen])].sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
     if(!names.length){ const d=document.createElement('div'); d.className='lib-coll-empty'; d.textContent='No collections yet — add one below.'; cPick.appendChild(d); return; }
-    names.forEach(c=>{ const lab=document.createElement('label'); lab.className='lib-coll-opt'; const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=_cChosen.has(c); cb.onchange=()=>{ cb.checked?_cChosen.add(c):_cChosen.delete(c); }; const sp=document.createElement('span'); sp.textContent=c; lab.append(cb,sp); cPick.appendChild(lab); }); }
+    names.forEach(c=>{ const b=document.createElement('button'); b.type='button'; b.className='lib-coll-chip'+(_cChosen.has(c)?' on':''); b.textContent=c; b.onclick=()=>{ if(_cChosen.has(c)) _cChosen.delete(c); else _cChosen.add(c); b.classList.toggle('on'); }; cPick.appendChild(b); }); }
   function openCollModal(e){ if(!cModal) return; _cEntryId=e.id; _cChosen=new Set(_libColls(e)); renderCPick(); if(cNew) cNew.value=''; cModal.hidden=false; if(cNew) setTimeout(()=>cNew.focus(),30); }
   function closeCollModal(){ if(cModal) cModal.hidden=true; }
   if(cAdd) cAdd.onclick=()=>{ const v=(cNew.value||'').trim(); if(!v) return; _cChosen.add(v); cNew.value=''; renderCPick(); };
@@ -3908,14 +3926,53 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   if(cDone) cDone.onclick=()=>{ if(_cEntryId) libSetColls(_cEntryId,[..._cChosen]); closeCollModal(); render(); };
   if(cClose) cClose.onclick=closeCollModal;
   if(cModal) cModal.addEventListener('click',ev=>{ if(ev.target===cModal) closeCollModal(); });
+  /* ---- dedicated Collections window (the future hub for sharing): list collections -> a collection's rotations ---- */
+  const collModal2=document.getElementById('collectionsModal'), collList=document.getElementById('collectionsList'), collBack=document.getElementById('collectionsBack'), collTitle=document.getElementById('collectionsTitle'), collClose=document.getElementById('collectionsClose');
+  function _collCard(e){
+    const it=document.createElement('div'); it.className='lib-item';
+    const star=document.createElement('button'); star.className='lib-star'+(e.fav?' on':''); star.textContent=e.fav?'★':'☆'; star.title=e.fav?'Remove from favourites':'Favourite (pins to top)'; star.onclick=()=>{ libToggleFav(e.id); renderCollections(); };
+    const info=document.createElement('button'); info.className='lib-info'; info.textContent='i'; info.title='Show details'; info.onclick=ev=>{ ev.stopPropagation(); if(_pinId===e.id){ hideHover(); } else { _pinId=e.id; showHover(e,info,true); } };
+    const main=document.createElement('div'); main.className='lib-item-main';
+    const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=e.name; { const _cr=(((e.state&&e.state.setup)||{}).credits||'').trim(); if(_cr){ const cs=document.createElement('span'); cs.className='lib-item-credit'; cs.textContent=' (by '+_cr+')'; nm.appendChild(cs); } }
+    const meta=document.createElement('div'); meta.className='lib-item-meta'; const s=(e.state&&e.state.setup)||{}; meta.textContent=[s.type,s.side,s.boss,s.patch?('Patch '+s.patch):''].filter(Boolean).join(' · ')+'  ·  '+fmtDate(e.ts);
+    main.append(nm,meta);
+    const _cs=_libColls(e); if(_cs.length||(e.tags&&e.tags.length)){ const org=document.createElement('div'); org.className='lib-item-org'; _cs.forEach(c=>{ const cc=document.createElement('span'); cc.className='lib-coll'; cc.textContent=c; org.appendChild(cc); }); (e.tags||[]).forEach(t=>{ const tg=document.createElement('span'); tg.className='lib-tag'; tg.textContent=t; org.appendChild(tg); }); main.appendChild(org); }
+    const btns=document.createElement('div'); btns.className='lib-item-btns'; const row=document.createElement('div'); row.className='lib-btn-row';
+    const ld=document.createElement('button'); ld.className='lib-mini'; ld.textContent='Load'; ld.onclick=()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)){ closeCollections(); close(); } } }; row.append(ld); btns.append(row);
+    it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover()) showHover(e,it,false); });
+    it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
+    it.append(star,main,info,btns); return it;
+  }
+  function renderCollections(){ hideHover(); if(!collList) return; collList.innerHTML=''; const all=loadLib();
+    if(!_collView){
+      if(collBack) collBack.hidden=true; if(collTitle) collTitle.textContent='Collections';
+      const counts={}; all.forEach(e=>_libColls(e).forEach(c=>counts[c]=(counts[c]||0)+1));
+      const names=Object.keys(counts).sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+      if(!names.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='No collections yet. Use a rotation’s "Collection" button in the library to create one.'; collList.appendChild(d); return; }
+      names.forEach(c=>{ const it=document.createElement('div'); it.className='lib-item'; it.style.cursor='pointer';
+        const main=document.createElement('div'); main.className='lib-item-main'; const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=c; const meta=document.createElement('div'); meta.className='lib-item-meta'; meta.textContent=counts[c]+(counts[c]===1?' rotation':' rotations'); main.append(nm,meta);
+        const btns=document.createElement('div'); btns.className='lib-item-btns'; const ob=document.createElement('button'); ob.className='lib-mini'; ob.textContent='Open'; btns.append(ob);
+        it.append(main,btns); it.onclick=()=>{ _collView=c; renderCollections(); }; collList.appendChild(it); });
+    } else {
+      if(collBack) collBack.hidden=false; if(collTitle) collTitle.textContent=_collView;
+      let inColl=all.filter(e=>_libColls(e).includes(_collView)); inColl.sort((x,y)=>(y.ts||0)-(x.ts||0)); inColl=inColl.filter(e=>e.fav).concat(inColl.filter(e=>!e.fav));
+      if(!inColl.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='This collection is empty.'; collList.appendChild(d); return; }
+      inColl.forEach(e=>collList.appendChild(_collCard(e)));
+    }
+  }
+  function openCollections(){ if(!collModal2) return; _collView=''; renderCollections(); collModal2.hidden=false; }
+  function closeCollections(){ if(collModal2) collModal2.hidden=true; hideHover(); }
+  if(collBack) collBack.onclick=()=>{ _collView=''; renderCollections(); };
+  if(collClose) collClose.onclick=closeCollections;
+  if(collModal2) collModal2.addEventListener('click',ev=>{ if(ev.target===collModal2) closeCollections(); });
   function doSave(){ const n=prompt('Save current rotation as:', rotName()); if(n!=null){ libSaveCurrent(n); render(); } }
   window.openLibrary=open; window.saveCurrentRotation=doSave;
   const lc=document.getElementById('libClose'); if(lc) lc.onclick=close;
   const sb=document.getElementById('libSaveBtn'); if(sb) sb.onclick=doSave;
   if(searchInp) searchInp.oninput=render;
   [bossSel,modeSel,sideSel,sortSel,patchSel].forEach(s=>{ if(s) s.onchange=render; });
-  if(collBtn) collBtn.onclick=()=>{ _collBrowse=!_collBrowse; _collFilter=''; render(); };
-  const lcl=document.getElementById('libClear'); if(lcl) lcl.onclick=()=>{ if(searchInp) searchInp.value=''; [bossSel,modeSel,sideSel,patchSel].forEach(s=>{ if(s) s.value=''; }); if(sortSel) sortSel.value='new'; _collFilter=''; _collBrowse=false; render(); };
+  if(collBtn) collBtn.onclick=openCollections;
+  const lcl=document.getElementById('libClear'); if(lcl) lcl.onclick=()=>{ if(searchInp) searchInp.value=''; [bossSel,modeSel,sideSel,patchSel].forEach(s=>{ if(s) s.value=''; }); if(sortSel) sortSel.value='new'; render(); };
   modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
@@ -4117,7 +4174,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     list.innerHTML='';
     if(!_codes.length){ list.textContent='(no sync codes yet)'; return; }
     const q=((searchInp&&searchInp.value)||'').trim().toLowerCase();
-    const shown=_codes.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).filter(it=> !q || ((it.name||'')+' '+(it.code||'')).toLowerCase().indexOf(q)>=0 );
+    const shown=_codes.slice().sort((a,b)=>((b.created||0)-(a.created||0)) || ((b.ts||0)-(a.ts||0))).filter(it=> !q || ((it.name||'')+' '+(it.code||'')).toLowerCase().indexOf(q)>=0 );   /* newest created first */
     if(!shown.length){ list.textContent='No codes match "'+q+'".'; return; }
     shown.forEach(it=>{
       const row=document.createElement('div'); row.className='dev-link-row';
@@ -5396,6 +5453,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630q</div>
+<div class="version-tag">260630r</div>
 </body>
 </html>
