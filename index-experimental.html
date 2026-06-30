@@ -3157,10 +3157,16 @@ async function shortenLink(fragment, dest){   /* VFRP's own worker (editor/view 
     if(!res.ok) throw new Error('http '+res.status); const data=await res.json(); return data&&data.url;
   });
 }
-async function shortenSimLink(text){   /* EchoScrip's P5X-Simulator shortener (s.p5x-simulator.com); CORS-allows dyhy-dev.github.io */
+async function shortenSimLink(text){   /* EchoScrip's P5X-Simulator shortener (s.p5x-simulator.com); falls back through our worker if his CORS doesn't allow this origin yet */
   await _shortenVia('sim|'+text, async()=>{
-    const res=await fetch(SIM_SHORTENER+'/api/links', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({kind:'t', payload:'j'+b64urlEncode(text)})});
-    if(!res.ok) throw new Error('http '+res.status); const data=await res.json(); return data&&data.url;
+    const payload='j'+b64urlEncode(text);
+    try{   /* try his shortener directly (works from origins he CORS-allows, e.g. dyhy-dev.github.io) */
+      const res=await fetch(SIM_SHORTENER+'/api/links', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({kind:'t', payload})});
+      if(!res.ok) throw new Error('http '+res.status); const data=await res.json(); if(data&&data.url) return data.url; throw new Error('no url');
+    }catch(e){   /* CORS-blocked or unreachable -> relay the create through our own worker (server-to-server, still mints his short link) */
+      const res=await fetch(SHORTENER+'/sim-shorten', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({kind:'t', payload})});
+      if(!res.ok) throw new Error('http '+res.status); const data=await res.json(); return data&&data.url;
+    }
   });
 }
 function openShareModal(opts){
