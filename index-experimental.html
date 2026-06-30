@@ -489,6 +489,17 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-tag{font:600 10px Inter,sans-serif; background:var(--field); border:1px solid var(--line); color:var(--muted); border-radius:10px; padding:1px 8px}
 .lib-fav-check{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none}
 .lib-fav-check input{cursor:pointer; margin:0}
+.lib-item-main{cursor:default}
+.lib-hover{position:fixed; z-index:3000; width:280px; max-width:calc(100vw - 16px); background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; box-shadow:0 12px 34px #000a; pointer-events:none}
+.lib-hover[hidden]{display:none}
+.lib-hover-name{font:700 14px Oswald,sans-serif; letter-spacing:.02em; color:var(--text); margin-bottom:9px}
+.lib-hps{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px}
+.lib-hp{width:38px; height:38px; border-radius:6px; overflow:hidden; background:var(--field); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font:700 14px Oswald,sans-serif; color:var(--muted)}
+.lib-hp.elu{border-color:var(--blue-strong)}
+.lib-hp img{width:100%; height:100%; object-fit:cover; display:block}
+.lib-hrows{display:flex; flex-direction:column; gap:3px; font-size:12px}
+.lib-hr{display:flex; justify-content:space-between; gap:12px}
+.lib-hr span{color:var(--muted)} .lib-hr b{color:var(--text); font-weight:600; text-align:right}
 @media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
@@ -993,12 +1004,16 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <select id="libSide" class="lib-select"><option value="">All sides</option><option value="Strong">Strong</option><option value="Weak">Weak</option></select>
         <select id="libColl" class="lib-select"><option value="">All collections</option></select>
         <select id="libTag" class="lib-select"><option value="">All tags</option></select>
+        <select id="libChar" class="lib-select"><option value="">Any character</option></select>
+        <select id="libTier" class="lib-select"><option value="">All tiers</option></select>
+        <select id="libPatch" class="lib-select"><option value="">All patches</option></select>
         <select id="libSort" class="lib-select">
           <option value="new">Newest first</option>
           <option value="old">Oldest first</option>
           <option value="name">Name A to Z</option>
           <option value="name_desc">Name Z to A</option>
           <option value="boss">Boss A to Z</option>
+          <option value="score">Score (high to low)</option>
         </select>
         <label class="lib-fav-check"><input type="checkbox" id="libFav"> Favorites</label>
         <button class="btn" id="libClear" title="Clear search and filters">Clear</button>
@@ -1910,6 +1925,11 @@ function libToggleFav(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e
 function libSetTags(id,tags){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.tags=tags; saveLib(a); } }
 function libSetColl(id,name){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.coll=String(name||'').trim(); saveLib(a); } }
 function _libParseTags(str){ return [...new Set(String(str||'').split(',').map(t=>t.trim()).filter(Boolean))]; }
+/* parse a human score ("2.4B", "600 Mil", "1.0E9", "2400000000") into a number for sorting; -1 if unparseable */
+function _scoreNum(str){ let s=String(str||'').trim().toLowerCase().replace(/,/g,''); if(!s) return -1;
+  let m=s.match(/^([\d.]+)\s*e\s*(\d+)$/); if(m) return parseFloat(m[1])*Math.pow(10,parseInt(m[2],10));
+  m=s.match(/^([\d.]+)\s*([a-z]*)/); if(!m) return -1; let n=parseFloat(m[1]); if(isNaN(n)) return -1;
+  const c=(m[2]||'')[0]; if(c==='b') n*=1e9; else if(c==='m') n*=1e6; else if(c==='k') n*=1e3; return n; }
 function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
 function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; try{ state=migrate(JSON.parse(JSON.stringify(e.state))); _lastImportText=''; save(); renderAll(); return true; }catch(err){ return false; } }
 
@@ -3739,28 +3759,53 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const list=document.getElementById('libList');
   let _libMode='full';   /* 'full' = library (save/overwrite/rename/delete); 'load' = load-only list */
   function fmtDate(ts){ try{ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
-  const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sideSel=document.getElementById('libSide'), sortSel=document.getElementById('libSort'), collSel=document.getElementById('libColl'), tagSel=document.getElementById('libTag'), favChk=document.getElementById('libFav');
+  const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sideSel=document.getElementById('libSide'), sortSel=document.getElementById('libSort'), collSel=document.getElementById('libColl'), tagSel=document.getElementById('libTag'), favChk=document.getElementById('libFav'), charSel=document.getElementById('libChar'), tierSel=document.getElementById('libTier'), patchSel=document.getElementById('libPatch');
+  function _teamOf(e){ const st=e.state||{}; const u=(st.units||[]).map(x=>((x&&x.name)||'').trim()); if(st.elucidator&&st.elucidator.name) u.push(st.elucidator.name.trim()); return u.filter(Boolean); }
   function fillSel(sel, allLabel, values){ const cur=sel.value; sel.innerHTML='<option value="">'+allLabel+'</option>'; values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); sel.value = values.indexOf(cur)>=0 ? cur : ''; }
   function emptyMsg(t){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent=t; list.appendChild(d); }
+  /* rich preview shown on hover (desktop) or tap (mobile, pinned) — keeps the list compact while exposing team + score/tier/patch/turns/date */
+  const hoverEl=document.createElement('div'); hoverEl.className='lib-hover'; hoverEl.hidden=true; (modal.querySelector('.modal-card')||modal).appendChild(hoverEl);
+  let _pinId='';
+  function buildHover(e){ const st=e.state||{}, s=st.setup||{};
+    const hp=(name,isElu)=>{ const src=imgFor(name); return '<div class="lib-hp'+(isElu?' elu':'')+'" title="'+esc(name)+'">'+(src?'<img src="'+esc(src)+'" onerror="imgFallback(this)" loading="lazy"/>':'<span>'+esc((name[0]||'?'))+'</span>')+'</div>'; };
+    const eluNm=((st.elucidator&&st.elucidator.name)||'').trim();
+    const portraits=_teamOf(e).map(n=>hp(n, n===eluNm)).join('');
+    const rows=[['Mode',s.type],['Side',s.side],['Boss',s.boss],['Tier',s.tier],['Patch',s.patch],['Score',s.score],['Turns',(st.turns||[]).length||''],['Saved',fmtDate(e.ts)]]
+      .filter(r=>r[1]!=='' && r[1]!=null && r[1]!==0).map(r=>'<div class="lib-hr"><span>'+esc(r[0])+'</span><b>'+esc(String(r[1]))+'</b></div>').join('');
+    return '<div class="lib-hover-name">'+esc(e.name)+'</div>'+(portraits?'<div class="lib-hps">'+portraits+'</div>':'')+'<div class="lib-hrows">'+rows+'</div>'; }
+  function placeHover(anchor){ hoverEl.style.visibility='hidden'; hoverEl.hidden=false;
+    const r=anchor.getBoundingClientRect(), hw=hoverEl.offsetWidth, hh=hoverEl.offsetHeight, M=8;
+    let left=r.right+10; if(left+hw>innerWidth-M) left=r.left-hw-10; if(left<M) left=M;
+    let top=r.top; if(top+hh>innerHeight-M) top=innerHeight-M-hh; if(top<M) top=M;
+    hoverEl.style.left=left+'px'; hoverEl.style.top=top+'px'; hoverEl.style.visibility=''; }
+  function showHover(e,anchor){ hoverEl.innerHTML=buildHover(e); placeHover(anchor); }
+  function hideHover(){ hoverEl.hidden=true; _pinId=''; }
   function render(){
+    hideHover();
     const all=loadLib(); list.innerHTML='';
     const setupOf=e=>(e.state&&e.state.setup)||{};
     fillSel(bossSel,'All bosses',[...new Set(all.map(e=>setupOf(e).boss).filter(Boolean))].sort());
     fillSel(modeSel,'All modes',[...new Set(all.map(e=>setupOf(e).type).filter(Boolean))].sort());
     fillSel(collSel,'All collections',[...new Set(all.map(e=>(e.coll||'').trim()).filter(Boolean))].sort());
     fillSel(tagSel,'All tags',[...new Set(all.flatMap(e=>e.tags||[]))].sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase())));
+    fillSel(charSel,'Any character',[...new Set(all.flatMap(_teamOf))].sort());
+    fillSel(tierSel,'All tiers',[...new Set(all.map(e=>(setupOf(e).tier||'').trim()).filter(Boolean))].sort());
+    fillSel(patchSel,'All patches',[...new Set(all.map(e=>(setupOf(e).patch||'').trim()).filter(Boolean))].sort());
     if(!all.length){ emptyMsg('No saved rotations yet. "Save current rotation" adds the one you are editing.'); return; }
-    const q=((searchInp&&searchInp.value)||'').trim().toLowerCase(), fb=(bossSel&&bossSel.value)||'', fm=(modeSel&&modeSel.value)||'', fs=(sideSel&&sideSel.value)||'', sv=(sortSel&&sortSel.value)||'new', fc=(collSel&&collSel.value)||'', ft=(tagSel&&tagSel.value)||'', ff=!!(favChk&&favChk.checked);
+    const q=((searchInp&&searchInp.value)||'').trim().toLowerCase(), fb=(bossSel&&bossSel.value)||'', fm=(modeSel&&modeSel.value)||'', fs=(sideSel&&sideSel.value)||'', sv=(sortSel&&sortSel.value)||'new', fc=(collSel&&collSel.value)||'', ft=(tagSel&&tagSel.value)||'', ff=!!(favChk&&favChk.checked), fch=(charSel&&charSel.value)||'', fti=(tierSel&&tierSel.value)||'', fpa=(patchSel&&patchSel.value)||'';
     let a=all.filter(e=>{ const s=setupOf(e);
       if(fb && (s.boss||'')!==fb) return false;
       if(fm && (s.type||'')!==fm) return false;
       if(fs && (s.side||'')!==fs) return false;
       if(fc && (e.coll||'').trim()!==fc) return false;
       if(ft && !((e.tags||[]).includes(ft))) return false;
+      if(fti && (s.tier||'').trim()!==fti) return false;
+      if(fpa && (s.patch||'').trim()!==fpa) return false;
+      if(fch && !_teamOf(e).includes(fch)) return false;
       if(ff && !e.fav) return false;
       if(q){ const hay=[e.name,s.boss,s.type,s.side,s.credits,s.patch,e.coll].concat(e.tags||[]).filter(Boolean).join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
       return true; });
-    a.sort((x,y)=>{ const sx=setupOf(x), sy=setupOf(y); if(sv==='old') return (x.ts||0)-(y.ts||0); if(sv==='name') return String(x.name||'').localeCompare(String(y.name||'')); if(sv==='name_desc') return String(y.name||'').localeCompare(String(x.name||'')); if(sv==='boss') return String(sx.boss||'').localeCompare(String(sy.boss||'')) || (y.ts||0)-(x.ts||0); return (y.ts||0)-(x.ts||0); });
+    a.sort((x,y)=>{ const sx=setupOf(x), sy=setupOf(y); if(sv==='old') return (x.ts||0)-(y.ts||0); if(sv==='name') return String(x.name||'').localeCompare(String(y.name||'')); if(sv==='name_desc') return String(y.name||'').localeCompare(String(x.name||'')); if(sv==='boss') return String(sx.boss||'').localeCompare(String(sy.boss||'')) || (y.ts||0)-(x.ts||0); if(sv==='score') return _scoreNum(sy.score)-_scoreNum(sx.score) || (y.ts||0)-(x.ts||0); return (y.ts||0)-(x.ts||0); });
     a=a.filter(e=>e.fav).concat(a.filter(e=>!e.fav));   /* favourites pinned to the top, keeping the chosen sort within each group */
     if(!a.length){ emptyMsg('No rotations match your search or filters.'); return; }
     a.forEach(e=>{
@@ -3788,19 +3833,23 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
         mk('Collection',()=>{ const colls=[...new Set(loadLib().map(x=>(x.coll||'').trim()).filter(Boolean))].sort(); const hint=colls.length?('\n\nExisting: '+colls.join(', ')):''; const n=prompt('Collection name (leave empty for none):'+hint, e.coll||''); if(n!=null){ libSetColl(e.id,n); render(); } }),
         mk('Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
       );
+      it.addEventListener('mouseenter',()=>{ if(!_pinId) showHover(e,it); });
+      it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
+      main.addEventListener('click',ev=>{ ev.stopPropagation(); if(_pinId===e.id){ hideHover(); } else { _pinId=e.id; showHover(e,it); } });   /* tap (mobile) pins the preview; tap elsewhere closes it */
       it.append(star,main,btns); list.appendChild(it);
     });
   }
   function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
-  const close=()=>{ modal.hidden=true; };
+  const close=()=>{ modal.hidden=true; hideHover(); };
+  document.addEventListener('click',()=>{ if(_pinId) hideHover(); });   /* tap/click outside an item closes a pinned preview */
   function doSave(){ const n=prompt('Save current rotation as:', rotName()); if(n!=null){ libSaveCurrent(n); render(); } }
   window.openLibrary=open; window.saveCurrentRotation=doSave;
   const lc=document.getElementById('libClose'); if(lc) lc.onclick=close;
   const sb=document.getElementById('libSaveBtn'); if(sb) sb.onclick=doSave;
   if(searchInp) searchInp.oninput=render;
-  [bossSel,modeSel,sideSel,sortSel,collSel,tagSel].forEach(s=>{ if(s) s.onchange=render; });
+  [bossSel,modeSel,sideSel,sortSel,collSel,tagSel,charSel,tierSel,patchSel].forEach(s=>{ if(s) s.onchange=render; });
   if(favChk) favChk.onchange=render;
-  const lcl=document.getElementById('libClear'); if(lcl) lcl.onclick=()=>{ if(searchInp) searchInp.value=''; [bossSel,modeSel,sideSel,collSel,tagSel].forEach(s=>{ if(s) s.value=''; }); if(sortSel) sortSel.value='new'; if(favChk) favChk.checked=false; render(); };
+  const lcl=document.getElementById('libClear'); if(lcl) lcl.onclick=()=>{ if(searchInp) searchInp.value=''; [bossSel,modeSel,sideSel,collSel,tagSel,charSel,tierSel,patchSel].forEach(s=>{ if(s) s.value=''; }); if(sortSel) sortSel.value='new'; if(favChk) favChk.checked=false; render(); };
   modal.addEventListener('click', e=>{ if(e.target===modal) close(); });
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !modal.hidden) close(); });
 })();
@@ -5276,6 +5325,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630o</div>
+<div class="version-tag">260630p</div>
 </body>
 </html>
