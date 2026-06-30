@@ -831,7 +831,7 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-foot{display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--line)}
 .ac-foot .btn[disabled]{opacity:.45; cursor:not-allowed}
 .edit-bar{position:fixed; bottom:16px; right:16px; z-index:1400; display:flex; align-items:center; gap:6px; padding:6px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; transition:width .25s ease, opacity .4s ease}
-.edit-bar.eb-faded{opacity:.4}   /* collapsed + idle 3s: fade so it doesn't cover the page (still tappable to wake/expand) */
+.edit-bar.eb-faded{opacity:.4}   /* idle fade (collapsed 3s / expanded 6s): 40% so it doesn't cover the page; any interaction wakes it */
 .edit-bar.eb-clip{overflow:hidden}   /* clip the content while the bar widens/contracts; dropped when fully open so the Export menu can overflow */
 .edit-bar>*{flex:0 0 auto}   /* keep natural widths so a too-wide bar scrolls (on mobile) instead of squishing the buttons */
 .eb-btn{min-width:40px; height:40px; padding:0 11px; background:var(--field); border:1px solid var(--line); border-radius:9px; color:var(--text); font:600 20px Inter,sans-serif; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
@@ -887,6 +887,12 @@ body.theme-light .play-progress{background:rgba(0,0,0,.08)}
 .ac-undo .ac-undo-x:hover{color:#3a2c00}
 .act.discrepant{background:rgba(224,68,94,.16); border-color:#e0445e}
   .act.imp-act{background:rgba(241,194,50,.15); border-color:#f1c232}
+  /* gold flash when jumping to an action from the Live Preview (decays over 3s, like the Play Mode turn-title flash); box-shadow only, so layout/colors are untouched */
+  @keyframes actFlash{ 0%{ box-shadow:0 0 0 3px var(--gold), 0 0 16px 3px rgba(241,194,50,.7) } 12%{ box-shadow:0 0 0 3px var(--gold), 0 0 16px 3px rgba(241,194,50,.7) } 100%{ box-shadow:0 0 0 0 rgba(241,194,50,0), 0 0 0 0 rgba(241,194,50,0) } }
+  .act.act-flash{ animation:actFlash 3s ease-out; border-radius:8px; position:relative; z-index:1 }
+  /* Live Preview actions are clickable to jump to the editor (not in the read-only webview) */
+  body:not(.view-mode) #rotPreviewPan .pv-act{ cursor:pointer }
+  body:not(.view-mode) #rotPreviewPan .pv-act:hover{ outline:2px solid var(--gold); outline-offset:-1px }
   input.imp-miss, select.imp-miss, textarea.imp-miss{ background:rgba(241,194,50,.16)!important; border-color:#f1c232!important; box-shadow:0 0 0 1px rgba(241,194,50,.5) inset; }
 #exportMenuBtn:disabled, #exportMenuBtn.disabled{opacity:.4; cursor:not-allowed}
 </style>
@@ -1818,9 +1824,10 @@ function updateEditBar(){ if(!document.getElementById('editBar')) return; _ebUpd
    width slide (measured width, so the content isn't distorted the way a CSS transform would). Collapsed width is
    the chevron alone; when fully open we drop the inline width + clip so the upward Export menu can overflow. */
 let _ebAnimTimer=null, _ebFadeTimer=null;
-/* when the bar is fully collapsed (chevron only) and untouched for 3s, fade it so it stops covering the page
-   content (matters on mobile); any interaction or expanding wakes it back to full opacity */
-function _ebScheduleFade(){ clearTimeout(_ebFadeTimer); if(_ebHidden) _ebFadeTimer=setTimeout(()=>{ const b=document.getElementById('editBar'); if(b && _ebHidden) b.classList.add('eb-faded'); }, 3000); }
+/* when the bar is untouched it fades to 40% so it stops covering the page content: collapsed after 3s,
+   expanded after 6s. Any interaction (pointer/focus) or a state change wakes it back to full opacity. */
+function _ebScheduleFade(){ clearTimeout(_ebFadeTimer); const delay=_ebHidden?3000:6000;
+  _ebFadeTimer=setTimeout(()=>{ const b=document.getElementById('editBar'); if(b) b.classList.add('eb-faded'); }, delay); }
 function _ebWake(){ const b=document.getElementById('editBar'); if(b) b.classList.remove('eb-faded'); _ebScheduleFade(); }
 function _ebChevWidth(bar){ const tog=document.getElementById('ebToggle'); if(!tog) return 48;
   const cs=getComputedStyle(bar); return tog.offsetWidth + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth); }
@@ -1828,7 +1835,7 @@ function renderEditBarVis(animate){ const bar=document.getElementById('editBar')
   const open=!_ebHidden;
   bar.classList.toggle('eb-open', open);
   const t=document.getElementById('ebToggle'); if(t){ t.title=open?'Hide the bar':'Show the bar'; t.setAttribute('aria-label',t.title); t.setAttribute('aria-expanded',String(open)); }
-  bar.classList.remove('eb-faded'); if(open) clearTimeout(_ebFadeTimer); else _ebScheduleFade();
+  bar.classList.remove('eb-faded'); _ebScheduleFade();   /* both states fade after idle (collapsed 3s, expanded 6s) */
   clearTimeout(_ebAnimTimer);
   if(!animate){ bar.style.transition='none';
     if(open){ bar.classList.remove('eb-clip'); bar.style.width=''; } else { bar.classList.add('eb-clip'); bar.style.width=_ebChevWidth(bar)+'px'; }
@@ -2778,6 +2785,23 @@ function renderRotationPreview(){
   if(sl) sl.oninput=()=>_applyPreviewZoom(+sl.value);
   _setupPreviewPinch();
 }
+/* click an action in the Live Preview -> scroll to that action in the editor and flash it gold for 3s */
+let _actFlashTimer=null;
+function jumpToEditorAction(ti, ai){
+  const el=document.querySelector('.act[data-ti="'+ti+'"][data-ai="'+ai+'"]');
+  if(!el) return;
+  try{ el.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){ el.scrollIntoView(); }
+  el.classList.remove('act-flash'); void el.offsetWidth;   /* restart the animation if it's already flashing */
+  el.classList.add('act-flash');
+  clearTimeout(_actFlashTimer); _actFlashTimer=setTimeout(()=>el.classList.remove('act-flash'), 3000);
+}
+document.addEventListener('click', e=>{
+  if(document.body.classList.contains('view-mode')) return;   /* the read-only webview has no editor to jump to */
+  const pan=e.target.closest('#rotPreviewPan'); if(!pan) return;
+  const a=e.target.closest('.pv-act'); if(!a || !pan.contains(a)) return;
+  const ti=a.getAttribute('data-ti'), ai=a.getAttribute('data-ai');
+  if(ti!==null && ai!==null) jumpToEditorAction(ti, ai);
+});
 function renderTurns(){
   renumberTurns();
   const wrap=document.getElementById('turns');
@@ -4270,7 +4294,7 @@ function turnsBlockVertical(mobile, C){ C=C||EX_DARK;
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid ${C.border};padding-bottom:5px;margin-bottom:6px;">
       <span style="font:700 13px Oswald,sans-serif;color:${isBreak?C.red:C.blue};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</span>
       ${t.note?`<span style="font:500 11px Inter,sans-serif;color:${C.soft};text-align:right;flex:1;min-width:0;">${esc(t.note)}</span>`:''}</div>
-    ${(t.actions||[]).map((a,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${cardStrip(a.char, C)};margin-bottom:3px;background:${actionDiscrepant(a)?C.disc:C.panel};border-radius:4px;">
+    ${(t.actions||[]).map((a,i)=>`<div class="pv-act" data-ti="${ti}" data-ai="${i}" style="display:flex;gap:6px;align-items:flex-start;padding:3px 6px;border-left:3px solid ${cardStrip(a.char, C)};margin-bottom:3px;background:${actionDiscrepant(a)?C.disc:C.panel};border-radius:4px;">
       <span style="font:700 11px Oswald,sans-serif;color:${C.muted};min-width:12px;">${i+1}</span>
       <span style="font:700 11px Inter,sans-serif;color:${tc(a.char)};min-width:52px;">${esc(charDisp(a.char))}</span>
       <span style="font:500 11px Inter,sans-serif;color:${C.text};flex:1;">${esc(actionLabel(a, a.char, true))}</span></div>`).join('')}
@@ -4285,12 +4309,12 @@ function turnsBlockHorizontal(mobile, C){ C=C||EX_DARK;
   const s=state.setup, GAP=12, TEAMW=184, teamRowW=5*TEAMW+4*GAP;
   const tc=c=>cardAccent(c, C);
   const dodX=s.type==='DOD', nT=state.turns.length;
-  const block=(a,i)=>`<div style="position:relative;flex:0 0 100px;width:100px;min-height:44px;box-sizing:border-box;background:${actionDiscrepant(a)?C.disc:C.panel};border:1px solid ${C.border};border-top:3px solid ${cardStrip(a.char, C)};border-radius:5px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;align-items:center;">
+  const block=(a,i,ti)=>`<div class="pv-act" data-ti="${ti}" data-ai="${i}" style="position:relative;flex:0 0 100px;width:100px;min-height:44px;box-sizing:border-box;background:${actionDiscrepant(a)?C.disc:C.panel};border:1px solid ${C.border};border-top:3px solid ${cardStrip(a.char, C)};border-radius:5px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;align-items:center;">
       <span style="position:absolute;top:2px;left:4px;font:700 9px Oswald,sans-serif;color:#6f6a85;line-height:1;">${i+1}</span>
       <div style="font:700 10px Inter,sans-serif;color:${tc(a.char)};max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${esc(charDisp(a.char))}</div>
       <div style="font:600 11px Inter,sans-serif;color:${C.text};text-align:center;line-height:1.2;flex:1;display:flex;align-items:center;justify-content:center;">${esc(actionLabel(a, a.char, true))}</div></div>`;
   const turnRow=(t,ti)=>{ const _B=dodBreaks(state); const isBreak=dodX&&nT>=_B&&ti>=nT-_B;
-    const acts=(t.actions||[]).map(block).join('');
+    const acts=(t.actions||[]).map((a,i)=>block(a,i,ti)).join('');
     return `<div style="display:flex;gap:8px;align-items:stretch;background:${C.panel2};border:1px solid ${C.border};border-radius:8px;padding:8px;width:${mobile?'100%':teamRowW+'px'};box-sizing:border-box;">
       <div style="flex:0 0 84px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-right:1px solid ${C.border};padding-right:8px;">
         <div style="font:700 13px Oswald,sans-serif;color:${isBreak?C.red:C.blue};letter-spacing:.06em;">${esc((t.name||'').toUpperCase())}</div>
@@ -5181,6 +5205,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630c</div>
+<div class="version-tag">260630d</div>
 </body>
 </html>
