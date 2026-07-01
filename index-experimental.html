@@ -1201,6 +1201,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div id="collDetailBar" style="display:flex; align-items:center; gap:8px; margin-bottom:12px">
         <button class="btn" id="collectionsBack" hidden>&larr; All collections</button>
         <span style="flex:1"></span>
+        <button class="btn" id="collShareBtn" hidden>Share</button>
         <button class="btn" id="collAddRotBtn" hidden>Add rotation</button>
       </div>
       <div class="lib-list" id="collectionsList"></div>
@@ -4633,9 +4634,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     else if(_collSort==='old') arr.sort((x,y)=>ts(x)-ts(y)); else arr.sort((x,y)=>ts(y)-ts(x));   /* 'new' */
     return arr.filter(c=>collFavHas(c)).concat(arr.filter(c=>!collFavHas(c))); }   /* favourite collections still pinned to top */
   function renderCollections(){ hideHover(); if(!collList) return; collList.innerHTML=''; const all=loadLib();
-    const addRotBtn=document.getElementById('collAddRotBtn');
+    const addRotBtn=document.getElementById('collAddRotBtn'), shareBtn=document.getElementById('collShareBtn');
     if(!_collView){
-      if(collBack) collBack.hidden=true; if(addRotBtn) addRotBtn.hidden=true; if(collTitle) collTitle.textContent='Collections';
+      if(collBack) collBack.hidden=true; if(addRotBtn) addRotBtn.hidden=true; if(shareBtn) shareBtn.hidden=true; if(collTitle) collTitle.textContent='Collections';
       /* toolbar: sort + New collection + Import (the code field lives behind the Import button) */
       const bar=document.createElement('div'); bar.className='coll-tools';
       const ss=document.createElement('select'); ss.className='lib-select'; ss.innerHTML='<option value="new">Newest first</option><option value="old">Oldest first</option><option value="name">Name A to Z</option><option value="name_desc">Name Z to A</option>'; ss.value=_collSort; ss.onchange=()=>{ _collSort=ss.value; renderCollections(); };
@@ -4662,7 +4663,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
         const ob=document.createElement('button'); ob.className='lib-mini'; ob.textContent='Open'; row.append(sh,ob); btns.append(row);
         it.append(star,main,btns); it.onclick=()=>{ _collView=c; renderCollections(); }; collList.appendChild(it); });
     } else {
-      if(collBack) collBack.hidden=false; if(addRotBtn) addRotBtn.hidden=false; if(collTitle) collTitle.textContent=_collView;
+      if(collBack) collBack.hidden=false; if(addRotBtn) addRotBtn.hidden=false; if(shareBtn) shareBtn.hidden=false; if(collTitle) collTitle.textContent=_collView;
       const inColl=_collEntriesOrdered(_collView, all);
       if(!inColl.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='This collection is empty. Use "Add rotation" to add rotations from your library.'; collList.appendChild(d); return; }
       inColl.forEach((e,i)=>collList.appendChild(_collCard(e,i)));
@@ -4687,7 +4688,8 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   if(collBack) collBack.onclick=()=>{ _collView=''; renderCollections(); };
   if(collClose) collClose.onclick=closeCollections;
   if(collModal2) collModal2.addEventListener('click',ev=>{ if(ev.target===collModal2) closeCollections(); });
-  { const arb=document.getElementById('collAddRotBtn'); if(arb) arb.onclick=openAddRotPicker;
+  { const csb=document.getElementById('collShareBtn'); if(csb) csb.onclick=ev=>{ ev.stopPropagation(); if(_collView) openCollShareMenu(_collView, ev.currentTarget); };
+    const arb=document.getElementById('collAddRotBtn'); if(arb) arb.onclick=openAddRotPicker;
     const arm=document.getElementById('collAddRotModal'), arc=document.getElementById('collAddRotClose');
     if(arc) arc.onclick=()=>{ arm.hidden=true; }; if(arm) arm.addEventListener('click',ev=>{ if(ev.target===arm) arm.hidden=true; }); }
   function doSave(){ const n=prompt('Save current rotation as:', rotName()); if(n!=null){ libSaveCurrent(n); render(); } }
@@ -6220,6 +6222,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260702a</div>
+<div class="version-tag">260702b</div>
 </body>
 </html>
