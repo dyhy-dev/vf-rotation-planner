@@ -489,6 +489,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-mini:hover{border-color:var(--blue-strong)}
 .lib-mini.ico{display:inline-flex; align-items:center; gap:4px; padding:4px 7px}
 .lib-mini.ico svg{width:14px; height:14px; display:block}
+.lib-item-date{white-space:nowrap}
 .lib-caret{font-size:9px; opacity:.75}
 .lib-hcount{font-size:11px; font-weight:600}
 .lib-empty{color:var(--muted); font-size:13px; text-align:center; padding:24px}
@@ -3978,6 +3979,8 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const list=document.getElementById('libList');
   let _libMode='full';   /* 'full' = library (save/overwrite/rename/delete); 'load' = load-only list */
   function fmtDate(ts){ try{ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return ''; } }
+  /* meta line for an entry; the date is kept as one nowrap unit so it wraps whole, not mid-date */
+  function _metaHtml(e){ const s=(e.state&&e.state.setup)||{}; const pre=[s.type,s.side,s.boss,s.patch?('Patch '+s.patch):''].filter(Boolean).map(esc).join(' · '); const d='<span class="lib-item-date">'+esc(fmtDate(e.ts))+'</span>'; return pre?(pre+'  ·  '+d):d; }
   const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sideSel=document.getElementById('libSide'), sortSel=document.getElementById('libSort'), patchSel=document.getElementById('libPatch'), collBtn=document.getElementById('libCollBtn');
   let _collView='';   /* dedicated Collections window: '' = list of collections, else a collection name (detail) */
   const _canHover=()=>!(window.matchMedia&&!matchMedia('(hover:hover)').matches);   /* touch devices: no auto preview, use the "i" button */
@@ -4015,7 +4018,8 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     hoverEl.style.visibility=''; }
   function showHover(e,anchor,pin){ hoverEl.innerHTML=buildHover(e); hoverEl.classList.toggle('pinned',!!pin); placeHover(anchor); const x=hoverEl.querySelector('.lib-hover-x'); if(x) x.onclick=ev=>{ ev.stopPropagation(); hideHover(); }; }
   function hideHover(){ hoverEl.hidden=true; hoverEl.classList.remove('pinned'); _pinId=''; }
-  function _flashItem(id){ if(!id||!list) return; const el=list.querySelector('[data-id="'+id+'"]'); if(!el) return; el.classList.remove('lib-flash'); void el.offsetWidth; el.classList.add('lib-flash'); setTimeout(()=>el.classList.remove('lib-flash'),1100); }
+  function _flashItem(id){ if(!id||!list) return; const el=list.querySelector('[data-id="'+id+'"]'); if(!el) return; try{ el.scrollIntoView({block:'nearest'}); }catch(e){}   /* bring a freshly duplicated entry into view if it landed off-screen */
+    el.classList.remove('lib-flash'); void el.offsetWidth; el.classList.add('lib-flash'); setTimeout(()=>el.classList.remove('lib-flash'),1100); }
   /* per-entry Export menu: the full toolbar Export dropdown, acting on the entry's state (see global exportEntry).
      Lives on <body> (fixed, high z-index) so it clears the modal; closeAllMenus() hides it on any outside click. */
   const _EXP_ITEMS=[['json','JSON'],['png-art','PNG & Images'],['png','PNG (no Images)'],['png-rot','PNG (Rotation only)'],['text','Text'],['link','Share Editor Link'],['viewlink','Share View Link'],['simlink','P5X-Simulator Link'],['code','Copy Code']];
@@ -4054,7 +4058,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       const main=document.createElement('div'); main.className='lib-item-main';
       const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=e.name; { const _cr=(((e.state&&e.state.setup)||{}).credits||'').trim(); if(_cr){ const cs=document.createElement('span'); cs.className='lib-item-credit'; cs.textContent=' (by '+_cr+')'; nm.appendChild(cs); } }
       const meta=document.createElement('div'); meta.className='lib-item-meta';
-      const s=(e.state&&e.state.setup)||{}; meta.textContent=[s.type,s.side,s.boss,s.patch?('Patch '+s.patch):''].filter(Boolean).join(' · ')+'  ·  '+fmtDate(e.ts);
+      meta.innerHTML=_metaHtml(e);
       main.append(nm,meta);
       const _cs=_libColls(e);
       if(_cs.length || (e.tags&&e.tags.length)){
@@ -4231,7 +4235,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     const info=document.createElement('button'); info.className='lib-info'; info.textContent='i'; info.title='Show details'; info.onclick=ev=>{ ev.stopPropagation(); if(_pinId===e.id){ hideHover(); } else { _pinId=e.id; showHover(e,info,true); } };
     const main=document.createElement('div'); main.className='lib-item-main';
     const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=e.name; { const _cr=(((e.state&&e.state.setup)||{}).credits||'').trim(); if(_cr){ const cs=document.createElement('span'); cs.className='lib-item-credit'; cs.textContent=' (by '+_cr+')'; nm.appendChild(cs); } }
-    const meta=document.createElement('div'); meta.className='lib-item-meta'; const s=(e.state&&e.state.setup)||{}; meta.textContent=[s.type,s.side,s.boss,s.patch?('Patch '+s.patch):''].filter(Boolean).join(' · ')+'  ·  '+fmtDate(e.ts);
+    const meta=document.createElement('div'); meta.className='lib-item-meta'; meta.innerHTML=_metaHtml(e);
     main.append(nm,meta);
     const _cs=_libColls(e); if(_cs.length||(e.tags&&e.tags.length)){ const org=document.createElement('div'); org.className='lib-item-org'; _cs.forEach(c=>{ const cc=document.createElement('span'); cc.className='lib-coll'; cc.textContent=c; org.appendChild(cc); }); (e.tags||[]).forEach(t=>{ const tg=document.createElement('span'); tg.className='lib-tag'; tg.textContent=t; org.appendChild(tg); }); main.appendChild(org); }
     const btns=document.createElement('div'); btns.className='lib-item-btns'; const row=document.createElement('div'); row.className='lib-btn-row';
@@ -5773,6 +5777,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701l</div>
+<div class="version-tag">260701m</div>
 </body>
 </html>
