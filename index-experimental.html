@@ -553,7 +553,25 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-cmp-turn{margin-top:9px} .lib-cmp-turn .tn{font:700 11px Inter,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); margin-bottom:2px}
 .lib-cmp-act{font-size:12px; color:#cdd3e3; padding:1px 0 1px 8px}
 .lib-cmp-diff{background:rgba(241,194,50,.14); border-radius:3px}
-@media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
+.lib-modal-hint{font-size:12px; color:var(--muted); margin-top:8px}
+/* version diff (history compare): only the differences between a historical version and the current one */
+.lib-diff-empty{color:var(--muted); font-size:13px; padding:6px 0}
+.lib-diff-sec{font:700 11px Inter,sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--blue); margin:14px 0 6px}
+.lib-diff-sec:first-child{margin-top:0}
+.lib-diff-row{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; font-size:13px; padding:3px 0; border-bottom:1px solid var(--line)}
+.lib-diff-lbl{flex:0 0 130px; color:var(--muted)}
+.lib-diff-old{color:#e0445e; text-decoration:line-through; opacity:.85}
+.lib-diff-arrow{color:var(--muted)}
+.lib-diff-new{color:#4bbf73; font-weight:600}
+.lib-diff-turn{margin:10px 0; border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+.lib-diff-turn .tn{font:700 11px Inter,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); margin-bottom:6px}
+.lib-diff-cols{display:flex; gap:12px}
+.lib-diff-col{flex:1 1 0; min-width:0}
+.lib-diff-colh{font-size:11px; color:var(--muted); margin-bottom:3px}
+.lib-diff-act{font-size:12px; color:#cdd3e3; padding:1px 6px; border-radius:3px}
+.lib-diff-act.chg{background:rgba(241,194,50,.16)}
+.lib-diff-act.gone{opacity:.4}
+@media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} .lib-diff-cols{flex-direction:column} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
 .guide p{margin:6px 0}
@@ -1071,7 +1089,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <span class="lib-bulk-spacer"></span>
         <button class="lib-mini" id="libBulkFav">Favourite</button>
         <button class="lib-mini" id="libBulkColl">Add to collection</button>
-        <button class="lib-mini" id="libBulkCompare" disabled title="Select exactly two to compare">Compare</button>
         <button class="lib-mini" id="libBulkDelete">Delete</button>
       </div>
       <div class="lib-list" id="libList"></div>
@@ -1093,7 +1110,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="modal-head"><h2 id="libTagTitle">Tags</h2><button class="modal-close" id="libTagClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
       <div class="lib-coll-pick" id="libTagPick"></div>
-      <div class="lib-coll-new"><input type="text" id="libTagNew" class="lib-input" placeholder="New tag…"/><button class="btn" id="libTagAdd">Add</button></div>
+      <div class="lib-coll-new"><input type="text" id="libTagNew" class="lib-input" placeholder="New tag(s), comma-separated…"/><button class="btn" id="libTagAdd">Add</button></div>
+      <div class="lib-modal-hint">Separate multiple tags with a comma to add them all at once.</div>
       <div class="io-actions" style="margin-top:14px"><button class="btn primary" id="libTagDone">Done</button></div>
     </div>
   </div>
@@ -1115,8 +1133,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 </div>
 <div class="modal" id="libCompareModal" hidden>
   <div class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-label="Compare rotations">
-    <div class="modal-head"><h2>Compare rotations</h2><button class="modal-close" id="libCompareClose" aria-label="Close">&times;</button></div>
-    <div class="lib-body"><div class="lib-compare" id="libCompareBody"></div></div>
+    <div class="modal-head"><h2 id="libCompareTitle">Compare versions</h2><button class="modal-close" id="libCompareClose" aria-label="Close">&times;</button></div>
+    <div class="lib-body"><div class="lib-diff" id="libCompareBody"></div></div>
   </div>
 </div>
 
@@ -4056,7 +4074,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     names.forEach(t=>{ const b=document.createElement('button'); b.type='button'; b.className='lib-coll-chip'+(_tChosen.has(t)?' on':''); b.textContent=t; b.onclick=()=>{ if(_tChosen.has(t)) _tChosen.delete(t); else _tChosen.add(t); b.classList.toggle('on'); }; tPick.appendChild(b); }); }
   function openTagModal(e){ if(!tModal) return; _tEntryId=e.id; _tChosen=new Set(e.tags||[]); if(tTitle) tTitle.textContent='Tags: '+e.name; renderTPick(); if(tNew) tNew.value=''; tModal.hidden=false; if(tNew) setTimeout(()=>tNew.focus(),30); }
   function closeTagModal(){ if(tModal) tModal.hidden=true; }
-  if(tAdd) tAdd.onclick=()=>{ const v=(tNew.value||'').trim(); if(!v) return; _tChosen.add(v); tNew.value=''; renderTPick(); };
+  if(tAdd) tAdd.onclick=()=>{ const parts=_libParseTags(tNew.value); if(!parts.length) return; parts.forEach(t=>_tChosen.add(t)); tNew.value=''; renderTPick(); };   /* comma-separated -> add several at once */
   if(tNew) tNew.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); tAdd.onclick(); } });
   if(tDone) tDone.onclick=()=>{ if(_tEntryId) libSetTags(_tEntryId,[..._tChosen]); closeTagModal(); render(); };
   if(tClose) tClose.onclick=closeTagModal;
@@ -4065,14 +4083,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const bulkBar=document.getElementById('libBulkBar'), selBtn=document.getElementById('libSelectBtn');
   function _updateBulkBar(){ if(!bulkBar) return; bulkBar.hidden=!_selMode; if(selBtn) selBtn.textContent=_selMode?'Done':'Select';
     const n=_selIds.size; const c=document.getElementById('libBulkCount'); if(c) c.textContent=n+' selected';
-    const cmp=document.getElementById('libBulkCompare'); if(cmp) cmp.disabled=(n!==2);
     ['libBulkFav','libBulkColl','libBulkDelete'].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=(n===0); }); }
   function _setSelMode(on){ _selMode=!!on; if(!_selMode) _selIds.clear(); hideHover(); render(); }
   if(selBtn) selBtn.onclick=()=>_setSelMode(!_selMode);
   { const b=document.getElementById('libBulkDelete'); if(b) b.onclick=()=>{ if(!_selIds.size) return; if(confirm('Delete '+_selIds.size+' rotation(s) from the library?')){ libDeleteMany([..._selIds]); _selIds.clear(); render(); } }; }
   { const b=document.getElementById('libBulkFav'); if(b) b.onclick=()=>{ if(!_selIds.size) return; libFavMany([..._selIds],true); render(); }; }
   { const b=document.getElementById('libBulkColl'); if(b) b.onclick=()=>{ if(!_selIds.size) return; const c=prompt('Add the selected rotations to which collection?'); if(c==null) return; const nm=c.trim(); if(!nm) return; libAddCollMany([..._selIds],nm); render(); }; }
-  { const b=document.getElementById('libBulkCompare'); if(b) b.onclick=()=>{ if(_selIds.size===2) openCompare([..._selIds]); }; }
   /* ---- version history ---- */
   const histModal=document.getElementById('libHistoryModal'), histList=document.getElementById('libHistoryList'), histTitle=document.getElementById('libHistoryTitle'), histClose=document.getElementById('libHistoryClose');
   let _histId='';
@@ -4089,6 +4105,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       const mk=(t,fn)=>{ const b=document.createElement('button'); b.className='lib-mini'; b.textContent=t; b.onclick=fn; return b; };
       row.append(
         mk('Load',()=>{ if(confirm('Load this earlier version? It replaces your current rotation (your library entry is unchanged).')){ if(libLoadState(snap.state)){ closeHistory(); close(); } } }),
+        mk('Compare',()=>openHistoryCompare(i)),
         mk('Restore',()=>{ if(confirm('Make this the current version of "'+e.name+'"? The present version is kept in history.')){ libRestoreVersion(_histId,i); renderHistory(); render(); } }),
         mk('Delete',()=>{ libDeleteVersion(_histId,i); renderHistory(); render(); })
       );
@@ -4099,19 +4116,40 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function closeHistory(){ if(histModal) histModal.hidden=true; }
   if(histClose) histClose.onclick=closeHistory;
   if(histModal) histModal.addEventListener('click',ev=>{ if(ev.target===histModal) closeHistory(); });
-  /* ---- compare two rotations side by side ---- */
+  /* ---- version diff: show ONLY the differences between a historical version and the current one ---- */
   const cmpModal=document.getElementById('libCompareModal'), cmpBody=document.getElementById('libCompareBody'), cmpClose=document.getElementById('libCompareClose');
-  function _cmpCol(e){ const st=e.state||{}, s=st.setup||{};
-    const rows=[['Mode',s.type],['Boss',s.boss],['Side',s.side],['Patch',s.patch],['Score',s.score],['Credits',(s.credits||'').trim()],['Team',_teamOf(e).map(n=>charDisp(n)).join(', ')],['Turns',(st.turns||[]).length||'']];
-    let html='<div class="lib-compare-col"><h3>'+esc(e.name||'Rotation')+'</h3>';
-    rows.forEach(r=>{ if(r[1]===''||r[1]==null) return; html+='<div class="lib-cmp-row"><span>'+esc(r[0])+'</span><b>'+esc(String(r[1]))+'</b></div>'; });
-    (st.turns||[]).forEach((t,ti)=>{ html+='<div class="lib-cmp-turn"><div class="tn">'+esc(t.name||('Turn '+(ti+1)))+'</div>';
-      (t.actions||[]).forEach(a=>{ html+='<div class="lib-cmp-act">'+esc(textAction(a))+'</div>'; });
-      html+='</div>'; });
-    return html+'</div>';
-  }
-  function openCompare(ids){ if(!cmpModal||!cmpBody) return; const all=loadLib(); const es=ids.map(id=>all.find(x=>x.id===id)).filter(Boolean); if(es.length<2) return;
-    cmpBody.innerHTML=es.map(_cmpCol).join(''); cmpModal.hidden=false; }
+  function _fieldPairs(st){ st=st||{}; const s=st.setup||{}, P=[]; const push=(l,v)=>P.push([l,(v==null?'':String(v)).trim()]);
+    push('Name',s.rotationName); push('Mode',s.type); push('Boss',s.boss); push('Side',s.side); push('Patch',s.patch); push('Score',s.score); push('Credits',s.credits); push('Notes',s.notes);
+    (st.units||[]).forEach((u,i)=>{ u=u||{}; push('Slot '+(i+1),[u.name,u.awareness,u.rev,u.gear,u.space,u.sunsky,u.role,u.companion].map(x=>String(x||'').trim()).filter(Boolean).join(' · ')); });
+    { const el=st.elucidator; if(el) push('Elucidator',[el.name,el.awareness,el.rev,el.gear].map(x=>String(x||'').trim()).filter(Boolean).join(' · ')); }
+    { const b=st.backup; if(b&&b.name) push('Backup',[b.name,b.awareness,b.rev,b.gear].map(x=>String(x||'').trim()).filter(Boolean).join(' · ')); }
+    (st.personas||[]).forEach((p,i)=>{ p=p||{}; push('Persona '+(i+1),[p.name].concat(p.skills||[]).map(x=>String(x||'').trim()).filter(Boolean).join(' · ')); });
+    return P; }
+  function _diffFields(hSt,cSt){ const hm=new Map(_fieldPairs(hSt)), cm=new Map(_fieldPairs(cSt)); const labels=[], seen=new Set();
+    [...hm.keys(),...cm.keys()].forEach(l=>{ if(!seen.has(l)){ seen.add(l); labels.push(l); } });
+    let rows=''; labels.forEach(l=>{ const hv=hm.has(l)?hm.get(l):null, cv=cm.has(l)?cm.get(l):null; if((hv||'')===(cv||'')) return;
+      rows+='<div class="lib-diff-row"><span class="lib-diff-lbl">'+esc(l)+'</span><span class="lib-diff-old">'+esc(hv||'(none)')+'</span><span class="lib-diff-arrow">→</span><span class="lib-diff-new">'+esc(cv||'(none)')+'</span></div>'; });
+    return rows; }
+  function _diffTurns(hSt,cSt,hLabel,cLabel){ const ht=(hSt&&hSt.turns)||[], ct=(cSt&&cSt.turns)||[], n=Math.max(ht.length,ct.length); let html='';
+    for(let i=0;i<n;i++){ const h=ht[i], c=ct[i];
+      const hA=((h&&h.actions)||[]).map(textAction), cA=((c&&c.actions)||[]).map(textAction);
+      const hN=h?(h.name||('Turn '+(i+1))):'', cN=c?(c.name||('Turn '+(i+1))):'';
+      if(hN===cN && hA.length===cA.length && hA.every((x,j)=>x===cA[j])) continue;   /* identical turn -> skip */
+      const m=Math.max(hA.length,cA.length); let hCol='', cCol='';
+      for(let j=0;j<m;j++){ const hx=(j<hA.length)?hA[j]:null, cx=(j<cA.length)?cA[j]:null; const d=(hx||'')!==(cx||'');
+        hCol+='<div class="lib-diff-act'+(d?(hx==null?' gone':' chg'):'')+'">'+esc(hx==null?'—':hx)+'</div>';
+        cCol+='<div class="lib-diff-act'+(d?(cx==null?' gone':' chg'):'')+'">'+esc(cx==null?'—':cx)+'</div>'; }
+      const th=(h&&c&&hN!==cN)?(esc(hN)+' → '+esc(cN)):esc(cN||hN||('Turn '+(i+1)))+(h?(c?'':' (removed)'):' (added)');
+      html+='<div class="lib-diff-turn"><div class="tn">'+th+'</div><div class="lib-diff-cols">'
+          +'<div class="lib-diff-col"><div class="lib-diff-colh">'+esc(hLabel)+'</div>'+hCol+'</div>'
+          +'<div class="lib-diff-col"><div class="lib-diff-colh">'+esc(cLabel)+'</div>'+cCol+'</div></div></div>'; }
+    return html; }
+  function _buildDiff(hSt,cSt,hLabel,cLabel){ const f=_diffFields(hSt,cSt), t=_diffTurns(hSt,cSt,hLabel,cLabel);
+    if(!f && !t) return '<div class="lib-diff-empty">No differences: this version is identical to the current one.</div>';
+    let html=''; if(f) html+='<div class="lib-diff-sec">Setup &amp; team</div>'+f; if(t) html+='<div class="lib-diff-sec">Turns</div>'+t; return html; }
+  function openHistoryCompare(i){ if(!cmpModal||!cmpBody) return; const e=loadLib().find(x=>x.id===_histId); if(!e) return; const h=_libHist(e), snap=h[i]; if(!snap) return;
+    const vLabel='Version '+(h.length-i); const tt=document.getElementById('libCompareTitle'); if(tt) tt.textContent='Compare: '+vLabel+' → Current';
+    cmpBody.innerHTML=_buildDiff(snap.state, e.state, vLabel, 'Current'); cmpModal.hidden=false; }
   function closeCompare(){ if(cmpModal) cmpModal.hidden=true; }
   if(cmpClose) cmpClose.onclick=closeCompare;
   if(cmpModal) cmpModal.addEventListener('click',ev=>{ if(ev.target===cmpModal) closeCompare(); });
@@ -5665,6 +5703,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701d</div>
+<div class="version-tag">260701e</div>
 </body>
 </html>
