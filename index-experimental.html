@@ -514,18 +514,18 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .coll-web-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:8px 0 4px}
 .coll-web-title{font:700 26px Oswald,sans-serif; letter-spacing:.02em; color:var(--text)}
 .coll-web-by{font-size:14px; color:var(--muted)}
-.coll-web-intro{font-size:14px; color:#cdd3e3; line-height:1.6; margin:6px 0 14px; white-space:pre-wrap}
+.coll-web-intro{font-size:14px; color:#cdd3e3; line-height:1.6; margin:16px 0 18px; white-space:pre-wrap}
 body.theme-light .coll-web-intro{color:#37415a}
 .coll-web-sec{font:700 20px Oswald,sans-serif; letter-spacing:.02em; color:var(--blue-strong); border-bottom:2px solid var(--blue-strong); padding:2px 0; margin:22px 0 10px}
 .coll-web-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px}
-.coll-web-card{display:block; text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; color:var(--text); transition:border-color .12s}
+.coll-web-card{display:block; text-decoration:none; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; color:var(--text); transition:border-color .12s}   /* --panel (surface on the --ink root); --panel2 blends into --ink in light mode */
 .coll-web-card:hover{border-color:var(--blue-strong)}
 .coll-web-card-name{font:700 15px Oswald,sans-serif; letter-spacing:.01em}
 .coll-web-card-meta{font-size:12px; color:var(--muted); margin-top:2px}
 .mw{white-space:nowrap}   /* one meta building block; wraps as a whole, never mid-block */
 .coll-web-card-cred{font-size:12px; color:var(--muted); font-style:italic; font-weight:700; margin-top:2px}
-.coll-web-faces{display:flex; gap:5px; margin-top:8px; flex-wrap:wrap}
-.coll-web-face{width:30px; height:30px; border-radius:6px; overflow:hidden; background:var(--field); border:1px solid var(--line); display:inline-flex; flex:0 0 auto}
+.coll-web-faces{display:flex; gap:5px; margin-top:8px; flex-wrap:nowrap}   /* exactly 6 faces span the full card width (5px gaps) */
+.coll-web-face{width:calc((100% - 25px)/6); aspect-ratio:1; height:auto; border-radius:6px; overflow:hidden; background:var(--field); border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto}
 .coll-web-face img{width:100%; height:100%; object-fit:cover; display:block}
 .coll-web-note{font-size:13px; color:#cdd3e3; margin-top:8px; line-height:1.45; white-space:pre-wrap}
 body.theme-light .coll-web-note{color:#37415a}
@@ -6210,6 +6210,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701c2</div>
+<div class="version-tag">260701d2</div>
 </body>
 </html>
