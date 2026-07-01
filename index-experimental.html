@@ -2444,12 +2444,22 @@ function teamChars(){
   return uniq.sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
 }
 /* ---------- discrepancy detection ---------- */
+/* skills a persona can use in an action: its signature + the two skills chosen in its persona slot */
+function personaAssignedSkills(pName){ const slot=state.personas.find(x=>(x.name||'').trim()===pName);
+  const list=[PERSONA_SIGNATURES[pName]||''].concat(slot?(slot.skills||[]):[]).map(s=>String(s||'').trim()).filter(Boolean);
+  return list.filter((v,i,arr)=>arr.indexOf(v)===i); }
+/* a Wonder action whose skill doesn't belong to its (in-slot) persona — e.g. a leftover signature after the persona was swapped */
+function skillMismatch(a){ if((a.char||'').toUpperCase()!=='WONDER') return false;
+  const p=(a.persona||'').trim(), sk=(a.skill||'').trim(); if(!p||!sk) return false;
+  if(!state.personas.some(x=>(x.name||'').trim()===p)) return false;   // persona not in a slot -> that's the persona discrepancy, handled there
+  return personaAssignedSkills(p).indexOf(sk)<0; }
 function actionDiscrepant(a){
   const team=teamChars();
   if(a.char && team.indexOf(a.char)<0) return true;
   if((a.char||'').toUpperCase()==='WONDER'){
     const pNames=state.personas.map(p=>(p.name||'').trim()).filter(Boolean);
     if(a.persona && pNames.indexOf(a.persona)<0) return true;
+    if(skillMismatch(a)) return true;
   }
   return false;
 }
@@ -2583,6 +2593,15 @@ function autoCorrectPlan(){
       if(opts[0].value==='empty') ctx.emptyBudget--; });
   }
 
+  // ---- Wonder skills that don't belong to their action's persona (e.g. a leftover sig after a persona swap) ----
+  const skillFixes=[]; const discSkills=[]; const _seenSk=new Set();
+  (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if(!skillMismatch(a)) return;
+    const p=(a.persona||'').trim(), w=(a.skill||'').trim(); const key=p+''+w; if(_seenSk.has(key)) return; _seenSk.add(key);
+    const assigned=personaAssignedSkills(p); if(!assigned.length) return;
+    const sigNm=PERSONA_SIGNATURES[p]||'';
+    const opts=assigned.map(s=>({value:'skill:'+s, label:'Use '+s+(s===sigNm?' ('+p+"'s signature skill)":'')}));
+    skillFixes.push({persona:p, wrong:w, options:opts, best:opts[0].value}); discSkills.push(w+' on '+p); }));
+
   // ---- order: project the suggested char fixes, then detect violations & cross-turn conflicts ----
   const cmap={}; charFixes.forEach(f=>{ if(f.best.indexOf('replace:')===0) cmap[f.from.toUpperCase()]=f.best.slice(8); else if(f.best==='elu') cmap[f.from.toUpperCase()]=eluNm; });
   const idx={}; state.units.forEach((u,i)=>{ if(u.name){ const up=u.name.toUpperCase(); idx[up]=i; } });
@@ -2612,8 +2631,8 @@ function autoCorrectPlan(){
 
   // extra DOD break turns (3rd/4th) that need Hatsune Miku, who is no longer on the team -> deletable
   const excessBreaks=excessBreakTurns();
-  const actionable=charFixes.length||personaFixes.length||hasOrderIssue||excessBreaks.length;
-  return {charFixes, unmatchedChars, personaFixes, unmatchedPersonas,
+  const actionable=charFixes.length||personaFixes.length||skillFixes.length||hasOrderIssue||excessBreaks.length;
+  return {charFixes, unmatchedChars, personaFixes, unmatchedPersonas, skillFixes, discSkills,
           discChars:missing, discPersonas:missP,
           violatingTurns, conflicts, conflictDetails, hasOrderIssue, orderResolvable, excessBreaks, actionable};
 }
@@ -2633,6 +2652,9 @@ function autoCorrectApply(sel){
     else if(c.indexOf('replace:')===0){ const to=c.slice(8); const up=f.from.toUpperCase();
       (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && (a.persona||'').toUpperCase()===up) a.persona=to; })); }
   });
+  // Wonder skill fixes: replace a mismatched skill with one of the persona's actual skills
+  (sel.skillFixes||[]).forEach(f=>{ const c=f.choice; if(!c||c==='skip'||c.indexOf('skill:')!==0) return; const to=c.slice(6); const pu=(f.persona||'').toUpperCase(), w=(f.wrong||'');
+    (state.turns||[]).forEach(t=>(t.actions||[]).forEach(a=>{ if((a.char||'').toUpperCase()==='WONDER' && (a.persona||'').toUpperCase()===pu && (a.skill||'')===w) a.skill=to; })); });
   if(sel.order==='team'){
     const order=buildActionOrder();
     const rank=u=>{ const i=order.indexOf((u.name||'').toUpperCase()); return i<0?999:i; };
@@ -2681,6 +2703,7 @@ function showDiscBanner(){
   if(plan){
     if(plan.discChars.length) parts.push(_acNames(plan.discChars)+(plan.discChars.length===1?" isn't on the team":" aren't on the team"));
     if(plan.discPersonas.length) parts.push('persona '+_acNames(plan.discPersonas)+' not in a slot');
+    if(plan.discSkills && plan.discSkills.length) parts.push(_acNames(plan.discSkills)+" doesn't match its persona");
     if(plan.violatingTurns.length) parts.push('out of team order: '+_acNames(_turnNames(plan.violatingTurns)));
     if(plan.excessBreaks.length) parts.push(plan.excessBreaks.length+' break turn'+(plan.excessBreaks.length>1?'s':'')+' need'+(plan.excessBreaks.length===1?'s':'')+' Hatsune Miku');
   }
@@ -3844,6 +3867,11 @@ function openAutoCorrectDialog(){
     plan.personaFixes.forEach((f,i)=>{ const many=f.options.length>1;
       h+=`<div class="ac-fix"><div class="ac-fix-lbl">Wonder uses <b>${esc2(f.from)}</b>, which is not in a persona slot.${many?' Pick how to fix it:':''}</div>${fixSelect(f,i,'persona')}</div>`; });
   }
+  if(plan.skillFixes && plan.skillFixes.length){
+    h+='<h3>Skills that don\'t match their persona</h3>';
+    plan.skillFixes.forEach((f,i)=>{
+      h+=`<div class="ac-fix"><div class="ac-fix-lbl"><b>${esc2(f.wrong)}</b> is used with <b>${esc2(f.persona)}</b>, but it isn't one of ${esc2(f.persona)}'s skills. Pick a replacement:</div>${fixSelect(f,i,'skill')}</div>`; });
+  }
   if(plan.hasOrderIssue){
     const turns=_turnNames(plan.violatingTurns).join(', ');
     h+='<h3>Turn order</h3>';
@@ -3879,10 +3907,11 @@ function openAutoCorrectDialog(){
 function applyAutoCorrectFromDialog(){
   const plan=_acPlan; if(!plan) return;
   const body=document.getElementById('acBody');
-  const sel={charFixes:[], personaFixes:[], excessBreaks:[], order:'none'};
+  const sel={charFixes:[], personaFixes:[], skillFixes:[], excessBreaks:[], order:'none'};
   body.querySelectorAll('select[data-acfix]').forEach(s=>{ const i=+s.dataset.i;
     if(s.dataset.acfix==='char'){ const f=plan.charFixes[i]; if(f) sel.charFixes.push({from:f.from, choice:s.value}); }
-    else if(s.dataset.acfix==='persona'){ const f=plan.personaFixes[i]; if(f) sel.personaFixes.push({from:f.from, choice:s.value}); } });
+    else if(s.dataset.acfix==='persona'){ const f=plan.personaFixes[i]; if(f) sel.personaFixes.push({from:f.from, choice:s.value}); }
+    else if(s.dataset.acfix==='skill'){ const f=plan.skillFixes[i]; if(f) sel.skillFixes.push({persona:f.persona, wrong:f.wrong, choice:s.value}); } });
   const ex=body.querySelector('input[data-ac="exbreak"]'); if(ex && ex.checked) sel.excessBreaks=(plan.excessBreaks||[]).slice();
   const od=body.querySelector('input[name="acOrder"]:checked'); if(od) sel.order=od.value;
   _acSnapshot=JSON.stringify(state);
@@ -5716,6 +5745,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701h</div>
+<div class="version-tag">260701i</div>
 </body>
 </html>
