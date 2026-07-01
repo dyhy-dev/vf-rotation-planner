@@ -371,11 +371,13 @@ function parseTurnContent(content,warn){
         // Only "song" immediately before "switch" is filler, never a bare "Song 1"/"Song 2" (those are aliases).
         let switched=false;
         { const _f=k=>(stoks[k]||'').replace(/[():.]/g,''); let i=0;
-          if(/^song$/i.test(_f(0))&&/^switch$/i.test(_f(1))) i=2; else if(/^switch$/i.test(_f(0))) i=1;
+          if(/^song$/i.test(_f(0))&&/^switch$/i.test(_f(1))) i=2;                      // "Song Switch <song>"
+          else if(/^switch$/i.test(_f(0))){ i=1; if(/^song$/i.test(_f(1))) i=2; }      // "Switch <song>" / "Switch Song <song>"
           if(i>0){ if(/^to$/i.test(_f(i))) i++; stoks=stoks.slice(i); switched=true; } }
         const ls=leadingSong(stoks); const a0=resolveActor(toks[0]);
-        let song='', songLen=0;
+        let song='', songLen=0, songStart=0;
         if(ls){ song=ls.song; songLen=ls.len; }
+        else if(codeOf(stoks[0])){ const ls2=leadingSong(stoks.slice(1)); if(ls2){ song=ls2.song; songLen=ls2.len; songStart=1; } }   // song after the button ("Miku S1 Spring Storm")
         else if(mikuLed && stoks.length && !codeOf(stoks[0])){
           // an unrecognised song explicitly led by "Miku" (e.g. "Feel the Fire") -> custom song = the leading
           // non-code words up to the first action code; guard against a real actor following Miku ("Miku Twins S2")
@@ -383,7 +385,7 @@ function parseTurnContent(content,warn){
           if(!(lead && !lead.fuzzy)){ let k=0; while(k<stoks.length && !codeOf(stoks[k])) k++; if(k>0){ song=stoks.slice(0,k).join(' '); songLen=k; } }
         }
         if(song && (mikuLed || !(a0&&!a0.fuzzy))){
-          const after=stoks.slice(songLen); let btn=''; const txt=[];
+          const after=stoks.slice(0,songStart).concat(stoks.slice(songStart+songLen)); let btn=''; const txt=[];
           after.forEach(t=>{ const c=codeOf(t); if(c&&!btn) btn=c.btn; else txt.push(t); });
           let textStr=txt.join(' ').trim();
           // a trailing "all guard" / "guard all" in the same segment guards the rest of the team
@@ -828,6 +830,10 @@ function parseRotationText(text, opts){
       // name/cards separator: a colon ("Name: space + sunsky") or a spaced dash ("Name - space/sunsky")
       let namePart=s2, cardsPart=''; const cm2=s2.match(/^([^:]+):\s*(.+)$/)||s2.match(/^(.+?)\s+[-–—]\s+(.+)$/); if(cm2){ namePart=cm2[1].trim(); cardsPart=cm2[2].trim(); }
       if(!cardsPart && parenCards) cardsPart=parenCards;
+      // an awareness/rev at the START of the card portion — the dash form "Tempest - A6R6 Creation + Worry"
+      // (the prefix form "A6R6 Tempest: …" is caught by am2 above). Pull it out so it isn't read as the note.
+      if(!info.awareness && cardsPart){ const am4=cardsPart.match(/^(A[0-6]|DGR)\s*([RF][0-6X])?\b\s*/i);
+        if(am4){ info.awareness=am4[1].toUpperCase(); if(am4[2])info.rev=_rev(am4[2]); cardsPart=cardsPart.slice(am4[0].length).trim(); } }
       if(!info.awareness){ const am3=namePart.match(/\b(A[0-6]|DGR)\s*([RF][0-6X])?\b/i); if(am3){ info.awareness=am3[1].toUpperCase(); if(am3[2])info.rev=_rev(am3[2]); namePart=namePart.replace(am3[0],' ').replace(/\s+/g,' ').trim(); } }
       // a parenthetical card set anywhere in the line, not only at the end, e.g. "Twins A6R6 (Freedom/Dis) S2 is B/C…".
       // a single unambiguous space+sun/sky pair -> cards (trailing prose becomes the note); a multi-option "or" stays a note.
@@ -857,16 +863,18 @@ function parseRotationText(text, opts){
       // cards; any further set ("Trust + Power or Harmony + Victory") or trailing hint ("…, DM/CR/ATK") becomes
       // the note verbatim so nothing is lost (Dennis: alternatives are important and must not vanish).
       if(!note && cardsPart && a2 && a2.type==='char' && (cp2.space||cp2.sunsky)){
+        const tw=a2.name==='TWINS';
         const ws=cardsPart.split(/\s+/).filter(Boolean); let k=0, sawSp=false, sawSs=false;
         for(; k<ws.length; k++){ const raw=ws[k];
           if(/^or$/i.test(raw)) break;                                   // explicit alternative
-          if(/^[+&/,;:.\-–—]+$/.test(raw)||/^and$/i.test(raw)) continue;  // a joiner between the pair's two cards
+          if(/^[|+&/,;:.\-–—]+$/.test(raw)||/^and$/i.test(raw)) continue; // a joiner between the pair's two cards ("|" too)
+          if(tw && normDual(raw.replace(/[,;.]/g,''))) continue;          // a Twins dual element defines the role, not the note
           const t=_n(raw.replace(/[+&/,;.\-–—]/g,'')); const cp=cardPair(t); const isSp=!!cp.space, isSs=!!cp.sunsky;
           if(isSp||isSs){ if((isSp&&sawSp)||(isSs&&sawSs)) break;         // a second card of the same kind = a new set
             if(isSp)sawSp=true; if(isSs)sawSs=true; continue; }
           break;                                                         // a non-card token = the note starts here
         }
-        const lo=ws.slice(k).join(' ').replace(/^[\s,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
+        const lo=ws.slice(k).join(' ').replace(/^[\s|,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
         if(lo && /[A-Za-z]/.test(lo)) note=lo;
       }
       if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote || note)){
@@ -1525,5 +1533,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A193';
+  _g.VF_PARSER_VERSION = 'A194';
 })();
