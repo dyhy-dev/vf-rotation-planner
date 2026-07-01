@@ -3843,7 +3843,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function fillSel(sel, allLabel, values){ const cur=sel.value; sel.innerHTML='<option value="">'+allLabel+'</option>'; values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); sel.value = values.indexOf(cur)>=0 ? cur : ''; }
   function emptyMsg(t){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent=t; list.appendChild(d); }
   /* rich preview shown on hover (desktop) or tap (mobile, pinned) — keeps the list compact while exposing team + score/tier/patch/turns/date */
-  const hoverEl=document.createElement('div'); hoverEl.className='lib-hover'; hoverEl.hidden=true; (modal.querySelector('.modal-card')||modal).appendChild(hoverEl);
+  const hoverEl=document.createElement('div'); hoverEl.className='lib-hover'; hoverEl.hidden=true; document.body.appendChild(hoverEl);   /* on <body>, not inside a modal, so its z-index sits above BOTH the library and the Collections modal */
   let _pinId='';
   function buildHover(e){ const st=e.state||{}, s=st.setup||{};
     const team=_teamOf(e).map(n=>{ const src=faceImg(n); return '<span class="lib-hface" title="'+esc(charDisp(n)||n)+'" style="border-color:'+esc(charColor(n))+'">'+(src?'<img src="'+esc(src)+'" alt="" onerror="faceFallback(this)" loading="lazy"/>':'')+'</span>'; }).join('');
@@ -5479,6 +5479,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630t</div>
+<div class="version-tag">260630u</div>
 </body>
 </html>
