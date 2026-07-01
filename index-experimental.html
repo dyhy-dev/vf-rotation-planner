@@ -1049,7 +1049,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="My rotations">
     <div class="modal-head"><h2 id="libTitle">My Rotation Library</h2><button class="modal-close" id="libClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
-      <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><button class="btn" id="libSelectBtn" title="Select multiple rotations" style="margin-left:auto">Select</button><button class="btn" id="libCollBtn" title="Browse collections">Collections</button></div>
+      <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><button class="btn" id="libCollBtn" title="Browse collections" style="margin-left:auto">Collections</button></div>
       <div class="lib-filters">
         <select id="libBoss" class="lib-select"><option value="">All bosses</option></select>
         <select id="libMode" class="lib-select"><option value="">All modes</option></select>
@@ -1063,6 +1063,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           <option value="boss">Boss A to Z</option>
         </select>
         <button class="btn" id="libClear" title="Clear search and filters">Clear</button>
+        <button class="btn" id="libSelectBtn" title="Select multiple rotations">Select</button>
       </div>
       <input type="text" id="libSearch" class="lib-input lib-searchbar" placeholder="Search name, boss, credits, character, tags..."/>
       <div class="lib-bulkbar" id="libBulkBar" hidden>
@@ -1072,7 +1073,6 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <button class="lib-mini" id="libBulkColl">Add to collection</button>
         <button class="lib-mini" id="libBulkCompare" disabled title="Select exactly two to compare">Compare</button>
         <button class="lib-mini" id="libBulkDelete">Delete</button>
-        <button class="lib-mini" id="libBulkCancel">Cancel</button>
       </div>
       <div class="lib-list" id="libList"></div>
     </div>
@@ -3947,6 +3947,18 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function showHover(e,anchor,pin){ hoverEl.innerHTML=buildHover(e); hoverEl.classList.toggle('pinned',!!pin); placeHover(anchor); const x=hoverEl.querySelector('.lib-hover-x'); if(x) x.onclick=ev=>{ ev.stopPropagation(); hideHover(); }; }
   function hideHover(){ hoverEl.hidden=true; hoverEl.classList.remove('pinned'); _pinId=''; }
   function _flashItem(id){ if(!id||!list) return; const el=list.querySelector('[data-id="'+id+'"]'); if(!el) return; el.classList.remove('lib-flash'); void el.offsetWidth; el.classList.add('lib-flash'); setTimeout(()=>el.classList.remove('lib-flash'),1100); }
+  /* per-entry Export menu: the full toolbar Export dropdown, acting on the entry's state (see global exportEntry).
+     Lives on <body> (fixed, high z-index) so it clears the modal; closeAllMenus() hides it on any outside click. */
+  const _EXP_ITEMS=[['json','JSON'],['png-art','PNG & Images'],['png','PNG (no Images)'],['png-rot','PNG (Rotation only)'],['text','Text'],['link','Share Editor Link'],['viewlink','Share View Link'],['simlink','P5X-Simulator Link'],['code','Copy Code']];
+  const _expMenu=document.createElement('div'); _expMenu.className='dropdown-menu lib-exp-menu'; _expMenu.hidden=true; _expMenu.style.position='fixed'; _expMenu.style.zIndex='3200';
+  _expMenu.innerHTML=_EXP_ITEMS.map(x=>'<button class="dropdown-item" data-k="'+x[0]+'">'+x[1]+'</button>').join(''); document.body.appendChild(_expMenu);
+  let _expState=null;
+  _expMenu.addEventListener('click',ev=>{ const b=ev.target.closest('.dropdown-item'); if(!b) return; ev.stopPropagation(); const k=b.dataset.k; _expMenu.hidden=true; if(_expState) exportEntry(k,_expState); });
+  function openExpMenu(e, anchor){ _expState=e.state; closeAllMenus(); _expMenu.hidden=false;
+    const r=anchor.getBoundingClientRect(), m=8, mw=_expMenu.offsetWidth, mh=_expMenu.offsetHeight;
+    let left=r.right-mw; if(left<m) left=m; if(left+mw>innerWidth-m) left=innerWidth-m-mw;
+    let top=r.bottom+4; if(top+mh>innerHeight-m) top=r.top-mh-4; if(top<m) top=m;
+    _expMenu.style.left=left+'px'; _expMenu.style.top=top+'px'; }
   hoverEl.addEventListener('click',ev=>ev.stopPropagation());   /* clicks inside a pinned preview don't close it (only the X or outside) */
   document.addEventListener('click',ev=>{ if(hoverEl.hidden||!hoverEl.classList.contains('pinned')) return; if(hoverEl.contains(ev.target)||(ev.target.closest&&ev.target.closest('.lib-info'))) return; hideHover(); }, true);   /* tapping anywhere outside a pinned preview closes it (capture, but skips the "i" button so it can toggle) */
   function render(){
@@ -4004,7 +4016,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
           mk('Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
         );
         row2.append(
-          mk('Share',()=>libShareEntry(e)),
+          mk('Export ▾',ev=>{ ev.stopPropagation(); openExpMenu(e, ev.currentTarget); }),
           mk('Tags',()=>openTagModal(e)),
           mk('Collection',()=>openCollModal(e))
         );
@@ -4017,7 +4029,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     });
     _updateBulkBar();
   }
-  function open(mode){ _libMode=(mode==='load')?'load':'full'; _selMode=false; _selIds.clear(); const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotation Library'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
+  function open(mode){ _libMode=(mode==='load')?'load':'full'; _selMode=false; _selIds.clear(); const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotation Library'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); const sel=document.getElementById('libSelectBtn'); if(sel) sel.style.display=(_libMode==='load')?'none':''; render(); modal.hidden=false; }
   const close=()=>{ modal.hidden=true; hideHover(); };
   document.addEventListener('click',()=>{ if(_pinId) hideHover(); });   /* tap/click outside an item closes a pinned preview */
   /* ---- collection assignment modal (multi-select existing + add new) ---- */
@@ -4057,7 +4069,6 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     ['libBulkFav','libBulkColl','libBulkDelete'].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=(n===0); }); }
   function _setSelMode(on){ _selMode=!!on; if(!_selMode) _selIds.clear(); hideHover(); render(); }
   if(selBtn) selBtn.onclick=()=>_setSelMode(!_selMode);
-  { const b=document.getElementById('libBulkCancel'); if(b) b.onclick=()=>_setSelMode(false); }
   { const b=document.getElementById('libBulkDelete'); if(b) b.onclick=()=>{ if(!_selIds.size) return; if(confirm('Delete '+_selIds.size+' rotation(s) from the library?')){ libDeleteMany([..._selIds]); _selIds.clear(); render(); } }; }
   { const b=document.getElementById('libBulkFav'); if(b) b.onclick=()=>{ if(!_selIds.size) return; libFavMany([..._selIds],true); render(); }; }
   { const b=document.getElementById('libBulkColl'); if(b) b.onclick=()=>{ if(!_selIds.size) return; const c=prompt('Add the selected rotations to which collection?'); if(c==null) return; const nm=c.trim(); if(!nm) return; libAddCollMany([..._selIds],nm); render(); }; }
@@ -5432,6 +5443,27 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     document.addEventListener('mousemove', mmove); document.addEventListener('mouseup', mup);
   });
 })();
+/* run any Export-dropdown action against a SAVED library entry's state, without loading it into the editor.
+   Exports read the global `state`, so we swap it in for the call: text/json/link/code/sim capture their data
+   synchronously (restored right after); PNG keeps it swapped until html2canvas settles (via _onExportSettled),
+   because buildExportView reads state inside the image pipeline. The editor DOM is never re-rendered, so the
+   visible rotation is untouched. */
+function exportEntry(kind, st){
+  const prev=state; let restored=false; const restore=()=>{ if(restored) return; restored=true; state=prev; };
+  const isPng=(kind==='png-art'||kind==='png'||kind==='png-rot');
+  try{
+    state=migrate(JSON.parse(JSON.stringify(st)));
+    if(kind==='json') exportJSON();
+    else if(kind==='text') openTextExport();
+    else if(kind==='simlink') openSimulatorLink();
+    else if(kind==='link') openShareLink();
+    else if(kind==='viewlink') openShareViewLink();
+    else if(kind==='code') openCopyCode();
+    else if(kind==='png-art'){ _onExportSettled=restore; exportImage(true); }
+    else if(kind==='png'){ _onExportSettled=restore; exportImage(false); }
+    else if(kind==='png-rot'){ _onExportSettled=restore; exportImage(false, true); }
+  } finally { if(!isPng) restore(); }
+}
 /* wire an Export dropdown (used for both the toolbar one and the floating edit-bar one) */
 function wireExportDropdown(wrapId, btnId, menuId){
   const wrap=document.getElementById(wrapId), btn=document.getElementById(btnId), menu=document.getElementById(menuId);
@@ -5633,6 +5665,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701c</div>
+<div class="version-tag">260701d</div>
 </body>
 </html>
