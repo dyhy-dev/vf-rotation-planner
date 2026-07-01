@@ -537,6 +537,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-bulkbar[hidden]{display:none}   /* the display:flex above otherwise overrides the hidden attribute */
 .lib-bulk-spacer{flex:1 1 auto}
 .lib-check{width:20px; height:20px; flex:0 0 auto; border:1px solid var(--line); border-radius:5px; background:var(--field); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; color:var(--blue-strong); font-weight:800}
+/* gold flash on a freshly duplicated entry (1s, box-shadow only so layout/colors are untouched — mirrors the Live Preview action flash) */
+@keyframes libFlash{ 0%{ box-shadow:0 0 0 3px var(--gold), 0 0 16px 3px rgba(241,194,50,.7) } 55%{ box-shadow:0 0 0 3px var(--gold), 0 0 16px 3px rgba(241,194,50,.5) } 100%{ box-shadow:0 0 0 0 rgba(241,194,50,0), 0 0 0 0 rgba(241,194,50,0) } }
+.lib-item.lib-flash{ animation:libFlash 1s ease-out; position:relative; z-index:1 }
 .lib-item.sel{background:rgba(58,109,250,.12); border-color:var(--blue-strong)}
 .lib-item.selectable{cursor:pointer}
 /* version history + compare */
@@ -1082,6 +1085,16 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <div class="lib-coll-pick" id="libCollPick"></div>
       <div class="lib-coll-new"><input type="text" id="libCollNew" class="lib-input" placeholder="New collection name…"/><button class="btn" id="libCollAdd">Add</button></div>
       <div class="io-actions" style="margin-top:14px"><button class="btn primary" id="libCollDone">Done</button></div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="libTagModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Tags">
+    <div class="modal-head"><h2 id="libTagTitle">Tags</h2><button class="modal-close" id="libTagClose" aria-label="Close">&times;</button></div>
+    <div class="lib-body">
+      <div class="lib-coll-pick" id="libTagPick"></div>
+      <div class="lib-coll-new"><input type="text" id="libTagNew" class="lib-input" placeholder="New tag…"/><button class="btn" id="libTagAdd">Add</button></div>
+      <div class="io-actions" style="margin-top:14px"><button class="btn primary" id="libTagDone">Done</button></div>
     </div>
   </div>
 </div>
@@ -2025,7 +2038,10 @@ function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e
 function libDeleteVersion(id,idx){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e&&Array.isArray(e.history)){ e.history.splice(idx,1); saveLib(a); } }
 /* make an older snapshot the current version (the current one is pushed back into history so nothing is lost) */
 function libRestoreVersion(id,idx){ const a=loadLib(); const e=a.find(x=>x.id===id); if(!e||!Array.isArray(e.history)||!e.history[idx]) return; const snap=e.history[idx]; e.history.splice(idx,1); e.history.unshift({ts:e.ts||Date.now(), state:e.state}); if(e.history.length>_LIB_HIST_MAX) e.history.length=_LIB_HIST_MAX; e.state=snap.state; e.ts=Date.now(); saveLib(a); }
-function libDuplicate(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(!e) return; const c=JSON.parse(JSON.stringify(e)); c.id=_libId(); c.name=(e.name||'Rotation')+' (copy)'; c.ts=Date.now(); c.fav=false; delete c.history; a.unshift(c); saveLib(a); }
+/* next free copy name: "X (copy)", then "X (copy 2)", "X (copy 3)"; strips any existing (copy N) suffix so copies don't stack */
+function _copyName(name, existing){ const base=String(name||'Rotation').replace(/\s*\(copy(?:\s+\d+)?\)\s*$/i,'').trim()||String(name||'Rotation'); const set=new Set(existing||[]);
+  let cand=base+' (copy)'; if(!set.has(cand)) return cand; let n=2; while(set.has(base+' (copy '+n+')')) n++; return base+' (copy '+n+')'; }
+function libDuplicate(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(!e) return ''; const c=JSON.parse(JSON.stringify(e)); c.id=_libId(); c.name=_copyName(e.name, a.map(x=>x.name||'')); c.ts=Date.now(); c.fav=false; delete c.history; a.unshift(c); saveLib(a); return c.id; }
 function libLoadState(st){ try{ state=migrate(JSON.parse(JSON.stringify(st))); _lastImportText=''; save(); renderAll(); return true; }catch(err){ return false; } }
 function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; return libLoadState(e.state); }
 /* bulk helpers operate on a list of ids at once */
@@ -3930,6 +3946,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     hoverEl.style.visibility=''; }
   function showHover(e,anchor,pin){ hoverEl.innerHTML=buildHover(e); hoverEl.classList.toggle('pinned',!!pin); placeHover(anchor); const x=hoverEl.querySelector('.lib-hover-x'); if(x) x.onclick=ev=>{ ev.stopPropagation(); hideHover(); }; }
   function hideHover(){ hoverEl.hidden=true; hoverEl.classList.remove('pinned'); _pinId=''; }
+  function _flashItem(id){ if(!id||!list) return; const el=list.querySelector('[data-id="'+id+'"]'); if(!el) return; el.classList.remove('lib-flash'); void el.offsetWidth; el.classList.add('lib-flash'); setTimeout(()=>el.classList.remove('lib-flash'),1100); }
   hoverEl.addEventListener('click',ev=>ev.stopPropagation());   /* clicks inside a pinned preview don't close it (only the X or outside) */
   document.addEventListener('click',ev=>{ if(hoverEl.hidden||!hoverEl.classList.contains('pinned')) return; if(hoverEl.contains(ev.target)||(ev.target.closest&&ev.target.closest('.lib-info'))) return; hideHover(); }, true);   /* tapping anywhere outside a pinned preview closes it (capture, but skips the "i" button so it can toggle) */
   function render(){
@@ -3952,7 +3969,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     a=a.filter(e=>e.fav).concat(a.filter(e=>!e.fav));   /* favourites pinned to the top, keeping the chosen sort within each group */
     if(!a.length){ emptyMsg('No rotations match your search or filters.'); return; }
     a.forEach(e=>{
-      const it=document.createElement('div'); it.className='lib-item';
+      const it=document.createElement('div'); it.className='lib-item'; it.dataset.id=e.id;
       const main=document.createElement('div'); main.className='lib-item-main';
       const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=e.name; { const _cr=(((e.state&&e.state.setup)||{}).credits||'').trim(); if(_cr){ const cs=document.createElement('span'); cs.className='lib-item-credit'; cs.textContent=' (by '+_cr+')'; nm.appendChild(cs); } }
       const meta=document.createElement('div'); meta.className='lib-item-meta';
@@ -3983,12 +4000,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
         row1.append(
           mk('Overwrite',()=>{ if(confirm('Overwrite "'+e.name+'" with your current rotation? The previous version is kept in this rotation’s history.')){ libOverwrite(e.id); render(); } }),
           mk('Rename',()=>{ const n=prompt('Rename rotation:', e.name); if(n!=null){ libRename(e.id,n); render(); } }),
-          mk('Duplicate',()=>{ libDuplicate(e.id); render(); }),
+          mk('Duplicate',()=>{ const nid=libDuplicate(e.id); render(); _flashItem(nid); }),
           mk('Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
         );
         row2.append(
           mk('Share',()=>libShareEntry(e)),
-          mk('Tags',()=>{ const n=prompt('Tags (comma-separated):', (e.tags||[]).join(', ')); if(n!=null){ libSetTags(e.id,_libParseTags(n)); render(); } }),
+          mk('Tags',()=>openTagModal(e)),
           mk('Collection',()=>openCollModal(e))
         );
         const hn=_libHist(e).length; if(hn) row2.append(mk('History ('+hn+')',()=>openHistory(e.id)));
@@ -4018,6 +4035,20 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   if(cDone) cDone.onclick=()=>{ if(_cEntryId) libSetColls(_cEntryId,[..._cChosen]); closeCollModal(); render(); };
   if(cClose) cClose.onclick=closeCollModal;
   if(cModal) cModal.addEventListener('click',ev=>{ if(ev.target===cModal) closeCollModal(); });
+  /* ---- tag assignment modal (chips of existing tags + add new), mirrors the collection picker ---- */
+  const tModal=document.getElementById('libTagModal'), tPick=document.getElementById('libTagPick'), tNew=document.getElementById('libTagNew'), tAdd=document.getElementById('libTagAdd'), tDone=document.getElementById('libTagDone'), tClose=document.getElementById('libTagClose'), tTitle=document.getElementById('libTagTitle');
+  let _tEntryId='', _tChosen=new Set();
+  function _tExisting(){ const s=new Set(); loadLib().forEach(e=>(e.tags||[]).forEach(t=>s.add(t))); return [...s]; }
+  function renderTPick(){ if(!tPick) return; tPick.innerHTML=''; const names=[...new Set([..._tExisting(), ..._tChosen])].sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+    if(!names.length){ const d=document.createElement('div'); d.className='lib-coll-empty'; d.textContent='No tags yet — add one below.'; tPick.appendChild(d); return; }
+    names.forEach(t=>{ const b=document.createElement('button'); b.type='button'; b.className='lib-coll-chip'+(_tChosen.has(t)?' on':''); b.textContent=t; b.onclick=()=>{ if(_tChosen.has(t)) _tChosen.delete(t); else _tChosen.add(t); b.classList.toggle('on'); }; tPick.appendChild(b); }); }
+  function openTagModal(e){ if(!tModal) return; _tEntryId=e.id; _tChosen=new Set(e.tags||[]); if(tTitle) tTitle.textContent='Tags: '+e.name; renderTPick(); if(tNew) tNew.value=''; tModal.hidden=false; if(tNew) setTimeout(()=>tNew.focus(),30); }
+  function closeTagModal(){ if(tModal) tModal.hidden=true; }
+  if(tAdd) tAdd.onclick=()=>{ const v=(tNew.value||'').trim(); if(!v) return; _tChosen.add(v); tNew.value=''; renderTPick(); };
+  if(tNew) tNew.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); tAdd.onclick(); } });
+  if(tDone) tDone.onclick=()=>{ if(_tEntryId) libSetTags(_tEntryId,[..._tChosen]); closeTagModal(); render(); };
+  if(tClose) tClose.onclick=closeTagModal;
+  if(tModal) tModal.addEventListener('click',ev=>{ if(ev.target===tModal) closeTagModal(); });
   /* ---- multi-select / bulk actions ---- */
   const bulkBar=document.getElementById('libBulkBar'), selBtn=document.getElementById('libSelectBtn');
   function _updateBulkBar(){ if(!bulkBar) return; bulkBar.hidden=!_selMode; if(selBtn) selBtn.textContent=_selMode?'Done':'Select';
@@ -5602,6 +5633,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701b</div>
+<div class="version-tag">260701c</div>
 </body>
 </html>
