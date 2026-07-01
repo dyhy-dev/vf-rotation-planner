@@ -563,13 +563,16 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-diff-old{color:#e0445e; text-decoration:line-through; opacity:.85}
 .lib-diff-arrow{color:var(--muted)}
 .lib-diff-new{color:#4bbf73; font-weight:600}
+body.theme-light .lib-diff-old{color:#cf3340}
+body.theme-light .lib-diff-new{color:#1a7a34}
 .lib-diff-turn{margin:10px 0; border:1px solid var(--line); border-radius:8px; padding:8px 10px}
 .lib-diff-turn .tn{font:700 11px Inter,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); margin-bottom:6px}
 .lib-diff-cols{display:flex; gap:12px}
 .lib-diff-col{flex:1 1 0; min-width:0}
 .lib-diff-colh{font-size:11px; color:var(--muted); margin-bottom:3px}
-.lib-diff-act{font-size:12px; color:#cdd3e3; padding:1px 6px; border-radius:3px}
+.lib-diff-act{font-size:12px; color:var(--text); padding:1px 6px; border-radius:3px}
 .lib-diff-act.chg{background:rgba(241,194,50,.16)}
+body.theme-dark .lib-diff-act.chg{background:var(--gold); color:#3a2c00; font-weight:600}   /* a low-opacity gold tint desaturates to brown over the dark panel, so use solid gold with dark text (the app's gold-fill convention) */
 .lib-diff-act.gone{opacity:.4}
 @media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} .lib-diff-cols{flex-direction:column} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
@@ -3938,7 +3941,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   let _pinId='';
   let _selMode=false; const _selIds=new Set();   /* multi-select / bulk mode */
   function buildHover(e){ const st=e.state||{}, s=st.setup||{};
-    const team=_teamOf(e).map(n=>{ const src=faceImg(n); return '<span class="lib-hface" title="'+esc(charDisp(n)||n)+'" style="border-color:'+esc(charColor(n))+'">'+(src?'<img src="'+esc(src)+'" alt="" onerror="faceFallback(this)" loading="lazy"/>':'')+'</span>'; }).join('');
+    const team=_teamOf(e).map(n=>{ const src=faceImg(n); return '<span class="lib-hface" title="'+esc(charDisp(n)||n)+'" style="border-color:'+esc(uiAccent(n))+'">'+(src?'<img src="'+esc(src)+'" alt="" onerror="faceFallback(this)" loading="lazy"/>':'')+'</span>'; }).join('');
     const nActs=(st.turns||[]).reduce((sum,t)=>sum+((t.actions||[]).length),0);
     const rows=[['Mode',s.type],['Patch',s.patch],['Side',s.side],['Boss',s.boss],['Score',s.score],['Turns',(st.turns||[]).length||''],['Actions',nActs||''],['Saved',fmtDate(e.ts)],['Credits',(s.credits||'').trim()]]
       .filter(r=>r[1]!=='' && r[1]!=null && r[1]!==0).map(r=>'<div class="lib-hr"><span>'+esc(r[0])+'</span><b>'+esc(String(r[1]))+'</b></div>').join('');
@@ -5703,6 +5706,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701e</div>
+<div class="version-tag">260701f</div>
 </body>
 </html>
