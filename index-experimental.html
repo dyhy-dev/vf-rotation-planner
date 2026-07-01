@@ -471,7 +471,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .crop-mini input[type=range]{flex:1 1 auto; min-width:0}
 /* ===== end EXPERIMENTAL-ONLY crop editor styling ===== */
 .lib-body{padding:14px 22px 22px}
-.lib-tools:not([hidden]){display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px}
+.lib-tools:not([hidden]){display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:22px}
 .lib-filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center}
 .lib-input, .lib-select{background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:7px; padding:6px 9px; font-size:13px}
 .lib-input{flex:1 1 180px; min-width:140px}
@@ -507,8 +507,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-hr{display:flex; justify-content:space-between; gap:12px}
 .lib-hr{min-width:0} .lib-hr span{color:var(--muted); flex:0 0 auto} .lib-hr b{color:var(--text); font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; min-width:0; white-space:nowrap}
 .lib-hover{white-space:nowrap} .lib-hover-name{overflow:hidden; text-overflow:ellipsis}
-.lib-hteam{display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px}
-.lib-hface{width:34px; height:34px; border-radius:6px; overflow:hidden; background:var(--field); border:1px solid var(--line); display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center}
+.lib-hteam{display:flex; flex-wrap:nowrap; gap:5px; margin-bottom:10px}   /* exactly 6 faces span the same width as the text rows below (5px gaps) */
+.lib-hface{width:calc((100% - 25px)/6); aspect-ratio:1; height:auto; border-radius:6px; overflow:hidden; background:var(--field); border:2px solid var(--line); display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center}
 .lib-hface img{width:100%; height:100%; object-fit:cover; display:block}
 .lib-hover-x{position:absolute; top:5px; right:7px; width:24px; height:24px; border:none; background:transparent; color:var(--muted); font-size:19px; line-height:1; cursor:pointer; display:none; padding:0}
 .lib-hover-x:hover{color:var(--text)}
@@ -1025,7 +1025,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <div class="modal" id="libModal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="My rotations">
-    <div class="modal-head"><h2 id="libTitle">My Rotations</h2><button class="modal-close" id="libClose" aria-label="Close">&times;</button></div>
+    <div class="modal-head"><h2 id="libTitle">My Rotation Library</h2><button class="modal-close" id="libClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
       <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><button class="btn" id="libCollBtn" title="Browse collections" style="margin-left:auto">Collections</button></div>
       <div class="lib-filters">
@@ -1417,7 +1417,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div><div class="set-label">Cloud sync</div><div class="set-sub">Keep your settings and rotation library in step across all your devices. Paste a code you already have, or generate a new one — keep it somewhere safe.</div><div class="set-sub" id="syncStatus" style="margin-top:4px"></div></div>
         <div class="set-backup-btns" id="syncCtrls">
           <div class="set-sync-row"><button class="btn" id="syncGenBtn">Generate sync code</button><button class="btn" id="syncNowBtn">Sync now</button></div>
-          <input type="text" id="syncCodeField" class="set-input" placeholder="Enter your sync code" autocomplete="off" autocapitalize="off" spellcheck="false"/>
+          <input type="text" id="syncCodeField" class="set-input" placeholder="Enter sync code" autocomplete="off" autocapitalize="off" spellcheck="false"/>
         </div>
       </div>
       <div class="set-status" id="settingsStatus" hidden></div>
@@ -1971,6 +1971,13 @@ function libSetTags(id,tags){ const a=loadLib(); const e=a.find(x=>x.id===id); i
 function libSetColls(id,colls){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.colls=[...new Set((colls||[]).map(c=>String(c||'').trim()).filter(Boolean))]; delete e.coll; saveLib(a); } }
 function _libColls(e){ if(Array.isArray(e&&e.colls)) return e.colls.filter(Boolean); const c=(e&&e.coll||'').trim(); return c?[c]:[]; }   /* tolerate the old single-string `coll` */
 function _libParseTags(str){ return [...new Set(String(str||'').split(',').map(t=>t.trim()).filter(Boolean))]; }
+/* favourite COLLECTIONS: collections are just names (no object), so their favourite state lives in its own store,
+   keyed by name; it rides along with cloud sync + backup like the per-rotation favourites */
+const COLLFAV_KEY='vf-lib-collfavs-v1';
+function loadCollFavs(){ try{ const a=JSON.parse(localStorage.getItem(COLLFAV_KEY)); return Array.isArray(a)?a.filter(x=>typeof x==='string'):[]; }catch(e){ return []; } }
+function saveCollFavs(a){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify([...new Set((a||[]).filter(Boolean))])); }catch(e){} syncSchedulePush(); }
+function collFavHas(name){ return loadCollFavs().indexOf(name)>=0; }
+function collFavToggle(name){ const a=loadCollFavs(); const i=a.indexOf(name); if(i>=0) a.splice(i,1); else a.push(name); saveCollFavs(a); }
 function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
 function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; try{ state=migrate(JSON.parse(JSON.stringify(e.state))); _lastImportText=''; save(); renderAll(); return true; }catch(err){ return false; } }
 
@@ -3242,13 +3249,13 @@ function getSyncCode(){ return _syncCode; }
 function _hashStr(str){ let h1=0xdeadbeef,h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909); return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }   /* cyrb53 */
 function _syncSavedSig(){ try{ return localStorage.getItem(SYNC_SIG)||''; }catch(e){ return ''; } }
 function _setSyncSavedSig(s){ try{ if(s) localStorage.setItem(SYNC_SIG,s); else localStorage.removeItem(SYNC_SIG); }catch(e){} }
-function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib+JSON.stringify(_bannerDismissed())); }   /* content fingerprint (no ts) so we only push when something actually changed */
+function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib+JSON.stringify(loadCollFavs())+JSON.stringify(_bannerDismissed())); }   /* content fingerprint (no ts) so we only push when something actually changed */
 function _syncMetaTs(){ try{ return +localStorage.getItem(SYNC_META)||0; }catch(e){ return 0; } }
 function _setSyncMetaTs(t){ try{ localStorage.setItem(SYNC_META, String(t||0)); }catch(e){} }
 function _syncStatus(m,err){ const el=document.getElementById('syncStatus'); if(el){ el.textContent=m||''; el.classList.toggle('err',!!err); } }
 function syncCodeSet(code){ _syncCode=(code||'').trim(); try{ if(_syncCode) localStorage.setItem(SYNC_KEY,_syncCode); else localStorage.removeItem(SYNC_KEY); }catch(e){} }
-function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib(), bannerDismissed:_bannerDismissed() }; }
-function _syncApply(d){ _syncApplying=true; try{ applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); if(d.bannerDismissed && typeof d.bannerDismissed==='object' && !Array.isArray(d.bannerDismissed)){ try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(d.bannerDismissed)); }catch(e){} try{ const c=JSON.parse(localStorage.getItem(BANNER_KEY)); if(c) showBanner(c); }catch(e){} } }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
+function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib(), collFavs:loadCollFavs(), bannerDismissed:_bannerDismissed() }; }
+function _syncApply(d){ _syncApplying=true; try{ if(Array.isArray(d.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(d.collFavs.filter(x=>typeof x==='string'))); }catch(e){} } applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); if(d.bannerDismissed && typeof d.bannerDismissed==='object' && !Array.isArray(d.bannerDismissed)){ try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(d.bannerDismissed)); }catch(e){} try{ const c=JSON.parse(localStorage.getItem(BANNER_KEY)); if(c) showBanner(c); }catch(e){} } }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
 /* resolves with: 'applied' (server was newer, taken), 'empty' (valid slot, nothing newer -> caller may push local up), 'unknown' (bad code), 'error' */
 function syncPull(silent){ return new Promise(resolve=>{ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); resolve('error'); return; } if(!silent) _syncStatus('Syncing…');
   fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return '__404__'; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(d==='__404__'){ resolve('unknown'); return; } if(!d){ resolve('error'); return; } if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); resolve('applied'); } else { if(!silent) _syncStatus('Already up to date.'); resolve('empty'); } }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); resolve('error'); }); }); }
@@ -3586,7 +3593,7 @@ function syncSettingsModal(){
   buildAbbrControls();
 }
 function _setStatus(msg, ok){ const el=document.getElementById('settingsStatus'); if(!el) return; el.textContent=msg; el.className='set-status '+(ok?'ok':'err'); el.hidden=false; }
-function openSettings(){ syncSettingsModal(); const st=document.getElementById('settingsStatus'); if(st) st.hidden=true; document.getElementById('settingsModal').hidden=false; }
+function openSettings(){ syncSettingsModal(); const st=document.getElementById('settingsStatus'); if(st) st.hidden=true; document.getElementById('settingsModal').hidden=false; _syncFitField(); }
 function closeSettings(){ document.getElementById('settingsModal').hidden=true; }
 document.getElementById('settingsBtn').onclick=openSettings;
 document.getElementById('settingsClose').onclick=closeSettings;
@@ -3615,7 +3622,7 @@ document.querySelectorAll('#themeSwitch .theme-opt').forEach(b=>b.onclick=()=>{ 
 document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(b=>b.onclick=()=>setRotationView(b.dataset.view));
 function exportSettings(){
   try{
-    const backup={ app:'vfrp', version:1, exportedAt:new Date().toISOString(), settings, library:loadLib() };
+    const backup={ app:'vfrp', version:1, exportedAt:new Date().toISOString(), settings, library:loadLib(), collFavs:loadCollFavs() };
     const blob=new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a');
     a.href=url; a.download='vfrp-backup.json'; document.body.appendChild(a); a.click();
@@ -3640,6 +3647,7 @@ function applyImportedSettings(text){
   if(Object.keys(next.skillAbbr).length||Object.keys(next.personaAbbr).length) any=true;
   if(any){ settings=next; saveSettings(); applySettings(); syncSettingsModal(); renderRotationPreview(); if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody(); }
   if(isBackup && Array.isArray(obj.library)){ saveLib(obj.library); any=true; }
+  if(isBackup && Array.isArray(obj.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(obj.collFavs.filter(x=>typeof x==='string'))); }catch(e){} any=true; }
   return any;
 }
 document.getElementById('settingsExport').onclick=exportSettings;
@@ -3650,8 +3658,11 @@ function syncSimLinkBtn(){ /* P5X-Simulator Link is available to everyone now (n
    "Generate" hides when a valid code is in the field; clearing an active code needs a warning (= disconnect). */
 function _syncUpdateButtons(){ const field=document.getElementById('syncCodeField'), gen=document.getElementById('syncGenBtn'), now=document.getElementById('syncNowBtn');
   const v=((field&&field.value)||'').trim(); if(gen) gen.hidden=syncLooksLikeCode(v); if(now) now.hidden=!getSyncCode(); }
+/* size the code field to match the Generate button exactly (measure it even when hidden, no visible flash) */
+function _syncFitField(){ const field=document.getElementById('syncCodeField'), gen=document.getElementById('syncGenBtn'); if(!field||!gen) return;
+  const wasHidden=gen.hidden; gen.hidden=false; const w=gen.offsetWidth; gen.hidden=wasHidden; if(w>0) field.style.width=w+'px'; }
 function syncRefreshUI(){ const field=document.getElementById('syncCodeField'); const c=getSyncCode();
-  if(field && document.activeElement!==field) field.value=c||''; _syncUpdateButtons(); syncSimLinkBtn(); }
+  if(field && document.activeElement!==field) field.value=c||''; _syncUpdateButtons(); _syncFitField(); syncSimLinkBtn(); }
 function _syncDisconnect(){ syncCodeSet(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); }
 /* editing an ACTIVE code warns immediately (as soon as the field differs): confirm -> clear + disconnect; cancel -> restore the full code */
 function _syncFieldInput(){ const field=document.getElementById('syncCodeField'); if(!field) return; const cur=getSyncCode();
@@ -3822,14 +3833,14 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   const searchInp=document.getElementById('libSearch'), bossSel=document.getElementById('libBoss'), modeSel=document.getElementById('libMode'), sideSel=document.getElementById('libSide'), sortSel=document.getElementById('libSort'), patchSel=document.getElementById('libPatch'), collBtn=document.getElementById('libCollBtn');
   let _collView='';   /* dedicated Collections window: '' = list of collections, else a collection name (detail) */
   const _canHover=()=>!(window.matchMedia&&!matchMedia('(hover:hover)').matches);   /* touch devices: no auto preview, use the "i" button */
-  function _teamOf(e){ const st=e.state||{}; const u=(st.units||[]).map(x=>((x&&x.name)||'').trim()); if(st.elucidator&&st.elucidator.name) u.push(st.elucidator.name.trim()); return u.filter(Boolean); }
+  function _teamOf(e){ const st=e.state||{}; const u=(st.units||[]).map(x=>((x&&x.name)||'').trim()); if(st.backup&&st.backup.name) u.push(st.backup.name.trim()); if(st.elucidator&&st.elucidator.name) u.push(st.elucidator.name.trim()); return u.filter(Boolean); }
   function fillSel(sel, allLabel, values){ const cur=sel.value; sel.innerHTML='<option value="">'+allLabel+'</option>'; values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); sel.value = values.indexOf(cur)>=0 ? cur : ''; }
   function emptyMsg(t){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent=t; list.appendChild(d); }
   /* rich preview shown on hover (desktop) or tap (mobile, pinned) — keeps the list compact while exposing team + score/tier/patch/turns/date */
   const hoverEl=document.createElement('div'); hoverEl.className='lib-hover'; hoverEl.hidden=true; (modal.querySelector('.modal-card')||modal).appendChild(hoverEl);
   let _pinId='';
   function buildHover(e){ const st=e.state||{}, s=st.setup||{};
-    const team=_teamOf(e).map(n=>{ const src=faceImg(n); return '<span class="lib-hface" title="'+esc(charDisp(n)||n)+'">'+(src?'<img src="'+esc(src)+'" alt="" onerror="faceFallback(this)" loading="lazy"/>':'')+'</span>'; }).join('');
+    const team=_teamOf(e).map(n=>{ const src=faceImg(n); return '<span class="lib-hface" title="'+esc(charDisp(n)||n)+'" style="border-color:'+esc(charColor(n))+'">'+(src?'<img src="'+esc(src)+'" alt="" onerror="faceFallback(this)" loading="lazy"/>':'')+'</span>'; }).join('');
     const nActs=(st.turns||[]).reduce((sum,t)=>sum+((t.actions||[]).length),0);
     const rows=[['Mode',s.type],['Patch',s.patch],['Side',s.side],['Boss',s.boss],['Score',s.score],['Turns',(st.turns||[]).length||''],['Actions',nActs||''],['Saved',fmtDate(e.ts)],['Credits',(s.credits||'').trim()]]
       .filter(r=>r[1]!=='' && r[1]!=null && r[1]!==0).map(r=>'<div class="lib-hr"><span>'+esc(r[0])+'</span><b>'+esc(String(r[1]))+'</b></div>').join('');
@@ -3837,10 +3848,15 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function placeHover(anchor){ hoverEl.style.visibility='hidden'; hoverEl.hidden=false;
     const pinned=hoverEl.classList.contains('pinned'); const r=anchor.getBoundingClientRect(), hw=hoverEl.offsetWidth, hh=hoverEl.offsetHeight, M=8;
     const x=hoverEl.querySelector('.lib-hover-x');
-    if(pinned){   /* card at the left edge; X overlaid exactly on the "i" button (anchor) so tapping the same spot toggles */
-      let top=r.top; if(top+hh>innerHeight-M) top=innerHeight-M-hh; if(top<M) top=M;
-      hoverEl.style.left=M+'px'; hoverEl.style.top=top+'px';
-      if(x){ x.style.position='fixed'; x.style.left=r.left+'px'; x.style.top=r.top+'px'; x.style.width=r.width+'px'; x.style.height=r.height+'px'; }
+    if(pinned){   /* the card's top-right corner (its X) sits over the "i" button, so the X overlays it and a tap on the same spot toggles; if there's no room below, the card grows upward (bottom-right corner over the "i") but the X stays top-right */
+      if(x){ x.style.position=''; x.style.left=x.style.top=x.style.width=x.style.height=''; }   /* X back to its CSS top-right slot inside the card */
+      const ax=r.left+r.width/2, ay=r.top+r.height/2;   /* "i" icon centre */
+      let left=(ax+19)-hw;                              /* the X's centre is 19px in from the card's right edge (right:7 + half of 24) */
+      let top=ay-17;                                    /* the X's centre is 17px down from the card's top edge (top:5 + half of 24) */
+      if(top+hh>innerHeight-M) top=(ay+17)-hh;          /* no room below -> flip up: bottom-right corner over the "i" */
+      if(left<M) left=M; if(left+hw>innerWidth-M) left=innerWidth-M-hw;
+      if(top<M) top=M; if(top+hh>innerHeight-M) top=innerHeight-M-hh;
+      hoverEl.style.left=left+'px'; hoverEl.style.top=top+'px';
     } else {
       if(x){ x.style.position=''; x.style.left=x.style.top=x.style.width=x.style.height=''; }
       let left=r.right+10; if(left+hw>innerWidth-M) left=r.left-hw-10; if(left<M) left=M;
@@ -3851,6 +3867,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function showHover(e,anchor,pin){ hoverEl.innerHTML=buildHover(e); hoverEl.classList.toggle('pinned',!!pin); placeHover(anchor); const x=hoverEl.querySelector('.lib-hover-x'); if(x) x.onclick=ev=>{ ev.stopPropagation(); hideHover(); }; }
   function hideHover(){ hoverEl.hidden=true; hoverEl.classList.remove('pinned'); _pinId=''; }
   hoverEl.addEventListener('click',ev=>ev.stopPropagation());   /* clicks inside a pinned preview don't close it (only the X or outside) */
+  document.addEventListener('click',ev=>{ if(hoverEl.hidden||!hoverEl.classList.contains('pinned')) return; if(hoverEl.contains(ev.target)||(ev.target.closest&&ev.target.closest('.lib-info'))) return; hideHover(); }, true);   /* tapping anywhere outside a pinned preview closes it (capture, but skips the "i" button so it can toggle) */
   function render(){
     hideHover();
     const all=loadLib(); list.innerHTML='';
@@ -3909,14 +3926,15 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       it.append(star,main,info,btns); list.appendChild(it);
     });
   }
-  function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotations'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
+  function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotation Library'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
   const close=()=>{ modal.hidden=true; hideHover(); };
   document.addEventListener('click',()=>{ if(_pinId) hideHover(); });   /* tap/click outside an item closes a pinned preview */
   /* ---- collection assignment modal (multi-select existing + add new) ---- */
   const cModal=document.getElementById('libCollModal'), cPick=document.getElementById('libCollPick'), cNew=document.getElementById('libCollNew'), cAdd=document.getElementById('libCollAdd'), cDone=document.getElementById('libCollDone'), cClose=document.getElementById('libCollClose');
   let _cEntryId='', _cChosen=new Set();
   function _cExisting(){ const s=new Set(); loadLib().forEach(e=>_libColls(e).forEach(c=>s.add(c))); return [...s]; }
-  function renderCPick(){ if(!cPick) return; cPick.innerHTML=''; const names=[...new Set([..._cExisting(), ..._cChosen])].sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+  function renderCPick(){ if(!cPick) return; cPick.innerHTML=''; let names=[...new Set([..._cExisting(), ..._cChosen])].sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+    names=names.filter(c=>collFavHas(c)).concat(names.filter(c=>!collFavHas(c)));   /* favourite collections first */
     if(!names.length){ const d=document.createElement('div'); d.className='lib-coll-empty'; d.textContent='No collections yet — add one below.'; cPick.appendChild(d); return; }
     names.forEach(c=>{ const b=document.createElement('button'); b.type='button'; b.className='lib-coll-chip'+(_cChosen.has(c)?' on':''); b.textContent=c; b.onclick=()=>{ if(_cChosen.has(c)) _cChosen.delete(c); else _cChosen.add(c); b.classList.toggle('on'); }; cPick.appendChild(b); }); }
   function openCollModal(e){ if(!cModal) return; _cEntryId=e.id; _cChosen=new Set(_libColls(e)); renderCPick(); if(cNew) cNew.value=''; cModal.hidden=false; if(cNew) setTimeout(()=>cNew.focus(),30); }
@@ -3947,12 +3965,14 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     if(!_collView){
       if(collBack) collBack.hidden=true; if(collTitle) collTitle.textContent='Collections';
       const counts={}; all.forEach(e=>_libColls(e).forEach(c=>counts[c]=(counts[c]||0)+1));
-      const names=Object.keys(counts).sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+      let names=Object.keys(counts).sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
+      names=names.filter(c=>collFavHas(c)).concat(names.filter(c=>!collFavHas(c)));   /* favourite collections pinned to top */
       if(!names.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='No collections yet. Use a rotation’s "Collection" button in the library to create one.'; collList.appendChild(d); return; }
       names.forEach(c=>{ const it=document.createElement('div'); it.className='lib-item'; it.style.cursor='pointer';
+        const fav=collFavHas(c); const star=document.createElement('button'); star.className='lib-star'+(fav?' on':''); star.textContent=fav?'★':'☆'; star.title=fav?'Remove from favourites':'Favourite (pins to top)'; star.onclick=ev=>{ ev.stopPropagation(); collFavToggle(c); renderCollections(); };
         const main=document.createElement('div'); main.className='lib-item-main'; const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=c; const meta=document.createElement('div'); meta.className='lib-item-meta'; meta.textContent=counts[c]+(counts[c]===1?' rotation':' rotations'); main.append(nm,meta);
         const btns=document.createElement('div'); btns.className='lib-item-btns'; const ob=document.createElement('button'); ob.className='lib-mini'; ob.textContent='Open'; btns.append(ob);
-        it.append(main,btns); it.onclick=()=>{ _collView=c; renderCollections(); }; collList.appendChild(it); });
+        it.append(star,main,btns); it.onclick=()=>{ _collView=c; renderCollections(); }; collList.appendChild(it); });
     } else {
       if(collBack) collBack.hidden=false; if(collTitle) collTitle.textContent=_collView;
       let inColl=all.filter(e=>_libColls(e).includes(_collView)); inColl.sort((x,y)=>(y.ts||0)-(x.ts||0)); inColl=inColl.filter(e=>e.fav).concat(inColl.filter(e=>!e.fav));
@@ -5453,6 +5473,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630r</div>
+<div class="version-tag">260630s</div>
 </body>
 </html>
