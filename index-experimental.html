@@ -350,7 +350,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .set-row .set-sub{font:400 12px Inter,sans-serif; color:var(--muted); margin-top:2px}
 .set-note{margin-top:14px; font:400 11px Inter,sans-serif; color:var(--muted); line-height:1.5}
 .set-backup-btns{display:flex; gap:8px; flex:0 0 auto; flex-wrap:wrap; align-items:center; justify-content:flex-end}
-#syncCtrls{flex-direction:column; align-items:stretch; gap:8px; min-width:230px}
+#syncCtrls{flex-direction:column; align-items:flex-end; gap:8px; min-width:230px}
 .set-input{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; color:var(--text); font:inherit; font-size:14px; width:100%; box-sizing:border-box}
 .set-input:focus{outline:none; border-color:var(--blue-strong)}
 .set-sync-row{display:flex; gap:8px; justify-content:flex-end}
@@ -508,7 +508,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-hr{min-width:0} .lib-hr span{color:var(--muted); flex:0 0 auto} .lib-hr b{color:var(--text); font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; min-width:0; white-space:nowrap}
 .lib-hover{white-space:nowrap} .lib-hover-name{overflow:hidden; text-overflow:ellipsis}
 .lib-hteam{display:flex; flex-wrap:nowrap; gap:5px; margin-bottom:10px}   /* exactly 6 faces span the same width as the text rows below (5px gaps) */
-.lib-hface{width:calc((100% - 25px)/6); aspect-ratio:1; height:auto; border-radius:6px; overflow:hidden; background:var(--field); border:2px solid var(--line); display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center}
+.lib-hface{width:calc((100% - 25px)/6); aspect-ratio:1; height:auto; border-radius:6px; overflow:hidden; background:var(--field); border:1px solid var(--line); display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center}
 .lib-hface img{width:100%; height:100%; object-fit:cover; display:block}
 .lib-hover-x{position:absolute; top:5px; right:7px; width:24px; height:24px; border:none; background:transparent; color:var(--muted); font-size:19px; line-height:1; cursor:pointer; display:none; padding:0}
 .lib-hover-x:hover{color:var(--text)}
@@ -530,6 +530,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-coll-chip{background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:6px 13px; font-size:13px; cursor:pointer}
 .lib-coll-chip:hover{border-color:var(--blue-strong)}
 .lib-coll-chip.on{background:rgba(58,109,250,.18); border-color:var(--blue-strong); color:var(--blue-strong); font-weight:700}
+.lib-chip-star{color:#f1c232; margin-right:4px; font-size:11px}
 .lib-coll-pick{flex-direction:row; flex-wrap:wrap}
 @media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
@@ -3671,12 +3672,17 @@ function _syncFieldInput(){ const field=document.getElementById('syncCodeField')
     else { field.value=cur; }
     _syncUpdateButtons(); return;
   }
+  _syncTryActivateField();   /* auto-activate as soon as a full valid code is in the field (paste or finished typing) */
   _syncUpdateButtons();
 }
-/* committing a NEW code (no active code yet) activates it; active-code edits are handled live in _syncFieldInput */
+/* activates a NEW code (no active code yet). Called live from input (auto), from Enter, and from blur (change). */
+let _syncActivating=false;
+function _syncTryActivateField(){ const field=document.getElementById('syncCodeField'); if(!field || getSyncCode() || _syncActivating) return; const v=(field.value||'').trim(); if(!syncLooksLikeCode(v)) return;
+  _syncActivating=true; _syncStatus('Connecting…'); syncTryActivate(v).then(ok=>{ _syncActivating=false; if(ok){ _syncStatus('Connected. Your devices are in sync.'); } else { _syncStatus('That sync code was not found.',true); field.value=''; } syncRefreshUI(); }); }
+/* blur/Enter: if the user left a non-empty value that isn't a valid code, tell them; otherwise activate */
 function _syncFieldCommit(){ const field=document.getElementById('syncCodeField'); if(!field || getSyncCode()) return; const v=(field.value||'').trim(); if(!v) return;
   if(!syncLooksLikeCode(v)){ _syncStatus('That doesn’t look like a sync code.',true); return; }
-  _syncStatus('Connecting…'); syncTryActivate(v).then(ok=>{ if(ok){ _syncStatus('Connected. Your devices are in sync.'); } else { _syncStatus('That sync code was not found.',true); field.value=''; } syncRefreshUI(); }); }
+  _syncTryActivateField(); }
 /* device-side limit: at most 2 generated codes per 48h (deters spam of the public mint endpoint) */
 const _SYNC_GEN_KEY='vf-sync-gentimes'; const _SYNC_GEN_WINDOW=48*3600*1000;
 function _syncGenTimes(){ try{ const a=JSON.parse(localStorage.getItem(_SYNC_GEN_KEY)); return Array.isArray(a)?a.filter(t=>Date.now()-t<_SYNC_GEN_WINDOW):[]; }catch(e){ return []; } }
@@ -3697,7 +3703,7 @@ function syncGenerate(){
 }
 { const gb=document.getElementById('syncGenBtn'); if(gb) gb.onclick=syncGenerate;
   const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
-  const field=document.getElementById('syncCodeField'); if(field){ field.oninput=_syncFieldInput; field.onchange=_syncFieldCommit; field.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); field.blur(); } }); }
+  const field=document.getElementById('syncCodeField'); if(field){ field.oninput=_syncFieldInput; field.onchange=_syncFieldCommit; field.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); _syncFieldCommit(); field.blur(); } }); }
   syncRefreshUI(); }
 document.getElementById('settingsFile').onchange=e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value='';
@@ -3936,7 +3942,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function renderCPick(){ if(!cPick) return; cPick.innerHTML=''; let names=[...new Set([..._cExisting(), ..._cChosen])].sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
     names=names.filter(c=>collFavHas(c)).concat(names.filter(c=>!collFavHas(c)));   /* favourite collections first */
     if(!names.length){ const d=document.createElement('div'); d.className='lib-coll-empty'; d.textContent='No collections yet — add one below.'; cPick.appendChild(d); return; }
-    names.forEach(c=>{ const b=document.createElement('button'); b.type='button'; b.className='lib-coll-chip'+(_cChosen.has(c)?' on':''); b.textContent=c; b.onclick=()=>{ if(_cChosen.has(c)) _cChosen.delete(c); else _cChosen.add(c); b.classList.toggle('on'); }; cPick.appendChild(b); }); }
+    names.forEach(c=>{ const b=document.createElement('button'); b.type='button'; b.className='lib-coll-chip'+(_cChosen.has(c)?' on':''); b.innerHTML=(collFavHas(c)?'<span class="lib-chip-star">★</span>':'')+esc(c); b.onclick=()=>{ if(_cChosen.has(c)) _cChosen.delete(c); else _cChosen.add(c); b.classList.toggle('on'); }; cPick.appendChild(b); }); }
   function openCollModal(e){ if(!cModal) return; _cEntryId=e.id; _cChosen=new Set(_libColls(e)); renderCPick(); if(cNew) cNew.value=''; cModal.hidden=false; if(cNew) setTimeout(()=>cNew.focus(),30); }
   function closeCollModal(){ if(cModal) cModal.hidden=true; }
   if(cAdd) cAdd.onclick=()=>{ const v=(cNew.value||'').trim(); if(!v) return; _cChosen.add(v); cNew.value=''; renderCPick(); };
@@ -5473,6 +5479,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630s</div>
+<div class="version-tag">260630t</div>
 </body>
 </html>
