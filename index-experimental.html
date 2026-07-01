@@ -487,6 +487,10 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-item-btns{display:flex; gap:6px; flex:0 0 auto; flex-wrap:wrap; justify-content:flex-end}
 .lib-mini{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer}
 .lib-mini:hover{border-color:var(--blue-strong)}
+.lib-mini.ico{display:inline-flex; align-items:center; gap:4px; padding:4px 7px}
+.lib-mini.ico svg{width:14px; height:14px; display:block}
+.lib-caret{font-size:9px; opacity:.75}
+.lib-hcount{font-size:11px; font-weight:600}
 .lib-empty{color:var(--muted); font-size:13px; text-align:center; padding:24px}
 .lib-star{flex:0 0 auto; background:none; border:none; cursor:pointer; font-size:18px; line-height:1; color:var(--muted); padding:2px 2px 0; align-self:flex-start}
 .lib-star.on{color:#f1c232} .lib-star:hover{color:#f1c232}
@@ -2071,6 +2075,19 @@ function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false;
 function libDeleteMany(ids){ const set=new Set(ids); saveLib(loadLib().filter(e=>!set.has(e.id))); }
 function libFavMany(ids,val){ const set=new Set(ids); const a=loadLib(); a.forEach(e=>{ if(set.has(e.id)) e.fav=!!val; }); saveLib(a); }
 function libAddCollMany(ids,coll){ const set=new Set(ids); const c=String(coll||'').trim(); if(!c) return; const a=loadLib(); a.forEach(e=>{ if(set.has(e.id)){ const cur=_libColls(e); if(cur.indexOf(c)<0){ e.colls=cur.concat(c); delete e.coll; } } }); saveLib(a); }
+/* inline SVG icons for the library entry buttons (the app ships no icon font; static-first, so these are hand-rolled in the Tabler outline style) */
+const LIB_ICONS={
+ 'file-import':'<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 13v-8a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2h-5.5"/><path d="M3 17h7m-3 -3l3 3l-3 3"/>',
+ 'edit':'<path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/><path d="M20.4 6.6a2.1 2.1 0 0 0 -3 -3l-8.4 8.4v3h3l8.4 -8.4z"/><path d="M16 5l3 3"/>',
+ 'cursor-text':'<path d="M12 6v12"/><path d="M9 6h6"/><path d="M9 18h6"/>',
+ 'copy-plus':'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16a2 2 0 0 1 -2 -2V6a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2"/><path d="M11 14h6M14 11v6"/>',
+ 'trash':'<path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>',
+ 'upload':'<path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 9l5 -5l5 5"/><path d="M12 4v12"/>',
+ 'tag':'<circle cx="7.5" cy="7.5" r="1"/><path d="M3 6v5.2a2 2 0 0 0 .6 1.4l7.7 7.7a2.4 2.4 0 0 0 3.4 0l5.6 -5.6a2.4 2.4 0 0 0 0 -3.4l-7.7 -7.7a2 2 0 0 0 -1.4 -.6h-5.2a3 3 0 0 0 -3 3z"/>',
+ 'folder':'<path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/>',
+ 'history':'<path d="M12 8v4l2 2"/><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>'
+};
+function libSvg(name){ return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(LIB_ICONS[name]||'')+'</svg>'; }
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
@@ -4059,20 +4076,22 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       const btns=document.createElement('div'); btns.className='lib-item-btns';
       const row1=document.createElement('div'); row1.className='lib-btn-row'; const row2=document.createElement('div'); row2.className='lib-btn-row';
       const mk=(t,fn)=>{ const b=document.createElement('button'); b.className='lib-mini'; b.textContent=t; b.onclick=fn; return b; };
-      row1.append(mk('Load',()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)) close(); } }));
+      /* icon-only button (SVG + tooltip); `extra` appends the Export caret / History count */
+      const mki=(icon,title,fn,extra)=>{ const b=document.createElement('button'); b.className='lib-mini ico'; b.innerHTML=libSvg(icon)+(extra||''); b.title=title; b.setAttribute('aria-label',title); b.onclick=fn; return b; };
+      row1.append(mki('file-import','Load',()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)) close(); } }));
       if(_libMode!=='load'){
         row1.append(
-          mk('Overwrite',()=>{ if(confirm('Overwrite "'+e.name+'" with your current rotation? The previous version is kept in this rotation’s history.')){ libOverwrite(e.id); render(); } }),
-          mk('Rename',()=>{ const n=prompt('Rename rotation:', e.name); if(n!=null){ libRename(e.id,n); render(); } }),
-          mk('Duplicate',()=>{ const nid=libDuplicate(e.id); render(); _flashItem(nid); }),
-          mk('Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
+          mki('edit','Overwrite',()=>{ if(confirm('Overwrite "'+e.name+'" with your current rotation? The previous version is kept in this rotation’s history.')){ libOverwrite(e.id); render(); } }),
+          mki('cursor-text','Rename',()=>{ const n=prompt('Rename rotation:', e.name); if(n!=null){ libRename(e.id,n); render(); } }),
+          mki('copy-plus','Duplicate',()=>{ const nid=libDuplicate(e.id); render(); _flashItem(nid); }),
+          mki('trash','Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
         );
         row2.append(
-          mk('Export ▾',ev=>{ ev.stopPropagation(); openExpMenu(e, ev.currentTarget); }),
-          mk('Tags',()=>openTagModal(e)),
-          mk('Collection',()=>openCollModal(e))
+          mki('upload','Export',ev=>{ ev.stopPropagation(); openExpMenu(e, ev.currentTarget); },' <span class="lib-caret">▾</span>'),
+          mki('tag','Tags',()=>openTagModal(e)),
+          mki('folder','Collection',()=>openCollModal(e))
         );
-        const hn=_libHist(e).length; if(hn) row2.append(mk('History ('+hn+')',()=>openHistory(e.id)));
+        const hn=_libHist(e).length; if(hn) row2.append(mki('history','History ('+hn+')',()=>openHistory(e.id),' <span class="lib-hcount">'+hn+'</span>'));
       }
       btns.append(row1); if(row2.children.length) btns.append(row2);
       it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover()) showHover(e,it,false); });
@@ -4216,7 +4235,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     main.append(nm,meta);
     const _cs=_libColls(e); if(_cs.length||(e.tags&&e.tags.length)){ const org=document.createElement('div'); org.className='lib-item-org'; _cs.forEach(c=>{ const cc=document.createElement('span'); cc.className='lib-coll'; cc.textContent=c; org.appendChild(cc); }); (e.tags||[]).forEach(t=>{ const tg=document.createElement('span'); tg.className='lib-tag'; tg.textContent=t; org.appendChild(tg); }); main.appendChild(org); }
     const btns=document.createElement('div'); btns.className='lib-item-btns'; const row=document.createElement('div'); row.className='lib-btn-row';
-    const ld=document.createElement('button'); ld.className='lib-mini'; ld.textContent='Load'; ld.onclick=()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)){ closeCollections(); close(); } } }; row.append(ld); btns.append(row);
+    const ld=document.createElement('button'); ld.className='lib-mini ico'; ld.innerHTML=libSvg('file-import'); ld.title='Load'; ld.setAttribute('aria-label','Load'); ld.onclick=()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)){ closeCollections(); close(); } } }; row.append(ld); btns.append(row);
     it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover()) showHover(e,it,false); });
     it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
     it.append(star,main,info,btns); return it;
@@ -5754,6 +5773,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701j</div>
+<div class="version-tag">260701k</div>
 </body>
 </html>
