@@ -3758,6 +3758,25 @@ document.getElementById('setPreviewOpen').onchange=function(){ settings.previewE
   const x=document.getElementById('setSigExclude'); if(x) x.onchange=function(){ settings.sigExclude=this.checked; saveSettings(); rr(); }; })();
 document.querySelectorAll('#themeSwitch .theme-opt').forEach(b=>b.onclick=()=>{ settings.theme=b.dataset.theme; saveSettings(); applyTheme(); if(!document.body.classList.contains('view-mode')) renderAll(); document.querySelectorAll('#themeSwitch .theme-opt').forEach(x=>x.classList.toggle('on', x.dataset.theme===settings.theme)); });
 document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(b=>b.onclick=()=>setRotationView(b.dataset.view));
+/* ---------- shareable collections (Phase 1: reference-based object + JSON) ----------
+   A collection is a lightweight, reference-based object: each item stores a self-contained #v= fragment
+   (the compressed read-only-view state — "the link"), not the full JSON. Owner is tied to a sync code later
+   (ownerId=hash at publish); ownerName is shown publicly. contribOpen is groundwork for later contributions. */
+async function buildCollectionObject(collName){
+  const all=loadLib();
+  let inColl=all.filter(e=>_libColls(e).includes(collName));
+  inColl.sort((x,y)=>(y.ts||0)-(x.ts||0)); inColl=inColl.filter(e=>e.fav).concat(inColl.filter(e=>!e.fav));   /* same order as the collection detail view */
+  const items=[];
+  for(const e of inColl){ const frag='#v='+(await encodeShareState(e.state)); items.push({ref:frag, note:'', subcat:-1}); }   /* ref = self-contained #v= fragment; decodeShare(ref) round-trips it */
+  return { v:1, name:String(collName||''), ownerId:'', ownerName:(settings.defaultCredit||'').trim(), intro:'', subcats:[], items:items, flags:{contribOpen:false}, ts:Date.now() };
+}
+/* parse + normalise a collection object (for JSON round-trip / future import); returns null if invalid */
+function importCollectionJSON(obj){
+  if(!obj || typeof obj!=='object' || Array.isArray(obj)) return null;
+  const items=Array.isArray(obj.items)?obj.items.filter(it=>it&&typeof it.ref==='string').map(it=>({ref:it.ref, note:String(it.note||''), subcat:(typeof it.subcat==='number'?it.subcat:-1)})):[];
+  return { v:1, name:String(obj.name||'Collection'), ownerId:String(obj.ownerId||''), ownerName:String(obj.ownerName||''), intro:String(obj.intro||''),
+    subcats:Array.isArray(obj.subcats)?obj.subcats.map(x=>String(x)):[], items:items, flags:{contribOpen:!!(obj.flags&&obj.flags.contribOpen)}, ts:(+obj.ts||Date.now()) };
+}
 function exportSettings(){
   try{
     const backup={ app:'vfrp', version:1, exportedAt:new Date().toISOString(), settings, library:loadLib(), collFavs:loadCollFavs() };
@@ -4244,6 +4263,23 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
     it.append(star,main,info,btns); return it;
   }
+  /* per-collection Share menu (body-anchored, above the modal), Phase 1: Download JSON + (soon) editor */
+  const _collShareMenu=document.createElement('div'); _collShareMenu.className='dropdown-menu lib-exp-menu'; _collShareMenu.hidden=true; _collShareMenu.style.position='fixed'; _collShareMenu.style.zIndex='3200';
+  _collShareMenu.innerHTML='<button class="dropdown-item" data-k="json">Download JSON</button><button class="dropdown-item" data-k="editor">Open editor (soon)</button>';
+  document.body.appendChild(_collShareMenu);
+  let _collShareName='';
+  _collShareMenu.addEventListener('click',ev=>{ const b=ev.target.closest('.dropdown-item'); if(!b) return; ev.stopPropagation(); const k=b.dataset.k; _collShareMenu.hidden=true;
+    if(k==='json') downloadCollectionJSON(_collShareName);
+    else if(k==='editor') alert('The collection editor + webview are coming in the next step.'); });
+  function openCollShareMenu(name, anchor){ _collShareName=name; closeAllMenus(); _collShareMenu.hidden=false;
+    const r=anchor.getBoundingClientRect(), m=8, mw=_collShareMenu.offsetWidth, mh=_collShareMenu.offsetHeight;
+    let left=r.right-mw; if(left<m) left=m; if(left+mw>innerWidth-m) left=innerWidth-m-mw;
+    let top=r.bottom+4; if(top+mh>innerHeight-m) top=r.top-mh-4; if(top<m) top=m;
+    _collShareMenu.style.left=left+'px'; _collShareMenu.style.top=top+'px'; }
+  function downloadCollectionJSON(name){ buildCollectionObject(name).then(obj=>{
+    try{ const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+      a.href=url; a.download='vfrp-collection-'+String(name||'collection').replace(/[^A-Za-z0-9._-]+/g,'-')+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(e){ alert('Could not build the collection JSON.'); } }); }
   function renderCollections(){ hideHover(); if(!collList) return; collList.innerHTML=''; const all=loadLib();
     if(!_collView){
       if(collBack) collBack.hidden=true; if(collTitle) collTitle.textContent='Collections';
@@ -4254,7 +4290,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       names.forEach(c=>{ const it=document.createElement('div'); it.className='lib-item'; it.style.cursor='pointer';
         const fav=collFavHas(c); const star=document.createElement('button'); star.className='lib-star'+(fav?' on':''); star.textContent=fav?'★':'☆'; star.title=fav?'Remove from favourites':'Favourite (pins to top)'; star.onclick=ev=>{ ev.stopPropagation(); collFavToggle(c); renderCollections(); };
         const main=document.createElement('div'); main.className='lib-item-main'; const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=c; const meta=document.createElement('div'); meta.className='lib-item-meta'; meta.textContent=counts[c]+(counts[c]===1?' rotation':' rotations'); main.append(nm,meta);
-        const btns=document.createElement('div'); btns.className='lib-item-btns'; const ob=document.createElement('button'); ob.className='lib-mini'; ob.textContent='Open'; btns.append(ob);
+        const btns=document.createElement('div'); btns.className='lib-item-btns';
+        const sh=document.createElement('button'); sh.className='lib-mini'; sh.textContent='Share'; sh.onclick=ev=>{ ev.stopPropagation(); openCollShareMenu(c, ev.currentTarget); };
+        const ob=document.createElement('button'); ob.className='lib-mini'; ob.textContent='Open'; btns.append(sh,ob);
         it.append(star,main,btns); it.onclick=()=>{ _collView=c; renderCollections(); }; collList.appendChild(it); });
     } else {
       if(collBack) collBack.hidden=false; if(collTitle) collTitle.textContent=_collView;
@@ -5777,6 +5815,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701q</div>
+<div class="version-tag">260701r</div>
 </body>
 </html>
