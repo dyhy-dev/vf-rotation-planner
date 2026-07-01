@@ -3,6 +3,11 @@
 
 # Local-only assistant guidance (kept out of the public repo)
 CLAUDE.md
+.claude/
+FEATURES.md
+P5X-CHARACTERS.md
+P5X-GAME-MECHANICS.md
+P5X-PERSONAS.md
 
 # Cloudflare Worker tooling (dev-only; kept local, never committed)
 worker/
