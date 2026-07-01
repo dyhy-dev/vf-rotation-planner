@@ -1486,6 +1486,13 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="io-body">
       <textarea id="ioText" class="io-text" rows="5" spellcheck="false" autocomplete="off"></textarea>
       <div class="io-disclaimer" id="ioDisclaimer" hidden></div>
+      <div id="ioCodeRow" hidden style="margin:8px 0">
+        <div class="io-caption">Collection code</div>
+        <div style="display:flex; gap:8px; align-items:center">
+          <input id="ioCodeText" class="io-line" type="text" readonly spellcheck="false" autocomplete="off" style="flex:1"/>
+          <button class="btn" id="ioCodeCopy">Copy code</button>
+        </div>
+      </div>
       <div class="io-hint" id="ioHint"></div>
       <label class="io-keep" id="ioDodRow" hidden><input type="checkbox" id="ioDod"> DOD rotation</label>
       <label class="io-keep" id="ioKeepRow" hidden><input type="checkbox" id="ioKeep"> Keep the pasted text in a movable window after import</label>
@@ -3611,6 +3618,11 @@ function openShareModal(opts){
   { const pv=document.getElementById('ioParserVer'); if(pv){ pv.hidden=!opts.showDodToggle; pv.textContent=(window.VF_PARSER_VERSION||''); } }
   document.getElementById('ioHint').textContent=opts.hint||'';
   { const dc=document.getElementById('ioDisclaimer'); if(dc){ dc.textContent=opts.disclaimer||''; dc.hidden=!opts.disclaimer; } }
+  { const cr=document.getElementById('ioCodeRow'), ct=document.getElementById('ioCodeText'), cc=document.getElementById('ioCodeCopy');   /* a standalone code line with its own copy button (collection publish) */
+    if(opts.code){ if(cr) cr.hidden=false; if(ct) ct.value=opts.code;
+      if(cc) cc.onclick=()=>{ const hint=document.getElementById('ioHint'); const done=()=>{ hint.textContent='Code copied to clipboard.'; }; const fb=()=>{ try{ ct.select(); document.execCommand('copy'); done(); }catch(e){ hint.textContent='Press Ctrl/Cmd+C to copy the code.'; } };
+        if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(opts.code).then(done,fb); else fb(); }; }
+    else { if(cr) cr.hidden=true; if(ct) ct.value=''; if(cc) cc.onclick=null; } }
   const openBtn=document.getElementById('ioOpen');
   if(openBtn){ if(opts.open){ openBtn.hidden=false; openBtn.onclick=()=>{ try{ window.open(t.value,'_blank','noopener'); }catch(e){} }; } else { openBtn.hidden=true; openBtn.onclick=null; } }
   const shBtn=document.getElementById('ioShorten');
@@ -4000,7 +4012,7 @@ async function enterCollectionView(obj, code, isOwner){
     +'<div id="viewBrandWrap"><div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div></div>'
     +'<div id="viewActions">'
     +'<button class="btn primary" id="collAddLib">Add to my library</button>'
-    +'<button class="btn" id="collOpenApp">Open the planner</button>'
+    +'<button class="btn" id="collOpenApp">Open in VFRP</button>'
     +(isOwner?'<button class="btn" id="collEditBtn">Edit collection</button>':'')
     +(code?'':'<span class="lib-empty" style="font-size:12px;align-self:center">Preview (unpublished)</span>')
     +'</div></div>'
@@ -4010,7 +4022,7 @@ async function enterCollectionView(obj, code, isOwner){
   const rerender=async()=>{ const el=await renderCollectionWebview(obj); body.innerHTML=''; body.appendChild(el); };
   document.getElementById('collOpenApp').onclick=()=>{ location.href=location.origin+location.pathname; };
   { const al=document.getElementById('collAddLib'); if(al) al.onclick=()=>importCollectionByCode(_collViewCode, obj); }
-  { const eb=document.getElementById('collEditBtn'); if(eb) eb.onclick=()=>{ document.body.classList.remove('view-mode'); root.remove(); try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} if(window.openCollEditor) window.openCollEditor(obj, _collViewCode); }; }
+  { const eb=document.getElementById('collEditBtn'); if(eb) eb.onclick=()=>{ if(!_collViewCode) return; try{ window.open(location.origin+location.pathname+'#ce='+encodeURIComponent(_collViewCode),'_blank','noopener'); }catch(e){} }; }   /* open the editor in a NEW tab (this tab stays on the collection view) */
   const setTheme=()=>{ const b=document.getElementById('collThemeToggle'); if(b) b.textContent=(_effTheme==='light'?'Switch to dark mode':'Switch to light mode'); };
   { const tb=document.getElementById('collThemeToggle'); if(tb) tb.onclick=()=>{ settings.theme=(_effTheme==='light'?'dark':'light'); applyTheme(); setTheme(); rerender(); }; setTheme(); }
   await rerender();
@@ -4611,7 +4623,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     fetch(SHORTENER+'/coll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:sc, collcode:existingCode||'', coll:obj})})
       .then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ if(!j||!j.code) throw 0; _saveOwnedColl(j.code, obj.name); _ceCode=j.code;
         const url=location.origin+location.pathname+'#c='+j.code;
-        openShareModal({title:'Collection published', text:url, readonly:true, primaryLabel:'Copy link', onPrimary:copyShareText, hint:'Anyone with this link sees the collection. The code '+j.code+' also adds it to a library via "Add a collection".'});
+        openShareModal({title:'Collection published', text:url, readonly:true, primaryLabel:'Copy link', onPrimary:copyShareText, open:true, code:j.code, discordUrl:url, discordLabel:(obj.name||'Collection'), hint:'Anyone with this link sees the collection. The code below also adds it to a library via "Add a collection".'});
       }).catch(err=>{ alert('Could not publish the collection'+(err===403?': your sync code is not active (set it up in Settings first).':(' (error '+err+').'))); })
       .finally(()=>{ if(btn){ btn.disabled=false; btn.textContent='Publish / update link'; } });
   }
@@ -6155,6 +6167,11 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
     e.preventDefault(); if(k==='y'||(k==='z'&&e.shiftKey)) histRedo(); else histUndo(); }); }
 if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPush(); });   /* pull on start, then push only if local changed since the last sync (e.g. edits made offline) */
 (async function(){
+  const cem=(location.hash||'').match(/[#&]ce=([^&]+)/);   // #ce=<code> -> open the collection EDITOR in the full tool (owner "Edit collection" opens this in a new tab)
+  if(cem){ const code=cem[1]; try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+    try{ const obj=await _collFetch(code); if(window.openCollEditor) window.openCollEditor(importCollectionJSON(obj)||obj, code); }catch(e){ alert('Could not load that collection to edit.'); }
+    return;
+  }
   const cpm=(location.hash||'').match(/[#&]cp=([^&]+)/);   // #cp=<encoded obj> -> self-contained collection PREVIEW (from the editor, new tab)
   if(cpm){ try{ const obj=JSON.parse(await _decodeStr(cpm[1])); await enterCollectionView(importCollectionJSON(obj)||obj, '', false); }catch(e){ document.body.classList.add('view-mode'); let r=document.getElementById('collViewRoot'); if(!r){ r=document.createElement('div'); r.id='collViewRoot'; document.body.appendChild(r); } r.innerHTML='<div class="coll-web"><div class="lib-empty">This preview link could not be read.</div></div>'; }
     return;
@@ -6226,6 +6243,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260702c</div>
+<div class="version-tag">260702d</div>
 </body>
 </html>
