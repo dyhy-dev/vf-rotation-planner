@@ -599,7 +599,7 @@ function parseRotationText(text, opts){
   // a standalone "Score" / "Expected Score" section header: the score sits on the next non-empty line
   // ("Score\n86M with A1R0 …") — grab the first number+magnitude (the field holds one number)
   for(let i=0;i<headerLines.length && !setup.score;i++){
-    if(!/^(?:expected\s+)?scores?\s*:?\s*$/i.test(headerLines[i])) continue;
+    if(!/^(?:(?:expected|estimated?|est|target|projected|proj|approx)\.?\s+)?scores?\s*:?\s*$/i.test(headerLines[i])) continue;
     for(let k=i+1;k<headerLines.length;k++){ const v=headerLines[k]; if(!v||v===' ') continue;
       const sm=v.match(/\b(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])\b/i);
       if(sm){ setup.score=sm[1]+sm[2][0].toUpperCase(); got.score=1; } break; }
@@ -687,10 +687,11 @@ function parseRotationText(text, opts){
 
     // "Expected Score: 600 Mil" / "Score: ..." / bare "Score 175m" (no colon) -> score field; line is consumed either way.
     // The colon form keeps the verbatim value (so "600 Mil" round-trips); a bare form just defers to the pre-scanned value.
-    { const sm=line.match(/^(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])?\s*(\d.*)$/i)
+    { const _SCPRE='(?:(?:expected|estimated?|est|target|projected|proj|approx)\\.?\\s+)?';   // score-label synonyms ("Estimate Score", "Target Score", \u2026)
+      const sm=line.match(new RegExp('^'+_SCPRE+'scores?\\b\\s*([:\u2013\u2014-])?\\s*(\\d.*)$','i'))
             // tolerate a leading prefix before the label ("June 18 Expected Score: 2,700,000,000"); a
             // colon/dash separator is then required, and the prefix must carry no colon of its own.
-            || (hi>0 && line.match(/^[^:]*?\b(?:expected\s+)?scores?\b\s*([:\u2013\u2014\-])\s*(\d.*)$/i));
+            || (hi>0 && line.match(new RegExp('^[^:]*?\\b'+_SCPRE+'scores?\\b\\s*([:\u2013\u2014-])\\s*(\\d.*)$','i')));
       if(sm){ const v=sm[2].trim(); if(v && (sm[1] || !setup.score)){ setup.score=v; got.score=1; } continue; } }
 
     // Wonder line: "Wonder [R#] [Dagger] [, persona (skills), …]"
@@ -1524,5 +1525,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A192';
+  _g.VF_PARSER_VERSION = 'A193';
 })();
