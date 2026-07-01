@@ -532,6 +532,23 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-coll-chip.on{background:rgba(58,109,250,.18); border-color:var(--blue-strong); color:var(--blue-strong); font-weight:700}
 .lib-chip-star{color:#f1c232; margin-right:4px; font-size:11px}
 .lib-coll-pick{flex-direction:row; flex-wrap:wrap}
+/* multi-select / bulk */
+.lib-bulkbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:14px; padding:8px 12px; background:rgba(58,109,250,.10); border:1px solid var(--blue-strong); border-radius:8px; font-size:13px; color:var(--text)}
+.lib-bulk-spacer{flex:1 1 auto}
+.lib-check{width:20px; height:20px; flex:0 0 auto; border:1px solid var(--line); border-radius:5px; background:var(--field); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; color:var(--blue-strong); font-weight:800}
+.lib-item.sel{background:rgba(58,109,250,.12); border-color:var(--blue-strong)}
+.lib-item.selectable{cursor:pointer}
+/* version history + compare */
+.modal-card-wide{max-width:960px; width:100%}
+.lib-hist-when{font-size:11px; color:var(--muted); margin-top:2px}
+.lib-compare{display:flex; gap:14px; align-items:stretch; overflow-x:auto}
+.lib-compare-col{flex:1 1 0; min-width:240px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px 14px}
+.lib-compare-col h3{font:700 14px Oswald,sans-serif; letter-spacing:.02em; margin:0 0 8px; color:var(--text)}
+.lib-cmp-row{display:flex; justify-content:space-between; gap:12px; font-size:12px; padding:2px 0}
+.lib-cmp-row span{color:var(--muted)} .lib-cmp-row b{color:var(--text); font-weight:600; text-align:right}
+.lib-cmp-turn{margin-top:9px} .lib-cmp-turn .tn{font:700 11px Inter,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); margin-bottom:2px}
+.lib-cmp-act{font-size:12px; color:#cdd3e3; padding:1px 0 1px 8px}
+.lib-cmp-diff{background:rgba(241,194,50,.14); border-radius:3px}
 @media (max-width:560px){ .lib-item{flex-wrap:wrap} .lib-item-main{flex:1 1 100%} .lib-item-btns{flex:1 1 100%; justify-content:flex-start} }
 .guide{padding:6px 24px 28px; color:#cdd3e3; font-size:14px; line-height:1.6}
 .guide h3{font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); margin:24px 0 8px}
@@ -1028,7 +1045,16 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="My rotations">
     <div class="modal-head"><h2 id="libTitle">My Rotation Library</h2><button class="modal-close" id="libClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
-      <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><button class="btn" id="libCollBtn" title="Browse collections" style="margin-left:auto">Collections</button></div>
+      <div class="lib-tools" id="libTools"><button class="btn" id="libSaveBtn">Save current rotation</button><button class="btn" id="libSelectBtn" title="Select multiple rotations" style="margin-left:auto">Select</button><button class="btn" id="libCollBtn" title="Browse collections">Collections</button></div>
+      <div class="lib-bulkbar" id="libBulkBar" hidden>
+        <span id="libBulkCount">0 selected</span>
+        <span class="lib-bulk-spacer"></span>
+        <button class="lib-mini" id="libBulkFav">Favourite</button>
+        <button class="lib-mini" id="libBulkColl">Add to collection</button>
+        <button class="lib-mini" id="libBulkCompare" disabled title="Select exactly two to compare">Compare</button>
+        <button class="lib-mini" id="libBulkDelete">Delete</button>
+        <button class="lib-mini" id="libBulkCancel">Cancel</button>
+      </div>
       <div class="lib-filters">
         <select id="libBoss" class="lib-select"><option value="">All bosses</option></select>
         <select id="libMode" class="lib-select"><option value="">All modes</option></select>
@@ -1065,6 +1091,18 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       <button class="lib-mini" id="collectionsBack" hidden style="margin-bottom:12px">&larr; All collections</button>
       <div class="lib-list" id="collectionsList"></div>
     </div>
+  </div>
+</div>
+<div class="modal" id="libHistoryModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Version history">
+    <div class="modal-head"><h2 id="libHistoryTitle">Version history</h2><button class="modal-close" id="libHistoryClose" aria-label="Close">&times;</button></div>
+    <div class="lib-body"><div class="lib-list" id="libHistoryList"></div></div>
+  </div>
+</div>
+<div class="modal" id="libCompareModal" hidden>
+  <div class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-label="Compare rotations">
+    <div class="modal-head"><h2>Compare rotations</h2><button class="modal-close" id="libCompareClose" aria-label="Close">&times;</button></div>
+    <div class="lib-body"><div class="lib-compare" id="libCompareBody"></div></div>
   </div>
 </div>
 
@@ -1979,8 +2017,20 @@ function loadCollFavs(){ try{ const a=JSON.parse(localStorage.getItem(COLLFAV_KE
 function saveCollFavs(a){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify([...new Set((a||[]).filter(Boolean))])); }catch(e){} syncSchedulePush(); }
 function collFavHas(name){ return loadCollFavs().indexOf(name)>=0; }
 function collFavToggle(name){ const a=loadCollFavs(); const i=a.indexOf(name); if(i>=0) a.splice(i,1); else a.push(name); saveCollFavs(a); }
-function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
-function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; try{ state=migrate(JSON.parse(JSON.stringify(e.state))); _lastImportText=''; save(); renderAll(); return true; }catch(err){ return false; } }
+/* version history: every overwrite snapshots the previous state (newest first, capped), so an older take can be recovered */
+const _LIB_HIST_MAX=15;
+function _libHist(e){ return Array.isArray(e&&e.history)?e.history:[]; }
+function libOverwrite(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e){ const h=_libHist(e).slice(); h.unshift({ts:e.ts||Date.now(), state:e.state}); if(h.length>_LIB_HIST_MAX) h.length=_LIB_HIST_MAX; e.history=h; e.state=JSON.parse(JSON.stringify(state)); e.ts=Date.now(); saveLib(a); } }
+function libDeleteVersion(id,idx){ const a=loadLib(); const e=a.find(x=>x.id===id); if(e&&Array.isArray(e.history)){ e.history.splice(idx,1); saveLib(a); } }
+/* make an older snapshot the current version (the current one is pushed back into history so nothing is lost) */
+function libRestoreVersion(id,idx){ const a=loadLib(); const e=a.find(x=>x.id===id); if(!e||!Array.isArray(e.history)||!e.history[idx]) return; const snap=e.history[idx]; e.history.splice(idx,1); e.history.unshift({ts:e.ts||Date.now(), state:e.state}); if(e.history.length>_LIB_HIST_MAX) e.history.length=_LIB_HIST_MAX; e.state=snap.state; e.ts=Date.now(); saveLib(a); }
+function libDuplicate(id){ const a=loadLib(); const e=a.find(x=>x.id===id); if(!e) return; const c=JSON.parse(JSON.stringify(e)); c.id=_libId(); c.name=(e.name||'Rotation')+' (copy)'; c.ts=Date.now(); c.fav=false; delete c.history; a.unshift(c); saveLib(a); }
+function libLoadState(st){ try{ state=migrate(JSON.parse(JSON.stringify(st))); _lastImportText=''; save(); renderAll(); return true; }catch(err){ return false; } }
+function libLoad(id){ const e=loadLib().find(x=>x.id===id); if(!e) return false; return libLoadState(e.state); }
+/* bulk helpers operate on a list of ids at once */
+function libDeleteMany(ids){ const set=new Set(ids); saveLib(loadLib().filter(e=>!set.has(e.id))); }
+function libFavMany(ids,val){ const set=new Set(ids); const a=loadLib(); a.forEach(e=>{ if(set.has(e.id)) e.fav=!!val; }); saveLib(a); }
+function libAddCollMany(ids,coll){ const set=new Set(ids); const c=String(coll||'').trim(); if(!c) return; const a=loadLib(); a.forEach(e=>{ if(set.has(e.id)){ const cur=_libColls(e); if(cur.indexOf(c)<0){ e.colls=cur.concat(c); delete e.coll; } } }); saveLib(a); }
 
 /* ---------- local UI settings (per device; NOT part of the rotation, links or exports) ---------- */
 const _SET_KEY='vf-settings-v1';
@@ -3209,17 +3259,18 @@ function compactDecode(arr){
     backup:unit(arr[8]||[])
   };
 }
-async function encodeShare(){
-  const compactJson=JSON.stringify(compactEncode(state));
+async function encodeShareState(st){
+  const compactJson=JSON.stringify(compactEncode(st));
   if(typeof CompressionStream!=='undefined'){
     try{ const bytes=await _deflateRaw(compactJson); return 'D'+_bytesToB64url(bytes); }catch(e){}
   }
   if(typeof LZString!=='undefined'){
     try{ return 'C'+LZString.compressToEncodedURIComponent(compactJson); }catch(e){}
-    return 'A'+LZString.compressToEncodedURIComponent(JSON.stringify(state));
+    return 'A'+LZString.compressToEncodedURIComponent(JSON.stringify(st));
   }
-  return 'B'+b64urlEncode(JSON.stringify(state));
+  return 'B'+b64urlEncode(JSON.stringify(st));
 }
+async function encodeShare(){ return encodeShareState(state); }
 async function decodeShare(input){
   let code=(input||'').trim();
   const m=code.match(/[#?&][rv]=([^#?&\s]+)/); if(m) code=m[1];
@@ -3235,6 +3286,7 @@ async function decodeShare(input){
   return JSON.parse(json);
 }
 async function shareLinkURL(){ return location.origin+location.pathname+'#r='+(await encodeShare()); }
+async function shareLinkURLFor(st){ return location.origin+location.pathname+'#r='+(await encodeShareState(st)); }
 let _ioPrimary=null;
 function closeShareModal(){ const m=document.getElementById('ioModal'); if(m){ m.hidden=true; const h=document.getElementById('ioHint'); if(h) h.textContent=''; } }
 const SHORTENER='https://s.p5x-rotations.com';   /* Cloudflare Worker short-link service (same worker as vfrp.dyhy.workers.dev, which also stays alive for old links) */
@@ -3355,14 +3407,18 @@ function copyShareText(t, hint){
   if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t.value).then(done, fallback); }
   else fallback();
 }
-function discordLabel(){
-  const s=state.setup||{};
+function discordLabelFor(st){
+  const s=(st&&st.setup)||{};
   const name=rotName(s);
   const meta=[(s.patch||'').trim(),(s.type||'').trim(),(s.side||'').trim()].filter(Boolean).join(' ');
   const credit=(s.credit||s.credits||'').trim();
   const parts=[]; if(meta) parts.push(meta); parts.push(name); if(credit) parts.push('by '+credit);
   return parts.join(' · ');
 }
+function discordLabel(){ return discordLabelFor(state); }
+/* share a saved library entry directly (its own link, no need to load it into the editor first) */
+async function libShareEntry(e){ let url; try{ url=await shareLinkURLFor(e.state); }catch(_){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
+  openShareModal({title:'Share "'+(e.name||'Rotation')+'"', text:url, readonly:true, primaryLabel:'Copy', onPrimary:copyShareText, discordUrl:url, discordLabel:discordLabelFor(e.state), shortenFragment:(url.split('#')[1]||'')}); }
 function maskedDiscordLink(label,url){ let u=String(url||''); if(u.indexOf(SHORTENER)===0) u+=(u.indexOf('?')>=0?'&':'?')+'nc=1';   /* tag short links so a MASKED Discord link never unfurls a preview card (only a bare/short link does) */
   return '['+String(label||'').replace(/[\[\]]/g,'').trim()+']('+u+')'; }
 async function openShareLink(){ let url; try{ url=await shareLinkURL(); }catch(e){ alert('Sharing needs the compression library (requires an internet connection the first time it is used).'); return; }
@@ -3845,6 +3901,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   /* rich preview shown on hover (desktop) or tap (mobile, pinned) — keeps the list compact while exposing team + score/tier/patch/turns/date */
   const hoverEl=document.createElement('div'); hoverEl.className='lib-hover'; hoverEl.hidden=true; document.body.appendChild(hoverEl);   /* on <body>, not inside a modal, so its z-index sits above BOTH the library and the Collections modal */
   let _pinId='';
+  let _selMode=false; const _selIds=new Set();   /* multi-select / bulk mode */
   function buildHover(e){ const st=e.state||{}, s=st.setup||{};
     const team=_teamOf(e).map(n=>{ const src=faceImg(n); return '<span class="lib-hface" title="'+esc(charDisp(n)||n)+'" style="border-color:'+esc(charColor(n))+'">'+(src?'<img src="'+esc(src)+'" alt="" onerror="faceFallback(this)" loading="lazy"/>':'')+'</span>'; }).join('');
     const nActs=(st.turns||[]).reduce((sum,t)=>sum+((t.actions||[]).length),0);
@@ -3895,8 +3952,6 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     if(!a.length){ emptyMsg('No rotations match your search or filters.'); return; }
     a.forEach(e=>{
       const it=document.createElement('div'); it.className='lib-item';
-      const star=document.createElement('button'); star.className='lib-star'+(e.fav?' on':''); star.textContent=e.fav?'★':'☆'; star.title=e.fav?'Remove from favourites':'Favourite (pins to top)';
-      star.onclick=()=>{ libToggleFav(e.id); render(); };
       const main=document.createElement('div'); main.className='lib-item-main';
       const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=e.name; { const _cr=(((e.state&&e.state.setup)||{}).credits||'').trim(); if(_cr){ const cs=document.createElement('span'); cs.className='lib-item-credit'; cs.textContent=' (by '+_cr+')'; nm.appendChild(cs); } }
       const meta=document.createElement('div'); meta.className='lib-item-meta';
@@ -3909,6 +3964,14 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
         (e.tags||[]).forEach(t=>{ const tg=document.createElement('span'); tg.className='lib-tag'; tg.textContent=t; org.appendChild(tg); });
         main.appendChild(org);
       }
+      if(_selMode){   /* multi-select: whole row toggles, no per-item buttons/preview */
+        it.classList.add('selectable'); if(_selIds.has(e.id)) it.classList.add('sel');
+        const chk=document.createElement('div'); chk.className='lib-check'; chk.textContent=_selIds.has(e.id)?'✓':'';
+        it.append(chk,main); it.onclick=()=>{ if(_selIds.has(e.id)) _selIds.delete(e.id); else _selIds.add(e.id); render(); };
+        list.appendChild(it); return;
+      }
+      const star=document.createElement('button'); star.className='lib-star'+(e.fav?' on':''); star.textContent=e.fav?'★':'☆'; star.title=e.fav?'Remove from favourites':'Favourite (pins to top)';
+      star.onclick=()=>{ libToggleFav(e.id); render(); };
       const info=document.createElement('button'); info.className='lib-info'; info.textContent='i'; info.title='Show details';
       info.onclick=ev=>{ ev.stopPropagation(); if(_pinId===e.id){ hideHover(); } else { _pinId=e.id; showHover(e,info,true); } };
       const btns=document.createElement('div'); btns.className='lib-item-btns';
@@ -3917,22 +3980,26 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
       row1.append(mk('Load',()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)) close(); } }));
       if(_libMode!=='load'){
         row1.append(
-          mk('Overwrite',()=>{ if(confirm('Overwrite "'+e.name+'" with your current rotation?')){ libOverwrite(e.id); render(); } }),
+          mk('Overwrite',()=>{ if(confirm('Overwrite "'+e.name+'" with your current rotation? The previous version is kept in this rotation’s history.')){ libOverwrite(e.id); render(); } }),
           mk('Rename',()=>{ const n=prompt('Rename rotation:', e.name); if(n!=null){ libRename(e.id,n); render(); } }),
+          mk('Duplicate',()=>{ libDuplicate(e.id); render(); }),
           mk('Delete',()=>{ if(confirm('Delete "'+e.name+'" from the library?')){ libDelete(e.id); render(); } })
         );
         row2.append(
+          mk('Share',()=>libShareEntry(e)),
           mk('Tags',()=>{ const n=prompt('Tags (comma-separated):', (e.tags||[]).join(', ')); if(n!=null){ libSetTags(e.id,_libParseTags(n)); render(); } }),
           mk('Collection',()=>openCollModal(e))
         );
+        const hn=_libHist(e).length; if(hn) row2.append(mk('History ('+hn+')',()=>openHistory(e.id)));
       }
       btns.append(row1); if(row2.children.length) btns.append(row2);
       it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover()) showHover(e,it,false); });
       it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
       it.append(star,main,info,btns); list.appendChild(it);
     });
+    _updateBulkBar();
   }
-  function open(mode){ _libMode=(mode==='load')?'load':'full'; const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotation Library'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
+  function open(mode){ _libMode=(mode==='load')?'load':'full'; _selMode=false; _selIds.clear(); const t=document.getElementById('libTitle'); if(t) t.textContent=(_libMode==='load')?'Load Rotation':'My Rotation Library'; const tools=document.getElementById('libTools'); if(tools) tools.hidden=(_libMode==='load'); render(); modal.hidden=false; }
   const close=()=>{ modal.hidden=true; hideHover(); };
   document.addEventListener('click',()=>{ if(_pinId) hideHover(); });   /* tap/click outside an item closes a pinned preview */
   /* ---- collection assignment modal (multi-select existing + add new) ---- */
@@ -3950,6 +4017,61 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   if(cDone) cDone.onclick=()=>{ if(_cEntryId) libSetColls(_cEntryId,[..._cChosen]); closeCollModal(); render(); };
   if(cClose) cClose.onclick=closeCollModal;
   if(cModal) cModal.addEventListener('click',ev=>{ if(ev.target===cModal) closeCollModal(); });
+  /* ---- multi-select / bulk actions ---- */
+  const bulkBar=document.getElementById('libBulkBar'), selBtn=document.getElementById('libSelectBtn');
+  function _updateBulkBar(){ if(!bulkBar) return; bulkBar.hidden=!_selMode; if(selBtn) selBtn.textContent=_selMode?'Done':'Select';
+    const n=_selIds.size; const c=document.getElementById('libBulkCount'); if(c) c.textContent=n+' selected';
+    const cmp=document.getElementById('libBulkCompare'); if(cmp) cmp.disabled=(n!==2);
+    ['libBulkFav','libBulkColl','libBulkDelete'].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=(n===0); }); }
+  function _setSelMode(on){ _selMode=!!on; if(!_selMode) _selIds.clear(); hideHover(); render(); }
+  if(selBtn) selBtn.onclick=()=>_setSelMode(!_selMode);
+  { const b=document.getElementById('libBulkCancel'); if(b) b.onclick=()=>_setSelMode(false); }
+  { const b=document.getElementById('libBulkDelete'); if(b) b.onclick=()=>{ if(!_selIds.size) return; if(confirm('Delete '+_selIds.size+' rotation(s) from the library?')){ libDeleteMany([..._selIds]); _selIds.clear(); render(); } }; }
+  { const b=document.getElementById('libBulkFav'); if(b) b.onclick=()=>{ if(!_selIds.size) return; libFavMany([..._selIds],true); render(); }; }
+  { const b=document.getElementById('libBulkColl'); if(b) b.onclick=()=>{ if(!_selIds.size) return; const c=prompt('Add the selected rotations to which collection?'); if(c==null) return; const nm=c.trim(); if(!nm) return; libAddCollMany([..._selIds],nm); render(); }; }
+  { const b=document.getElementById('libBulkCompare'); if(b) b.onclick=()=>{ if(_selIds.size===2) openCompare([..._selIds]); }; }
+  /* ---- version history ---- */
+  const histModal=document.getElementById('libHistoryModal'), histList=document.getElementById('libHistoryList'), histTitle=document.getElementById('libHistoryTitle'), histClose=document.getElementById('libHistoryClose');
+  let _histId='';
+  function renderHistory(){ if(!histList) return; histList.innerHTML=''; const e=loadLib().find(x=>x.id===_histId); if(!e){ closeHistory(); return; }
+    if(histTitle) histTitle.textContent='Version history: '+e.name;
+    const h=_libHist(e);
+    if(!h.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='No earlier versions yet. Overwriting this rotation saves the previous version here.'; histList.appendChild(d); return; }
+    h.forEach((snap,i)=>{ const it=document.createElement('div'); it.className='lib-item';
+      const main=document.createElement('div'); main.className='lib-item-main';
+      const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent='Version '+(h.length-i);
+      const when=document.createElement('div'); when.className='lib-item-meta'; const ss=(snap.state&&snap.state.setup)||{}; when.textContent=[ss.type,ss.boss,ss.patch?('Patch '+ss.patch):''].filter(Boolean).join(' · ')+'  ·  '+fmtDate(snap.ts);
+      main.append(nm,when);
+      const btns=document.createElement('div'); btns.className='lib-item-btns'; const row=document.createElement('div'); row.className='lib-btn-row';
+      const mk=(t,fn)=>{ const b=document.createElement('button'); b.className='lib-mini'; b.textContent=t; b.onclick=fn; return b; };
+      row.append(
+        mk('Load',()=>{ if(confirm('Load this earlier version? It replaces your current rotation (your library entry is unchanged).')){ if(libLoadState(snap.state)){ closeHistory(); close(); } } }),
+        mk('Restore',()=>{ if(confirm('Make this the current version of "'+e.name+'"? The present version is kept in history.')){ libRestoreVersion(_histId,i); renderHistory(); render(); } }),
+        mk('Delete',()=>{ libDeleteVersion(_histId,i); renderHistory(); render(); })
+      );
+      btns.append(row); it.append(main,btns); histList.appendChild(it);
+    });
+  }
+  function openHistory(id){ _histId=id; renderHistory(); if(histModal) histModal.hidden=false; }
+  function closeHistory(){ if(histModal) histModal.hidden=true; }
+  if(histClose) histClose.onclick=closeHistory;
+  if(histModal) histModal.addEventListener('click',ev=>{ if(ev.target===histModal) closeHistory(); });
+  /* ---- compare two rotations side by side ---- */
+  const cmpModal=document.getElementById('libCompareModal'), cmpBody=document.getElementById('libCompareBody'), cmpClose=document.getElementById('libCompareClose');
+  function _cmpCol(e){ const st=e.state||{}, s=st.setup||{};
+    const rows=[['Mode',s.type],['Boss',s.boss],['Side',s.side],['Patch',s.patch],['Score',s.score],['Credits',(s.credits||'').trim()],['Team',_teamOf(e).map(n=>charDisp(n)).join(', ')],['Turns',(st.turns||[]).length||'']];
+    let html='<div class="lib-compare-col"><h3>'+esc(e.name||'Rotation')+'</h3>';
+    rows.forEach(r=>{ if(r[1]===''||r[1]==null) return; html+='<div class="lib-cmp-row"><span>'+esc(r[0])+'</span><b>'+esc(String(r[1]))+'</b></div>'; });
+    (st.turns||[]).forEach((t,ti)=>{ html+='<div class="lib-cmp-turn"><div class="tn">'+esc(t.name||('Turn '+(ti+1)))+'</div>';
+      (t.actions||[]).forEach(a=>{ html+='<div class="lib-cmp-act">'+esc(textAction(a))+'</div>'; });
+      html+='</div>'; });
+    return html+'</div>';
+  }
+  function openCompare(ids){ if(!cmpModal||!cmpBody) return; const all=loadLib(); const es=ids.map(id=>all.find(x=>x.id===id)).filter(Boolean); if(es.length<2) return;
+    cmpBody.innerHTML=es.map(_cmpCol).join(''); cmpModal.hidden=false; }
+  function closeCompare(){ if(cmpModal) cmpModal.hidden=true; }
+  if(cmpClose) cmpClose.onclick=closeCompare;
+  if(cmpModal) cmpModal.addEventListener('click',ev=>{ if(ev.target===cmpModal) closeCompare(); });
   /* ---- dedicated Collections window (the future hub for sharing): list collections -> a collection's rotations ---- */
   const collModal2=document.getElementById('collectionsModal'), collList=document.getElementById('collectionsList'), collBack=document.getElementById('collectionsBack'), collTitle=document.getElementById('collectionsTitle'), collClose=document.getElementById('collectionsClose');
   function _collCard(e){
@@ -5479,6 +5601,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260630u</div>
+<div class="version-tag">260701a</div>
 </body>
 </html>
