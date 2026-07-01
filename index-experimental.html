@@ -537,8 +537,8 @@ body.theme-light .coll-web-note{color:#37415a}
 .coll-ed-rm{flex:0 0 auto; align-self:flex-start}
 .coll-ed-item-main{flex:1 1 auto; min-width:0}
 .coll-ed-item-name{font:700 13px Oswald,sans-serif; letter-spacing:.01em}
-.coll-ed-item-meta{font-size:11px; color:var(--muted); margin:1px 0 4px}
-.coll-ed-item-cred{font-size:11px; color:var(--muted); font-style:italic; margin:0 0 6px}
+.coll-ed-item-meta{font-size:11px; color:var(--muted); margin:1px 0 6px}
+.coll-ed-item-cred{font-size:12px; color:var(--muted); font-style:italic; margin:1px 0 2px}
 .coll-ed-item .coll-ed-note{width:100%; box-sizing:border-box; background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:5px 8px; font-size:12px; font-family:inherit; resize:vertical; min-height:32px}
 /* sub-category header row: a full-width blue-accent line, like the collection name but blue */
 .coll-ed-sub{align-items:center; background:transparent; border:none; border-radius:0; border-bottom:2px solid var(--blue-strong); padding:2px 0; margin:14px 0 8px}
@@ -1577,7 +1577,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div class="set-backup-btns" id="syncCtrls">
           <div class="set-sync-row"><button class="btn" id="syncGenBtn">Generate sync code</button><button class="btn" id="syncNowBtn">Sync now</button></div>
           <input type="text" id="syncCodeField" class="set-input" placeholder="Enter sync code" autocomplete="off" autocapitalize="off" spellcheck="false"/>
-          <input type="text" id="syncNameField" class="set-input set-name-input" placeholder="Your name (shown on collections you publish)" autocomplete="off" spellcheck="false" hidden/>
+          <input type="text" id="syncNameField" class="set-input set-name-input" placeholder="Your name" autocomplete="off" spellcheck="false" hidden/>
         </div>
       </div>
       <div class="set-status" id="settingsStatus" hidden></div>
@@ -3239,7 +3239,8 @@ function renderNotes(){
   const ta=document.getElementById('notes'); ta.value=state.setup.notes||'';
   ta.oninput=()=>{state.setup.notes=ta.value; save();};
 }
-function renderAll(){ renderHead(); renderTeam(); renderTurns(); renderNotes(); document.querySelectorAll('.view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical'))); }
+function renderAll(){ if(document.body.classList.contains('view-mode')) return;   /* a read-only view (#c=/#cp=/#v=) mounts its own root and hides the editor; don't waste work building it (also stops deferred live-data callbacks from rebuilding it) */
+  renderHead(); renderTeam(); renderTurns(); renderNotes(); document.querySelectorAll('.view-opt').forEach(x=>x.classList.toggle('on', x.dataset.view===(state.rotationView||'vertical'))); }
 
 /* ---------- toolbar ---------- */
 const EXAMPLES={"MLD":{"setup":{"rotationName":"All A6 Akihiko + Yukari","tier":"","boss":"SLAUGHTER DRIVE","type":"MLD","patch":"4.3","score":"2.4B","notes":"","credits":"Kimmy","side":"Strong","breaks":2},"units":[{"name":"YUKARI","awareness":"A6","rev":"R6","gear":"","space":"Creation","sunsky":"Reconciliation","role":"","companion":"","note":""},{"name":"TWINS","awareness":"A6","rev":"R6","gear":"","space":"Departure","sunsky":"Control","role":"Strategist","companion":"","note":""},{"name":"WONDER","awareness":"DGR","rev":"R6","gear":"Cyclotron","space":"","sunsky":"","role":"","companion":"","note":""},{"name":"AKIHIKO","awareness":"A6","rev":"R6","gear":"","space":"Perseverance","sunsky":"Change","role":"","companion":"","note":"15.7 Pierce, 25.3 CR min (More can be better)"}],"elucidator":{"name":"ANGE","awareness":"A6","rev":"R6","gear":"","space":"Hope","sunsky":"Labor","role":"","companion":"","note":""},"personas":[{"name":"Dionysus","skills":["Matarukaja","Tarukaja"],"note":""},{"name":"Thor","skills":["Wild Thunder",""],"note":""},{"name":"Kohryu","skills":["",""],"note":""}],"teamNotes":"","turns":[{"name":"TURN 1","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"Atk","text":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Wild Thunder","btn":""},{"char":"AKIHIKO","btn":"S2","text":""}],"note":""},{"name":"TURN 2","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Matarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 3","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":true,"text":"","skill":"","btn":""},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Thunder Caller","btn":""},{"char":"AKIHIKO","btn":"ALT","text":"x2"},{"char":"AKIHIKO","btn":"S3","text":""}],"note":""},{"name":"TURN 4","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"YUKARI","btn":"HL","text":""},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Tarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 5","actions":[{"char":"ANGE","btn":"S3","text":""},{"char":"TWINS","btn":"HL","text":"Fire/Ice"},{"char":"YUKARI","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S2","text":""},{"char":"TWINS","btn":"ALT","text":""},{"char":"TWINS","btn":"S1","text":""},{"char":"WONDER","persona":"Dionysus","hl":false,"text":"Akihiko","skill":"Matarukaja","btn":""},{"char":"AKIHIKO","btn":"S1","text":""}],"note":""},{"name":"TURN 6","actions":[{"char":"ANGE","btn":"S1","text":""},{"char":"ANGE","btn":"ALT","text":"x2"},{"char":"YUKARI","btn":"HL","text":""},{"char":"AKIHIKO","btn":"Ast","text":"Twins"},{"char":"YUKARI","btn":"S3","text":""},{"char":"TWINS","btn":"S2","text":""},{"char":"TWINS","btn":"HL","text":"Psy/Nuke"},{"char":"AKIHIKO","btn":"HL","text":"w/ Thor"},{"char":"WONDER","persona":"Thor","hl":false,"text":"","skill":"Thunder Caller","btn":""},{"char":"AKIHIKO","btn":"ALT","text":""},{"char":"AKIHIKO","btn":"S3","text":"x2"},{"char":"AKIHIKO","btn":"HL","text":""},{"char":"AKIHIKO","btn":"S3","text":""}],"note":""}],"rotationView":"vertical","backup":{"name":"","awareness":"A0","rev":"RX","gear":"","space":"","sunsky":"","role":"","companion":"","note":""}},"DOD":{"setup":{"rotationName":"Haru Whale","tier":"","boss":"KARTIKEYA","type":"DOD","patch":"4.1","score":"600 Mil","notes":"Attack adds","credits":"Yanagi + Segejin","side":"Weak","breaks":2},"units":[{"name":"MATOI","awareness":"A6","rev":"R6","gear":"","space":"Faith","sunsky":"Futility","role":"","companion":"","note":""},{"name":"WONDER","awareness":"DGR","rev":"R5","gear":"Starry Compass","space":"","sunsky":"","role":"","companion":"","note":""},{"name":"NOIR","awareness":"A6","rev":"R6","gear":"","space":"Wisdom","sunsky":"Pleasure","role":"","companion":"","note":"Low pierce"},{"name":"CROW","awareness":"A6","rev":"R6","gear":"","space":"Freedom","sunsky":"Disappointment","role":"","companion":"","note":"No pierce"}],"elucidator":{"name":"ORACLE","awareness":"A6","rev":"R6","gear":"","space":"Trust","sunsky":"Power","role":"","companion":"","note":""},"personas":[{"name":"Koumokuten","skills":["",""],"note":""},{"name":"Yurlungur","skills":["Wild Thunder","Tarukaja"],"note":""},{"name":"Kohryu","skills":["Agi",""],"note":""}],"teamNotes":"Adjust Pierce & Crit","turns":[{"name":"TURN 1","actions":[{"char":"MATOI","btn":"Gd","text":""},{"char":"WONDER","persona":"Kohryu","hl":false,"text":"","skill":"Agi","btn":""},{"char":"NOIR","btn":"Atk","text":""},{"char":"CROW","btn":"Gn","text":"1-4 times"}],"note":"Attack birds"},{"name":"TURN 2","actions":[{"char":"ORACLE","btn":"S2","text":"outta bird"},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Koumokuten","hl":false,"text":"Noir","skill":"Revolution","btn":""},{"char":"NOIR","btn":"Gd","text":""},{"char":"CROW","btn":"S1","text":""}],"note":""},{"name":"Break 1","actions":[{"char":"MATOI","btn":"HL","text":""},{"char":"ORACLE","btn":"S1","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"(5 shocks)","skill":"Wild Thunder","btn":""},{"char":"NOIR","btn":"S3","text":""},{"char":"CROW","btn":"S2","text":""}],"note":""},{"name":"Break 2","actions":[{"char":"ORACLE","btn":"S3","text":""},{"char":"MATOI","btn":"S3","text":""},{"char":"WONDER","persona":"Yurlungur","hl":false,"text":"","skill":"Tarukaja","btn":""},{"char":"NOIR","btn":"HL","text":""},{"char":"NOIR","btn":"Gn","text":""},{"char":"CROW","btn":"S3","text":""}],"note":""}],"rotationView":"horizontal","backup":{"name":"","awareness":"A0","rev":"RX","gear":"","space":"","sunsky":"","role":"","companion":"","note":""}}};
@@ -3860,8 +3861,10 @@ document.querySelectorAll('#viewSwitchSettings .view-opt').forEach(b=>b.onclick=
 /* collections this device has published (code -> {name}); used to show the owner "Edit" button on #c= and to re-publish to the same code */
 const COLL_OWNED_KEY='vf-coll-owned-v1';
 function _ownedColls(){ try{ return JSON.parse(localStorage.getItem(COLL_OWNED_KEY))||{}; }catch(e){ return {}; } }
-function _saveOwnedColl(code,name){ if(!code) return; const m=_ownedColls(); m[code]={name:name||'', ts:Date.now()}; try{ localStorage.setItem(COLL_OWNED_KEY,JSON.stringify(m)); }catch(e){} }
-function _collCodeForName(name){ const m=_ownedColls(); for(const c in m){ if(m[c]&&m[c].name===name) return c; } return ''; }
+function _saveOwnedColl(code,name){ if(!code) return; const m=_ownedColls(); m[code]={name:name||'', sync:getSyncCode()||'', ts:Date.now()}; try{ localStorage.setItem(COLL_OWNED_KEY,JSON.stringify(m)); }catch(e){} }
+/* the Edit button (and same-code re-publish) only when this device published the collection AND is still signed in with the sync code it was published under */
+function _ownsColl(code){ const e=_ownedColls()[code]; return !!(e && e.sync && getSyncCode() && e.sync===getSyncCode()); }
+function _collCodeForName(name){ const m=_ownedColls(); const sc=getSyncCode(); for(const c in m){ if(m[c]&&m[c].name===name && m[c].sync && m[c].sync===sc) return c; } return ''; }
 /* editor drafts (unpublished working copies), keyed by collection name */
 const COLL_DRAFT_KEY='vf-coll-drafts-v1';
 function _collDrafts(){ try{ return JSON.parse(localStorage.getItem(COLL_DRAFT_KEY))||{}; }catch(e){ return {}; } }
@@ -3900,11 +3903,13 @@ function importCollectionJSON(obj){
 function _collWebCard(it, st){
   const a=document.createElement('a'); a.className='coll-web-card';
   const ref=(it.ref&&it.ref[0]==='#')?it.ref:('#'+(it.ref||'')); a.href=location.origin+location.pathname+ref; a.target='_blank'; a.rel='noopener';
+  /* always open the rotation in a NEW tab on a plain click (some engines navigate the current tab despite target=_blank); leave modifier/middle clicks to the browser */
+  a.addEventListener('click',ev=>{ if(ev.button||ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey) return; ev.preventDefault(); window.open(a.href,'_blank','noopener'); });
   const s=(st&&st.setup)||{};
   const nm=document.createElement('div'); nm.className='coll-web-card-name'; nm.textContent=st?(s.rotationName||'Rotation'):'(unreadable rotation)'; a.appendChild(nm);
   if(st){
+    if((s.credits||'').trim()){ const cr=document.createElement('div'); cr.className='coll-web-card-cred'; cr.textContent='by '+s.credits; a.appendChild(cr); }   /* credits as a subtitle directly under the name */
     const meta=document.createElement('div'); meta.className='coll-web-card-meta'; meta.textContent=[s.type,s.side,s.boss,s.patch?('Patch '+s.patch):'',(st.turns||[]).length?((st.turns||[]).length+' turns'):''].filter(Boolean).join(' · '); a.appendChild(meta);
-    if((s.credits||'').trim()){ const cr=document.createElement('div'); cr.className='coll-web-card-cred'; cr.textContent='by '+s.credits; a.appendChild(cr); }
     const team=[]; (st.units||[]).forEach(u=>{ if(u&&(u.name||'').trim()) team.push(u.name.trim()); }); if(st.backup&&st.backup.name) team.push(st.backup.name.trim()); if(st.elucidator&&st.elucidator.name) team.push(st.elucidator.name.trim());
     if(team.length){ const tr=document.createElement('div'); tr.className='coll-web-faces';
       team.forEach(n=>{ const src=faceImg(n); const sp=document.createElement('span'); sp.className='coll-web-face'; sp.title=charDisp(n)||n; sp.style.borderColor=uiAccent(n); if(src){ const im=document.createElement('img'); im.src=src; im.alt=''; im.loading='lazy'; im.onerror=function(){ faceFallback(this); }; sp.appendChild(im); } tr.appendChild(sp); }); a.appendChild(tr); }
@@ -4012,7 +4017,7 @@ function _syncUpdateButtons(){ const field=document.getElementById('syncCodeFiel
   const v=((field&&field.value)||'').trim(); if(gen) gen.hidden=syncLooksLikeCode(v); if(now) now.hidden=!getSyncCode(); }
 /* size the code field to match the Generate button exactly (measure it even when hidden, no visible flash) */
 function _syncFitField(){ const field=document.getElementById('syncCodeField'), gen=document.getElementById('syncGenBtn'); if(!field||!gen) return;
-  const wasHidden=gen.hidden; gen.hidden=false; const w=gen.offsetWidth; gen.hidden=wasHidden; if(w>0) field.style.width=w+'px'; }
+  const wasHidden=gen.hidden; gen.hidden=false; const w=gen.offsetWidth; gen.hidden=wasHidden; if(w>0){ field.style.width=w+'px'; const nf=document.getElementById('syncNameField'); if(nf) nf.style.width=w+'px'; } }
 function syncRefreshUI(){ const field=document.getElementById('syncCodeField'); const c=getSyncCode();
   if(field && document.activeElement!==field) field.value=c||''; _syncUpdateButtons(); _syncFitField(); syncSimLinkBtn();
   const nf=document.getElementById('syncNameField');   /* the name field only makes sense once a code is active */
@@ -4504,9 +4509,10 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     const grip=document.createElement('span'); grip.className='cegrip'; grip.title='Drag to reorder'; grip.innerHTML=GRIP_DOTS;
     const main=document.createElement('div'); main.className='coll-ed-item-main';
     const nm=document.createElement('div'); nm.className='coll-ed-item-name'; nm.textContent=st?(s.rotationName||'Rotation'):'(unreadable rotation)';
+    main.append(nm);
+    if(st&&(s.credits||'').trim()){ const cr=document.createElement('div'); cr.className='coll-ed-item-cred'; cr.textContent='by '+s.credits; main.append(cr); }   /* credits as a subtitle directly under the name */
     const meta=document.createElement('div'); meta.className='coll-ed-item-meta'; meta.textContent=st?[s.type,s.side,s.boss,s.patch?('Patch '+s.patch):''].filter(Boolean).join(' · '):'';
-    main.append(nm,meta);
-    if(st&&(s.credits||'').trim()){ const cr=document.createElement('div'); cr.className='coll-ed-item-cred'; cr.textContent='by '+s.credits; main.append(cr); }
+    main.append(meta);
     const note=document.createElement('textarea'); note.className='coll-ed-note'; note.placeholder='Note for this rotation…'; note.value=it.note||''; note.oninput=()=>{ it.note=note.value; };
     main.append(note);
     const rm=document.createElement('button'); rm.className='lib-mini coll-ed-rm'; rm.textContent='Remove'; rm.onclick=()=>{ _ceObj.items.splice(i,1); _ceStates.splice(i,1); renderCEItems(); };
@@ -6007,7 +6013,11 @@ const PERSONA_ALIASES = {"Nian Shou":["Nian","Shou"],"Baphomet":["Bapho"],"Belph
 
 const _vfMigrating = vfMigrateBoot();   /* one-time cross-domain localStorage migration to p5x-rotations.com; when true it takes over this load */
 if(!_vfMigrating){
-state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); renderAll(); histInit();
+/* a read-only view hash (#c=/#cp=/#v=) mounts its own root; hide the editor shell immediately and skip the boot
+   editor render so the (empty) editor never flashes while the view loads. #r=/#t= still open in the editor. */
+const _isViewBoot=/[#&](cp?|v)=/.test(location.hash||'');
+if(_isViewBoot) document.body.classList.add('view-mode');
+state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()/*EXPERIMENTAL crop*/; loadPersonaCrops(); loadCharCropsLive(); loadPersonaCropsLive(); loadBannerLive(); rotationPreviewOpen=!!settings.previewExpanded; applySettings(); if(!_isViewBoot){ renderAll(); histInit(); }
 /* editor undo/redo bar wiring (deferred: the bar sits after this script in the DOM) + keyboard shortcuts
    (skip Cmd/Ctrl+Z while typing in a field so native text-undo still works) */
 { const wireEditBar=()=>{ const u=document.getElementById('ebUndo'), r=document.getElementById('ebRedo'), sv=document.getElementById('ebSave'), vw=document.getElementById('ebView'), tg=document.getElementById('ebToggle'), im=document.getElementById('ebImport');
@@ -6042,7 +6052,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   }
   const cm=(location.hash||'').match(/[#&]c=([^&]+)/);   // #c=<code> -> public shared-collection webview
   if(cm){ const code=cm[1];
-    try{ const obj=await _collFetch(code); await enterCollectionView(importCollectionJSON(obj)||obj, code, !!_ownedColls()[code]); }
+    try{ const obj=await _collFetch(code); await enterCollectionView(importCollectionJSON(obj)||obj, code, _ownsColl(code)); }
     catch(e){ document.body.classList.add('view-mode'); let r=document.getElementById('collViewRoot'); if(!r){ r=document.createElement('div'); r.id='collViewRoot'; document.body.appendChild(r); }
       r.innerHTML='<div class="coll-web"><div class="coll-web-bar"><button class="btn" id="_collBack">Open the planner</button></div><div class="lib-empty">This collection code could not be loaded (it may not exist, or the link is wrong).</div></div>';
       const b=document.getElementById('_collBack'); if(b) b.onclick=()=>{ location.href=location.origin+location.pathname; }; }
@@ -6053,6 +6063,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
     let ok=false;
     try{ const st=await decodeShare(vm[1]); state=migrate(st); ok=true; }catch(e){ /* unreadable view link */ }
     if(ok){ enterViewMode(); return; }   /* read-only view; do NOT save() or clear the hash */
+    document.body.classList.remove('view-mode'); renderAll(); histInit(); return;   /* broken #v= link: fall back to the editor (the boot render was skipped) */
   }
   // #t=<base64url(plain rotation text)> -> parse it with vf-parser.js and open it in the editor.
   // lets external tools deep-link a rotation into VFRP using the same text format the Import Text reads.
@@ -6106,6 +6117,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701y</div>
+<div class="version-tag">260701z</div>
 </body>
 </html>
