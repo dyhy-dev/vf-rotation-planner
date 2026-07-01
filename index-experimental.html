@@ -494,7 +494,9 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-fromcoll{position:absolute; left:8px; bottom:6px; width:16px; height:16px; color:var(--muted); opacity:.8; cursor:help}
 .lib-fromcoll svg{width:16px; height:16px; display:block}
 /* ---- shared-collection public webview (#c=) ---- */
-#collViewRoot{min-height:100vh; background:var(--ink); box-sizing:border-box; padding:16px 16px 40px; overflow-x:auto; color:var(--text); font-family:Inter,sans-serif}
+#collViewRoot{min-height:100vh; background:var(--ink); box-sizing:border-box; padding:16px 16px 12px; overflow-x:auto; color:var(--text); font-family:Inter,sans-serif}
+#collViewRoot #collViewBody{max-width:1024px; margin:0 auto}
+#collThemeToggle{margin-top:12px}
 .coll-web{max-width:900px; margin:0 auto}
 .coll-web-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:8px 0 4px}
 .coll-web-title{font:700 26px Oswald,sans-serif; letter-spacing:.02em; color:var(--text)}
@@ -518,16 +520,26 @@ body.theme-light .coll-web-note{color:#37415a}
 .coll-ed-field{margin:0 0 12px}
 .coll-ed-field label{display:block; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:4px}
 .coll-ed-field > .lib-input{width:100%; box-sizing:border-box}
-.coll-ed-subcats{display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 10px}
-.coll-ed-subcat{background:var(--field); border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:12px; display:inline-flex; align-items:center; gap:6px}
-.coll-ed-subcat button{background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:0; line-height:1}
+/* collection name input — mirrors the main tool's .rot-name line */
+.coll-ed-name{width:100%; box-sizing:border-box; background:transparent; border:none; border-bottom:2px solid var(--line);
+  font-family:"Oswald"; font-weight:700; font-size:30px; letter-spacing:.03em; padding:2px 0; color:var(--text)}
+.coll-ed-name:focus{outline:none; border-color:var(--gold)}
+/* editor rows: shared frame, a drag grip on the left, a Remove on the right */
 .coll-ed-item{display:flex; gap:8px; align-items:flex-start; background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:9px 10px; margin:0 0 8px}
+.coll-ed-item.dragging{opacity:.4}
+.coll-ed-item.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+.cegrip{flex:0 0 auto; cursor:grab; color:var(--muted); display:inline-flex; align-items:center; padding:2px 2px; margin-top:2px; touch-action:none}
+.cegrip:active{cursor:grabbing}
+.coll-ed-rm{flex:0 0 auto; align-self:flex-start}
 .coll-ed-item-main{flex:1 1 auto; min-width:0}
 .coll-ed-item-name{font:700 13px Oswald,sans-serif; letter-spacing:.01em}
 .coll-ed-item-meta{font-size:11px; color:var(--muted); margin:1px 0 6px}
 .coll-ed-item .coll-ed-note{width:100%; box-sizing:border-box; background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:5px 8px; font-size:12px; font-family:inherit; resize:vertical; min-height:32px}
-.coll-ed-item-side{display:flex; flex-direction:column; gap:5px; align-items:stretch; flex:0 0 auto}
-.coll-ed-move{display:flex; gap:4px}
+/* sub-category header row: a full-width blue-accent line, like the collection name but blue */
+.coll-ed-sub{align-items:center; background:transparent; border:none; border-radius:0; border-bottom:2px solid var(--blue-strong); padding:2px 0; margin:14px 0 8px}
+.coll-ed-subname{flex:1 1 auto; min-width:0; background:transparent; border:none; font-family:"Oswald"; font-weight:700; font-size:20px; letter-spacing:.02em; color:var(--blue-strong); padding:2px 0}
+.coll-ed-subname:focus{outline:none}
+.coll-ed-sub .cegrip{color:var(--blue-strong); margin-top:0}
 .coll-ed-empty{color:var(--muted); font-size:13px; padding:8px 0}
 .lib-caret{font-size:9px; opacity:.75}
 .lib-hcount{font-size:11px; font-weight:600}
@@ -1190,10 +1202,9 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-label="Collection editor">
     <div class="modal-head"><h2 id="collEditTitle">Edit collection</h2><button class="modal-close" id="collEditClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
-      <div class="coll-ed-field"><label>Collection name</label><input type="text" id="collEdName" class="lib-input"/></div>
+      <div class="coll-ed-field"><input type="text" id="collEdName" class="coll-ed-name" placeholder="Collection name"/></div>
       <div class="coll-ed-field"><label>Intro / description</label><textarea id="collEdIntro" class="lib-input" style="min-height:90px;resize:vertical;font-family:inherit"></textarea></div>
-      <div class="coll-ed-field"><label>Sub-categories</label><div class="coll-ed-subcats" id="collEdSubcats"></div><div class="lib-coll-new"><input type="text" id="collEdSubNew" class="lib-input" placeholder="New sub-category…"/><button class="btn" id="collEdSubAdd">Add</button></div></div>
-      <div class="coll-ed-field"><label>Rotations (reorder with ↑ ↓, add a note, pick a sub-category)</label><div id="collEdItems"></div></div>
+      <div class="coll-ed-field"><label>Rotations (drag the grips to reorder; add sub-category headers to group them)</label><div id="collEdItems"></div><div class="lib-coll-new" style="margin-top:8px"><input type="text" id="collEdSubNew" class="lib-input" placeholder="Sub-category header…"/><button class="btn" id="collEdSubAdd">Add sub-category</button></div></div>
       <label class="ac-row" style="margin:2px 0 12px"><input type="checkbox" id="collEdContrib"><span>Allow others to contribute rotations to this collection (coming soon)</span></label>
       <div class="io-actions" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="collEdPublish">Publish / update link</button><button class="btn" id="collEdSaveDraft">Save draft</button><button class="btn" id="collEdPreview">Preview webview</button><button class="btn" id="collEdDownload">Download JSON</button><button class="btn" id="collEdReset" title="Discard the draft and rebuild from your library">Reset from library</button></div>
     </div>
@@ -3842,15 +3853,24 @@ async function buildCollectionObject(collName){
   let inColl=all.filter(e=>_libColls(e).includes(collName));
   inColl.sort((x,y)=>(y.ts||0)-(x.ts||0)); inColl=inColl.filter(e=>e.fav).concat(inColl.filter(e=>!e.fav));   /* same order as the collection detail view */
   const items=[];
-  for(const e of inColl){ const frag='#v='+(await encodeShareState(e.state)); items.push({ref:frag, note:'', subcat:-1}); }   /* ref = self-contained #v= fragment; decodeShare(ref) round-trips it */
-  return { v:1, name:String(collName||''), ownerId:'', ownerName:(settings.defaultCredit||'').trim(), intro:'', subcats:[], items:items, flags:{contribOpen:false}, ts:Date.now() };
+  for(const e of inColl){ const frag='#v='+(await encodeShareState(e.state)); items.push({type:'rot', ref:frag, note:''}); }   /* ref = self-contained #v= fragment; decodeShare(ref) round-trips it */
+  return { v:2, name:String(collName||''), ownerId:'', ownerName:(settings.defaultCredit||'').trim(), intro:'', items:items, flags:{contribOpen:false}, ts:Date.now() };
 }
-/* parse + normalise a collection object (for JSON round-trip / future import); returns null if invalid */
+/* normalise a collection object to the flat v2 shape: items is an ordered list of {type:'sub',name} | {type:'rot',ref,note}.
+   Sub-category headers live IN the order (they start a section). Converts the old v1 shape (subcats[] + items[].subcat). */
 function importCollectionJSON(obj){
   if(!obj || typeof obj!=='object' || Array.isArray(obj)) return null;
-  const items=Array.isArray(obj.items)?obj.items.filter(it=>it&&typeof it.ref==='string').map(it=>({ref:it.ref, note:String(it.note||''), subcat:(typeof it.subcat==='number'?it.subcat:-1)})):[];
-  return { v:1, name:String(obj.name||'Collection'), ownerId:String(obj.ownerId||''), ownerName:String(obj.ownerName||''), intro:String(obj.intro||''),
-    subcats:Array.isArray(obj.subcats)?obj.subcats.map(x=>String(x)):[], items:items, flags:{contribOpen:!!(obj.flags&&obj.flags.contribOpen)}, ts:(+obj.ts||Date.now()) };
+  const raw=Array.isArray(obj.items)?obj.items:[]; let items=[];
+  if(raw.some(it=>it&&it.type)){   /* already v2 (flat, typed) */
+    items=raw.filter(it=>it&&(it.type==='sub'||it.type==='rot')).map(it=> it.type==='sub' ? {type:'sub', name:String(it.name||'')} : {type:'rot', ref:String(it.ref||''), note:String(it.note||'')}).filter(it=>it.type==='sub'||it.ref);
+  } else {   /* v1: group rotations under their sub-category header, ungrouped last */
+    const subcats=Array.isArray(obj.subcats)?obj.subcats.map(x=>String(x)):[];
+    const rots=raw.filter(it=>it&&typeof it.ref==='string').map(it=>({ref:it.ref, note:String(it.note||''), subcat:(typeof it.subcat==='number'?it.subcat:-1)}));
+    subcats.forEach((s,i)=>{ const grp=rots.filter(r=>r.subcat===i); if(grp.length){ items.push({type:'sub',name:s}); grp.forEach(r=>items.push({type:'rot',ref:r.ref,note:r.note})); } });
+    rots.filter(r=>r.subcat<0||r.subcat>=subcats.length).forEach(r=>items.push({type:'rot',ref:r.ref,note:r.note}));
+  }
+  return { v:2, name:String(obj.name||'Collection'), ownerId:String(obj.ownerId||''), ownerName:String(obj.ownerName||''), intro:String(obj.intro||''),
+    items:items, flags:{contribOpen:!!(obj.flags&&obj.flags.contribOpen)}, ts:(+obj.ts||Date.now()) };
 }
 /* build one rotation card for the public collection webview (decoded state -> preview + note; links to its #v= view) */
 function _collWebCard(it, st){
@@ -3867,7 +3887,7 @@ function _collWebCard(it, st){
   if((it.note||'').trim()){ const note=document.createElement('div'); note.className='coll-web-note'; note.textContent=it.note; a.appendChild(note); }
   return a;
 }
-/* the public read-only collection webview (grouped by sub-category); used by #c= and by the editor's live preview */
+/* the public read-only collection webview; walks the flat item list (a 'sub' item opens a section, 'rot' items fill a grid). Used by #c= and by the editor's live preview */
 async function renderCollectionWebview(obj){
   const root=document.createElement('div'); root.className='coll-web';
   const hd=document.createElement('div'); hd.className='coll-web-head';
@@ -3875,15 +3895,14 @@ async function renderCollectionWebview(obj){
   if((obj.ownerName||'').trim()){ const by=document.createElement('div'); by.className='coll-web-by'; by.textContent='by '+obj.ownerName; hd.appendChild(by); }
   root.appendChild(hd);
   if((obj.intro||'').trim()){ const intro=document.createElement('div'); intro.className='coll-web-intro'; intro.textContent=obj.intro; root.appendChild(intro); }
-  const subcats=Array.isArray(obj.subcats)?obj.subcats:[];
-  const decoded=[]; for(const it of (obj.items||[])){ let st=null; try{ st=await decodeShare(it.ref); }catch(e){} decoded.push({it, st}); }
-  const buckets={}; buckets[-1]=[]; subcats.forEach((s,i)=>buckets[i]=[]);
-  decoded.forEach(d=>{ const g=(d.it.subcat>=0 && d.it.subcat<subcats.length)?d.it.subcat:-1; (buckets[g]=buckets[g]||[]).push(d); });
-  const sections=[]; subcats.forEach((s,i)=>{ if(buckets[i]&&buckets[i].length) sections.push({label:s, items:buckets[i]}); });
-  if(buckets[-1].length) sections.push({label:sections.length?'Other':'', items:buckets[-1]});
-  sections.forEach(sec=>{ if(sec.label){ const sh=document.createElement('div'); sh.className='coll-web-sec'; sh.textContent=sec.label; root.appendChild(sh); }
-    const grid=document.createElement('div'); grid.className='coll-web-grid'; sec.items.forEach(d=>grid.appendChild(_collWebCard(d.it, d.st))); root.appendChild(grid); });
-  if(!(obj.items||[]).length){ const em=document.createElement('div'); em.className='lib-empty'; em.textContent='This collection has no rotations yet.'; root.appendChild(em); }
+  const items=Array.isArray(obj.items)?obj.items:[];
+  const decoded=[]; for(const it of items){ if(it.type==='rot'){ let st=null; try{ st=await decodeShare(it.ref); }catch(e){} decoded.push(st); } else decoded.push(null); }
+  let grid=null, anyRot=false;
+  items.forEach((it,i)=>{
+    if(it.type==='sub'){ const sh=document.createElement('div'); sh.className='coll-web-sec'; sh.textContent=it.name||''; root.appendChild(sh); grid=null; }
+    else if(it.type==='rot'){ if(!grid){ grid=document.createElement('div'); grid.className='coll-web-grid'; root.appendChild(grid); } grid.appendChild(_collWebCard(it, decoded[i])); anyRot=true; }
+  });
+  if(!anyRot){ const em=document.createElement('div'); em.className='lib-empty'; em.textContent='This collection has no rotations yet.'; root.appendChild(em); }
   return root;
 }
 /* mount the collection webview full-screen (read-only #c= view). isOwner shows an Edit button. */
@@ -3894,13 +3913,16 @@ async function enterCollectionView(obj, code, isOwner){
   document.title=(obj.name||'Collection')+' – VF Collection';
   document.body.classList.add('view-mode');
   let root=document.getElementById('collViewRoot'); if(!root){ root=document.createElement('div'); root.id='collViewRoot'; document.body.appendChild(root); }
-  root.innerHTML='<div class="coll-web-bar">'
+  root.innerHTML='<div id="viewHeader">'
+    +'<div id="viewBrandWrap"><div class="brand">Velvet Frequency<small>ROTATION PLANNER</small></div></div>'
+    +'<div id="viewActions">'
     +'<button class="btn" id="collOpenApp">Open the planner</button>'
     +(code?'<button class="btn" id="collAddLib">Add to my library</button>':'')
     +(isOwner?'<button class="btn" id="collEditBtn">Edit collection</button>':'')
-    +(code?'':'<span class="lib-empty" style="font-size:12px">Preview (unpublished)</span>')
-    +'<span style="flex:1"></span><button class="btn" id="collThemeToggle"></button></div>'
-    +'<div id="collViewBody"><div class="lib-empty">Loading…</div></div>';
+    +(code?'':'<span class="lib-empty" style="font-size:12px;align-self:center">Preview (unpublished)</span>')
+    +'</div></div>'
+    +'<div id="collViewBody"><div class="lib-empty">Loading…</div></div>'
+    +'<div id="viewFooter"><div id="viewFooterText">Made by Koduck<img class="koduck-pet" src="images/kdck.gif" alt="" aria-hidden="true"> from 1AM. Join us @ <a href="https://discord.gg/velvetfrequency" target="_blank" rel="noopener noreferrer">Discord</a></div><button type="button" class="btn" id="collThemeToggle" title="Switch theme"></button></div>';
   const body=document.getElementById('collViewBody');
   const rerender=async()=>{ const el=await renderCollectionWebview(obj); body.innerHTML=''; body.appendChild(el); };
   document.getElementById('collOpenApp').onclick=()=>{ location.href=location.origin+location.pathname; };
@@ -3914,9 +3936,10 @@ function _collFetch(code){ return fetch(SHORTENER+'/coll?code='+encodeURICompone
 /* import a shared collection into the local library: each rotation gets an "Import" tag + the collection name + a fromColl marker */
 async function importCollectionByCode(code, preObj){
   let obj=preObj; if(!obj){ try{ obj=await _collFetch(code); }catch(e){ alert('Could not load that collection code.'); return; } }
+  obj=importCollectionJSON(obj)||obj;   /* normalise v1/v2 -> flat v2 so item.type is set */
   if(!obj || !Array.isArray(obj.items)){ alert('That collection is empty or invalid.'); return; }
   const a=loadLib(); let added=0;
-  for(const it of obj.items){ let st; try{ st=await decodeShare(it.ref); }catch(e){ continue; }
+  for(const it of obj.items){ if(!it || it.type!=='rot') continue; let st; try{ st=await decodeShare(it.ref); }catch(e){ continue; }
     if(a.some(e=>e.fromColl && e.fromColl.code===code && e.fromRef===it.ref)) continue;
     a.unshift({ id:_libId(), name:((st.setup&&st.setup.rotationName)||'Rotation'), ts:Date.now(), state:st, tags:['Import'], colls:[obj.name||'Collection'], fromColl:{code:code||'', name:obj.name||''}, fromRef:it.ref });
     added++;
@@ -4431,32 +4454,38 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   /* ---- collection editor (WYSIWYG-ish: name/intro, sub-categories, per-item note, reorder) + publish ---- */
   const collEditModal=document.getElementById('collEditModal');
   let _ceObj=null, _ceStates=[], _ceCode='', _ceKey='';
-  function _ceItemRow(i){ const it=_ceObj.items[i], st=_ceStates[i], s=(st&&st.setup)||{};
-    const row=document.createElement('div'); row.className='coll-ed-item';
+  /* one editor row per flat item: a 'sub' item is a full-width blue section-header input; a 'rot' item shows the rotation + a note. Both carry a drag grip. */
+  function _ceItemRow(i){ const it=_ceObj.items[i];
+    if(it.type==='sub'){
+      const row=document.createElement('div'); row.className='coll-ed-item coll-ed-sub'; row.dataset.cidx=i;
+      const grip=document.createElement('span'); grip.className='cegrip'; grip.title='Drag to reorder'; grip.innerHTML=GRIP_DOTS;
+      const inp=document.createElement('input'); inp.type='text'; inp.className='coll-ed-subname'; inp.placeholder='Sub-category…'; inp.value=it.name||''; inp.oninput=()=>{ it.name=inp.value; };
+      const rm=document.createElement('button'); rm.className='lib-mini coll-ed-rm'; rm.textContent='Remove'; rm.onclick=()=>{ _ceObj.items.splice(i,1); _ceStates.splice(i,1); renderCEItems(); };
+      row.append(grip,inp,rm); return row;
+    }
+    const st=_ceStates[i], s=(st&&st.setup)||{};
+    const row=document.createElement('div'); row.className='coll-ed-item coll-ed-rot'; row.dataset.cidx=i;
+    const grip=document.createElement('span'); grip.className='cegrip'; grip.title='Drag to reorder'; grip.innerHTML=GRIP_DOTS;
     const main=document.createElement('div'); main.className='coll-ed-item-main';
     const nm=document.createElement('div'); nm.className='coll-ed-item-name'; nm.textContent=st?(s.rotationName||'Rotation'):'(unreadable rotation)';
     const meta=document.createElement('div'); meta.className='coll-ed-item-meta'; meta.textContent=st?[s.type,s.boss,s.patch?('Patch '+s.patch):''].filter(Boolean).join(' · '):'';
     const note=document.createElement('textarea'); note.className='coll-ed-note'; note.placeholder='Note for this rotation…'; note.value=it.note||''; note.oninput=()=>{ it.note=note.value; };
     main.append(nm,meta,note);
-    const side=document.createElement('div'); side.className='coll-ed-item-side';
-    const sel=document.createElement('select'); sel.className='lib-select'; sel.innerHTML='<option value="-1">— no group —</option>'+(_ceObj.subcats||[]).map((s2,si)=>'<option value="'+si+'"'+(it.subcat===si?' selected':'')+'>'+esc(s2)+'</option>').join(''); sel.value=String(it.subcat); sel.onchange=()=>{ it.subcat=+sel.value; };
-    const mv=document.createElement('div'); mv.className='coll-ed-move';
-    const up=document.createElement('button'); up.className='lib-mini'; up.textContent='↑'; up.title='Move up'; up.onclick=()=>{ if(i>0){ const a=_ceObj.items; [a[i-1],a[i]]=[a[i],a[i-1]]; [_ceStates[i-1],_ceStates[i]]=[_ceStates[i],_ceStates[i-1]]; renderCEItems(); } };
-    const dn=document.createElement('button'); dn.className='lib-mini'; dn.textContent='↓'; dn.title='Move down'; dn.onclick=()=>{ const a=_ceObj.items; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; [_ceStates[i+1],_ceStates[i]]=[_ceStates[i],_ceStates[i+1]]; renderCEItems(); } };
-    const rm=document.createElement('button'); rm.className='lib-mini'; rm.textContent='Remove'; rm.onclick=()=>{ _ceObj.items.splice(i,1); _ceStates.splice(i,1); renderCEItems(); };
-    mv.append(up,dn); side.append(sel,mv,rm); row.append(main,side); return row; }
+    const rm=document.createElement('button'); rm.className='lib-mini coll-ed-rm'; rm.textContent='Remove'; rm.onclick=()=>{ _ceObj.items.splice(i,1); _ceStates.splice(i,1); renderCEItems(); };
+    row.append(grip,main,rm); return row; }
   function renderCEItems(){ const box=document.getElementById('collEdItems'); if(!box) return; box.innerHTML=''; if(!_ceObj.items.length){ const d=document.createElement('div'); d.className='coll-ed-empty'; d.textContent='No rotations in this collection.'; box.appendChild(d); return; } _ceObj.items.forEach((it,i)=>box.appendChild(_ceItemRow(i))); }
-  function renderCESubcats(){ const box=document.getElementById('collEdSubcats'); if(!box) return; box.innerHTML=''; (_ceObj.subcats||[]).forEach((s,i)=>{ const chip=document.createElement('span'); chip.className='coll-ed-subcat'; chip.appendChild(document.createTextNode(s)); const x=document.createElement('button'); x.textContent='×'; x.title='Remove sub-category'; x.onclick=()=>{ _ceObj.subcats.splice(i,1); _ceObj.items.forEach(it=>{ if(it.subcat===i) it.subcat=-1; else if(it.subcat>i) it.subcat--; }); renderCESubcats(); renderCEItems(); }; chip.appendChild(x); box.appendChild(chip); }); }
+  /* drag-reorder hook for the generic KINDS system (module-scoped _ceObj/_ceStates, so expose a reorder fn) */
+  window.__ceReorder=function(f,t){ if(!_ceObj||!Array.isArray(_ceObj.items)) return; const a=_ceObj.items; if(f<0||f>=a.length||t<0||t>=a.length) return; const[m]=a.splice(f,1); a.splice(t,0,m); const[ms]=_ceStates.splice(f,1); _ceStates.splice(t,0,ms); renderCEItems(); };
   async function openCollEditor(src, code){
     let obj, name;
     if(typeof src==='string'){ name=src; const dr=_getCollDraft(src); obj = dr ? (importCollectionJSON(dr)||await buildCollectionObject(src)) : await buildCollectionObject(src); }
     else { obj=importCollectionJSON(src)||src; name=obj.name; }
-    if(!Array.isArray(obj.subcats)) obj.subcats=[]; if(!obj.flags) obj.flags={contribOpen:false}; if(!Array.isArray(obj.items)) obj.items=[];
+    if(!obj.flags) obj.flags={contribOpen:false}; if(!Array.isArray(obj.items)) obj.items=[];
     _ceObj=obj; _ceCode=code||_collCodeForName(name)||''; _ceKey=(typeof src==='string')?src:(name||''); _ceStates=[];
-    for(const it of _ceObj.items){ let st=null; try{ st=await decodeShare(it.ref); }catch(e){} _ceStates.push(st); }
+    for(const it of _ceObj.items){ let st=null; if(it.type==='rot'){ try{ st=await decodeShare(it.ref); }catch(e){} } _ceStates.push(st); }
     document.getElementById('collEdName').value=obj.name||''; document.getElementById('collEdIntro').value=obj.intro||''; document.getElementById('collEdContrib').checked=!!(obj.flags&&obj.flags.contribOpen);
     const tt=document.getElementById('collEditTitle'); if(tt) tt.textContent='Collection editor'+(name?': '+name:'');
-    renderCESubcats(); renderCEItems(); if(collEditModal) collEditModal.hidden=false;
+    renderCEItems(); if(collEditModal) collEditModal.hidden=false;
   }
   window.openCollEditor=openCollEditor;
   function publishCollection(obj, existingCode){
@@ -4476,7 +4505,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     const intro=document.getElementById('collEdIntro'); if(intro) intro.oninput=()=>{ if(_ceObj) _ceObj.intro=intro.value; };
     const cb=document.getElementById('collEdContrib'); if(cb) cb.onchange=()=>{ if(_ceObj){ _ceObj.flags=_ceObj.flags||{}; _ceObj.flags.contribOpen=cb.checked; } };
     const sn=document.getElementById('collEdSubNew'), sa=document.getElementById('collEdSubAdd');
-    const addSub=()=>{ const v=(sn.value||'').trim(); if(!v||!_ceObj) return; (_ceObj.subcats=_ceObj.subcats||[]).push(v); sn.value=''; renderCESubcats(); renderCEItems(); };
+    const addSub=()=>{ if(!_ceObj) return; const v=(sn.value||'').trim(); _ceObj.items.push({type:'sub', name:v}); _ceStates.push(null); sn.value=''; renderCEItems(); };   /* appends a sub-category header row; drag it into position */
     if(sa) sa.onclick=addSub; if(sn) sn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addSub(); } });
     const pub=document.getElementById('collEdPublish'); if(pub) pub.onclick=()=>{ if(_ceObj) publishCollection(_ceObj, _ceCode); };
     const pv=document.getElementById('collEdPreview'); if(pv) pv.onclick=async()=>{ if(!_ceObj) return; try{ const link=location.origin+location.pathname+'#cp='+(await _encodeStr(JSON.stringify(_ceObj))); window.open(link,'_blank','noopener'); }catch(e){ alert('Could not build a preview link.'); } };
@@ -5741,6 +5770,8 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     { handle:'.turn-head', item:'.turn[data-tidx]', attr:'tidx', scroll:'turns',
       drop(f,t){ const dd=state.setup.type==='DOD', nn=state.turns.length, _B=dodBreaks(state), mx=(dd&&nn>=_B)?nn-_B:nn;
         if(f>=mx||f===t) return; t=Math.max(0,Math.min(t,mx-1)); const[m]=state.turns.splice(f,1); state.turns.splice(t,0,m); save(); renderTurns(); } },
+    { handle:'.coll-ed-item .cegrip', item:'.coll-ed-item[data-cidx]', attr:'cidx', scroll:null,
+      drop(f,t){ if(f===t||typeof window.__ceReorder!=='function') return; window.__ceReorder(f,t); } },
   ];
   let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, over=null, offX=0, offY=0, fx=0, fy=0, raf=0, mouse=false, lastTouch=0;
   function resolve(tg){ if(!tg||!tg.closest) return null;
@@ -5973,7 +6004,7 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   }
   const cm=(location.hash||'').match(/[#&]c=([^&]+)/);   // #c=<code> -> public shared-collection webview
   if(cm){ const code=cm[1];
-    try{ const obj=await _collFetch(code); await enterCollectionView(obj, code, !!_ownedColls()[code]); }
+    try{ const obj=await _collFetch(code); await enterCollectionView(importCollectionJSON(obj)||obj, code, !!_ownedColls()[code]); }
     catch(e){ document.body.classList.add('view-mode'); let r=document.getElementById('collViewRoot'); if(!r){ r=document.createElement('div'); r.id='collViewRoot'; document.body.appendChild(r); }
       r.innerHTML='<div class="coll-web"><div class="coll-web-bar"><button class="btn" id="_collBack">Open the planner</button></div><div class="lib-empty">This collection code could not be loaded (it may not exist, or the link is wrong).</div></div>';
       const b=document.getElementById('_collBack'); if(b) b.onclick=()=>{ location.href=location.origin+location.pathname; }; }
@@ -6037,6 +6068,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701t</div>
+<div class="version-tag">260701u</div>
 </body>
 </html>
