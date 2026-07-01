@@ -517,6 +517,7 @@ body.theme-light .coll-web-note{color:#37415a}
 /* ---- collection editor modal ---- */
 .coll-ed-field{margin:0 0 12px}
 .coll-ed-field label{display:block; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:4px}
+.coll-ed-field > .lib-input{width:100%; box-sizing:border-box}
 .coll-ed-subcats{display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 10px}
 .coll-ed-subcat{background:var(--field); border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:12px; display:inline-flex; align-items:center; gap:6px}
 .coll-ed-subcat button{background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:0; line-height:1}
@@ -1190,11 +1191,11 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="modal-head"><h2 id="collEditTitle">Edit collection</h2><button class="modal-close" id="collEditClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
       <div class="coll-ed-field"><label>Collection name</label><input type="text" id="collEdName" class="lib-input"/></div>
-      <div class="coll-ed-field"><label>Intro / description</label><textarea id="collEdIntro" class="lib-input" style="min-height:52px;resize:vertical;font-family:inherit"></textarea></div>
+      <div class="coll-ed-field"><label>Intro / description</label><textarea id="collEdIntro" class="lib-input" style="min-height:90px;resize:vertical;font-family:inherit"></textarea></div>
       <div class="coll-ed-field"><label>Sub-categories</label><div class="coll-ed-subcats" id="collEdSubcats"></div><div class="lib-coll-new"><input type="text" id="collEdSubNew" class="lib-input" placeholder="New sub-category…"/><button class="btn" id="collEdSubAdd">Add</button></div></div>
       <div class="coll-ed-field"><label>Rotations (reorder with ↑ ↓, add a note, pick a sub-category)</label><div id="collEdItems"></div></div>
       <label class="ac-row" style="margin:2px 0 12px"><input type="checkbox" id="collEdContrib"><span>Allow others to contribute rotations to this collection (coming soon)</span></label>
-      <div class="io-actions" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="collEdPublish">Publish / update link</button><button class="btn" id="collEdPreview">Preview webview</button><button class="btn" id="collEdDownload">Download JSON</button></div>
+      <div class="io-actions" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="collEdPublish">Publish / update link</button><button class="btn" id="collEdSaveDraft">Save draft</button><button class="btn" id="collEdPreview">Preview webview</button><button class="btn" id="collEdDownload">Download JSON</button><button class="btn" id="collEdReset" title="Discard the draft and rebuild from your library">Reset from library</button></div>
     </div>
   </div>
 </div>
@@ -3391,6 +3392,18 @@ function compactDecode(arr){
     backup:unit(arr[8]||[])
   };
 }
+/* generic string compressor (marker D=deflate, C=lz-string, B=base64url) — used for self-contained #cp= collection preview links */
+async function _encodeStr(s){
+  if(typeof CompressionStream!=='undefined'){ try{ return 'D'+_bytesToB64url(await _deflateRaw(s)); }catch(e){} }
+  if(typeof LZString!=='undefined'){ try{ return 'C'+LZString.compressToEncodedURIComponent(s); }catch(e){} }
+  return 'B'+b64urlEncode(s);
+}
+async function _decodeStr(code){ const marker=(code||'')[0], rest=(code||'').slice(1);
+  if(marker==='D'){ if(typeof DecompressionStream==='undefined') throw new Error('lib'); return await _inflateRaw(_b64urlToBytes(rest)); }
+  if(marker==='C'){ if(typeof LZString==='undefined') throw new Error('lib'); return LZString.decompressFromEncodedURIComponent(rest); }
+  if(marker==='B'){ return b64urlDecode(rest); }
+  throw new Error('decode');
+}
 async function encodeShareState(st){
   const compactJson=JSON.stringify(compactEncode(st));
   if(typeof CompressionStream!=='undefined'){
@@ -3814,6 +3827,12 @@ const COLL_OWNED_KEY='vf-coll-owned-v1';
 function _ownedColls(){ try{ return JSON.parse(localStorage.getItem(COLL_OWNED_KEY))||{}; }catch(e){ return {}; } }
 function _saveOwnedColl(code,name){ if(!code) return; const m=_ownedColls(); m[code]={name:name||'', ts:Date.now()}; try{ localStorage.setItem(COLL_OWNED_KEY,JSON.stringify(m)); }catch(e){} }
 function _collCodeForName(name){ const m=_ownedColls(); for(const c in m){ if(m[c]&&m[c].name===name) return c; } return ''; }
+/* editor drafts (unpublished working copies), keyed by collection name */
+const COLL_DRAFT_KEY='vf-coll-drafts-v1';
+function _collDrafts(){ try{ return JSON.parse(localStorage.getItem(COLL_DRAFT_KEY))||{}; }catch(e){ return {}; } }
+function _saveCollDraft(name,obj){ if(!name) return; const m=_collDrafts(); m[name]=obj; try{ localStorage.setItem(COLL_DRAFT_KEY,JSON.stringify(m)); }catch(e){} }
+function _getCollDraft(name){ const m=_collDrafts(); return name&&m[name]?m[name]:null; }
+function _delCollDraft(name){ const m=_collDrafts(); if(name&&m[name]){ delete m[name]; try{ localStorage.setItem(COLL_DRAFT_KEY,JSON.stringify(m)); }catch(e){} } }
 /* ---------- shareable collections (Phase 1: reference-based object + JSON) ----------
    A collection is a lightweight, reference-based object: each item stores a self-contained #v= fragment
    (the compressed read-only-view state — "the link"), not the full JSON. Owner is tied to a sync code later
@@ -3877,14 +3896,15 @@ async function enterCollectionView(obj, code, isOwner){
   let root=document.getElementById('collViewRoot'); if(!root){ root=document.createElement('div'); root.id='collViewRoot'; document.body.appendChild(root); }
   root.innerHTML='<div class="coll-web-bar">'
     +'<button class="btn" id="collOpenApp">Open the planner</button>'
-    +'<button class="btn" id="collAddLib">Add to my library</button>'
+    +(code?'<button class="btn" id="collAddLib">Add to my library</button>':'')
     +(isOwner?'<button class="btn" id="collEditBtn">Edit collection</button>':'')
+    +(code?'':'<span class="lib-empty" style="font-size:12px">Preview (unpublished)</span>')
     +'<span style="flex:1"></span><button class="btn" id="collThemeToggle"></button></div>'
     +'<div id="collViewBody"><div class="lib-empty">Loading…</div></div>';
   const body=document.getElementById('collViewBody');
   const rerender=async()=>{ const el=await renderCollectionWebview(obj); body.innerHTML=''; body.appendChild(el); };
   document.getElementById('collOpenApp').onclick=()=>{ location.href=location.origin+location.pathname; };
-  document.getElementById('collAddLib').onclick=()=>importCollectionByCode(_collViewCode, obj);
+  { const al=document.getElementById('collAddLib'); if(al) al.onclick=()=>importCollectionByCode(_collViewCode, obj); }
   { const eb=document.getElementById('collEditBtn'); if(eb) eb.onclick=()=>{ document.body.classList.remove('view-mode'); root.remove(); try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} if(window.openCollEditor) window.openCollEditor(obj, _collViewCode); }; }
   const setTheme=()=>{ const b=document.getElementById('collThemeToggle'); if(b) b.textContent=(_effTheme==='light'?'Switch to dark mode':'Switch to light mode'); };
   { const tb=document.getElementById('collThemeToggle'); if(tb) tb.onclick=()=>{ settings.theme=(_effTheme==='light'?'dark':'light'); applyTheme(); setTheme(); rerender(); }; setTheme(); }
@@ -4410,7 +4430,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     }catch(e){ alert('Could not build the collection JSON.'); } }); }
   /* ---- collection editor (WYSIWYG-ish: name/intro, sub-categories, per-item note, reorder) + publish ---- */
   const collEditModal=document.getElementById('collEditModal');
-  let _ceObj=null, _ceStates=[], _ceCode='';
+  let _ceObj=null, _ceStates=[], _ceCode='', _ceKey='';
   function _ceItemRow(i){ const it=_ceObj.items[i], st=_ceStates[i], s=(st&&st.setup)||{};
     const row=document.createElement('div'); row.className='coll-ed-item';
     const main=document.createElement('div'); main.className='coll-ed-item-main';
@@ -4429,10 +4449,10 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   function renderCESubcats(){ const box=document.getElementById('collEdSubcats'); if(!box) return; box.innerHTML=''; (_ceObj.subcats||[]).forEach((s,i)=>{ const chip=document.createElement('span'); chip.className='coll-ed-subcat'; chip.appendChild(document.createTextNode(s)); const x=document.createElement('button'); x.textContent='×'; x.title='Remove sub-category'; x.onclick=()=>{ _ceObj.subcats.splice(i,1); _ceObj.items.forEach(it=>{ if(it.subcat===i) it.subcat=-1; else if(it.subcat>i) it.subcat--; }); renderCESubcats(); renderCEItems(); }; chip.appendChild(x); box.appendChild(chip); }); }
   async function openCollEditor(src, code){
     let obj, name;
-    if(typeof src==='string'){ name=src; obj=await buildCollectionObject(src); }
+    if(typeof src==='string'){ name=src; const dr=_getCollDraft(src); obj = dr ? (importCollectionJSON(dr)||await buildCollectionObject(src)) : await buildCollectionObject(src); }
     else { obj=importCollectionJSON(src)||src; name=obj.name; }
     if(!Array.isArray(obj.subcats)) obj.subcats=[]; if(!obj.flags) obj.flags={contribOpen:false}; if(!Array.isArray(obj.items)) obj.items=[];
-    _ceObj=obj; _ceCode=code||_collCodeForName(name)||''; _ceStates=[];
+    _ceObj=obj; _ceCode=code||_collCodeForName(name)||''; _ceKey=(typeof src==='string')?src:(name||''); _ceStates=[];
     for(const it of _ceObj.items){ let st=null; try{ st=await decodeShare(it.ref); }catch(e){} _ceStates.push(st); }
     document.getElementById('collEdName').value=obj.name||''; document.getElementById('collEdIntro').value=obj.intro||''; document.getElementById('collEdContrib').checked=!!(obj.flags&&obj.flags.contribOpen);
     const tt=document.getElementById('collEditTitle'); if(tt) tt.textContent='Collection editor'+(name?': '+name:'');
@@ -4459,7 +4479,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     const addSub=()=>{ const v=(sn.value||'').trim(); if(!v||!_ceObj) return; (_ceObj.subcats=_ceObj.subcats||[]).push(v); sn.value=''; renderCESubcats(); renderCEItems(); };
     if(sa) sa.onclick=addSub; if(sn) sn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addSub(); } });
     const pub=document.getElementById('collEdPublish'); if(pub) pub.onclick=()=>{ if(_ceObj) publishCollection(_ceObj, _ceCode); };
-    const pv=document.getElementById('collEdPreview'); if(pv) pv.onclick=()=>{ if(!_ceObj) return; collEditModal.hidden=true; enterCollectionView(_ceObj, _ceCode||'', true); };
+    const pv=document.getElementById('collEdPreview'); if(pv) pv.onclick=async()=>{ if(!_ceObj) return; try{ const link=location.origin+location.pathname+'#cp='+(await _encodeStr(JSON.stringify(_ceObj))); window.open(link,'_blank','noopener'); }catch(e){ alert('Could not build a preview link.'); } };
+    const sd=document.getElementById('collEdSaveDraft'); if(sd) sd.onclick=()=>{ if(!_ceObj) return; _saveCollDraft(_ceKey||_ceObj.name||'', _ceObj); const t=sd.textContent; sd.textContent='Saved ✓'; sd.disabled=true; setTimeout(()=>{ sd.textContent=t; sd.disabled=false; },1200); };
+    const rs=document.getElementById('collEdReset'); if(rs) rs.onclick=()=>{ const k=_ceKey||(_ceObj&&_ceObj.name); if(!k){ alert('Nothing to reset to.'); return; } if(confirm('Discard the saved draft and rebuild this collection from your library?')){ _delCollDraft(k); openCollEditor(k); } };
     const dl=document.getElementById('collEdDownload'); if(dl) dl.onclick=()=>{ if(!_ceObj) return; try{ const blob=new Blob([JSON.stringify(_ceObj,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='vfrp-collection-'+String(_ceObj.name||'collection').replace(/[^A-Za-z0-9._-]+/g,'-')+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); }catch(e){} };
   }
   function renderCollections(){ hideHover(); if(!collList) return; collList.innerHTML=''; const all=loadLib();
@@ -5945,6 +5967,10 @@ state=load(); _loadShortCache(); loadSettings(); loadDataLive(); loadCharCrops()
     e.preventDefault(); if(k==='y'||(k==='z'&&e.shiftKey)) histRedo(); else histUndo(); }); }
 if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPush(); });   /* pull on start, then push only if local changed since the last sync (e.g. edits made offline) */
 (async function(){
+  const cpm=(location.hash||'').match(/[#&]cp=([^&]+)/);   // #cp=<encoded obj> -> self-contained collection PREVIEW (from the editor, new tab)
+  if(cpm){ try{ const obj=JSON.parse(await _decodeStr(cpm[1])); await enterCollectionView(importCollectionJSON(obj)||obj, '', false); }catch(e){ document.body.classList.add('view-mode'); let r=document.getElementById('collViewRoot'); if(!r){ r=document.createElement('div'); r.id='collViewRoot'; document.body.appendChild(r); } r.innerHTML='<div class="coll-web"><div class="lib-empty">This preview link could not be read.</div></div>'; }
+    return;
+  }
   const cm=(location.hash||'').match(/[#&]c=([^&]+)/);   // #c=<code> -> public shared-collection webview
   if(cm){ const code=cm[1];
     try{ const obj=await _collFetch(code); await enterCollectionView(obj, code, !!_ownedColls()[code]); }
@@ -6011,6 +6037,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701s</div>
+<div class="version-tag">260701t</div>
 </body>
 </html>
