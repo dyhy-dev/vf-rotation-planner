@@ -558,14 +558,16 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-diff-empty{color:var(--muted); font-size:13px; padding:6px 0}
 .lib-diff-sec{font:700 11px Inter,sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--blue); margin:14px 0 6px}
 .lib-diff-sec:first-child{margin-top:0}
-.lib-diff-row{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; font-size:13px; padding:3px 0; border-bottom:1px solid var(--line)}
+.lib-diff-box{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px 12px}
+.lib-diff-row{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; font-size:13px; padding:5px 0; border-bottom:1px solid var(--line)}
+.lib-diff-box .lib-diff-row:last-child{border-bottom:none}
 .lib-diff-lbl{flex:0 0 130px; color:var(--muted)}
 .lib-diff-old{color:#e0445e; text-decoration:line-through; opacity:.85}
 .lib-diff-arrow{color:var(--muted)}
 .lib-diff-new{color:#4bbf73; font-weight:600}
 body.theme-light .lib-diff-old{color:#cf3340}
 body.theme-light .lib-diff-new{color:#1a7a34}
-.lib-diff-turn{margin:10px 0; border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+.lib-diff-turn{margin:10px 0; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px}
 .lib-diff-turn .tn{font:700 11px Inter,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); margin-bottom:6px}
 .lib-diff-cols{display:flex; gap:12px}
 .lib-diff-col{flex:1 1 0; min-width:0}
@@ -4149,7 +4151,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     return html; }
   function _buildDiff(hSt,cSt,hLabel,cLabel){ const f=_diffFields(hSt,cSt), t=_diffTurns(hSt,cSt,hLabel,cLabel);
     if(!f && !t) return '<div class="lib-diff-empty">No differences: this version is identical to the current one.</div>';
-    let html=''; if(f) html+='<div class="lib-diff-sec">Setup &amp; team</div>'+f; if(t) html+='<div class="lib-diff-sec">Turns</div>'+t; return html; }
+    let html=''; if(f) html+='<div class="lib-diff-sec">Setup &amp; team</div><div class="lib-diff-box">'+f+'</div>'; if(t) html+='<div class="lib-diff-sec">Turns</div>'+t; return html; }
   function openHistoryCompare(i){ if(!cmpModal||!cmpBody) return; const e=loadLib().find(x=>x.id===_histId); if(!e) return; const h=_libHist(e), snap=h[i]; if(!snap) return;
     const vLabel='Version '+(h.length-i); const tt=document.getElementById('libCompareTitle'); if(tt) tt.textContent='Compare: '+vLabel+' → Current';
     cmpBody.innerHTML=_buildDiff(snap.state, e.state, vLabel, 'Current'); cmpModal.hidden=false; }
@@ -5706,6 +5708,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701f</div>
+<div class="version-tag">260701g</div>
 </body>
 </html>
