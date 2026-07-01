@@ -355,6 +355,8 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .set-input:focus{outline:none; border-color:var(--blue-strong)}
 .set-sync-row{display:flex; gap:8px; justify-content:flex-end}
 #syncGenBtn[hidden],#syncNowBtn[hidden]{display:none}
+#syncNameField[hidden]{display:none}
+.set-name-input{font-family:Inter,system-ui,sans-serif !important}
 #syncStatus{color:var(--blue-strong); font-weight:600}
 #syncStatus.err{color:#e0445e}
 .set-input{background:var(--field); border:1px solid var(--line); color:var(--text); border-radius:7px; padding:6px 9px; font-size:13px; min-width:130px; font-family:ui-monospace,Menlo,Consolas,monospace}
@@ -372,6 +374,7 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .rot-preview-toggle svg{display:block}
 .rot-preview-body{margin-top:10px; border:1px solid var(--line); border-radius:10px; padding:14px; overflow:hidden}
 .modal{position:fixed; inset:0; z-index:200; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; background:rgba(8,7,12,.74); overflow:auto}
+#syncSetupModal{z-index:260}   /* sits above the collection editor, since the publish flow opens it while that modal is still open */
 .modal[hidden]{display:none}
 .modal-card{background:var(--panel); border:1px solid var(--line); border-radius:14px; max-width:780px; width:100%; box-shadow:0 24px 70px rgba(0,0,0,.6); margin:auto}
 .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line); border-radius:14px 14px 0 0}
@@ -1200,6 +1203,16 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     <div class="lib-body"><div class="lib-diff" id="libCompareBody"></div></div>
   </div>
 </div>
+<div class="modal" id="syncSetupModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Get a sync code">
+    <div class="modal-head"><h2>Get a sync code</h2><button class="modal-close" id="syncSetupClose" aria-label="Close">&times;</button></div>
+    <div class="lib-body">
+      <p style="margin:0 0 12px;line-height:1.6;color:var(--text)">Publishing a collection needs a <b>sync code</b> — it marks the collection as yours (only you can update it later) and keeps your library in step across devices. Pick a name (shown publicly as the collection's author, e.g. your Discord name) and we'll generate one right here.</p>
+      <div class="coll-ed-field"><label>Your name</label><input type="text" id="syncSetupName" class="lib-input" placeholder="e.g. your Discord name" autocomplete="off" spellcheck="false"/></div>
+      <div class="io-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn primary" id="syncSetupGen">Generate sync code</button><span class="lib-empty" id="syncSetupStatus" style="font-size:13px"></span></div>
+    </div>
+  </div>
+</div>
 <div class="modal" id="collEditModal" hidden>
   <div class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-label="Collection editor">
     <div class="modal-head"><h2 id="collEditTitle">Edit collection</h2><button class="modal-close" id="collEditClose" aria-label="Close">&times;</button></div>
@@ -1564,6 +1577,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         <div class="set-backup-btns" id="syncCtrls">
           <div class="set-sync-row"><button class="btn" id="syncGenBtn">Generate sync code</button><button class="btn" id="syncNowBtn">Sync now</button></div>
           <input type="text" id="syncCodeField" class="set-input" placeholder="Enter sync code" autocomplete="off" autocapitalize="off" spellcheck="false"/>
+          <input type="text" id="syncNameField" class="set-input set-name-input" placeholder="Your name (shown on collections you publish)" autocomplete="off" spellcheck="false" hidden/>
         </div>
       </div>
       <div class="set-status" id="settingsStatus" hidden></div>
@@ -3453,10 +3467,18 @@ const _SHORT_KEY='vf-shortlinks-v1';
 function pingLiveBackup(){ if(!_devPass) return; try{ fetch(SHORTENER+'/databackup-snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:_devPass})}).catch(()=>{}); }catch(e){} }
 
 /* ---------- cloud sync: keep settings + library in step across devices via a sync code (codes are issued from the Dev hub) ---------- */
-const SYNC_KEY='vf-sync-code-v1', SYNC_META='vf-sync-meta-v1', SYNC_SIG='vf-sync-sig-v1';
+const SYNC_KEY='vf-sync-code-v1', SYNC_META='vf-sync-meta-v1', SYNC_SIG='vf-sync-sig-v1', SYNC_NAME_KEY='vf-sync-name-v1';
 let _syncCode=''; try{ _syncCode=localStorage.getItem(SYNC_KEY)||''; }catch(e){}
+let _syncName=''; try{ _syncName=localStorage.getItem(SYNC_NAME_KEY)||''; }catch(e){}
 let _syncApplying=false, _syncPushT=0;
 function getSyncCode(){ return _syncCode; }
+function getSyncName(){ return _syncName; }
+function _setSyncNameLocal(n){ _syncName=String(n||''); try{ if(_syncName) localStorage.setItem(SYNC_NAME_KEY,_syncName); else localStorage.removeItem(SYNC_NAME_KEY); }catch(e){} }
+/* fetch this code's display name from the worker (source of truth = syncnames) and fill the settings field */
+function syncFetchName(){ const c=getSyncCode(); if(!c) return; fetch(SHORTENER+'/sync-myname?code='+encodeURIComponent(c),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&typeof j.name==='string'){ _setSyncNameLocal(j.name); const f=document.getElementById('syncNameField'); if(f && document.activeElement!==f) f.value=j.name; } }).catch(()=>{}); }
+/* save this code's display name (owner-authenticated by holding the code; also lands in syncnames for collections) */
+function syncSaveName(n){ const c=getSyncCode(); if(!c) return Promise.resolve(false); const nm=String(n||'').trim().slice(0,80);
+  return fetch(SHORTENER+'/sync-myname',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:c,name:nm})}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ _setSyncNameLocal(nm); return true; }).catch(()=>false); }
 function _hashStr(str){ let h1=0xdeadbeef,h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909); return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }   /* cyrb53 */
 function _syncSavedSig(){ try{ return localStorage.getItem(SYNC_SIG)||''; }catch(e){ return ''; } }
 function _setSyncSavedSig(s){ try{ if(s) localStorage.setItem(SYNC_SIG,s); else localStorage.removeItem(SYNC_SIG); }catch(e){} }
@@ -3992,8 +4014,10 @@ function _syncUpdateButtons(){ const field=document.getElementById('syncCodeFiel
 function _syncFitField(){ const field=document.getElementById('syncCodeField'), gen=document.getElementById('syncGenBtn'); if(!field||!gen) return;
   const wasHidden=gen.hidden; gen.hidden=false; const w=gen.offsetWidth; gen.hidden=wasHidden; if(w>0) field.style.width=w+'px'; }
 function syncRefreshUI(){ const field=document.getElementById('syncCodeField'); const c=getSyncCode();
-  if(field && document.activeElement!==field) field.value=c||''; _syncUpdateButtons(); _syncFitField(); syncSimLinkBtn(); }
-function _syncDisconnect(){ syncCodeSet(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); }
+  if(field && document.activeElement!==field) field.value=c||''; _syncUpdateButtons(); _syncFitField(); syncSimLinkBtn();
+  const nf=document.getElementById('syncNameField');   /* the name field only makes sense once a code is active */
+  if(nf){ nf.hidden=!c; if(c){ if(document.activeElement!==nf) nf.value=getSyncName()||''; syncFetchName(); } else nf.value=''; } }
+function _syncDisconnect(){ syncCodeSet(''); _setSyncNameLocal(''); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); }
 /* editing an ACTIVE code warns immediately (as soon as the field differs): confirm -> clear + disconnect; cancel -> restore the full code */
 function _syncFieldInput(){ const field=document.getElementById('syncCodeField'); if(!field) return; const cur=getSyncCode();
   if(cur && field.value.trim()!==cur){
@@ -4015,22 +4039,31 @@ function _syncFieldCommit(){ const field=document.getElementById('syncCodeField'
 /* device-side limit: at most 2 generated codes per 48h (deters spam of the public mint endpoint) */
 const _SYNC_GEN_KEY='vf-sync-gentimes'; const _SYNC_GEN_WINDOW=48*3600*1000;
 function _syncGenTimes(){ try{ const a=JSON.parse(localStorage.getItem(_SYNC_GEN_KEY)); return Array.isArray(a)?a.filter(t=>Date.now()-t<_SYNC_GEN_WINDOW):[]; }catch(e){ return []; } }
-function syncGenerate(){
-  const times=_syncGenTimes();
-  if(times.length>=2){ const wait=Math.ceil((_SYNC_GEN_WINDOW-(Date.now()-Math.min(...times)))/3600000); _syncStatus('You can generate at most 2 codes per 48 hours. Try again in about '+wait+'h, or paste an existing code.',true); return; }
-  const raw=prompt('Name this sync code so it can be recovered if you ever lose it (e.g. your Discord name):');
-  if(raw===null) return;
-  const name=raw.trim(); if(!name){ alert('Please enter a name to generate a sync code.'); return; }
-  const btn=document.getElementById('syncGenBtn'); if(btn){ btn.disabled=true; btn.textContent='Generating…'; }
-  fetch(SHORTENER+'/sync-gen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})
+function _syncGenBlocked(){ const times=_syncGenTimes(); if(times.length>=2){ const wait=Math.ceil((_SYNC_GEN_WINDOW-(Date.now()-Math.min(...times)))/3600000); return 'You can generate at most 2 codes per 48 hours. Try again in about '+wait+'h, or paste an existing code.'; } return ''; }
+/* core mint: POST /sync-gen with a name, activate the code on this device, seed the slot. Resolves to the code or rejects. */
+function _syncDoGenerate(name){ const nm=String(name||'').trim();
+  return fetch(SHORTENER+'/sync-gen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nm})})
     .then(r=>r.ok?r.json():Promise.reject()).then(j=>{ if(!j||!j.code) throw 0;
       try{ localStorage.setItem(_SYNC_GEN_KEY, JSON.stringify(_syncGenTimes().concat(Date.now()))); }catch(e){}
-      syncCodeSet(j.code); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); syncPush(true);   /* seed the new slot with this device's settings+library */
-      _syncStatus('New sync code created and active on this device.');
-    }).catch(()=>_syncStatus('Could not generate a sync code. Please try again later.',true))
-    .finally(()=>{ if(btn){ btn.disabled=false; btn.textContent='Generate sync code'; } });
+      syncCodeSet(j.code); _setSyncNameLocal(nm); _setSyncMetaTs(0); _setSyncSavedSig(''); syncRefreshUI(); syncPush(true);   /* seed the new slot with this device's settings+library */
+      return j.code; }); }
+/* the settings "Generate sync code" button + the publish flow both route through this explain-and-generate modal */
+function openSyncSetup(onDone){ const m=document.getElementById('syncSetupModal'); if(!m) return; const nameInp=document.getElementById('syncSetupName'), status=document.getElementById('syncSetupStatus'), gen=document.getElementById('syncSetupGen');
+  if(nameInp) nameInp.value=getSyncName()||(settings.defaultCredit||'').trim()||''; if(status){ status.textContent=''; status.classList.remove('err'); }
+  const blocked=_syncGenBlocked(); if(gen){ gen.disabled=false; gen.textContent='Generate sync code'; } if(blocked && status){ status.textContent=blocked; status.classList.add('err'); if(gen) gen.disabled=true; }
+  m.hidden=false; if(nameInp) setTimeout(()=>nameInp.focus(),0);
+  const close=()=>{ m.hidden=true; };
+  const doGen=()=>{ const nm=(nameInp&&nameInp.value||'').trim(); if(!nm){ if(status){ status.textContent='Please enter a name first.'; status.classList.add('err'); } return; }
+    const b=_syncGenBlocked(); if(b){ if(status){ status.textContent=b; status.classList.add('err'); } return; }
+    if(gen){ gen.disabled=true; gen.textContent='Generating…'; } if(status){ status.textContent=''; status.classList.remove('err'); }
+    _syncDoGenerate(nm).then(code=>{ _syncStatus('New sync code created and active on this device.'); close(); if(typeof onDone==='function') onDone(code); })
+      .catch(()=>{ if(status){ status.textContent='Could not generate a sync code. Please try again later.'; status.classList.add('err'); } if(gen){ gen.disabled=false; gen.textContent='Generate sync code'; } }); };
+  if(gen) gen.onclick=doGen; if(nameInp) nameInp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); doGen(); } };
+  const cl=document.getElementById('syncSetupClose'); if(cl) cl.onclick=close; m.onclick=ev=>{ if(ev.target===m) close(); };
 }
+function syncGenerate(){ openSyncSetup(); }
 { const gb=document.getElementById('syncGenBtn'); if(gb) gb.onclick=syncGenerate;
+  const nf=document.getElementById('syncNameField'); if(nf){ nf.onchange=()=>{ const v=nf.value.trim(); syncSaveName(v).then(ok=>{ if(ok) _syncStatus('Name updated.'); else _syncStatus('Could not save the name.',true); }); }; nf.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); nf.blur(); } }); }
   const sn=document.getElementById('syncNowBtn'); if(sn) sn.onclick=()=>{ syncPull(false).then(res=>{ if(res==='empty') syncPush(); }); };
   const field=document.getElementById('syncCodeField'); if(field){ field.oninput=_syncFieldInput; field.onchange=_syncFieldCommit; field.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); _syncFieldCommit(); field.blur(); } }); }
   syncRefreshUI(); }
@@ -4495,7 +4528,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   window.openCollEditor=openCollEditor;
   function publishCollection(obj, existingCode){
     const sc=getSyncCode();
-    if(!sc){ alert('To publish a collection you need a sync code — it marks you as the owner. Set one up in Settings → Backup → "Generate sync code", then publish again.'); return; }
+    if(!sc){ if(window.openSyncSetup) openSyncSetup(()=>publishCollection(obj, existingCode)); return; }   /* no code yet: explain + generate one, then continue publishing */
     const btn=document.getElementById('collEdPublish'); if(btn){ btn.disabled=true; btn.textContent='Publishing…'; }
     fetch(SHORTENER+'/coll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:sc, collcode:existingCode||'', coll:obj})})
       .then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ if(!j||!j.code) throw 0; _saveOwnedColl(j.code, obj.name); _ceCode=j.code;
@@ -6073,6 +6106,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701w</div>
+<div class="version-tag">260701x</div>
 </body>
 </html>
