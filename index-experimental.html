@@ -494,8 +494,16 @@ body.hide-persona-notes .persona-col .persona-note{display:none}
 .lib-mini.ico svg{width:14px; height:14px; display:block}
 .lib-item-date{white-space:nowrap}
 /* imported-from-collection marker (bottom-left folder badge on a library item) */
-.lib-fromcoll{position:absolute; left:8px; bottom:6px; width:16px; height:16px; color:var(--muted); opacity:.8; cursor:help}
-.lib-fromcoll svg{width:16px; height:16px; display:block}
+.lib-fromcoll{position:absolute; left:0; bottom:0; display:flex; align-items:center; justify-content:center; padding:5px 9px; background:var(--field); border-top-right-radius:9px; border-bottom-left-radius:8px; color:var(--blue-strong); cursor:help}
+.lib-fromcoll svg{width:15px; height:15px; display:block}
+/* collections window: toolbar, drag grip on detail rows, add-rotation picker rows */
+.coll-tools{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px}
+.ccgrip{flex:0 0 auto; cursor:grab; color:var(--muted); display:inline-flex; align-items:center; padding:2px; touch-action:none}
+.ccgrip:active{cursor:grabbing}
+.lib-item.dragging{opacity:.4}
+.lib-item.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
+.coll-pick-row{display:flex; gap:10px; align-items:flex-start; padding:9px 6px; border-bottom:1px solid var(--line); cursor:pointer}
+.coll-pick-row input[type=checkbox]{margin-top:3px; flex:0 0 auto}
 /* ---- shared-collection public webview (#c=) ---- */
 #collViewRoot{min-height:100vh; background:var(--ink); box-sizing:border-box; padding:16px 16px 12px; overflow-x:auto; color:var(--text); font-family:Inter,sans-serif}
 #collViewRoot #collViewBody{max-width:1024px; margin:0 auto}
@@ -515,7 +523,7 @@ body.theme-light .coll-web-intro{color:#37415a}
 .coll-web-card-name{font:700 15px Oswald,sans-serif; letter-spacing:.01em}
 .coll-web-card-meta{font-size:12px; color:var(--muted); margin-top:2px}
 .mw{white-space:nowrap}   /* one meta building block; wraps as a whole, never mid-block */
-.coll-web-card-cred{font-size:12px; color:var(--muted); font-style:italic; margin-top:2px}
+.coll-web-card-cred{font-size:12px; color:var(--muted); font-style:italic; font-weight:700; margin-top:2px}
 .coll-web-faces{display:flex; gap:5px; margin-top:8px; flex-wrap:wrap}
 .coll-web-face{width:30px; height:30px; border-radius:6px; overflow:hidden; background:var(--field); border:1px solid var(--line); display:inline-flex; flex:0 0 auto}
 .coll-web-face img{width:100%; height:100%; object-fit:cover; display:block}
@@ -1189,9 +1197,19 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Collections">
     <div class="modal-head"><h2 id="collectionsTitle">Collections</h2><button class="modal-close" id="collectionsClose" aria-label="Close">&times;</button></div>
     <div class="lib-body">
-      <button class="lib-mini" id="collectionsBack" hidden style="margin-bottom:12px">&larr; All collections</button>
+      <div id="collDetailBar" style="display:flex; align-items:center; gap:8px; margin-bottom:12px">
+        <button class="lib-mini" id="collectionsBack" hidden>&larr; All collections</button>
+        <span style="flex:1"></span>
+        <button class="btn" id="collAddRotBtn" hidden>Add rotation</button>
+      </div>
       <div class="lib-list" id="collectionsList"></div>
     </div>
+  </div>
+</div>
+<div class="modal" id="collAddRotModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Add rotation to collection">
+    <div class="modal-head"><h2>Add rotation to collection</h2><button class="modal-close" id="collAddRotClose" aria-label="Close">&times;</button></div>
+    <div class="lib-body"><div class="lib-list" id="collAddRotList"></div><div class="io-actions" style="margin-top:12px; display:flex; justify-content:flex-end"><button class="btn primary" id="collAddRotAdd">Add</button></div></div>
   </div>
 </div>
 <div class="modal" id="libHistoryModal" hidden>
@@ -2141,6 +2159,23 @@ function loadCollFavs(){ try{ const a=JSON.parse(localStorage.getItem(COLLFAV_KE
 function saveCollFavs(a){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify([...new Set((a||[]).filter(Boolean))])); }catch(e){} syncSchedulePush(); }
 function collFavHas(name){ return loadCollFavs().indexOf(name)>=0; }
 function collFavToggle(name){ const a=loadCollFavs(); const i=a.indexOf(name); if(i>=0) a.splice(i,1); else a.push(name); saveCollFavs(a); }
+/* per-collection ordering + membership of names with no members yet: { name: [entryId, ...] }. Lets the collection window
+   reorder rotations and keep an empty (just-created) collection around. Synced + backed up alongside collFavs. */
+const COLL_ORDER_KEY='vf-coll-order-v1';
+function loadCollOrder(){ try{ const o=JSON.parse(localStorage.getItem(COLL_ORDER_KEY)); return (o&&typeof o==='object'&&!Array.isArray(o))?o:{}; }catch(e){ return {}; } }
+function saveCollOrder(o){ try{ localStorage.setItem(COLL_ORDER_KEY, JSON.stringify(o||{})); }catch(e){} syncSchedulePush(); }
+function _collOrderFor(name){ const o=loadCollOrder(); return Array.isArray(o[name])?o[name].slice():[]; }
+function _setCollOrder(name, ids){ const o=loadCollOrder(); o[name]=(ids||[]).filter(Boolean); saveCollOrder(o); }
+function _collOrderRename(oldName,newName){ const o=loadCollOrder(); if(o[oldName]!==undefined){ o[newName]=o[oldName]; delete o[oldName]; saveCollOrder(o); } }
+function _collOrderDelete(name){ const o=loadCollOrder(); if(o[name]!==undefined){ delete o[name]; saveCollOrder(o); } }
+/* return a collection's entries in the stored order (ordered ones first, any leftovers by ts desc); optionally fav-pinned */
+function _collEntriesOrdered(name, all){
+  const inColl=(all||loadLib()).filter(e=>_libColls(e).includes(name));
+  const order=_collOrderFor(name); const pos={}; order.forEach((id,i)=>pos[id]=i);
+  const known=inColl.filter(e=>pos[e.id]!==undefined).sort((a,b)=>pos[a.id]-pos[b.id]);
+  const rest=inColl.filter(e=>pos[e.id]===undefined).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  return known.concat(rest);
+}
 /* version history: every overwrite snapshots the previous state (newest first, capped), so an older take can be recovered */
 const _LIB_HIST_MAX=15;
 function _libHist(e){ return Array.isArray(e&&e.history)?e.history:[]; }
@@ -3486,13 +3521,13 @@ function syncSaveName(n){ const c=getSyncCode(); if(!c) return Promise.resolve(f
 function _hashStr(str){ let h1=0xdeadbeef,h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909); return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }   /* cyrb53 */
 function _syncSavedSig(){ try{ return localStorage.getItem(SYNC_SIG)||''; }catch(e){ return ''; } }
 function _setSyncSavedSig(s){ try{ if(s) localStorage.setItem(SYNC_SIG,s); else localStorage.removeItem(SYNC_SIG); }catch(e){} }
-function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib+JSON.stringify(loadCollFavs())+JSON.stringify(_bannerDismissed())); }   /* content fingerprint (no ts) so we only push when something actually changed */
+function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib+JSON.stringify(loadCollFavs())+JSON.stringify(loadCollOrder())+JSON.stringify(_bannerDismissed())); }   /* content fingerprint (no ts) so we only push when something actually changed */
 function _syncMetaTs(){ try{ return +localStorage.getItem(SYNC_META)||0; }catch(e){ return 0; } }
 function _setSyncMetaTs(t){ try{ localStorage.setItem(SYNC_META, String(t||0)); }catch(e){} }
 function _syncStatus(m,err){ const el=document.getElementById('syncStatus'); if(el){ el.textContent=m||''; el.classList.toggle('err',!!err); } }
 function syncCodeSet(code){ _syncCode=(code||'').trim(); try{ if(_syncCode) localStorage.setItem(SYNC_KEY,_syncCode); else localStorage.removeItem(SYNC_KEY); }catch(e){} }
-function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib(), collFavs:loadCollFavs(), bannerDismissed:_bannerDismissed() }; }
-function _syncApply(d){ _syncApplying=true; try{ if(Array.isArray(d.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(d.collFavs.filter(x=>typeof x==='string'))); }catch(e){} } applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); if(d.bannerDismissed && typeof d.bannerDismissed==='object' && !Array.isArray(d.bannerDismissed)){ try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(d.bannerDismissed)); }catch(e){} try{ const c=JSON.parse(localStorage.getItem(BANNER_KEY)); if(c) showBanner(c); }catch(e){} } }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
+function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib(), collFavs:loadCollFavs(), collOrder:loadCollOrder(), bannerDismissed:_bannerDismissed() }; }
+function _syncApply(d){ _syncApplying=true; try{ if(Array.isArray(d.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(d.collFavs.filter(x=>typeof x==='string'))); }catch(e){} } if(d.collOrder && typeof d.collOrder==='object' && !Array.isArray(d.collOrder)){ try{ localStorage.setItem(COLL_ORDER_KEY, JSON.stringify(d.collOrder)); }catch(e){} } applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); if(d.bannerDismissed && typeof d.bannerDismissed==='object' && !Array.isArray(d.bannerDismissed)){ try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(d.bannerDismissed)); }catch(e){} try{ const c=JSON.parse(localStorage.getItem(BANNER_KEY)); if(c) showBanner(c); }catch(e){} } }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
 /* resolves with: 'applied' (server was newer, taken), 'empty' (valid slot, nothing newer -> caller may push local up), 'unknown' (bad code), 'error' */
 function syncPull(silent){ return new Promise(resolve=>{ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); resolve('error'); return; } if(!silent) _syncStatus('Syncing…');
   fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return '__404__'; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(d==='__404__'){ resolve('unknown'); return; } if(!d){ resolve('error'); return; } if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); resolve('applied'); } else { if(!silent) _syncStatus('Already up to date.'); resolve('empty'); } }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); resolve('error'); }); }); }
@@ -3710,6 +3745,8 @@ function openImportCode(){ openShareModal({title:'Import Code', text:'', readonl
   const v=(t.value||'').trim(); if(!v){ hint.textContent='Paste a code or link first.'; return; }
   hint.textContent='Reading…';
   /* sync codes are no longer activated here — they go in Settings -> Backup -> the sync code field */
+  /* a bare 12-char code may be a shared COLLECTION code -> probe the worker and import it into the library */
+  if(/^[A-Za-z0-9]{12}$/.test(v)){ let cobj=null; try{ cobj=await _collFetch(v); }catch(e){} if(cobj && Array.isArray(cobj.items||importCollectionJSON(cobj).items)){ close(); await importCollectionByCode(v, cobj); return; } }
   let st; try{ st=await importAnyShare(v); }catch(e){ hint.textContent=(e&&e.message==='lib')?'Decoding needs a newer browser (built-in compression).':'That code/link could not be read.'; return; }
   try{ state=migrate(st); save(); renderAll(); close(); }catch(e){ hint.textContent='That code/link is not a valid rotation.'; }
 }}); }
@@ -3880,8 +3917,7 @@ function _delCollDraft(name){ const m=_collDrafts(); if(name&&m[name]){ delete m
    (ownerId=hash at publish); ownerName is shown publicly. contribOpen is groundwork for later contributions. */
 async function buildCollectionObject(collName){
   const all=loadLib();
-  let inColl=all.filter(e=>_libColls(e).includes(collName));
-  inColl.sort((x,y)=>(y.ts||0)-(x.ts||0)); inColl=inColl.filter(e=>e.fav).concat(inColl.filter(e=>!e.fav));   /* same order as the collection detail view */
+  const inColl=_collEntriesOrdered(collName, all);   /* honour the stored per-collection order (same as the collection detail view) */
   const items=[];
   for(const e of inColl){ const frag='#v='+(await encodeShareState(e.state)); items.push({type:'rot', ref:frag, note:''}); }   /* ref = self-contained #v= fragment; decodeShare(ref) round-trips it */
   return { v:2, name:String(collName||''), ownerId:'', ownerName:(settings.defaultCredit||'').trim(), intro:'', items:items, flags:{contribOpen:false}, ts:Date.now() };
@@ -3969,23 +4005,37 @@ async function enterCollectionView(obj, code, isOwner){
   await rerender();
 }
 function _collFetch(code){ return fetch(SHORTENER+'/coll?code='+encodeURIComponent(code),{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(r.status)); }
+/* all existing local collection names (from entries + empty ones parked in the order map) */
+function _allCollNames(){ const s=new Set(); loadLib().forEach(e=>_libColls(e).forEach(c=>s.add(c))); Object.keys(loadCollOrder()).forEach(c=>s.add(c)); return s; }
+/* pick a local collection name for an import: keep the original name if free, else append the creator: "Name (Owner)", "Name (Owner 2)", … */
+function _uniqueCollName(base, owner){ const ex=_allCollNames(); base=String(base||'Collection').trim()||'Collection'; owner=(owner||'').trim();
+  if(!ex.has(base)) return base;
+  const s=owner?(' ('+owner+')'):' (import)'; let cand=base+s; if(!ex.has(cand)) return cand;
+  for(let n=2;n<9999;n++){ cand=base+(owner?(' ('+owner+' '+n+')'):(' (import '+n+')')); if(!ex.has(cand)) return cand; }
+  return base+' ('+Date.now()+')'; }
 /* import a shared collection into the local library: each rotation gets an "Import" tag + the collection name + a fromColl marker */
 async function importCollectionByCode(code, preObj){
   let obj=preObj; if(!obj){ try{ obj=await _collFetch(code); }catch(e){ alert('Could not load that collection code.'); return; } }
   obj=importCollectionJSON(obj)||obj;   /* normalise v1/v2 -> flat v2 so item.type is set */
   if(!obj || !Array.isArray(obj.items)){ alert('That collection is empty or invalid.'); return; }
-  const a=loadLib(); let added=0;
+  const a=loadLib();
+  /* re-importing the same code reuses its earlier local collection; otherwise a name clash creates a fresh "(creator)" collection */
+  const prior=a.find(e=>e.fromColl && e.fromColl.code===code && e.fromColl.coll);
+  const collName = prior ? prior.fromColl.coll : _uniqueCollName(obj.name||'Collection', obj.ownerName||'');
+  const orderIds=_collOrderFor(collName); let added=0;
   for(const it of obj.items){ if(!it || it.type!=='rot') continue; let st; try{ st=await decodeShare(it.ref); }catch(e){ continue; }
-    if(a.some(e=>e.fromColl && e.fromColl.code===code && e.fromRef===it.ref)) continue;
-    a.unshift({ id:_libId(), name:((st.setup&&st.setup.rotationName)||'Rotation'), ts:Date.now(), state:st, tags:['Import'], colls:[obj.name||'Collection'], fromColl:{code:code||'', name:obj.name||''}, fromRef:it.ref });
-    added++;
+    const dup=a.find(e=>e.fromColl && e.fromColl.code===code && e.fromRef===it.ref);
+    if(dup){ if(orderIds.indexOf(dup.id)<0) orderIds.push(dup.id); continue; }
+    const id=_libId();
+    a.push({ id:id, name:((st.setup&&st.setup.rotationName)||'Rotation'), ts:Date.now(), state:st, tags:['Import'], colls:[collName], fromColl:{code:code||'', name:obj.name||'', coll:collName}, fromRef:it.ref });
+    orderIds.push(id); added++;
   }
-  saveLib(a);
-  alert(added ? (added+' rotation'+(added>1?'s':'')+' added to your library (collection "'+(obj.name||'')+'").') : 'Those rotations are already in your library.');
+  saveLib(a); _setCollOrder(collName, orderIds);   /* preserve the collection's item order locally */
+  alert(added ? (added+' rotation'+(added>1?'s':'')+' added to your library (collection "'+collName+'").') : 'Those rotations are already in your library (collection "'+collName+'").');
 }
 function exportSettings(){
   try{
-    const backup={ app:'vfrp', version:1, exportedAt:new Date().toISOString(), settings, library:loadLib(), collFavs:loadCollFavs() };
+    const backup={ app:'vfrp', version:1, exportedAt:new Date().toISOString(), settings, library:loadLib(), collFavs:loadCollFavs(), collOrder:loadCollOrder() };
     const blob=new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a');
     a.href=url; a.download='vfrp-backup.json'; document.body.appendChild(a); a.click();
@@ -4011,6 +4061,7 @@ function applyImportedSettings(text){
   if(any){ settings=next; saveSettings(); applySettings(); syncSettingsModal(); renderRotationPreview(); if(document.body.classList.contains('view-mode') && _renderViewBody) _renderViewBody(); }
   if(isBackup && Array.isArray(obj.library)){ saveLib(obj.library); any=true; }
   if(isBackup && Array.isArray(obj.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(obj.collFavs.filter(x=>typeof x==='string'))); }catch(e){} any=true; }
+  if(isBackup && obj.collOrder && typeof obj.collOrder==='object' && !Array.isArray(obj.collOrder)){ try{ localStorage.setItem(COLL_ORDER_KEY, JSON.stringify(obj.collOrder)); }catch(e){} any=true; }
   return any;
 }
 document.getElementById('settingsExport').onclick=exportSettings;
@@ -4466,8 +4517,9 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
   if(cmpModal) cmpModal.addEventListener('click',ev=>{ if(ev.target===cmpModal) closeCompare(); });
   /* ---- dedicated Collections window (the future hub for sharing): list collections -> a collection's rotations ---- */
   const collModal2=document.getElementById('collectionsModal'), collList=document.getElementById('collectionsList'), collBack=document.getElementById('collectionsBack'), collTitle=document.getElementById('collectionsTitle'), collClose=document.getElementById('collectionsClose');
-  function _collCard(e){
-    const it=document.createElement('div'); it.className='lib-item';
+  function _collCard(e, idx){
+    const it=document.createElement('div'); it.className='lib-item'; it.dataset.corder=(idx==null?0:idx);   /* index in the shown order; drag handle reorders */
+    const grip=document.createElement('span'); grip.className='ccgrip'; grip.title='Drag to reorder'; grip.innerHTML=GRIP_DOTS;
     const star=document.createElement('button'); star.className='lib-star'+(e.fav?' on':''); star.textContent=e.fav?'★':'☆'; star.title=e.fav?'Remove from favourites':'Favourite (pins to top)'; star.onclick=()=>{ libToggleFav(e.id); renderCollections(); };
     const info=document.createElement('button'); info.className='lib-info'; info.textContent='i'; info.title='Show details'; info.onclick=ev=>{ ev.stopPropagation(); if(_pinId===e.id){ hideHover(); } else { _pinId=e.id; showHover(e,info,true); } };
     const main=document.createElement('div'); main.className='lib-item-main';
@@ -4476,10 +4528,12 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     main.append(nm,meta);
     const _cs=_libColls(e); if(_cs.length||(e.tags&&e.tags.length)){ const org=document.createElement('div'); org.className='lib-item-org'; _cs.forEach(c=>{ const cc=document.createElement('span'); cc.className='lib-coll'; cc.textContent=c; org.appendChild(cc); }); (e.tags||[]).forEach(t=>{ const tg=document.createElement('span'); tg.className='lib-tag'; tg.textContent=t; org.appendChild(tg); }); main.appendChild(org); }
     const btns=document.createElement('div'); btns.className='lib-item-btns'; const row=document.createElement('div'); row.className='lib-btn-row';
-    const ld=document.createElement('button'); ld.className='lib-mini ico'; ld.innerHTML=libSvg('file-import'); ld.title='Load'; ld.setAttribute('aria-label','Load'); ld.onclick=()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)){ closeCollections(); close(); } } }; row.append(ld); btns.append(row);
+    const ld=document.createElement('button'); ld.className='lib-mini ico'; ld.innerHTML=libSvg('file-import'); ld.title='Load'; ld.setAttribute('aria-label','Load'); ld.onclick=()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)){ closeCollections(); close(); } } };
+    const del=document.createElement('button'); del.className='lib-mini ico'; del.innerHTML=libSvg('trash'); del.title='Remove from this collection'; del.setAttribute('aria-label','Remove from collection'); del.onclick=()=>{ libSetColls(e.id, _libColls(e).filter(c=>c!==_collView)); _setCollOrder(_collView, _collOrderFor(_collView).filter(id=>id!==e.id)); renderCollections(); };
+    row.append(ld,del); btns.append(row);
     it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover()) showHover(e,it,false); });
     it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
-    it.append(star,main,info,btns); return it;
+    it.append(grip,star,main,info,btns); return it;
   }
   /* per-collection Share menu (body-anchored, above the modal), Phase 1: Download JSON + (soon) editor */
   const _collShareMenu=document.createElement('div'); _collShareMenu.className='dropdown-menu lib-exp-menu'; _collShareMenu.hidden=true; _collShareMenu.style.position='fixed'; _collShareMenu.style.zIndex='3200';
@@ -4563,19 +4617,33 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     const rs=document.getElementById('collEdReset'); if(rs) rs.onclick=()=>{ const k=_ceKey||(_ceObj&&_ceObj.name); if(!k){ alert('Nothing to reset to.'); return; } if(confirm('Discard the saved draft and rebuild this collection from your library?')){ _delCollDraft(k); openCollEditor(k); } };
     const dl=document.getElementById('collEdDownload'); if(dl) dl.onclick=()=>{ if(!_ceObj) return; try{ const blob=new Blob([JSON.stringify(_ceObj,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='vfrp-collection-'+String(_ceObj.name||'collection').replace(/[^A-Za-z0-9._-]+/g,'-')+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); }catch(e){} };
   }
+  let _collSort='new';
+  function _sortCollNames(names, maxTs){ const byName=(x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()); const arr=names.slice();
+    if(_collSort==='name') arr.sort(byName); else if(_collSort==='name_desc') arr.sort((x,y)=>byName(y,x));
+    else if(_collSort==='old') arr.sort((x,y)=>(maxTs[x]||0)-(maxTs[y]||0)); else arr.sort((x,y)=>(maxTs[y]||0)-(maxTs[x]||0));   /* 'new' */
+    return arr.filter(c=>collFavHas(c)).concat(arr.filter(c=>!collFavHas(c))); }   /* favourite collections still pinned to top */
   function renderCollections(){ hideHover(); if(!collList) return; collList.innerHTML=''; const all=loadLib();
+    const addRotBtn=document.getElementById('collAddRotBtn');
     if(!_collView){
-      if(collBack) collBack.hidden=true; if(collTitle) collTitle.textContent='Collections';
-      { const add=document.createElement('div'); add.className='lib-coll-new'; add.style.marginBottom='12px';   /* import a shared collection by its code */
-        const inp=document.createElement('input'); inp.type='text'; inp.className='lib-input'; inp.placeholder='Add a collection by code…'; inp.autocomplete='off';
-        const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Add';
-        const go=()=>{ const c=(inp.value||'').trim(); if(c) importCollectionByCode(c); };
-        btn.onclick=go; inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } });
-        add.append(inp,btn); collList.appendChild(add); }
-      const counts={}; all.forEach(e=>_libColls(e).forEach(c=>counts[c]=(counts[c]||0)+1));
-      let names=Object.keys(counts).sort((x,y)=>x.toLowerCase().localeCompare(y.toLowerCase()));
-      names=names.filter(c=>collFavHas(c)).concat(names.filter(c=>!collFavHas(c)));   /* favourite collections pinned to top */
-      if(!names.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='No collections yet. Use a rotation’s "Collection" button in the library to create one.'; collList.appendChild(d); return; }
+      if(collBack) collBack.hidden=true; if(addRotBtn) addRotBtn.hidden=true; if(collTitle) collTitle.textContent='Collections';
+      /* toolbar: sort + New collection + Import (the code field lives behind the Import button) */
+      const bar=document.createElement('div'); bar.className='coll-tools';
+      const ss=document.createElement('select'); ss.className='lib-select'; ss.innerHTML='<option value="new">Newest first</option><option value="old">Oldest first</option><option value="name">Name A to Z</option><option value="name_desc">Name Z to A</option>'; ss.value=_collSort; ss.onchange=()=>{ _collSort=ss.value; renderCollections(); };
+      const spacer=document.createElement('span'); spacer.style.flex='1';
+      const newBtn=document.createElement('button'); newBtn.className='btn'; newBtn.textContent='New collection'; newBtn.onclick=()=>{ const n=prompt('New collection name:'); if(n==null) return; const name=n.trim(); if(!name) return; if(_allCollNames().has(name)){ alert('A collection with that name already exists.'); return; } _setCollOrder(name, []); _collView=name; renderCollections(); };
+      const impBtn=document.createElement('button'); impBtn.className='btn'; impBtn.textContent='Import';
+      bar.append(ss,spacer,newBtn,impBtn); collList.appendChild(bar);
+      const imp=document.createElement('div'); imp.className='lib-coll-new'; imp.style.margin='0 0 12px'; imp.style.display='none';   /* [hidden] loses to .lib-coll-new{display:flex}, so toggle display directly */
+      const inp=document.createElement('input'); inp.type='text'; inp.className='lib-input'; inp.placeholder='Paste a collection code…'; inp.autocomplete='off';
+      const go=document.createElement('button'); go.className='btn'; go.textContent='Add';
+      const doImp=()=>{ const c=(inp.value||'').trim(); if(c) importCollectionByCode(c).then(()=>renderCollections()); };
+      go.onclick=doImp; inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); doImp(); } });
+      imp.append(inp,go); collList.appendChild(imp);
+      impBtn.onclick=()=>{ const show=imp.style.display==='none'; imp.style.display=show?'flex':'none'; if(show) setTimeout(()=>inp.focus(),0); };
+      const counts={}, maxTs={}; all.forEach(e=>_libColls(e).forEach(c=>{ counts[c]=(counts[c]||0)+1; maxTs[c]=Math.max(maxTs[c]||0, e.ts||0); }));
+      Object.keys(loadCollOrder()).forEach(c=>{ if(counts[c]===undefined){ counts[c]=0; } });   /* keep empty (just-created) collections visible */
+      const names=_sortCollNames(Object.keys(counts), maxTs);
+      if(!names.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='No collections yet. Create one with "New collection", or use a rotation’s "Collection" button in the library.'; collList.appendChild(d); return; }
       names.forEach(c=>{ const it=document.createElement('div'); it.className='lib-item'; it.style.cursor='pointer';
         const fav=collFavHas(c); const star=document.createElement('button'); star.className='lib-star'+(fav?' on':''); star.textContent=fav?'★':'☆'; star.title=fav?'Remove from favourites':'Favourite (pins to top)'; star.onclick=ev=>{ ev.stopPropagation(); collFavToggle(c); renderCollections(); };
         const main=document.createElement('div'); main.className='lib-item-main'; const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=c; const meta=document.createElement('div'); meta.className='lib-item-meta'; meta.textContent=counts[c]+(counts[c]===1?' rotation':' rotations'); main.append(nm,meta);
@@ -4584,17 +4652,34 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
         const ob=document.createElement('button'); ob.className='lib-mini'; ob.textContent='Open'; row.append(sh,ob); btns.append(row);
         it.append(star,main,btns); it.onclick=()=>{ _collView=c; renderCollections(); }; collList.appendChild(it); });
     } else {
-      if(collBack) collBack.hidden=false; if(collTitle) collTitle.textContent=_collView;
-      let inColl=all.filter(e=>_libColls(e).includes(_collView)); inColl.sort((x,y)=>(y.ts||0)-(x.ts||0)); inColl=inColl.filter(e=>e.fav).concat(inColl.filter(e=>!e.fav));
-      if(!inColl.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='This collection is empty.'; collList.appendChild(d); return; }
-      inColl.forEach(e=>collList.appendChild(_collCard(e)));
+      if(collBack) collBack.hidden=false; if(addRotBtn) addRotBtn.hidden=false; if(collTitle) collTitle.textContent=_collView;
+      const inColl=_collEntriesOrdered(_collView, all);
+      if(!inColl.length){ const d=document.createElement('div'); d.className='lib-empty'; d.textContent='This collection is empty. Use "Add rotation" to add rotations from your library.'; collList.appendChild(d); return; }
+      inColl.forEach((e,i)=>collList.appendChild(_collCard(e,i)));
     }
+  }
+  /* drag-reorder within a collection: materialise the shown order, move f->t, store it */
+  window.__collReorder=function(f,t){ if(!_collView) return; const list=_collEntriesOrdered(_collView).map(e=>e.id); if(f<0||f>=list.length||t<0||t>=list.length||f===t) return; const[m]=list.splice(f,1); list.splice(t,0,m); _setCollOrder(_collView, list); renderCollections(); };
+  /* Add-rotation picker: batch-select library rotations that aren't in this collection yet */
+  function openAddRotPicker(){ if(!_collView) return; const m=document.getElementById('collAddRotModal'), list=document.getElementById('collAddRotList'), addBtn=document.getElementById('collAddRotAdd'); if(!m||!list) return;
+    const sel=new Set(); const cands=loadLib().filter(e=>!_libColls(e).includes(_collView)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const upd=()=>{ if(addBtn){ addBtn.disabled=!sel.size; addBtn.textContent=sel.size?('Add '+sel.size+' rotation'+(sel.size>1?'s':'')):'Add'; } };
+    list.innerHTML='';
+    if(!cands.length){ list.innerHTML='<div class="lib-empty">All your rotations are already in this collection.</div>'; }
+    else cands.forEach(e=>{ const row=document.createElement('label'); row.className='coll-pick-row'; const cb=document.createElement('input'); cb.type='checkbox'; cb.onchange=()=>{ if(cb.checked) sel.add(e.id); else sel.delete(e.id); upd(); };
+      const main=document.createElement('div'); main.className='lib-item-main'; const nm=document.createElement('div'); nm.className='lib-item-name'; nm.textContent=e.name; const meta=document.createElement('div'); meta.className='lib-item-meta'; meta.innerHTML=_metaHtml(e); main.append(nm,meta); row.append(cb,main); list.appendChild(row); });
+    upd();
+    if(addBtn) addBtn.onclick=()=>{ if(!sel.size) return; libAddCollMany([...sel], _collView); const ord=_collOrderFor(_collView); [...sel].forEach(id=>{ if(ord.indexOf(id)<0) ord.push(id); }); _setCollOrder(_collView, ord); m.hidden=true; renderCollections(); };
+    m.hidden=false;
   }
   function openCollections(){ if(!collModal2) return; _collView=''; renderCollections(); collModal2.hidden=false; }
   function closeCollections(){ if(collModal2) collModal2.hidden=true; hideHover(); }
   if(collBack) collBack.onclick=()=>{ _collView=''; renderCollections(); };
   if(collClose) collClose.onclick=closeCollections;
   if(collModal2) collModal2.addEventListener('click',ev=>{ if(ev.target===collModal2) closeCollections(); });
+  { const arb=document.getElementById('collAddRotBtn'); if(arb) arb.onclick=openAddRotPicker;
+    const arm=document.getElementById('collAddRotModal'), arc=document.getElementById('collAddRotClose');
+    if(arc) arc.onclick=()=>{ arm.hidden=true; }; if(arm) arm.addEventListener('click',ev=>{ if(ev.target===arm) arm.hidden=true; }); }
   function doSave(){ const n=prompt('Save current rotation as:', rotName()); if(n!=null){ libSaveCurrent(n); render(); } }
   window.openLibrary=open; window.saveCurrentRotation=doSave;
   const lc=document.getElementById('libClose'); if(lc) lc.onclick=close;
@@ -5822,6 +5907,8 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
         if(f>=mx||f===t) return; t=Math.max(0,Math.min(t,mx-1)); const[m]=state.turns.splice(f,1); state.turns.splice(t,0,m); save(); renderTurns(); } },
     { handle:'.coll-ed-item .cegrip', item:'.coll-ed-item[data-cidx]', attr:'cidx', scroll:null,
       drop(f,t){ if(f===t||typeof window.__ceReorder!=='function') return; window.__ceReorder(f,t); } },
+    { handle:'.lib-item .ccgrip', item:'.lib-item[data-corder]', attr:'corder', scroll:null,
+      drop(f,t){ if(f===t||typeof window.__collReorder!=='function') return; window.__collReorder(f,t); } },
   ];
   let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, over=null, offX=0, offY=0, fx=0, fy=0, raf=0, mouse=false, lastTouch=0;
   function resolve(tg){ if(!tg||!tg.closest) return null;
@@ -6123,6 +6210,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260701b2</div>
+<div class="version-tag">260701c2</div>
 </body>
 </html>
