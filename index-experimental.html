@@ -5995,8 +5995,9 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     if(!tg||tg===src||!src.parentElement||!src.parentElement.contains(tg)) return null;
     if(kind.locked && kind.locked(+tg.dataset[kind.attr])) return null;   // don't reorder into a locked zone (e.g. DOD break turns)
     const r=tg.getBoundingClientRect(); const before=horiz?(x<r.left+r.width/2):(y<r.top+r.height/2); return {tg, before}; }
-  /* FLIP: run doMove (a DOM reorder), then animate every item from its old box to its new one so tiles slide */
-  function _flipMove(doMove){ const items=_items(), first=items.map(el=>[el, el.getBoundingClientRect()]); doMove();
+  /* FLIP: run doMove (a DOM reorder), then animate every OTHER item from its old box to its new one so tiles slide.
+     the dragged placeholder (src) is skipped — it snaps straight to its new slot (animating it just lags behind the pointer). */
+  function _flipMove(doMove){ const items=_items().filter(el=>el!==src), first=items.map(el=>[el, el.getBoundingClientRect()]); doMove();
     first.forEach(([el,f])=>{ if(!el.parentElement) return; const l=el.getBoundingClientRect(), dx=f.left-l.left, dy=f.top-l.top; if(!dx&&!dy) return;
       el.style.transition='none'; el.style.transform='translate('+dx+'px,'+dy+'px)';
       requestAnimationFrame(()=>{ el.style.transition='transform .34s ease'; el.style.transform=''; }); }); }
@@ -6303,6 +6304,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260702j</div>
+<div class="version-tag">260702k</div>
 </body>
 </html>
