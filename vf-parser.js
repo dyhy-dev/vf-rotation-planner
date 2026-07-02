@@ -87,6 +87,9 @@ const CODE={s1:'S1',s2:'S2',s3:'S3',hl:'HL',highlight:'HL',tg:'HL',th:'HL',theur
 function _mainBtn(a){ return ['S1','S2','S3','Atk','Gn','Gd'].includes(a.btn) || (a.btn==='ALT' && (a.char||'').toUpperCase()==='SKULL'); }
 function codeOf(token){
   const t=_n(token).replace(/[().]/g,'');
+  // a slashed button CHOICE ("Melee/Gun", "S1/S2") -> take the first option; an element dual ("Fire/Ice", "F/I")
+  // has no button first-half, so it falls through untouched.
+  if(t.indexOf('/')>0){ const c=codeOf(t.split('/')[0]); if(c) return c; }
   if(CODE[t]) return {btn:CODE[t],extra:''};
   if(/^[123]$/.test(t)) return {btn:'S'+t,extra:''};
   if(/^(da ?capo|de ?capo|dacapo|decapo|dacpo|decpo)$/.test(t)) return {btn:'ALT',extra:''};   // incl. the common "Dacpo" misspelling
@@ -722,7 +725,10 @@ function parseRotationText(text, opts){
     // Twins role / dual header: "Twins Healer: S1 Fire and Ice | S2 Elec and Wind", "Twins: Strategist", …
     // Reads an explicit role word (Healer == Medic) and/or the two duals (which also pin the role).
     { const tw=line.match(/^twins\b\s*[:\-–—]?\s*(.*)$/i);
-      if(tw){ const body=tw[1]||'';
+      if(tw){ let body=tw[1]||'';
+        // a leading awareness/rev, optionally parenthesised ("Twins (A6R6): …", "Twins A6R6 - …") -> the Twins' build
+        { const am=body.match(/^\s*[(\[]?\s*(A[0-6]|DGR)\s*([RF][0-6X])?\s*[)\]]?\s*[:\-–—]?\s*/i);
+          if(am){ const ci={awareness:am[1].toUpperCase()}; if(am[2])ci.rev=_rev(am[2]); addChar('TWINS',ci); got.team=1; body=body.slice(am[0].length); } }
         const ROLE_ALIAS={healer:'Medic',medic:'Medic',sweeper:'Sweeper',assassin:'Assassin',strategist:'Strategist',saboteur:'Saboteur',guardian:'Guardian'};
         let foundRole=''; body.toLowerCase().split(/[^a-z]+/).forEach(w=>{ if(!foundRole&&ROLE_ALIAS[w]) foundRole=ROLE_ALIAS[w]; });
         // duals written with "and"/"+"/"/" joiners ("Fire and Ice", "Elec+Wind", "P/N") -> collect, normalised
@@ -1512,8 +1518,9 @@ function parseRotationText(text, opts){
   const teamNotes=_freeNotes.filter(l=>STAT_NOTE.test(l)).join('\n');
   setup.notes=_freeNotes.filter(l=>!STAT_NOTE.test(l)).join('\n');
 
-  // the credit is just the names: drop a trailing parenthetical flavour note ("Efes, Mac & Jeez (after some …)")
-  if(setup.credits){ const c=setup.credits.replace(/\s*\([^)]*\)\s*$/,'').trim(); if(c) setup.credits=c; }
+  // drop a trailing parenthetical FLAVOUR note on the credits ("Efes, Mac & Jeez (after some testing)") — but
+  // keep it when it names a contributor ("Godly (modified by Lemon)"): a "by" or a capitalised name inside.
+  if(setup.credits){ const c=setup.credits.replace(/\s*\(([^)]*)\)\s*$/,(m,inner)=> (/\bby\b/i.test(inner)||/[A-Z][a-z]/.test(inner)) ? m : '').trim(); if(c) setup.credits=c; }
 
   return { state:{setup,units,elucidator,backup,personas:pslots,teamNotes,turns}, warnings:warn, got };
 }
@@ -1540,5 +1547,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A195';
+  _g.VF_PARSER_VERSION = 'A196';
 })();
