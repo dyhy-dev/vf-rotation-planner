@@ -1155,6 +1155,10 @@ function parseRotationText(text, opts){
   const breakTE=turnEntries.filter(te=>te.brk).sort((a,b)=>a.num-b.num);
   const normalTE=turnEntries.filter(te=>!te.brk).sort((a,b)=>a.num-b.num);
   const hasExplicitBreaks=breakTE.length>0;
+  // a trailing "… - 9 stacks" / "- N stack(s)" tracker at the end of a turn is a turn NOTE, not an action —
+  // pull it off first (else its number is misread as an S-code, e.g. "- 3 stacks" -> a stray S3).
+  turnEntries.forEach(te=>{ const sm=String(te.content||'').match(/\s*[-–—]\s*(\d+\s*stacks?)\s*$/i);
+    if(sm){ te.note=[te.note,sm[1].replace(/\s+/g,' ').trim()].filter(Boolean).join(' '); te.content=te.content.slice(0,sm.index).trim(); } });
   // parse each turn's actions once (so we can detect Miku before naming) and cache them
   const _acts=new Map(); turnEntries.forEach(te=>_acts.set(te,parseTurnContent(te.content,warn)));
   // Hatsune Miku's kit grants two extra break turns, so a DOD with Miku may have up to 4 (else DOD_BREAKS).
@@ -1547,5 +1551,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A197';
+  _g.VF_PARSER_VERSION = 'A198';
 })();
