@@ -5999,7 +5999,7 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
   function _flipMove(doMove){ const items=_items(), first=items.map(el=>[el, el.getBoundingClientRect()]); doMove();
     first.forEach(([el,f])=>{ if(!el.parentElement) return; const l=el.getBoundingClientRect(), dx=f.left-l.left, dy=f.top-l.top; if(!dx&&!dy) return;
       el.style.transition='none'; el.style.transform='translate('+dx+'px,'+dy+'px)';
-      requestAnimationFrame(()=>{ el.style.transition='transform .17s ease'; el.style.transform=''; }); }); }
+      requestAnimationFrame(()=>{ el.style.transition='transform .34s ease'; el.style.transform=''; }); }); }
   function _clearFlip(){ if(!src||!src.parentElement) return; src.parentElement.querySelectorAll(kind.item).forEach(el=>{ el.style.transition=''; el.style.transform=''; }); }
   function place(x,y){ fx=x; fy=y; if(ghost) ghost.style.transform='translate('+(x-offX)+'px,'+(y-offY)+'px)'; }
   function tick(){ if(!dragging){ raf=0; return; }
@@ -6303,6 +6303,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260702i</div>
+<div class="version-tag">260702j</div>
 </body>
 </html>
