@@ -126,7 +126,9 @@ function cardPair(str){
 // highest score in a string -> "<n><M/B/T>". A range shares one magnitude ("23 - 30 mils" -> 30M); pick the larger.
 function scoreHigh(str){
   const MAG={b:1e9,bn:1e9,bil:1e9,billion:1e9,t:1e12,tril:1e12,trillion:1e12,m:1e6,mil:1e6,mils:1e6,mill:1e6,mills:1e6,million:1e6};
-  const ms=[...String(str||'').matchAll(/(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])?(?:[-\s]?ish)?\b/ig)];
+  // a decimal comma ("1,1 Bil" == 1.1 Bil) -> dot; only 1-2 trailing digits, so thousands groups ("1,100,000") stay
+  str=String(str||'').replace(/(\d),(\d{1,2})(?![\d,])/g,'$1.$2');
+  const ms=[...str.matchAll(/(\d+(?:\.\d+)?)\s*(billion|trillion|million|tril|bil|mil{1,2}s?|bn|[bmt])?(?:[-\s]?ish)?\b/ig)];
   let shared=''; ms.forEach(m=>{ if(m[2]) shared=m[2]; });
   let best=null;
   ms.forEach(m=>{ const mag=(m[2]||shared); if(!mag) return; const v=parseFloat(m[1])*(MAG[mag.toLowerCase()]||1);
@@ -650,7 +652,7 @@ function parseRotationText(text, opts){
         if(a&&a.type==='char'){ if(a.name==='TWINS'){ const RA={healer:'Medic',medic:'Medic',sweeper:'Sweeper',assassin:'Assassin',strategist:'Strategist',saboteur:'Saboteur',guardian:'Guardian',virtuoso:'Virtuoso'}; const rr=RA[rm[1].toLowerCase()]; if(rr)twinsRole=rr; }
           line=rm[2].trim(); low=line.toLowerCase(); } } }
     // a stand-alone dagger-name line ("Glimmer", "Starry Compass") is Wonder's dagger, not the title or a note
-    if(!inNotesSection && !dagger && line.trim()){ const tr=line.trim(); const dgl=matchDagger(tr);
+    if(!inNotesSection && !dagger && line.trim()){ const tr=line.trim().replace(/[;,.]+$/,'').trim(); const dgl=matchDagger(tr);   // tolerate a trailing ";"/"." ("Cyclotorn;")
       if(dgl && (tr.split(/\s+/).length===1 || dgl.toLowerCase()===tr.toLowerCase()) && !resolveActor((tr.split(/\s+/)[0])||'')){ dagger=dgl; got.dagger=1; continue; } }
     if(line==='\u0000') continue;
     if(inNotesSection){
@@ -877,7 +879,10 @@ function parseRotationText(text, opts){
         const lo=ws.slice(k).join(' ').replace(/^[\s|,;:.\-–—+&/]+/,'').replace(/\s+/g,' ').trim();
         if(lo && /[A-Za-z]/.test(lo)) note=lo;
       }
-      if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote || note)){
+      // a trailing "(note)" alone counts as a build line only when the name part IS just the unit ("Chord (does
+      // DPS)") — not when prose leads into it ("Twins 2 target minion different (down point)"), which is a note.
+      const _nameOnly=_np.filter(Boolean).length<=2;
+      if(a2 && a2.type==='char' && (am2 || info.awareness || cp2.space || cp2.sunsky || statNote || (note && _nameOnly))){
         if(a2.name==='TWINS'){ (cardsPart.match(/[A-Za-z]+\/[A-Za-z]+/g)||[]).forEach(tok=>{ const d=normDual(tok); if(d&&!headerDuals.includes(d))headerDuals.push(d); }); }
         const ci={}; if(info.awareness)ci.awareness=info.awareness; if(info.rev)ci.rev=info.rev; if(cp2.space)ci.space=cp2.space; if(cp2.sunsky)ci.sunsky=cp2.sunsky; if(note)ci.note=note;
         addChar(a2.name, ci);
@@ -956,7 +961,7 @@ function parseRotationText(text, opts){
     // title line: only the very first header line
     if(hi===0 && !titleConsumed){
       titleConsumed=true;
-      let t2=line;
+      let t2=line.replace(/^\s*\d{1,2}[.)]\s+/,'');   // a leading ordered-list marker on the title ("1. 4.4 Fafnir …")
       // inline labelled fields in the title line ("Title  credit : me  Score : 23 - 30 mils  Notes : ...")
       // -> peel each labelled value off (it runs to the next label) so the leftover is the clean title.
       { const labRe=/\b(credits?|score|notes?|boss|patch|tier)\s*:\s*/ig; const hits=[]; let lm;
@@ -1007,6 +1012,8 @@ function parseRotationText(text, opts){
       // boss + mode
       // mode first, so an SOS title can match its own boss list (persona-bosses like Melchizedek aren't in DATA.bossNames)
       const mm=t2.match(/\b(MLD|DOD|NOD|SOS)\b/i); if(mm){ setup.type=mm[1].toUpperCase(); got.mode=1; t2=t2.replace(/\b(MLD|DOD|NOD|SOS)\b/i,' '); }
+      // spending tier in the title ("… MLD - Dolphin", "Whale Fafnir"): pull it into the tier field, out of the name
+      { const tm=t2.match(/\b(dolphin|whale|f2p|minnow)\b/i); if(tm && !setup.tier){ setup.tier=tm[1].toUpperCase(); t2=t2.replace(tm[0],' '); } }
       // Strong/Weak boss side: an explicit "weak side"/"strongside" tag anywhere is unambiguous (even inside a
       // "(weakside, 306M)" parenthetical); a bare leading "Strong"/"Weak" also counts, but only at the title start
       // so a "Strong"/"Weak" inside the rotation name isn't mistaken for it. A boss side is an MLD-only concept,
@@ -1533,5 +1540,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A194';
+  _g.VF_PARSER_VERSION = 'A195';
 })();
