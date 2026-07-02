@@ -4373,6 +4373,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     hoverEl.style.visibility=''; }
   function showHover(e,anchor,pin){ hoverEl.innerHTML=buildHover(e); hoverEl.classList.toggle('pinned',!!pin); placeHover(anchor); const x=hoverEl.querySelector('.lib-hover-x'); if(x) x.onclick=ev=>{ ev.stopPropagation(); hideHover(); }; }
   function hideHover(){ hoverEl.hidden=true; hoverEl.classList.remove('pinned'); _pinId=''; }
+  window.__hideLibHover=hideHover;   /* let the drag system dismiss the preview when a reorder starts */
   function _flashItem(id){ if(!id||!list) return; const el=list.querySelector('[data-id="'+id+'"]'); if(!el) return; try{ el.scrollIntoView({block:'nearest'}); }catch(e){}   /* bring a freshly duplicated entry into view if it landed off-screen */
     el.classList.remove('lib-flash'); void el.offsetWidth; el.classList.add('lib-flash'); setTimeout(()=>el.classList.remove('lib-flash'),1100); }
   /* per-entry Export menu: the full toolbar Export dropdown, acting on the entry's state (see global exportEntry).
@@ -4599,7 +4600,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     const ld=document.createElement('button'); ld.className='lib-mini ico'; ld.innerHTML=libSvg('file-import'); ld.title='Load'; ld.setAttribute('aria-label','Load'); ld.onclick=()=>{ if(confirm('Load "'+e.name+'"? This replaces your current rotation.')){ if(libLoad(e.id)){ closeCollections(); close(); } } };
     const del=document.createElement('button'); del.className='lib-mini ico'; del.innerHTML=libSvg('trash'); del.title='Remove from this collection'; del.setAttribute('aria-label','Remove from collection'); del.onclick=()=>{ libSetColls(e.id, _libColls(e).filter(c=>c!==_collView)); _setCollOrder(_collView, _collOrderFor(_collView).filter(id=>id!==e.id)); renderCollections(); };
     row.append(ld,del); btns.append(row);
-    it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover()) showHover(e,it,false); });
+    it.addEventListener('mouseenter',()=>{ if(!_pinId && _canHover() && !document.body.classList.contains('touch-dragging')) showHover(e,it,false); });   /* no preview while a reorder drag is in progress */
     it.addEventListener('mouseleave',()=>{ if(!_pinId) hoverEl.hidden=true; });
     it.append(grip,star,main,info,btns); return it;
   }
@@ -6008,7 +6009,8 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
         if(fx<b.left+m) el.scrollLeft-=14; else if(fx>b.right-m) el.scrollLeft+=14; } }
     else { const vh=window.innerHeight, m=60; if(fy<m) window.scrollBy(0,-14); else if(fy>vh-m) window.scrollBy(0,14); }
     raf=requestAnimationFrame(tick); }
-  function start(x,y){ dragging=true; _detectAxis(); src.classList.add('dragging'); document.body.classList.add('touch-dragging');
+  function start(x,y){ dragging=true; _detectAxis(); if(window.__hideLibHover) window.__hideLibHover();   /* dismiss any library/collection preview card while reordering */
+    src.classList.add('dragging'); document.body.classList.add('touch-dragging');
     const r=src.getBoundingClientRect();
     ghost=src.cloneNode(true); ghost.classList.add('touch-ghost'); ghost.classList.remove('dragging');
     // force the floating position inline (keeps the clone's other inline styles, e.g. a unit's --ux accent) —
@@ -6304,6 +6306,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260702k</div>
+<div class="version-tag">260702l</div>
 </body>
 </html>
