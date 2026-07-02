@@ -217,7 +217,6 @@ body.view-mode > *:not(#viewRoot):not(#collViewRoot):not(#exportView):not(#guide
 .unit.drag-over{outline:2px dashed var(--blue-strong); outline-offset:2px}
 /* touch long-press reorder: floating ghost + callout suppression on the grab surfaces */
 .touch-ghost{position:fixed; left:0; top:0; margin:0; pointer-events:none; z-index:9000; opacity:.93; border-radius:12px; box-shadow:0 14px 34px #000b}
-.drop-line{position:fixed; z-index:9001; background:var(--blue-strong); border-radius:2px; pointer-events:none; box-shadow:0 0 6px var(--blue-strong)}   /* touch: marks where the dragged tile will land */
 body.touch-dragging{-webkit-user-select:none; user-select:none}
 .unit .art, .persona-col .pcol-img img{-webkit-touch-callout:none}
 .persona-col .pcol-img img, .unit .art{cursor:grab}
@@ -529,6 +528,19 @@ body.theme-light .coll-web-face, body.theme-light .lib-hface{background:var(--fi
 .coll-web-faces{display:flex; gap:5px; margin-top:auto; padding-top:10px; flex-wrap:nowrap}   /* pinned to the card bottom (margin-top:auto); the free space sits between the meta and the icons. exactly 6 faces span the full card width (5px gaps) */
 .coll-web-face{width:calc((100% - 25px)/6); aspect-ratio:1; height:auto; border-radius:6px; overflow:hidden; background:var(--panel2); border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto}   /* --panel2 (button bg) so black icon contours stay visible in dark mode */
 .coll-web-face img{width:100%; height:100%; object-fit:cover; display:block}
+.coll-web-face{cursor:default}
+/* face hover card (build details from the character card) */
+.coll-face-card{position:fixed; z-index:9500; display:none; max-width:250px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; box-shadow:0 14px 34px #000b; pointer-events:none; color:var(--text)}
+.coll-face-card .fc-name{font:700 15px Oswald,sans-serif; letter-spacing:.02em; margin-bottom:6px}
+.coll-face-card .fc-rows{display:flex; flex-direction:column; gap:3px; font-size:12px}
+.coll-face-card .fc-row{display:flex; justify-content:space-between; gap:12px}
+.coll-face-card .fc-row span{color:var(--muted); flex:0 0 auto}
+.coll-face-card .fc-row b{color:var(--text); font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
+.coll-face-card .fc-personas{margin-top:8px}
+.coll-face-card .fc-plabel{font:700 10px Inter,sans-serif; letter-spacing:.06em; text-transform:uppercase; color:var(--blue-strong); margin-bottom:3px}
+.coll-face-card .fc-persona{font-size:12px; color:var(--text)}
+.coll-face-card .fc-note{margin-top:8px; padding-top:6px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.4; white-space:pre-wrap}
+.coll-face-card .fc-empty{font-size:12px; color:var(--muted)}
 .coll-web-note{font-size:13px; color:#cdd3e3; margin-top:8px; line-height:1.45; white-space:pre-wrap}
 body.theme-light .coll-web-note{color:#37415a}
 .coll-web-bar{max-width:900px; margin:0 auto 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
@@ -3540,13 +3552,13 @@ function syncSaveName(n){ const c=getSyncCode(); if(!c) return Promise.resolve(f
 function _hashStr(str){ let h1=0xdeadbeef,h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); } h1=Math.imul(h1^(h1>>>16),2246822507); h1^=Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507); h2^=Math.imul(h1^(h1>>>13),3266489909); return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }   /* cyrb53 */
 function _syncSavedSig(){ try{ return localStorage.getItem(SYNC_SIG)||''; }catch(e){ return ''; } }
 function _setSyncSavedSig(s){ try{ if(s) localStorage.setItem(SYNC_SIG,s); else localStorage.removeItem(SYNC_SIG); }catch(e){} }
-function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib+JSON.stringify(loadCollFavs())+JSON.stringify(loadCollOrder())+JSON.stringify(loadCollMeta())+JSON.stringify(_bannerDismissed())); }   /* content fingerprint (no ts) so we only push when something actually changed */
+function _syncSig(){ let lib='[]'; try{ lib=localStorage.getItem(LIB_KEY)||'[]'; }catch(e){} return _hashStr(JSON.stringify(settings)+''+lib+JSON.stringify(loadCollFavs())+JSON.stringify(loadCollOrder())+JSON.stringify(loadCollMeta())+JSON.stringify(_collDrafts())+JSON.stringify(_bannerDismissed())); }   /* content fingerprint (no ts) so we only push when something actually changed */
 function _syncMetaTs(){ try{ return +localStorage.getItem(SYNC_META)||0; }catch(e){ return 0; } }
 function _setSyncMetaTs(t){ try{ localStorage.setItem(SYNC_META, String(t||0)); }catch(e){} }
 function _syncStatus(m,err){ const el=document.getElementById('syncStatus'); if(el){ el.textContent=m||''; el.classList.toggle('err',!!err); } }
 function syncCodeSet(code){ _syncCode=(code||'').trim(); try{ if(_syncCode) localStorage.setItem(SYNC_KEY,_syncCode); else localStorage.removeItem(SYNC_KEY); }catch(e){} }
-function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib(), collFavs:loadCollFavs(), collOrder:loadCollOrder(), collMeta:loadCollMeta(), bannerDismissed:_bannerDismissed() }; }
-function _syncApply(d){ _syncApplying=true; try{ if(Array.isArray(d.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(d.collFavs.filter(x=>typeof x==='string'))); }catch(e){} } if(d.collOrder && typeof d.collOrder==='object' && !Array.isArray(d.collOrder)){ try{ localStorage.setItem(COLL_ORDER_KEY, JSON.stringify(d.collOrder)); }catch(e){} } if(d.collMeta && typeof d.collMeta==='object' && !Array.isArray(d.collMeta)){ try{ localStorage.setItem(COLL_META_KEY, JSON.stringify(d.collMeta)); }catch(e){} } applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); if(d.bannerDismissed && typeof d.bannerDismissed==='object' && !Array.isArray(d.bannerDismissed)){ try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(d.bannerDismissed)); }catch(e){} try{ const c=JSON.parse(localStorage.getItem(BANNER_KEY)); if(c) showBanner(c); }catch(e){} } }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
+function _syncSnapshot(){ return { v:1, ts:Date.now(), settings:settings, library:loadLib(), collFavs:loadCollFavs(), collOrder:loadCollOrder(), collMeta:loadCollMeta(), collDrafts:_collDrafts(), bannerDismissed:_bannerDismissed() }; }
+function _syncApply(d){ _syncApplying=true; try{ if(Array.isArray(d.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(d.collFavs.filter(x=>typeof x==='string'))); }catch(e){} } if(d.collOrder && typeof d.collOrder==='object' && !Array.isArray(d.collOrder)){ try{ localStorage.setItem(COLL_ORDER_KEY, JSON.stringify(d.collOrder)); }catch(e){} } if(d.collMeta && typeof d.collMeta==='object' && !Array.isArray(d.collMeta)){ try{ localStorage.setItem(COLL_META_KEY, JSON.stringify(d.collMeta)); }catch(e){} } if(d.collDrafts && typeof d.collDrafts==='object' && !Array.isArray(d.collDrafts)){ try{ localStorage.setItem(COLL_DRAFT_KEY, JSON.stringify(d.collDrafts)); }catch(e){} } applyImportedSettings(JSON.stringify({settings:d.settings||{}, library:Array.isArray(d.library)?d.library:[]})); if(d.bannerDismissed && typeof d.bannerDismissed==='object' && !Array.isArray(d.bannerDismissed)){ try{ localStorage.setItem(BANNER_DISMISS, JSON.stringify(d.bannerDismissed)); }catch(e){} try{ const c=JSON.parse(localStorage.getItem(BANNER_KEY)); if(c) showBanner(c); }catch(e){} } }catch(e){} _syncApplying=false; _setSyncSavedSig(_syncSig()); }
 /* resolves with: 'applied' (server was newer, taken), 'empty' (valid slot, nothing newer -> caller may push local up), 'unknown' (bad code), 'error' */
 function syncPull(silent){ return new Promise(resolve=>{ if(!_syncCode){ if(!silent) _syncStatus('Enter a sync code first.',true); resolve('error'); return; } if(!silent) _syncStatus('Syncing…');
   fetch(SHORTENER+'/sync?code='+encodeURIComponent(_syncCode),{cache:'no-store'}).then(r=>{ if(r.status===404){ if(!silent) _syncStatus('This sync code is not active.',true); return '__404__'; } return r.ok?r.json():Promise.reject(); }).then(d=>{ if(d==='__404__'){ resolve('unknown'); return; } if(!d){ resolve('error'); return; } if(d.ts && d.ts>_syncMetaTs()){ _syncApply(d); _setSyncMetaTs(d.ts); if(!silent) _syncStatus('Loaded the latest from the cloud.'); resolve('applied'); } else { if(!silent) _syncStatus('Already up to date.'); resolve('empty'); } }).catch(()=>{ if(!silent) _syncStatus('Could not reach the sync service.',true); resolve('error'); }); }); }
@@ -3934,9 +3946,9 @@ function _collCodeForName(name){ const m=_ownedColls(); const sc=getSyncCode(); 
 /* editor drafts (unpublished working copies), keyed by collection name */
 const COLL_DRAFT_KEY='vf-coll-drafts-v1';
 function _collDrafts(){ try{ return JSON.parse(localStorage.getItem(COLL_DRAFT_KEY))||{}; }catch(e){ return {}; } }
-function _saveCollDraft(name,obj){ if(!name) return; const m=_collDrafts(); m[name]=obj; try{ localStorage.setItem(COLL_DRAFT_KEY,JSON.stringify(m)); }catch(e){} }
+function _saveCollDraft(name,obj){ if(!name) return; const m=_collDrafts(); m[name]=obj; try{ localStorage.setItem(COLL_DRAFT_KEY,JSON.stringify(m)); }catch(e){} syncSchedulePush(); }   /* drafts (incl. sub-category headers) sync across devices */
 function _getCollDraft(name){ const m=_collDrafts(); return name&&m[name]?m[name]:null; }
-function _delCollDraft(name){ const m=_collDrafts(); if(name&&m[name]){ delete m[name]; try{ localStorage.setItem(COLL_DRAFT_KEY,JSON.stringify(m)); }catch(e){} } }
+function _delCollDraft(name){ const m=_collDrafts(); if(name&&m[name]){ delete m[name]; try{ localStorage.setItem(COLL_DRAFT_KEY,JSON.stringify(m)); }catch(e){} syncSchedulePush(); } }
 /* ---------- shareable collections (Phase 1: reference-based object + JSON) ----------
    A collection is a lightweight, reference-based object: each item stores a self-contained #v= fragment
    (the compressed read-only-view state — "the link"), not the full JSON. Owner is tied to a sync code later
@@ -3969,6 +3981,27 @@ function importCollectionJSON(obj){
 function _nbMeta(parts){ const p=(parts||[]).filter(Boolean); return p.map((t,i)=>'<span class="mw">'+esc(String(t))+(i<p.length-1?' ·':'')+'</span>').join(' '); }
 /* the shared rotation meta building blocks, so the collection editor + webview always show the same info */
 function _rotMetaParts(st){ const s=(st&&st.setup)||{}; const t=(st&&st.turns||[]).length; return [s.type, s.side, s.boss, s.patch?('Patch '+s.patch):'', String(s.score||'').trim()?('Score '+s.score):'', t?(t+' turns'):'']; }
+/* hover card for a collection-webview face: shows that unit's build (from its character card); WONDER also lists its personas (no skills) */
+let _faceCardEl=null;
+function _faceCardHTML(m){ const u=m.u||{}; const rows=[];
+  const add=(lab,val)=>{ if(val&&String(val).trim()) rows.push('<div class="fc-row"><span>'+esc(lab)+'</span><b>'+esc(String(val).trim())+'</b></div>'); };
+  add('Awareness', u.awareness); add('Reforge', u.rev); add('Dagger', u.gear); add('Space', u.space); add('Sun/Moon/Star/Sky', u.sunsky); add('Role', u.role); add('Companion', u.companion);
+  let html='<div class="fc-name" style="color:'+esc(uiAccent(m.name))+'">'+esc(charDisp(m.name)||m.name)+'</div>';
+  if(rows.length) html+='<div class="fc-rows">'+rows.join('')+'</div>';
+  if(m.personas){ const ps=m.personas.map(p=>((p&&p.name)||'').trim()).filter(Boolean); if(ps.length) html+='<div class="fc-personas"><div class="fc-plabel">Personas</div>'+ps.map(p=>'<div class="fc-persona">'+esc(p)+'</div>').join('')+'</div>'; }
+  if((u.note||'').trim()) html+='<div class="fc-note">'+esc(u.note.trim())+'</div>';
+  if(!rows.length && !(m.personas&&m.personas.some(p=>(p&&p.name||'').trim())) && !(u.note||'').trim()) html+='<div class="fc-empty">No build details.</div>';
+  return html; }
+function _showFaceCard(m, el){ if(!(window.matchMedia&&matchMedia('(hover:hover)').matches)) return;   /* hover-capable pointers only */
+  const host=document.getElementById('collViewRoot')||document.body;   /* must live inside collViewRoot — view-mode CSS hides other body children */
+  if(!_faceCardEl){ _faceCardEl=document.createElement('div'); _faceCardEl.className='coll-face-card'; }
+  if(_faceCardEl.parentElement!==host) host.appendChild(_faceCardEl);
+  _faceCardEl.innerHTML=_faceCardHTML(m); _faceCardEl.style.display='block';
+  const r=el.getBoundingClientRect(), cw=_faceCardEl.offsetWidth, ch=_faceCardEl.offsetHeight, mg=8;
+  let left=r.left+r.width/2-cw/2; left=Math.max(mg, Math.min(left, innerWidth-mg-cw));
+  let top=r.bottom+8; if(top+ch>innerHeight-mg) top=r.top-ch-8; if(top<mg) top=mg;
+  _faceCardEl.style.left=left+'px'; _faceCardEl.style.top=top+'px'; }
+function _hideFaceCard(){ if(_faceCardEl) _faceCardEl.style.display='none'; }
 /* build one rotation card for the public collection webview (decoded state -> preview + note; links to its #v= view) */
 function _collWebCard(it, st){
   const a=document.createElement('a'); a.className='coll-web-card';
@@ -3980,9 +4013,14 @@ function _collWebCard(it, st){
   if(st){
     if((s.credits||'').trim()){ const cr=document.createElement('div'); cr.className='coll-web-card-cred'; cr.textContent='by '+s.credits; a.appendChild(cr); }   /* credits as a subtitle directly under the name */
     const meta=document.createElement('div'); meta.className='coll-web-card-meta'; meta.innerHTML=_nbMeta(_rotMetaParts(st)); a.appendChild(meta);
-    const team=[]; (st.units||[]).forEach(u=>{ if(u&&(u.name||'').trim()) team.push(u.name.trim()); }); if(st.backup&&st.backup.name) team.push(st.backup.name.trim()); if(st.elucidator&&st.elucidator.name) team.push(st.elucidator.name.trim());
+    const team=[];   // {name, u, personas} — carry the unit object so a hover card can show its build
+    (st.units||[]).forEach(u=>{ if(u&&(u.name||'').trim()) team.push({name:u.name.trim(), u, personas:(u.name.trim().toUpperCase()==='WONDER')?(st.personas||[]):null}); });
+    if(st.backup&&st.backup.name) team.push({name:st.backup.name.trim(), u:st.backup});
+    if(st.elucidator&&st.elucidator.name) team.push({name:st.elucidator.name.trim(), u:st.elucidator});
     if(team.length){ const tr=document.createElement('div'); tr.className='coll-web-faces';
-      team.forEach(n=>{ const src=faceImg(n); const sp=document.createElement('span'); sp.className='coll-web-face'; sp.title=charDisp(n)||n; sp.style.borderColor=uiAccent(n); if(src){ const im=document.createElement('img'); im.src=src; im.alt=''; im.loading='lazy'; im.onerror=function(){ faceFallback(this); }; sp.appendChild(im); } tr.appendChild(sp); }); a.appendChild(tr); }
+      team.forEach(m=>{ const n=m.name, src=faceImg(n); const sp=document.createElement('span'); sp.className='coll-web-face'; sp.title=charDisp(n)||n; sp.style.borderColor=uiAccent(n); if(src){ const im=document.createElement('img'); im.src=src; im.alt=''; im.loading='lazy'; im.onerror=function(){ faceFallback(this); }; sp.appendChild(im); }
+        sp.addEventListener('mouseenter',()=>_showFaceCard(m,sp)); sp.addEventListener('mouseleave',_hideFaceCard);   /* hover -> the character's build card */
+        tr.appendChild(sp); }); a.appendChild(tr); }
   }
   if((it.note||'').trim()){ const note=document.createElement('div'); note.className='coll-web-note'; note.textContent=it.note; a.appendChild(note); }
   return a;
@@ -4063,7 +4101,7 @@ async function importCollectionByCode(code, preObj){
 }
 function exportSettings(){
   try{
-    const backup={ app:'vfrp', version:1, exportedAt:new Date().toISOString(), settings, library:loadLib(), collFavs:loadCollFavs(), collOrder:loadCollOrder(), collMeta:loadCollMeta() };
+    const backup={ app:'vfrp', version:1, exportedAt:new Date().toISOString(), settings, library:loadLib(), collFavs:loadCollFavs(), collOrder:loadCollOrder(), collMeta:loadCollMeta(), collDrafts:_collDrafts() };
     const blob=new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a');
     a.href=url; a.download='vfrp-backup.json'; document.body.appendChild(a); a.click();
@@ -4091,6 +4129,7 @@ function applyImportedSettings(text){
   if(isBackup && Array.isArray(obj.collFavs)){ try{ localStorage.setItem(COLLFAV_KEY, JSON.stringify(obj.collFavs.filter(x=>typeof x==='string'))); }catch(e){} any=true; }
   if(isBackup && obj.collOrder && typeof obj.collOrder==='object' && !Array.isArray(obj.collOrder)){ try{ localStorage.setItem(COLL_ORDER_KEY, JSON.stringify(obj.collOrder)); }catch(e){} any=true; }
   if(isBackup && obj.collMeta && typeof obj.collMeta==='object' && !Array.isArray(obj.collMeta)){ try{ localStorage.setItem(COLL_META_KEY, JSON.stringify(obj.collMeta)); }catch(e){} any=true; }
+  if(isBackup && obj.collDrafts && typeof obj.collDrafts==='object' && !Array.isArray(obj.collDrafts)){ try{ localStorage.setItem(COLL_DRAFT_KEY, JSON.stringify(obj.collDrafts)); }catch(e){} any=true; }
   return any;
 }
 document.getElementById('settingsExport').onclick=exportSettings;
@@ -4626,7 +4665,7 @@ window.addEventListener('resize', ()=>{ if(rotationPreviewOpen) renderRotationPr
     if(!sc){ if(window.openSyncSetup) openSyncSetup(()=>publishCollection(obj, existingCode)); return; }   /* no code yet: explain + generate one, then continue publishing */
     const btn=document.getElementById('collEdPublish'); if(btn){ btn.disabled=true; btn.textContent='Publishing…'; }
     fetch(SHORTENER+'/coll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:sc, collcode:existingCode||'', coll:obj})})
-      .then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ if(!j||!j.code) throw 0; _saveOwnedColl(j.code, obj.name); _ceCode=j.code;
+      .then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ if(!j||!j.code) throw 0; _saveOwnedColl(j.code, obj.name); _saveCollDraft(_ceKey||obj.name||'', obj); _ceCode=j.code;   /* persist + sync the published structure (incl. sub-category headers) so it survives across devices */
         const url=location.origin+location.pathname+'#c='+j.code;
         openShareModal({title:'Collection published', text:url, readonly:true, primaryLabel:'Copy link', onPrimary:copyShareText, open:true, code:j.code, discordUrl:url, discordLabel:(obj.name||'Collection'), hint:'Anyone with this link sees the collection. The code below also adds it to a library via "Add a collection".'});
       }).catch(err=>{ alert('Could not publish the collection'+(err===403?': your sync code is not active (set it up in Settings first).':(' (error '+err+').'))); })
@@ -5944,7 +5983,7 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     { handle:'.lib-item .ccgrip', item:'.lib-item[data-corder]', attr:'corder', scroll:null,
       drop(f,t){ if(f===t||typeof window.__collReorder!=='function') return; window.__collReorder(f,t); } },
   ];
-  let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, offX=0, offY=0, fx=0, fy=0, raf=0, mouse=false, lastTouch=0, horiz=false, insRef=null, insBefore=false, dropLine=null;
+  let kind=null, from=-1, src=null, ghost=null, timer=0, dragging=false, sx=0, sy=0, offX=0, offY=0, fx=0, fy=0, raf=0, mouse=false, lastTouch=0, horiz=false;
   function resolve(tg){ if(!tg||!tg.closest) return null;
     if(tg.closest('input,select,textarea,button,a,.combo-clear')) return null;   // leave real controls clickable
     for(const k of KINDS){ const h=tg.closest(k.handle); if(h){ const it=h.closest(k.item); if(it&&it.dataset[k.attr]!=null){ if(k.locked&&k.locked(+it.dataset[k.attr])) return null; return {k,it}; } } }
@@ -5956,11 +5995,12 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     if(!tg||tg===src||!src.parentElement||!src.parentElement.contains(tg)) return null;
     if(kind.locked && kind.locked(+tg.dataset[kind.attr])) return null;   // don't reorder into a locked zone (e.g. DOD break turns)
     const r=tg.getBoundingClientRect(); const before=horiz?(x<r.left+r.width/2):(y<r.top+r.height/2); return {tg, before}; }
-  function clearLine(){ if(dropLine){ dropLine.remove(); dropLine=null; } insRef=null; }
-  function showLine(tg, before){ if(!dropLine){ dropLine=document.createElement('div'); dropLine.className='drop-line'; document.body.appendChild(dropLine); }
-    dropLine.style.display='block'; const r=tg.getBoundingClientRect(), T=3;
-    if(horiz){ dropLine.style.left=((before?r.left:r.right)-T/2)+'px'; dropLine.style.top=r.top+'px'; dropLine.style.width=T+'px'; dropLine.style.height=r.height+'px'; }
-    else { dropLine.style.top=((before?r.top:r.bottom)-T/2)+'px'; dropLine.style.left=r.left+'px'; dropLine.style.height=T+'px'; dropLine.style.width=r.width+'px'; } }
+  /* FLIP: run doMove (a DOM reorder), then animate every item from its old box to its new one so tiles slide */
+  function _flipMove(doMove){ const items=_items(), first=items.map(el=>[el, el.getBoundingClientRect()]); doMove();
+    first.forEach(([el,f])=>{ if(!el.parentElement) return; const l=el.getBoundingClientRect(), dx=f.left-l.left, dy=f.top-l.top; if(!dx&&!dy) return;
+      el.style.transition='none'; el.style.transform='translate('+dx+'px,'+dy+'px)';
+      requestAnimationFrame(()=>{ el.style.transition='transform .17s ease'; el.style.transform=''; }); }); }
+  function _clearFlip(){ if(!src||!src.parentElement) return; src.parentElement.querySelectorAll(kind.item).forEach(el=>{ el.style.transition=''; el.style.transform=''; }); }
   function place(x,y){ fx=x; fy=y; if(ghost) ghost.style.transform='translate('+(x-offX)+'px,'+(y-offY)+'px)'; }
   function tick(){ if(!dragging){ raf=0; return; }
     if(kind.scroll){ const el=document.getElementById(kind.scroll); if(el){ const b=el.getBoundingClientRect(), m=46;
@@ -5978,21 +6018,18 @@ document.addEventListener('wheel', e=>{ if(!e.ctrlKey) return; e.preventDefault(
     document.body.appendChild(ghost); place(x,y);
     if(!mouse && navigator.vibrate){ try{ navigator.vibrate(15); }catch(_){} }
     raf=requestAnimationFrame(tick); }
-  /* desktop: reorder the tiles live (move the dragged element in the DOM, native layout reflows the rest);
-     touch: leave the tiles put and draw a line where the tile will land. drop() re-renders authoritatively. */
+  /* both mouse AND touch reorder the tiles live (move the dragged element in the DOM, native layout reflows the
+     rest, FLIP animates the slide). drop() re-renders authoritatively on release. */
   function moveTo(x,y){ place(x,y); const t=_target(x,y);
-    if(mouse){ if(t){ if(t.before) t.tg.before(src); else t.tg.after(src); } }
-    else { if(t){ insRef=t.tg; insBefore=t.before; showLine(t.tg, t.before); } else { insRef=null; if(dropLine) dropLine.style.display='none'; } } }
+    if(t){ _flipMove(()=>{ if(t.before) t.tg.before(src); else t.tg.after(src); }); } }
   function end(){ clearTimeout(timer); timer=0; if(raf){ cancelAnimationFrame(raf); raf=0; }
-    if(ghost){ ghost.remove(); ghost=null; } if(src) src.classList.remove('dragging');
-    clearLine(); document.body.classList.remove('touch-dragging');
+    _clearFlip(); if(ghost){ ghost.remove(); ghost=null; } if(src) src.classList.remove('dragging');
+    document.body.classList.remove('touch-dragging');
     dragging=false; kind=null; from=-1; src=null;
     document.removeEventListener('touchmove', tmove, {passive:false});
     document.removeEventListener('touchend', tup); document.removeEventListener('touchcancel', tup);
     document.removeEventListener('mousemove', mmove); document.removeEventListener('mouseup', mup); }
-  function finish(){ if(dragging){ const k=kind, f=from; let to=-1;
-      if(mouse){ to=_items().indexOf(src); }                                   // desktop: the live DOM position is the answer
-      else if(insRef){ const dt=_items().indexOf(insRef); to=insBefore?dt:dt+1; if(f<to) to--; }   // touch: derive it from the line target
+  function finish(){ if(dragging){ const k=kind, f=from; const to=_items().indexOf(src);   // the live DOM position is the answer for both mouse and touch
       end(); if(to>=0 && to!==f) k.drop(f,to); return; }
     end(); }
   // touch: long-press to pick up; a move before that is a scroll
@@ -6266,6 +6303,6 @@ if(_syncCode) syncPull(true).then(()=>{ if(_syncSig()!==_syncSavedSig()) syncPus
   <button type="button" id="ebTop" class="eb-btn eb-icon" title="Scroll to the top" aria-label="Scroll to the top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
 </div>
 <div id="ebHistMenu" class="eb-hist-menu" role="menu" hidden></div>
-<div class="version-tag">260702h</div>
+<div class="version-tag">260702i</div>
 </body>
 </html>
