@@ -699,7 +699,7 @@ function parseRotationText(text, opts){
             // tolerate a leading prefix before the label ("June 18 Expected Score: 2,700,000,000"); a
             // colon/dash separator is then required, and the prefix must carry no colon of its own.
             || (hi>0 && line.match(new RegExp('^[^:]*?\\b'+_SCPRE+'scores?\\b\\s*([:\u2013\u2014-])\\s*(\\d.*)$','i')));
-      if(sm){ const v=sm[2].trim(); if(v && (sm[1] || !setup.score)){ setup.score=v; got.score=1; } continue; } }
+      if(sm){ const v=sm[2].trim().replace(/(\d),(\d{1,2})(?![\d,])/g,'$1.$2'); if(v && (sm[1] || !setup.score)){ setup.score=v; got.score=1; } continue; } }   // US decimal: "1,1 Bil" -> "1.1 Bil" (thousands groups kept)
 
     // Wonder line: "Wonder [R#] [Dagger] [, persona (skills), …]"
     if(/^wonder\b/i.test(line)){
@@ -977,7 +977,7 @@ function parseRotationText(text, opts){
             if(/^credit/.test(h.lab)){ const cp=val.split(/\s+[-–—]\s+/);   // "Arcto/MikeP - 5bil+" -> credit + trailing score
               if(cp[0].trim() && !setup.credits){ setup.credits=cp[0].trim(); got.credit=1; }
               for(let i=1;i<cp.length;i++){ if(!setup.score){ const sc=scoreHigh(cp[i]); if(sc){ setup.score=sc; got.score=1; } } } }
-            else if(h.lab==='score'){ const sc=scoreHigh(val); if(sc && !setup.score){ setup.score=sc; got.score=1; } }
+            else if(h.lab==='score'){ const v=val.replace(/(\d),(\d{1,2})(?![\d,])/g,'$1.$2').trim(); if(v && /\d/.test(v) && !setup.score){ setup.score=v; got.score=1; } }   // keep the value verbatim (US decimal): "1,1 Bil" -> "1.1 Bil"
             else if(/^note/.test(h.lab)){ if(val) noteLines.push(val); }
             else if(h.lab==='boss'){ const b=matchBoss(val); if(b && !setup.boss){ setup.boss=b; got.boss=1; } }
             else if(h.lab==='patch'){ const pm=(val.match(/\d{1,2}\.\d+/)||[])[0]; if(pm && !setup.patch){ setup.patch=pm; got.patch=1; } } });
@@ -1547,5 +1547,5 @@ function parseRotationText(text, opts){
   _g.VALID_DUALS       = VALID_DUALS;
   _g.CODE              = CODE;
   // single source of truth for the parser version — bump +1 on every change (A199 -> B001). See CLAUDE.md.
-  _g.VF_PARSER_VERSION = 'A196';
+  _g.VF_PARSER_VERSION = 'A197';
 })();
